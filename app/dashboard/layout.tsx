@@ -11,7 +11,8 @@ import {
   Settings, 
   LogOut, 
   Store,
-  LayoutTemplate
+  LayoutTemplate,
+  UtensilsCrossed // <--- NUEVO ICONO IMPORTADO
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [restaurantName, setRestaurantName] = useState('Cargando...');
 
-  // Verificar sesión y cargar nombre del local
   useEffect(() => {
     async function getData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -28,7 +28,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      // Buscar el nombre del restaurante para ponerlo en el Sidebar
       const { data: rest } = await supabase
         .from('restaurants')
         .select('name')
@@ -45,11 +44,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login');
   };
 
-  // Menú de Navegación
+  // --- AQUÍ AGREGAMOS EL BOTÓN "MIS PRODUCTOS" ---
   const menuItems = [
     { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Personalizar', href: '/dashboard/design', icon: Palette },
     { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
+    { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed }, // <--- AQUÍ ESTÁ
     { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
@@ -57,21 +57,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen bg-gray-100 font-sans text-gray-900">
       
-      {/* --- SIDEBAR IZQUIERDO --- */}
+      {/* SIDEBAR */}
       <aside className="w-64 bg-white border-r flex flex-col fixed md:relative h-full z-20 shadow-xl md:shadow-none">
         
-        {/* Logo / Nombre Local */}
+        {/* Header Sidebar */}
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg">
             <Store size={20} />
           </div>
-          <div>
+          <div className="overflow-hidden">
             <h2 className="font-bold text-sm leading-tight truncate w-32">{restaurantName}</h2>
             <p className="text-xs text-green-600 font-medium">Plan Free</p>
           </div>
         </div>
 
-        {/* Links de Navegación */}
+        {/* Navegación */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -92,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* Footer Sidebar (Logout) */}
+        {/* Footer Sidebar */}
         <div className="p-4 border-t">
           <button 
             onClick={handleLogout}
@@ -104,15 +104,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* --- CONTENIDO PRINCIPAL (Aquí se carga cada página) --- */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50">
-        {/* Header Móvil (Solo visible en celular) */}
         <div className="md:hidden bg-white p-4 border-b flex items-center justify-between sticky top-0 z-10">
             <span className="font-bold">Menú</span>
-            {/* Aquí iría un botón hamburguesa para abrir el sidebar en móvil */}
         </div>
-
-        {/* El contenido de la página (children) se inyecta aquí */}
         <div className="p-6 md:p-10 max-w-7xl mx-auto">
           {children}
         </div>
