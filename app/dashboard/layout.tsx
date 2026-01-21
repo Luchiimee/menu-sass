@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -9,60 +9,71 @@ import {
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 
+// --- COMPONENTE 1: EL "ESPÍA" DE GOOGLE (Aislado) ---
+// Este componente es el único que usa useSearchParams. 
+// Al separarlo, evitamos que el resto del layout se trabe o rompa el build.
+function GoogleAuthHandler() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Si la URL tiene ?code= o #access_token, dejamos que Supabase trabaje
+    const hasCode = searchParams.has('code');
+    const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
+    
+    // Aquí no hacemos nada visual, solo es lógica para no redirigir antes de tiempo
+    if (hasCode || hasHash) {
+       console.log("Procesando login social...");
+    }
+  }, [searchParams]);
+
+  return null; // Este componente es invisible, no renderiza nada.
+}
+
+// --- COMPONENTE 2: EL LAYOUT PRINCIPAL (Rápido) ---
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   
   const [restaurantName, setRestaurantName] = useState('Cargando...');
-  // Iniciamos en false para mostrar la estructura rápido, el nombre se actualizará solo
-  const [loading, setLoading] = useState(false); 
-
+  
+  // Lógica de carga de datos (RÁPIDA Y LIMPIA)
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
-      // 1. Detectar si venimos de Google
-      const hasCode = searchParams.has('code');
-      const hasHash = window.location.hash.includes('access_token');
-      if (hasCode || hasHash) return; 
-
-      // 2. Usar getSession (RÁPIDO)
+    const loadData = async () => {
+      // 1. Verificar sesión rápido
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        // Cargar nombre en segundo plano sin bloquear
-        if (mounted) loadRestaurantData(session.user.id);
-      } else {
-        // Si no hay sesión, al login
-        if (mounted) router.push('/login');
+      if (!session) {
+        // Si no hay sesión, y NO estamos en medio de un login de Google, chau.
+        if (!window.location.hash && !window.location.search.includes('code=')) {
+            if (mounted) router.push('/login');
+        }
+        return;
       }
-    };
 
-    const loadRestaurantData = async (userId: string) => {
+      // 2. Cargar nombre del restaurante
       try {
         const { data: rest } = await supabase
           .from('restaurants')
           .select('name')
-          .eq('user_id', userId)
+          .eq('user_id', session.user.id)
           .single();
         
         if (mounted) {
             setRestaurantName(rest?.name || "Mi Restaurante");
         }
       } catch (error) {
-        console.error("Error nombre restaurante:", error);
         if (mounted) setRestaurantName("Mi Restaurante");
       }
     };
 
-    initAuth();
+    loadData();
 
-    // Escuchar cambios de sesión
+    // Suscripción a cambios de sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        loadRestaurantData(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         router.push('/login');
       }
     });
@@ -71,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [router, searchParams]);
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -89,11 +100,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans text-gray-900">
+      
+      {/* AQUÍ ESTÁ EL TRUCO: 
+         Ponemos el AuthHandler dentro de Suspense, pero el resto de la App NO.
+         Así el menú carga instantáneo y Vercel no se queja.
+      */}
+      <Suspense fallback={null}>
+         <GoogleAuthHandler />
+      </Suspense>
+
       <aside className="hidden md:flex w-64 bg-white border-r flex-col h-full z-20 sticky top-0">
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
           <div className="overflow-hidden">
-            {/* Si aún dice 'Cargando...', mostramos 'Mi Restaurante' por defecto para que se vea limpio */}
             <h2 className="font-bold text-sm leading-tight truncate w-32">
                 {restaurantName === 'Cargando...' ? 'Mi Restaurante' : restaurantName}
             </h2>
