@@ -38,6 +38,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     let mounted = true;
 
+    // --- AGREGAR ESTO: TEMPORIZADOR DE SEGURIDAD ---
+    // Si por alguna razón Supabase no responde en 5 segundos, cortamos la carga.
+    const safetyTimer = setTimeout(() => {
+        if (mounted && loading) {
+            console.log("Tiempo de espera agotado. Forzando carga.");
+            setLoading(false); 
+        }
+    }, 5000); // 5 segundos max
+
     const initAuth = async () => {
       // 1. VERIFICAR SI VENIMOS DE GOOGLE (AUTO-DETECCIÓN)
       // Google a veces manda ?code=... y a veces #access_token=...
@@ -62,6 +71,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         console.log("Sin sesión. Redirigiendo...");
         if (mounted) router.push('/login');
       }
+      
+
+
+      
     };
 
     initAuth();
