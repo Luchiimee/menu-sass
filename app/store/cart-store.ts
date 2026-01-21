@@ -19,7 +19,6 @@ interface CartState {
   total: () => number;
 }
 
-// ESTA ES LA EXPORTACIÓN QUE NO ENCUENTRA TU VISUAL STUDIO
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({

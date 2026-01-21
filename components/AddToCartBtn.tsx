@@ -1,36 +1,53 @@
-'use client'; 
+'use client';
 
-import { useCart } from '@/store/cart-store';
-import { Plus } from 'lucide-react';
+import { useCartStore } from '@/store/cart-store';
+import { Plus, ShoppingBag } from 'lucide-react';
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
+interface Props {
+  product: any;
+  // 'full' = Botón grande con texto "Agregar" (Sushi)
+  // 'icon' = Botón redondito solo con "+" (Classic/Urban)
+  variant?: 'full' | 'icon'; 
+  isDark?: boolean;
 }
 
-// Agregamos la prop "minimal" opcional
-export default function AddToCartBtn({ product, minimal }: { product: Product, minimal?: boolean }) {
-  const addItem = useCart((state) => state.addItem);
+export default function AddToCartBtn({ product, variant = 'full', isDark = false }: Props) {
+  // @ts-ignore
+  const addItem = useCartStore((state) => state.addItem);
 
-  if (minimal) {
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault(); 
+    e.stopPropagation();
+    addItem({ id: product.id, name: product.name, price: product.price });
+  };
+
+  // ESTILO 1: BOTÓN REDONDO PEQUEÑO (+)
+  if (variant === 'icon') {
     return (
-        <button 
-        onClick={() => addItem(product)}
-        className="bg-black text-white w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition shadow-lg"
+      <button 
+        onClick={handleAdd}
+        className={`w-8 h-8 flex items-center justify-center rounded-full transition shadow-sm ${
+            isDark 
+            ? 'bg-green-500 text-white hover:bg-green-600' // Urbano
+            : 'bg-black text-white hover:bg-gray-800'      // Classic
+        }`}
       >
-        <Plus size={18} />
+        <Plus size={18} strokeWidth={3} />
       </button>
     );
   }
 
+  // ESTILO 2: BOTÓN GRANDE CON TEXTO ("Agregar +")
   return (
     <button 
-      onClick={() => addItem(product)}
-      className="bg-black text-white px-4 py-1.5 rounded-full text-sm font-bold hover:bg-gray-800 active:scale-95 transition flex items-center gap-1 shadow-md"
+      onClick={handleAdd}
+      className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm transition ${
+        isDark 
+         ? 'bg-green-600 text-white hover:bg-green-700' 
+         : 'bg-black text-white hover:bg-gray-800'
+      }`}
     >
-      <Plus size={16} />
-      Agregar
+      Agregar <Plus size={14} />
     </button>
   );
 }
