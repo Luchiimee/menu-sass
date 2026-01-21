@@ -1,11 +1,11 @@
 'use client';
 
-// 1. ESTA ES LA LÍNEA QUE FALTABA Y CAUSABA EL ERROR DE BUILD
+// 1. ESTA LÍNEA ES OBLIGATORIA PARA ARREGLAR EL ERROR DE BUILD
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Edit } from 'lucide-react';
+import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X } from 'lucide-react';
 import Link from 'next/link';
 import { TEMPLATES_DATA } from '../templates/page'; 
 
@@ -22,16 +22,15 @@ export default function DesignPage() {
   });
 
   const [products, setProducts] = useState<any[]>([]);
-  // Estado para nuevo producto rápido
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
   useEffect(() => {
     let mounted = true;
 
-    // FUSIBLE DE SEGURIDAD: Si en 2 segs no cargó, mostramos el panel igual
+    // FUSIBLE DE SEGURIDAD: Si en 2 segs no cargó, soltamos la pantalla
     const safetyTimer = setTimeout(() => {
       if (mounted && loading) {
-        console.log("Tiempo excedido. Forzando carga.");
+        console.log("Tiempo de espera agotado, forzando carga.");
         setLoading(false);
       }
     }, 2000);
@@ -42,6 +41,7 @@ export default function DesignPage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.user) {
+            // Si no hay usuario, cortamos carga (el middleware redirigirá)
             if(mounted) setLoading(false);
             return;
         }
@@ -58,7 +58,7 @@ export default function DesignPage() {
         if(rest && mounted) {
           setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
           
-          // ESTRATEGIA VELOCIDAD: Liberamos la pantalla YA.
+          // ESTRATEGIA: Liberar la pantalla YA (Carga progresiva)
           setLoading(false);
 
           // Carga de Productos (Segundo plano)
@@ -96,7 +96,6 @@ export default function DesignPage() {
   const displayBanner = data.banner_url || (mockImages as any).banner || '';
   const displayLogo = data.logo_url || (mockImages as any).logo || '';
 
-  // Productos de muestra para el preview si no hay reales
   const displayProducts = products.length > 0 ? products : [
     { id: 'demo1', name: 'Producto Ejemplo 1', price: 1200, description: 'Descripción corta.', image_url: null },
     { id: 'demo2', name: 'Producto Ejemplo 2', price: 850, description: 'Otra descripción.', image_url: null },
@@ -132,7 +131,7 @@ export default function DesignPage() {
     } catch (error) { alert('Error imagen producto'); } finally { setUploading(false); }
   };
 
-  // Función simplificada para agregar producto rápido desde esta pantalla
+  // Agregar producto rápido (simplificado para esta vista)
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Nombre y precio obligatorios");
     
@@ -151,7 +150,6 @@ export default function DesignPage() {
             restaurant_id: data.id, category_id: categoryId, name: newProd.name, description: newProd.description, price: Number(newProd.price), image_url: newProd.image_url
         });
         
-        // Recargar productos
         const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
         if (refreshed) { 
             setProducts(refreshed); 
