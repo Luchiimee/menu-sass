@@ -1,16 +1,32 @@
 'use client';
+
 export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-// 1. IMPORTAMOS LOS NUEVOS ÍCONOS (LayoutGrid, List)
 import { Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Calendar, Bike, Store, MapPin, CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle, LayoutGrid, List } from 'lucide-react';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // 2. ESTADO PARA LA VISTA: 'list' (Lista) o 'grid' (Grilla)
+  // Estado inicial 'list', pero luego comprobaremos si hay algo guardado
   const [view, setView] = useState('list');
+
+  // --- NUEVO: EFECTO PARA RECUPERAR LA VISTA GUARDADA ---
+  useEffect(() => {
+    // Solo se ejecuta en el cliente
+    const savedView = localStorage.getItem('ordersView');
+    if (savedView) {
+        setView(savedView);
+    }
+  }, []);
+
+  // --- FUNCIÓN PARA CAMBIAR Y GUARDAR VISTA ---
+  const changeView = (newView: string) => {
+      setView(newView);
+      localStorage.setItem('ordersView', newView); // Guardamos en memoria del navegador
+  };
 
   const loadOrders = async () => {
     try {
@@ -73,17 +89,17 @@ export default function OrdersPage() {
         {/* CONTROLES (Métrica + Botones de Vista) */}
         <div className="flex items-center gap-3">
             
-            {/* 3. BOTONES PARA CAMBIAR VISTA */}
+            {/* BOTONES PARA CAMBIAR VISTA (CON GUARDADO) */}
             <div className="bg-gray-100 p-1 rounded-lg flex items-center">
                 <button 
-                    onClick={() => setView('list')} 
+                    onClick={() => changeView('list')} 
                     className={`p-2 rounded-md transition ${view === 'list' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'}`}
                     title="Vista Lista"
                 >
                     <List size={20} />
                 </button>
                 <button 
-                    onClick={() => setView('grid')} 
+                    onClick={() => changeView('grid')} 
                     className={`p-2 rounded-md transition ${view === 'grid' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-gray-600'}`}
                     title="Vista Cuadros"
                 >
@@ -99,10 +115,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* 4. CONTENEDOR DINÁMICO 
-         Si view es 'list' -> Una columna vertical (space-y-4)
-         Si view es 'grid' -> Grilla de 2 o 3 columnas (grid-cols-...)
-      */}
+      {/* CONTENEDOR DINÁMICO */}
       <div className={view === 'list' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 align-start'}>
           
           {orders.map((order) => (
@@ -142,7 +155,7 @@ export default function OrdersPage() {
                         </div>
                     </div>
 
-                    {/* LISTA DE PRODUCTOS (Scroll si es muy larga en modo grilla) */}
+                    {/* LISTA DE PRODUCTOS */}
                     <div className={`space-y-1 mb-4 ${view === 'grid' ? 'max-h-40 overflow-y-auto custom-scrollbar' : ''}`}>
                         {order.items?.map((item: any, i: number) => (
                             <div key={i} className="flex justify-between text-sm border-b border-dashed pb-1 last:border-0">
