@@ -1,21 +1,15 @@
 import type { NextConfig } from "next";
 
-// ALERTA: Usamos ': any' aquí para que TypeScript no se queje de la configuración de ESLint
-const nextConfig: any = {
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: '**', // Esto permite cargar imágenes de Supabase y Google
       },
     ],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // Borramos las secciones de 'eslint' y 'typescript' para no ignorar nada.
 };
 
 export default nextConfig;

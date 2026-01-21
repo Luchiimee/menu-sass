@@ -1,11 +1,18 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Clock, Star } from 'lucide-react';
 import AddToCartBtn from '@/components/AddToCartBtn'; 
 import CartFooter from '@/components/CartFooter';     
 
+// 1. LÍNEAS MÁGICAS: Esto obliga a que el link nuevo funcione AL INSTANTE
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Cliente Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function getRestaurant(slug: string) {
   const { data: restaurant } = await supabase
@@ -18,31 +25,30 @@ async function getRestaurant(slug: string) {
 
 // --- FUNCIÓN INTELIGENTE DE HORARIOS ---
 function checkIsOpen(businessHours: any) {
-  if (!businessHours) return true; // Si no hay configuración, asumimos abierto o cerrado según prefieras.
+  if (!businessHours) return true; 
   
-  // 1. Obtener hora en Argentina
   const now = new Date();
   const options = { timeZone: "America/Argentina/Buenos_Aires", hour12: false, hour: '2-digit', minute: '2-digit', weekday: 'long' } as const;
-  // Truco para obtener el día en inglés para matchear con la BD
-  const dayNameEn = new Date().toLocaleDateString('en-US', { timeZone: "America/Argentina/Buenos_Aires", weekday: 'long' }).toLowerCase();
   
-  // 2. Obtener configuración de hoy
-  const todayConfig = businessHours[dayNameEn]; // 'monday', 'tuesday', etc.
+  // Día en inglés para coincidir con DB
+  const dayNameEn = new Date().toLocaleDateString('en-US', { timeZone: "America/Argentina/Buenos_Aires", weekday: 'long' }).toLowerCase();
+  const todayConfig = businessHours[dayNameEn]; 
 
   if (!todayConfig || !todayConfig.isOpen) return false;
 
-  // 3. Comparar horas
-  const formatter = new Intl.DateTimeFormat('en-US', { ...options, weekday: undefined }); // Solo hora
-  const currentTime = formatter.format(now); // "19:30"
+  const formatter = new Intl.DateTimeFormat('en-US', { ...options, weekday: undefined });
+  const currentTime = formatter.format(now); 
   
-  // Comparación simple de strings "HH:MM" funciona bien
   return currentTime >= todayConfig.open && currentTime <= todayConfig.close;
 }
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  
+  // Buscamos el restaurante por el LINK (Slug)
   const restaurant = await getRestaurant(slug);
 
+  // Si no existe (porque cambiaste el link y entraste al viejo, o escribiste mal), da 404
   if (!restaurant) return notFound();
 
   // CALCULAMOS EL ESTADO
@@ -88,7 +94,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         </div>
       ) : (
       /* HEADER ESTÁNDAR */
-        <div className="relative w-full h-64 overflow-hidden">
+        <div className="relative w-full h-64 overflow-hidden mb-6">
             {restaurant.banner_url ? (
                 <Image src={restaurant.banner_url} alt="Portada" fill className="object-cover" priority />
             ) : (
@@ -119,10 +125,9 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         </div>
       )}
 
-      {/* BARRA INFO CON ESTADO DINÁMICO */}
+      {/* BARRA INFO */}
       <div className={`sticky top-0 z-40 backdrop-blur-md border-b shadow-sm px-4 py-3 flex items-center justify-between ${IS_DARK ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'}`}>
           <div className="flex items-center gap-3 text-xs font-bold">
-             {/* BADGE ABIERTO / CERRADO */}
              {isOpen ? (
                  <span className={`flex items-center gap-1 px-3 py-1 rounded-full ${IS_DARK ? 'bg-gray-800 text-green-400' : 'bg-green-100 text-green-700'}`}>
                     <Clock size={14}/> Abierto
@@ -132,7 +137,6 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                     <Clock size={14}/> Cerrado
                  </span>
              )}
-
              <span className={`flex items-center gap-1 px-3 py-1 rounded-full ${IS_DARK ? 'bg-gray-800 text-yellow-400' : 'bg-yellow-50 text-yellow-700'}`}><Star size={14}/> 4.8</span>
           </div>
       </div>
@@ -153,10 +157,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                     ${TEMPLATE === 'urban' ? `rounded-xl border shadow-sm p-3 flex gap-3 items-center ${CARD_BG}` : ''}
                 `}>
                   
-                  {/* ... CONTENIDO DE PRODUCTOS (IGUAL QUE ANTES) ... */}
-                  {/* Para no repetir todo el bloque de productos, mantén el que ya tenías que funcionaba bien */}
-                  {/* Si quieres te lo pego completo de nuevo para asegurar, avísame. Pero la lógica importante arriba es el checkIsOpen */}
-                  
+                  {/* CARD FRESH */}
                   {TEMPLATE === 'fresh' && (
                     <>
                         {product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" /> : <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">Sin Foto</div>}
@@ -170,6 +171,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                     </>
                   )}
                   
+                  {/* CARD CLASSIC */}
                   {TEMPLATE === 'classic' && (
                     <>
                         <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
@@ -184,6 +186,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                     </>
                   )}
 
+                  {/* CARD URBAN */}
                   {TEMPLATE === 'urban' && (
                     <>
                         <div className="flex-1 min-w-0">

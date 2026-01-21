@@ -12,81 +12,58 @@ import MobileNav from '@/components/MobileNav';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams(); // Para detectar ?code=...
+  const searchParams = useSearchParams();
   
   const [restaurantName, setRestaurantName] = useState('Cargando...');
-  const [loading, setLoading] = useState(true);
-
-  // Carga datos del restaurante
-  const loadRestaurantData = async (userId: string) => {
-    try {
-      const { data: rest } = await supabase
-        .from('restaurants')
-        .select('name')
-        .eq('user_id', userId)
-        .single();
-      
-      if (rest) setRestaurantName(rest.name);
-      else setRestaurantName("Mi Restaurante");
-    } catch (error) {
-      console.error("Error cargando restaurante:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Iniciamos en false para mostrar la estructura rápido, el nombre se actualizará solo
+  const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
     let mounted = true;
 
-    // --- AGREGAR ESTO: TEMPORIZADOR DE SEGURIDAD ---
-    // Si por alguna razón Supabase no responde en 5 segundos, cortamos la carga.
-    const safetyTimer = setTimeout(() => {
-        if (mounted && loading) {
-            console.log("Tiempo de espera agotado. Forzando carga.");
-            setLoading(false); 
-        }
-    }, 5000); // 5 segundos max
-
     const initAuth = async () => {
-      // 1. VERIFICAR SI VENIMOS DE GOOGLE (AUTO-DETECCIÓN)
-      // Google a veces manda ?code=... y a veces #access_token=...
+      // 1. Detectar si venimos de Google
       const hasCode = searchParams.has('code');
-      const hasHash = window.location.hash.includes('access_token') || 
-                      window.location.hash.includes('error');
+      const hasHash = window.location.hash.includes('access_token');
+      if (hasCode || hasHash) return; 
 
-      // Si hay rastros de Google, NO HACEMOS NADA y dejamos que Supabase trabaje.
-      if (hasCode || hasHash) {
-        console.log("Detectado retorno de Google. Esperando sesión...");
-        return; 
-      }
-
-      // 2. SI NO ES GOOGLE, VERIFICAMOS SESIÓN NORMAL
+      // 2. Usar getSession (RÁPIDO)
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        console.log("Sesión encontrada.");
-        if (mounted) await loadRestaurantData(session.user.id);
+        // Cargar nombre en segundo plano sin bloquear
+        if (mounted) loadRestaurantData(session.user.id);
       } else {
-        // 3. SI NO HAY SESIÓN Y NO ES GOOGLE -> LOGIN
-        console.log("Sin sesión. Redirigiendo...");
+        // Si no hay sesión, al login
         if (mounted) router.push('/login');
       }
-      
+    };
 
-
-      
+    const loadRestaurantData = async (userId: string) => {
+      try {
+        const { data: rest } = await supabase
+          .from('restaurants')
+          .select('name')
+          .eq('user_id', userId)
+          .single();
+        
+        if (mounted) {
+            setRestaurantName(rest?.name || "Mi Restaurante");
+        }
+      } catch (error) {
+        console.error("Error nombre restaurante:", error);
+        if (mounted) setRestaurantName("Mi Restaurante");
+      }
     };
 
     initAuth();
 
-    // 4. ESCUCHA DE EVENTOS (Aquí es donde entra Google finalmente)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Evento Supabase:", event);
-      
+    // Escuchar cambios de sesión
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        if (mounted) await loadRestaurantData(session.user.id);
+        loadRestaurantData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
-        if (mounted) router.push('/login');
+        router.push('/login');
       }
     });
 
@@ -110,25 +87,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-            {/* Spinner visual */}
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-            <p className="text-sm font-medium text-gray-500">Conectando...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen bg-gray-100 font-sans text-gray-900">
       <aside className="hidden md:flex w-64 bg-white border-r flex-col h-full z-20 sticky top-0">
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
           <div className="overflow-hidden">
-            <h2 className="font-bold text-sm leading-tight truncate w-32">{restaurantName}</h2>
+            {/* Si aún dice 'Cargando...', mostramos 'Mi Restaurante' por defecto para que se vea limpio */}
+            <h2 className="font-bold text-sm leading-tight truncate w-32">
+                {restaurantName === 'Cargando...' ? 'Mi Restaurante' : restaurantName}
+            </h2>
             <p className="text-xs text-green-600 font-medium">Plan Free</p>
           </div>
         </div>

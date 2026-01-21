@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X } from 'lucide-react';
@@ -7,11 +9,10 @@ import Link from 'next/link';
 import { TEMPLATES_DATA } from '../templates/page'; 
 
 export default function DesignPage() {
-  const [loading, setLoading] = useState(false);
+  // TRUCO: Empezamos cargando, pero tenemos un "fusible"
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
 
   const [data, setData] = useState<any>({
@@ -24,29 +25,81 @@ export default function DesignPage() {
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
   useEffect(() => {
+    let mounted = true;
+
+    // 1. EL FUSIBLE DE EMERGENCIA
+    // Si en 2 segundos no cargó, cortamos la espera a la fuerza.
+    const safetyTimer = setTimeout(() => {
+      if (mounted && loading) {
+        console.log("Tiempo excedido. Mostrando interfaz.");
+        setLoading(false);
+      }
+    }, 2000);
+
     const loadData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if(!user) return;
-
-        const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', user.id).single();
+        // 2. CAMBIO CLAVE: Usamos getSession (Instantáneo) en vez de getUser (Lento)
+        const { data: sessionData } = await supabase.auth.getSession();
         
-        if(rest) {
-          setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
-          const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
-          if(prods) setProducts(prods);
+        // Si no hay sesión, dejamos que el Middleware maneje la redirección, 
+        // pero aquí simplemente cortamos la carga para no trabar.
+        if (!sessionData.session?.user) {
+            if(mounted) setLoading(false);
+            return;
         }
-      } catch (error) { console.error(error); } finally { setInitialLoading(false); }
+
+        const userId = sessionData.session.user.id;
+
+        // Carga de Restaurante
+        const { data: rest } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+        
+        if(rest && mounted) {
+          setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
+          
+          // 3. ESTRATEGIA: Mostramos el panel YA.
+          // No esperamos a los productos para quitar el spinner.
+          setLoading(false);
+
+          // Carga de Productos (Segundo plano)
+          const { data: prods } = await supabase
+            .from('products')
+            .select('*')
+            .eq('restaurant_id', rest.id)
+            .order('created_at', { ascending: true });
+            
+          if(prods && mounted) setProducts(prods);
+        } else {
+           // Si no hay restaurante aún, también dejamos de cargar
+           if(mounted) setLoading(false);
+        }
+
+      } catch (error) { 
+        console.error("Error silencioso:", error); 
+      } finally { 
+        // Pase lo que pase, garantizamos que el loading se apague
+        if(mounted) setLoading(false); 
+      }
     };
+
     loadData();
+
+    return () => { 
+      mounted = false; 
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
+  // --- RESTO DEL CÓDIGO VISUAL (IDÉNTICO) ---
   const activeTemplateId = previewTemplateId || data.template_id;
-  const activeTemplate = TEMPLATES_DATA.find(t => t.id === activeTemplateId) || TEMPLATES_DATA[2];
-  const mockImages = activeTemplate.mock;
+  const activeTemplate = TEMPLATES_DATA.find(t => t.id === activeTemplateId) || TEMPLATES_DATA[0];
+  const mockImages = activeTemplate?.mock || {};
   
-  const displayBanner = data.banner_url || mockImages.banner;
-  const displayLogo = data.logo_url || mockImages.logo;
+  const displayBanner = data.banner_url || (mockImages as any).banner || '';
+  const displayLogo = data.logo_url || (mockImages as any).logo || '';
 
   const displayProducts = products.length > 0 ? products : [
     { id: 'demo1', name: 'Producto Ejemplo 1', price: 1200, description: 'Descripción corta.', image_url: null },
@@ -85,7 +138,7 @@ export default function DesignPage() {
 
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Nombre y precio obligatorios");
-    setLoading(true);
+    // No ponemos setLoading(true) global para no bloquear toda la pantalla, solo deshabilitamos el botón
     try {
         let categoryId;
         const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
@@ -99,7 +152,7 @@ export default function DesignPage() {
         });
         const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
         if (refreshed) { setProducts(refreshed); setNewProd({ name: '', price: '', description: '', image_url: '' }); }
-    } catch (error: any) { alert("Error: " + error.message); } finally { setLoading(false); }
+    } catch (error: any) { alert("Error: " + error.message); }
   };
 
   const handleDeleteQuick = async (id: string) => {
@@ -109,6 +162,7 @@ export default function DesignPage() {
   };
 
   const handleSave = async () => {
+    // Aquí sí mostramos carga porque es una acción del usuario
     setLoading(true);
     const { error } = await supabase.from('restaurants').update(data).eq('id', data.id);
     setLoading(false);
@@ -117,33 +171,26 @@ export default function DesignPage() {
   };
 
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
-      const t = TEMPLATES_DATA.find(t => t.id === templateId) || TEMPLATES_DATA[2];
+      const t = TEMPLATES_DATA.find(t => t.id === templateId) || TEMPLATES_DATA[0];
+      const safeTemplateId = t?.id || 'classic';
       
       return (
         <div className="w-full h-full bg-white flex flex-col overflow-hidden relative">
-             
-             {/* --- HEADER SUSHI (FRESH) CORREGIDO --- */}
-             {templateId === 'fresh' ? (
+             {safeTemplateId === 'fresh' ? (
                  <div className="flex-shrink-0 bg-white z-10 pb-2">
-                    {/* Portada */}
                     <div className="relative w-full h-28 overflow-hidden z-0">
                          <img src={displayBanner} className="absolute inset-0 w-full h-full object-cover z-0" />
                          <div className="absolute inset-0 z-1" style={{ backgroundColor: data.theme_color, opacity: data.banner_opacity / 100 }}></div>
                     </div>
-                    
-                    {/* Logo con MARGEN NEGATIVO: Se sube encima de la portada */}
                     <div className="relative z-20 mx-auto -mt-10 w-20 h-20 rounded-full border-[3px] border-white shadow-md overflow-hidden bg-white">
                          <img src={displayLogo} className="w-full h-full object-cover" />
                     </div>
-                    
-                    {/* Texto debajo */}
                     <div className="text-center px-4 mt-2">
                         <h2 className="font-bold text-sm text-gray-900 leading-tight truncate">{data.name || 'Tu Negocio'}</h2>
                         <p className="text-[10px] text-gray-500 mt-1 line-clamp-2 leading-tight">{data.description}</p>
                     </div>
                  </div>
              ) : (
-             /* --- HEADER ESTÁNDAR (CLASSIC / URBAN) --- */
                  <div className={`relative w-full flex-shrink-0 h-36 flex items-end p-4 text-white`}>
                     <img src={displayBanner} className="absolute inset-0 w-full h-full object-cover z-0" />
                     <div className="absolute inset-0 z-1" style={{ backgroundColor: data.theme_color, opacity: data.banner_opacity / 100 }}></div>
@@ -165,15 +212,14 @@ export default function DesignPage() {
                 </div>
              )}
             
-            {/* BODY MOCKUP */}
-            <div className={`flex-1 overflow-y-auto no-scrollbar p-3 ${templateId === 'urban' ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-                 <div className={templateId === 'fresh' ? 'grid grid-cols-2 gap-2' : 'space-y-3'}>
+            <div className={`flex-1 overflow-y-auto no-scrollbar p-3 ${safeTemplateId === 'urban' ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
+                 <div className={safeTemplateId === 'fresh' ? 'grid grid-cols-2 gap-2' : 'space-y-3'}>
                     {displayProducts.map((p, i) => {
                          const mockKey = `prod${i + 1}` as keyof typeof mockImages;
-                         const fallbackImg = activeTemplate.mock[mockKey] || activeTemplate.mock.prod1;
+                         const fallbackImg = (mockImages as any)[mockKey] || (mockImages as any).prod1 || '';
                          const finalImg = p.image_url || fallbackImg; 
 
-                         if (templateId === 'fresh') {
+                         if (safeTemplateId === 'fresh') {
                             return (
                                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden shadow-sm bg-gray-200">
                                     <img src={finalImg} className="w-full h-full object-cover" />
@@ -188,7 +234,7 @@ export default function DesignPage() {
                             );
                          }
 
-                         if (templateId === 'classic') {
+                         if (safeTemplateId === 'classic') {
                              return (
                                 <div key={i} className="bg-white border border-gray-100 p-2 rounded-lg flex gap-3 shadow-sm items-center">
                                     <img src={finalImg} className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-100" />
@@ -202,16 +248,16 @@ export default function DesignPage() {
                              );
                          }
 
-                         if (templateId === 'urban') {
+                         if (safeTemplateId === 'urban') {
                             return (
                                <div key={i} className="bg-gray-800 border border-gray-700 p-2 rounded-lg flex gap-3 shadow-sm items-center">
-                                   <div className="flex-1 min-w-0 text-left">
-                                       <div className="text-xs font-bold text-white truncate">{p.name}</div>
-                                       <div className="text-[9px] text-gray-400 line-clamp-1">{p.description}</div>
-                                       <div className="text-[10px] font-bold text-white mt-1">${p.price}</div>
-                                   </div>
-                                   <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs shadow-sm flex-shrink-0">+</div>
-                                   <img src={finalImg} className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-700" />
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <div className="text-xs font-bold text-white truncate">{p.name}</div>
+                                        <div className="text-[9px] text-gray-400 line-clamp-1">{p.description}</div>
+                                        <div className="text-[10px] font-bold text-white mt-1">${p.price}</div>
+                                    </div>
+                                    <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs shadow-sm flex-shrink-0">+</div>
+                                    <img src={finalImg} className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-700" />
                                </div>
                             );
                         }
@@ -222,7 +268,7 @@ export default function DesignPage() {
       );
   };
 
-  if (initialLoading) return <div className="p-10 text-center flex items-center justify-center h-full"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
+  if (loading) return <div className="p-10 text-center flex items-center justify-center h-full"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0">
@@ -285,7 +331,13 @@ export default function DesignPage() {
             
             <div className="space-y-3">
                 <input value={data.name} onChange={(e) => setData({...data, name: e.target.value})} className="w-full p-3 border rounded-xl font-bold outline-none" placeholder="Nombre del Negocio"/>
-                <textarea value={data.description || ''} onChange={(e) => setData({...data, description: e.target.value})} className="w-full p-3 border rounded-xl text-sm outline-none" rows={2} placeholder="Descripción breve..."/>
+                <textarea 
+                    value={data.description || ''} 
+                    onChange={(e) => setData({...data, description: e.target.value})} 
+                    className="w-full p-3 border rounded-xl text-sm outline-none" 
+                    rows={2} 
+                    placeholder="Descripción breve..."
+                />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -346,7 +398,7 @@ export default function DesignPage() {
                             <input type="number" value={newProd.price} onChange={(e) => setNewProd({...newProd, price: e.target.value})} placeholder="$ Precio" className="w-full p-2 border rounded text-sm"/>
                         </div>
                     </div>
-                    {/* RESTAURADA DESCRIPCIÓN DEL PRODUCTO */}
+                    
                     <textarea 
                         value={newProd.description} 
                         onChange={(e) => setNewProd({...newProd, description: e.target.value})} 
