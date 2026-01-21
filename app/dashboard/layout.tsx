@@ -1,40 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react'; // <--- Importamos Suspense
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
-  LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed 
+  LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, Loader2 
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+// 1. COMPONENTE INTERNO: Aquí va toda tu lógica actual (que usa useSearchParams)
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // <--- El culpable del error vive aquí, seguro dentro del Suspense
   
   const [restaurantName, setRestaurantName] = useState('Cargando...');
-  // Iniciamos en false para mostrar la estructura rápido, el nombre se actualizará solo
-  const [loading, setLoading] = useState(false); 
-
+  
   useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
-      // 1. Detectar si venimos de Google
+      // Si hay parámetros de URL de Supabase (hash o code), esperamos que Auth lo maneje
       const hasCode = searchParams.has('code');
-      const hasHash = window.location.hash.includes('access_token');
+      const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
       if (hasCode || hasHash) return; 
 
-      // 2. Usar getSession (RÁPIDO)
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Cargar nombre en segundo plano sin bloquear
         if (mounted) loadRestaurantData(session.user.id);
       } else {
-        // Si no hay sesión, al login
         if (mounted) router.push('/login');
       }
     };
@@ -58,7 +54,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     initAuth();
 
-    // Escuchar cambios de sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         loadRestaurantData(session.user.id);
@@ -93,7 +88,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
           <div className="overflow-hidden">
-            {/* Si aún dice 'Cargando...', mostramos 'Mi Restaurante' por defecto para que se vea limpio */}
             <h2 className="font-bold text-sm leading-tight truncate w-32">
                 {restaurantName === 'Cargando...' ? 'Mi Restaurante' : restaurantName}
             </h2>
@@ -125,5 +119,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <MobileNav />
     </div>
+  );
+}
+
+// 2. COMPONENTE PRINCIPAL: Envuelve todo en Suspense para calmar a Next.js
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-gray-50 text-gray-400">
+         <Loader2 className="animate-spin mr-2"/> Cargando panel...
+      </div>
+    }>
+       <DashboardContent>{children}</DashboardContent>
+    </Suspense>
   );
 }

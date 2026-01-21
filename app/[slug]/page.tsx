@@ -70,7 +70,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
       {/* HEADER SUSHI (FRESH) */}
       {TEMPLATE === 'fresh' ? (
         <div className="mb-8">
-            <div className="relative w-full h-48 overflow-hidden rounded-b-[2.5rem] shadow-sm z-0">
+            <div className="relative w-full h-48 overflow-hidden shadow-sm z-0">
                 {restaurant.banner_url ? (
                     <Image src={restaurant.banner_url} alt="Portada" fill className="object-cover" priority />
                 ) : (
