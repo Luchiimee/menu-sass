@@ -1,15 +1,15 @@
 'use client';
 
+// 1. ESTA ES LA LÍNEA QUE FALTABA Y CAUSABA EL ERROR DE BUILD
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X } from 'lucide-react';
+import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { TEMPLATES_DATA } from '../templates/page'; 
 
 export default function DesignPage() {
-  // TRUCO: Empezamos cargando, pero tenemos un "fusible"
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -22,33 +22,31 @@ export default function DesignPage() {
   });
 
   const [products, setProducts] = useState<any[]>([]);
+  // Estado para nuevo producto rápido
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
   useEffect(() => {
     let mounted = true;
 
-    // 1. EL FUSIBLE DE EMERGENCIA
-    // Si en 2 segundos no cargó, cortamos la espera a la fuerza.
+    // FUSIBLE DE SEGURIDAD: Si en 2 segs no cargó, mostramos el panel igual
     const safetyTimer = setTimeout(() => {
       if (mounted && loading) {
-        console.log("Tiempo excedido. Mostrando interfaz.");
+        console.log("Tiempo excedido. Forzando carga.");
         setLoading(false);
       }
     }, 2000);
 
     const loadData = async () => {
       try {
-        // 2. CAMBIO CLAVE: Usamos getSession (Instantáneo) en vez de getUser (Lento)
-        const { data: sessionData } = await supabase.auth.getSession();
+        // Usamos getSession (Rápido)
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Si no hay sesión, dejamos que el Middleware maneje la redirección, 
-        // pero aquí simplemente cortamos la carga para no trabar.
-        if (!sessionData.session?.user) {
+        if (!session?.user) {
             if(mounted) setLoading(false);
             return;
         }
 
-        const userId = sessionData.session.user.id;
+        const userId = session.user.id;
 
         // Carga de Restaurante
         const { data: rest } = await supabase
@@ -60,8 +58,7 @@ export default function DesignPage() {
         if(rest && mounted) {
           setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
           
-          // 3. ESTRATEGIA: Mostramos el panel YA.
-          // No esperamos a los productos para quitar el spinner.
+          // ESTRATEGIA VELOCIDAD: Liberamos la pantalla YA.
           setLoading(false);
 
           // Carga de Productos (Segundo plano)
@@ -73,14 +70,12 @@ export default function DesignPage() {
             
           if(prods && mounted) setProducts(prods);
         } else {
-           // Si no hay restaurante aún, también dejamos de cargar
            if(mounted) setLoading(false);
         }
 
       } catch (error) { 
-        console.error("Error silencioso:", error); 
+        console.error("Error cargando diseño:", error); 
       } finally { 
-        // Pase lo que pase, garantizamos que el loading se apague
         if(mounted) setLoading(false); 
       }
     };
@@ -93,7 +88,7 @@ export default function DesignPage() {
     };
   }, []);
 
-  // --- RESTO DEL CÓDIGO VISUAL (IDÉNTICO) ---
+  // --- LÓGICA VISUAL ---
   const activeTemplateId = previewTemplateId || data.template_id;
   const activeTemplate = TEMPLATES_DATA.find(t => t.id === activeTemplateId) || TEMPLATES_DATA[0];
   const mockImages = activeTemplate?.mock || {};
@@ -101,6 +96,7 @@ export default function DesignPage() {
   const displayBanner = data.banner_url || (mockImages as any).banner || '';
   const displayLogo = data.logo_url || (mockImages as any).logo || '';
 
+  // Productos de muestra para el preview si no hay reales
   const displayProducts = products.length > 0 ? products : [
     { id: 'demo1', name: 'Producto Ejemplo 1', price: 1200, description: 'Descripción corta.', image_url: null },
     { id: 'demo2', name: 'Producto Ejemplo 2', price: 850, description: 'Otra descripción.', image_url: null },
@@ -136,22 +132,31 @@ export default function DesignPage() {
     } catch (error) { alert('Error imagen producto'); } finally { setUploading(false); }
   };
 
+  // Función simplificada para agregar producto rápido desde esta pantalla
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Nombre y precio obligatorios");
-    // No ponemos setLoading(true) global para no bloquear toda la pantalla, solo deshabilitamos el botón
+    
     try {
         let categoryId;
         const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
         if (cats && cats.length > 0) categoryId = cats[0].id;
         else {
             const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: data.id, name: 'General', sort_order: 1 }).select().single();
-            categoryId = newCat.id;
+            if(newCat) categoryId = newCat.id;
         }
+        
+        if (!categoryId) throw new Error("No se pudo asignar categoría");
+
         await supabase.from('products').insert({
             restaurant_id: data.id, category_id: categoryId, name: newProd.name, description: newProd.description, price: Number(newProd.price), image_url: newProd.image_url
         });
+        
+        // Recargar productos
         const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
-        if (refreshed) { setProducts(refreshed); setNewProd({ name: '', price: '', description: '', image_url: '' }); }
+        if (refreshed) { 
+            setProducts(refreshed); 
+            setNewProd({ name: '', price: '', description: '', image_url: '' }); 
+        }
     } catch (error: any) { alert("Error: " + error.message); }
   };
 
@@ -162,7 +167,6 @@ export default function DesignPage() {
   };
 
   const handleSave = async () => {
-    // Aquí sí mostramos carga porque es una acción del usuario
     setLoading(true);
     const { error } = await supabase.from('restaurants').update(data).eq('id', data.id);
     setLoading(false);
