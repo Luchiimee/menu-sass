@@ -32,7 +32,7 @@ export async function POST(request: Request) {
                     transaction_amount: amount,
                     currency_id: 'ARS',
                 },
-               back_url: 'https://menu-sass-ten.vercel.app/dashboard/settings', // A donde vuelve el usuario al terminar
+               back_url: 'https://snappy.uno/dashboard/settings', // A donde vuelve el usuario al terminar
                 status: 'pending',
             }
         });
