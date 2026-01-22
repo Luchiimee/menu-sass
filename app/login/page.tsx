@@ -20,7 +20,7 @@ const handleGoogleLogin = async () => {
       provider: 'google',
       options: {
         // CAMBIO: Vamos directo al dashboard
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${location.origin}/auth/callback?next=/dashboard`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

@@ -5,7 +5,9 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, Search, Loader2, Trash2, Edit, X, Image as ImageIcon, Save } from 'lucide-react';
+// Agregué Zap aquí
+import { Plus, Search, Loader2, Trash2, Edit, X, Image as ImageIcon, Save, Zap } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,10 @@ export default function ProductsPage() {
   const [currentProdId, setCurrentProdId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // --- NUEVOS ESTADOS DE PLAN ---
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [plan, setPlan] = useState('free');
 
   // Datos del formulario
   const [formData, setFormData] = useState({
@@ -42,10 +48,20 @@ export default function ProductsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if(!session) return;
             
-            const { data: rest } = await supabase.from('restaurants').select('id').eq('user_id', session.user.id).single();
+            // Traemos ID y PLAN en la misma consulta
+            const { data: rest } = await supabase
+                .from('restaurants')
+                .select('id, subscription_plan')
+                .eq('user_id', session.user.id)
+                .single();
             
             if(rest && mounted) {
                 setRestaurantId(rest.id);
+                // Chequeamos plan
+                if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
+                    setPlan('plus');
+                }
+                
                 const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', {ascending: false});
                 if(prods) setProducts(prods);
             }
@@ -60,6 +76,12 @@ export default function ProductsPage() {
   // --- 2. FUNCIONES DEL MODAL ---
   
   const openNewModal = () => {
+    // 🛑 BLOQUEO DE SEGURIDAD
+    if (plan === 'free') {
+        setShowUpgradeModal(true);
+        return;
+    }
+
     setFormData({ name: '', description: '', price: '', image_url: '' });
     setIsEditing(false);
     setCurrentProdId(null);
@@ -314,6 +336,26 @@ export default function ProductsPage() {
                         </button>
                     </div>
 
+                </div>
+            </div>
+        )}
+
+        {/* --- MODAL UPGRADE (BLOQUEO) --- */}
+        {showUpgradeModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center relative shadow-2xl animate-in fade-in zoom-in duration-300">
+                    <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+                    <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
+                        <Zap size={32} fill="currentColor" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">¡Límite de Productos!</h3>
+                    <p className="text-gray-500 mb-6">El Plan Free te permite probar la plataforma, pero para gestionar un menú real necesitas el Plan Plus.</p>
+                    <div className="flex gap-3 flex-col">
+                        <Link href="/dashboard/settings" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                            Ver Planes y Precios
+                        </Link>
+                        <button onClick={() => setShowUpgradeModal(false)} className="text-gray-500 font-medium hover:underline">Quizás más tarde</button>
+                    </div>
                 </div>
             </div>
         )}

@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X } from 'lucide-react';
+// Agregué Lock y Zap a los imports
+import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Lock, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { TEMPLATES_DATA } from '../templates/page'; 
 
@@ -14,6 +15,9 @@ export default function DesignPage() {
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  
+  // NUEVO ESTADO PARA EL PLAN
+  const [plan, setPlan] = useState('loading'); // loading | free | plus
 
   const [data, setData] = useState<any>({
     name: '', description: '', phone: '', delivery_cost: 0, theme_color: '#000000', slug: '', 
@@ -32,6 +36,8 @@ export default function DesignPage() {
       if (mounted && loading) {
         console.log("Tiempo de espera agotado, forzando carga.");
         setLoading(false);
+        // Si falló la carga, asumimos free por seguridad
+        if (plan === 'loading') setPlan('free');
       }
     }, 2000);
 
@@ -51,13 +57,17 @@ export default function DesignPage() {
         // Carga de Restaurante
         const { data: rest } = await supabase
             .from('restaurants')
-            .select('*')
+            .select('*') // Esto ya trae subscription_plan
             .eq('user_id', userId)
             .single();
         
         if(rest && mounted) {
           setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
           
+          // --- AQUÍ DETECTAMOS EL PLAN ---
+          // Aprovechamos que ya trajimos los datos del restaurante
+          setPlan(rest.subscription_plan === 'plus' || rest.subscription_plan === 'max' ? 'plus' : 'free');
+
           // ESTRATEGIA: Liberar la pantalla YA (Carga progresiva)
           setLoading(false);
 
@@ -70,11 +80,15 @@ export default function DesignPage() {
             
           if(prods && mounted) setProducts(prods);
         } else {
-           if(mounted) setLoading(false);
+           if(mounted) {
+             setLoading(false);
+             setPlan('free'); // Si no hay restaurante aún, es free
+           }
         }
 
       } catch (error) { 
         console.error("Error cargando diseño:", error); 
+        if(mounted) setPlan('free');
       } finally { 
         if(mounted) setLoading(false); 
       }
@@ -272,6 +286,25 @@ export default function DesignPage() {
 
   if (loading) return <div className="p-10 text-center flex items-center justify-center h-full"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
 
+  // 🔒 ESTADO DE BLOQUEO (Esto es lo que agregamos)
+  if (plan === 'free') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 bg-white rounded-2xl shadow-sm border mt-10">
+        <div className="bg-gray-100 p-4 rounded-full mb-4">
+          <Lock size={40} className="text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Personalización Avanzada</h2>
+        <p className="text-gray-500 max-w-md mb-6">
+          El diseño personalizado de colores, fuentes y estilos es exclusivo para miembros Plus. Destácate de la competencia.
+        </p>
+        <Link href="/dashboard/settings" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+          <Zap size={20} fill="currentColor" />
+          Actualizar a Plan Plus
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0">
       
@@ -356,8 +389,8 @@ export default function DesignPage() {
             <div className="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
                 <input type="color" value={data.theme_color} onChange={(e) => setData({...data, theme_color: e.target.value})} className="w-10 h-10 rounded border cursor-pointer"/>
                 <div className="flex-1">
-                     <label className="text-xs font-bold block mb-1 text-gray-500">Opacidad Portada</label>
-                     <input type="range" min="0" max="90" value={data.banner_opacity} onChange={(e) => setData({...data, banner_opacity: parseInt(e.target.value)})} className="w-full h-1.5 bg-gray-300 rounded-lg accent-black cursor-pointer"/>
+                      <label className="text-xs font-bold block mb-1 text-gray-500">Opacidad Portada</label>
+                      <input type="range" min="0" max="90" value={data.banner_opacity} onChange={(e) => setData({...data, banner_opacity: parseInt(e.target.value)})} className="w-full h-1.5 bg-gray-300 rounded-lg accent-black cursor-pointer"/>
                 </div>
             </div>
         </section>

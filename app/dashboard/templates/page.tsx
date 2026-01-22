@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Check, Loader2, ArrowRight } from 'lucide-react';
+import { Check, Loader2, ArrowRight, Zap } from 'lucide-react'; // Agregué Zap aquí
 import Link from 'next/link';
 
-// DATOS DE LAS PLANTILLAS (Corregido: Agregada la descripción y unificados los mocks)
+// DATOS DE LAS PLANTILLAS
 export const TEMPLATES_DATA = [
   {
     id: 'urban',
@@ -17,7 +17,7 @@ export const TEMPLATES_DATA = [
       logo: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100&q=80',
       prod1: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
       prod2: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=150&q=80',
-      prod3: '', // Dejamos vacío para evitar error de tipos
+      prod3: '',
       prod4: '',
     }
   },
@@ -56,18 +56,40 @@ export default function TemplatesPage() {
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [toast, setToast] = useState(false);
 
+  // --- NUEVOS ESTADOS ---
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [plan, setPlan] = useState('free'); // Asumimos free por defecto para proteger
+
   useEffect(() => {
     const loadCurrent = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if(user) {
-            const { data } = await supabase.from('restaurants').select('template_id').eq('user_id', user.id).single();
-            if(data) setActiveTemplate(data.template_id);
+            // Traemos template_id Y subscription_plan en la misma consulta
+            const { data } = await supabase
+                .from('restaurants')
+                .select('template_id, subscription_plan')
+                .eq('user_id', user.id)
+                .single();
+            
+            if(data) {
+                setActiveTemplate(data.template_id);
+                // Detectamos si es plan Plus o Max
+                if (data.subscription_plan === 'plus' || data.subscription_plan === 'max') {
+                    setPlan('plus');
+                }
+            }
         }
     };
     loadCurrent();
   }, []);
 
   const handleSelect = async (template: typeof TEMPLATES_DATA[0]) => {
+    // --- BLOQUEO DE SEGURIDAD ---
+    if (plan === 'free') {
+        setShowUpgradeModal(true); // 🛑 ALTO AHÍ
+        return;
+    }
+
     setLoadingId(template.id);
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -202,7 +224,7 @@ export default function TemplatesPage() {
                 <p className="text-sm text-gray-500 mb-4">{t.description}</p>
               </div>
               <button onClick={() => handleSelect(t)} disabled={loadingId !== null} className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTemplate === t.id ? 'bg-green-50 text-green-700 cursor-default' : 'bg-black text-white hover:bg-gray-800'}`}>
-                {loadingId === t.id ? <Loader2 className="animate-spin" size={16} /> : activeTemplate === t.id ? 'Diseño Actual' : 'Seleccionar'}
+                {loadingId === t.id ? <Loader2 className="animate-spin" size={16} /> : activeTemplate === t.id ? 'Diseño Actual' : 'Usar Plantilla'}
               </button>
             </div>
           </div>
@@ -216,6 +238,26 @@ export default function TemplatesPage() {
               <div className="text-sm"><span className="font-bold">¡Guardado!</span> Ahora edítalo.</div>
            </div>
            <Link href="/dashboard/design" className="flex items-center gap-2 text-sm font-bold hover:text-green-400 transition whitespace-nowrap">Ir a Personalizar <ArrowRight size={16}/></Link>
+        </div>
+      )}
+
+      {/* EL POPUP DE BLOQUEO (MODAL) */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+           <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center relative shadow-2xl animate-in fade-in zoom-in duration-300">
+              <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
+                 <Zap size={32} fill="currentColor" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">¡Esta plantilla es Premium!</h3>
+              <p className="text-gray-500 mb-6">Para usar diseños profesionales y cambiar la imagen de tu negocio, necesitas el Plan Plus.</p>
+              <div className="flex gap-3 flex-col">
+                 <Link href="/dashboard/settings" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                    Ver Planes y Precios
+                 </Link>
+                 <button onClick={() => setShowUpgradeModal(false)} className="text-gray-500 font-medium hover:underline">Quizás más tarde</button>
+              </div>
+           </div>
         </div>
       )}
     </div>
