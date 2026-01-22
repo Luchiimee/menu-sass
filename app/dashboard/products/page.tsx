@@ -340,25 +340,29 @@ export default function ProductsPage() {
             </div>
         )}
 
+        
         {/* --- MODAL UPGRADE (BLOQUEO) --- */}
-        {showUpgradeModal && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center relative shadow-2xl animate-in fade-in zoom-in duration-300">
-                    <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-                    <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
-                        <Zap size={32} fill="currentColor" />
-                    </div>
-                    <h3 className="text-2xl font-bold mb-2">¡Límite de Productos!</h3>
-                    <p className="text-gray-500 mb-6">El Plan Free te permite probar la plataforma, pero para gestionar un menú real necesitas el Plan Plus.</p>
-                    <div className="flex gap-3 flex-col">
-                        <Link href="/dashboard/settings" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-                            Ver Planes y Precios
-                        </Link>
-                        <button onClick={() => setShowUpgradeModal(false)} className="text-gray-500 font-medium hover:underline">Quizás más tarde</button>
-                    </div>
-                </div>
+{showUpgradeModal && (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center relative shadow-2xl animate-in fade-in zoom-in duration-300 border border-gray-100">
+            <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+            <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-indigo-600">
+                <Zap size={32} fill="currentColor" />
             </div>
-        )}
+            <h3 className="text-2xl font-bold mb-2">Comienza tu Prueba Gratis</h3>
+            <p className="text-gray-500 mb-6">
+                Para gestionar tus productos, debes seleccionar un plan. 
+                <br/><span className="text-indigo-600 font-bold">¡Tienes 14 días gratis antes del primer cobro!</span>
+            </p>
+            <div className="flex gap-3 flex-col">
+                <Link href="/dashboard/settings" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-500/30">
+                    Elegir Plan y Comenzar
+                </Link>
+                <button onClick={() => setShowUpgradeModal(false)} className="text-gray-400 text-sm hover:underline">Solo estoy mirando</button>
+            </div>
+        </div>
+    </div>
+)}
     </div>
   );
 }

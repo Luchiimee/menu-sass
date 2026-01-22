@@ -263,13 +263,23 @@ export default function SettingsPage() {
                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Métricas de Caja</li>
                     </ul>
 
+                    {/* --- AQUÍ ESTÁ EL CAMBIO SOLICITADO --- */}
                     <button 
                         onClick={() => handleSubscribe('plus')}
-                        disabled={restaurant.subscription_plan === 'plus'}
+                        disabled={restaurant.subscription_plan === 'plus' || saving}
                         className={`w-full py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition flex items-center justify-center gap-2 ${restaurant.subscription_plan === 'plus' ? 'bg-blue-200 text-blue-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
-                        {restaurant.subscription_plan === 'plus' ? 'Plan Activo ✅' : <>Quiero ser Plus <ExternalLink size={14}/></>}
+                        {restaurant.subscription_plan === 'plus' ? (
+                            'Plan Activo ✅'
+                        ) : (
+                            saving ? <Loader2 className="animate-spin" size={20}/> : 'Comenzar Prueba Gratis'
+                        )}
                     </button>
+                    {restaurant.subscription_plan !== 'plus' && (
+                        <p className="text-[10px] text-gray-400 text-center mt-2">
+                            14 días gratis • Cancela cuando quieras
+                        </p>
+                    )}
                 </div>
 
                 {/* --- PLAN MAX ($25.200) - BLUR --- */}

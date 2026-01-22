@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, AlertTriangle 
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
+import TrialBanner from '@/components/TrialBanner'; // <--- 1. Importar el Banner Nuevo
 
 // --- COMPONENTE 1: MANEJO DE LOGIN SOCIAL (Invisible) ---
 function GoogleAuthHandler() {
@@ -55,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const { data: rest } = await supabase
           .from('restaurants')
-          .select('name, subscription_plan, subscription_status') // <--- Traemos todo esto
+          .select('name, subscription_plan, subscription_status') 
           .eq('user_id', session.user.id)
           .single();
         
@@ -136,7 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 overflow-y-auto relative bg-gray-50 pb-24 md:pb-0"> 
+      <main className="flex-1 overflow-y-auto relative bg-gray-50 pb-24 md:pb-0 flex flex-col"> 
         
         {/* Header Mobile */}
         <div className="md:hidden bg-white p-4 border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
@@ -146,9 +147,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
         </div>
 
-        {/* --- BANNER DE ALERTA DE PAGO (Aquí está la magia) --- */}
-        {restaurant.status === 'paused' && (
-          <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2">
+        {/* --- 1. BANNER DE ALERTA DE PAGO (Prioridad Alta) --- */}
+        {restaurant.status === 'paused' ? (
+          <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
             <div className="flex items-center gap-2">
               <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
               <p className="font-bold text-sm text-center md:text-left">Hubo un problema con tu pago. Tu plan Plus está pausado.</p>
@@ -157,9 +158,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Solucionar Ahora
             </button>
           </div>
+        ) : (
+          /* --- 2. BANNER DE PRUEBA (Solo si no está pausado) --- */
+          <TrialBanner />
         )}
 
-        <div className="p-4 md:p-10 max-w-7xl mx-auto">
+        <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1">
             {children}
         </div>
       </main>
