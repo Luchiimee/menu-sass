@@ -1,23 +1,23 @@
 'use client';
 
-// 1. ESTA LÍNEA ES OBLIGATORIA PARA ARREGLAR EL ERROR DE BUILD
+// 1. ESTA LÍNEA ES OBLIGATORIA
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-// Agregué Lock y Zap a los imports
 import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Lock, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { TEMPLATES_DATA } from '../templates/page'; 
 
 export default function DesignPage() {
+  // Estado de carga inicial: BLOQUEA TODO
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   
-  // NUEVO ESTADO PARA EL PLAN
-  const [plan, setPlan] = useState('loading'); // loading | free | plus
+  // Estado del plan
+  const [plan, setPlan] = useState<'loading' | 'free' | 'plus'>('loading'); 
 
   const [data, setData] = useState<any>({
     name: '', description: '', phone: '', delivery_cost: 0, theme_color: '#000000', slug: '', 
@@ -31,47 +31,31 @@ export default function DesignPage() {
   useEffect(() => {
     let mounted = true;
 
-    // FUSIBLE DE SEGURIDAD: Si en 2 segs no cargó, soltamos la pantalla
-    const safetyTimer = setTimeout(() => {
-      if (mounted && loading) {
-        console.log("Tiempo de espera agotado, forzando carga.");
-        setLoading(false);
-        // Si falló la carga, asumimos free por seguridad
-        if (plan === 'loading') setPlan('free');
-      }
-    }, 2000);
-
     const loadData = async () => {
       try {
-        // Usamos getSession (Rápido)
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.user) {
-            // Si no hay usuario, cortamos carga (el middleware redirigirá)
-            if(mounted) setLoading(false);
-            return;
+            return; // Middleware se encarga de redirigir
         }
 
         const userId = session.user.id;
 
-        // Carga de Restaurante
+        // 1. Cargar datos del restaurante
         const { data: rest } = await supabase
             .from('restaurants')
-            .select('*') // Esto ya trae subscription_plan
+            .select('*')
             .eq('user_id', userId)
             .single();
         
         if(rest && mounted) {
           setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
           
-          // --- AQUÍ DETECTAMOS EL PLAN ---
-          // Aprovechamos que ya trajimos los datos del restaurante
-          setPlan(rest.subscription_plan === 'plus' || rest.subscription_plan === 'max' ? 'plus' : 'free');
+          // 2. Determinar Plan
+          const userPlan = (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') ? 'plus' : 'free';
+          setPlan(userPlan);
 
-          // ESTRATEGIA: Liberar la pantalla YA (Carga progresiva)
-          setLoading(false);
-
-          // Carga de Productos (Segundo plano)
+          // 3. Cargar Productos
           const { data: prods } = await supabase
             .from('products')
             .select('*')
@@ -80,26 +64,22 @@ export default function DesignPage() {
             
           if(prods && mounted) setProducts(prods);
         } else {
-           if(mounted) {
-             setLoading(false);
-             setPlan('free'); // Si no hay restaurante aún, es free
-           }
+           // Si no hay restaurante, es free por defecto
+           if(mounted) setPlan('free');
         }
 
       } catch (error) { 
-        console.error("Error cargando diseño:", error); 
+        console.error("Error cargando:", error); 
         if(mounted) setPlan('free');
       } finally { 
+        // SOLO AQUÍ liberamos la pantalla de carga
         if(mounted) setLoading(false); 
       }
     };
 
     loadData();
 
-    return () => { 
-      mounted = false; 
-      clearTimeout(safetyTimer);
-    };
+    return () => { mounted = false; };
   }, []);
 
   // --- LÓGICA VISUAL ---
@@ -145,10 +125,8 @@ export default function DesignPage() {
     } catch (error) { alert('Error imagen producto'); } finally { setUploading(false); }
   };
 
-  // Agregar producto rápido (simplificado para esta vista)
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Nombre y precio obligatorios");
-    
     try {
         let categoryId;
         const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
@@ -157,13 +135,11 @@ export default function DesignPage() {
             const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: data.id, name: 'General', sort_order: 1 }).select().single();
             if(newCat) categoryId = newCat.id;
         }
-        
         if (!categoryId) throw new Error("No se pudo asignar categoría");
 
         await supabase.from('products').insert({
             restaurant_id: data.id, category_id: categoryId, name: newProd.name, description: newProd.description, price: Number(newProd.price), image_url: newProd.image_url
         });
-        
         const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
         if (refreshed) { 
             setProducts(refreshed); 
@@ -192,6 +168,7 @@ export default function DesignPage() {
       
       return (
         <div className="w-full h-full bg-white flex flex-col overflow-hidden relative">
+             {/* ... (Tu código del Mockup igual que antes) ... */}
              {safeTemplateId === 'fresh' ? (
                  <div className="flex-shrink-0 bg-white z-10 pb-2">
                     <div className="relative w-full h-28 overflow-hidden z-0">
@@ -243,13 +220,11 @@ export default function DesignPage() {
                                         <p className="text-xs font-bold truncate">{p.name}</p>
                                         <div className="flex justify-between items-center mt-1">
                                             <span className="text-[10px]">${p.price}</span>
-                                            <div className="bg-white text-black text-[9px] px-2 py-0.5 rounded-full font-bold">Add</div>
                                         </div>
                                     </div>
                                 </div>
                             );
                          }
-
                          if (safeTemplateId === 'classic') {
                              return (
                                 <div key={i} className="bg-white border border-gray-100 p-2 rounded-lg flex gap-3 shadow-sm items-center">
@@ -263,7 +238,6 @@ export default function DesignPage() {
                                 </div>
                              );
                          }
-
                          if (safeTemplateId === 'urban') {
                             return (
                                <div key={i} className="bg-gray-800 border border-gray-700 p-2 rounded-lg flex gap-3 shadow-sm items-center">
@@ -284,32 +258,35 @@ export default function DesignPage() {
       );
   };
 
-  if (loading) return <div className="p-10 text-center flex items-center justify-center h-full"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
+  // --- 1. BLOQUEO TOTAL DURANTE LA CARGA PARA EVITAR PANTALLAZO ---
+  if (loading) return <div className="p-10 text-center flex items-center justify-center h-[80vh]"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
 
-  // 🔒 ESTADO DE BLOQUEO (Esto es lo que agregamos)
+  // --- 2. BLOQUEO DE PLAN (AHORA SÍ ES SEGURO MOSTRARLO) ---
   if (plan === 'free') {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 bg-white rounded-2xl shadow-sm border mt-10">
-        <div className="bg-gray-100 p-4 rounded-full mb-4">
-          <Lock size={40} className="text-gray-400" />
+      <div className="flex flex-col items-center justify-center h-[70vh] text-center p-6 bg-white rounded-2xl shadow-sm border mt-4 mx-auto max-w-2xl animate-in fade-in duration-500">
+        <div className="bg-gray-100 p-5 rounded-full mb-6">
+          <Lock size={48} className="text-gray-400" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Personalización Avanzada</h2>
-        <p className="text-gray-500 max-w-md mb-6">
+        <h2 className="text-3xl font-bold mb-3 text-gray-900">Personalización Avanzada</h2>
+        <p className="text-gray-500 max-w-md mb-8 text-lg">
           El diseño personalizado de colores, fuentes y estilos es exclusivo para miembros Plus. Destácate de la competencia.
         </p>
-        <Link href="/dashboard/settings" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
-          <Zap size={20} fill="currentColor" />
+        <Link href="/dashboard/settings" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 text-lg">
+          <Zap size={24} fill="currentColor" />
           Actualizar a Plan Plus
         </Link>
+        <p className="text-sm text-gray-400 mt-4">14 días de prueba gratis • Cancela cuando quieras</p>
       </div>
     );
   }
 
+  // --- 3. EDITOR (Solo se muestra si es Plus) ---
   return (
     <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0">
       
       {/* --- EDITOR --- */}
-      <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8">
+      <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8 animate-in fade-in slide-in-from-bottom-4">
         
         <div className="flex items-center justify-between">
             <div>
@@ -321,6 +298,7 @@ export default function DesignPage() {
             </a>
         </div>
 
+        {/* ... (El resto del código del editor sigue igual) ... */}
         {/* SELECTOR PLANTILLAS (SOLO MOBILE) */}
         <section className="bg-gray-50 p-4 rounded-xl border lg:hidden">
             <h3 className="font-bold flex items-center gap-2 mb-3 text-sm uppercase text-gray-500"><LayoutTemplate size={16}/> Elegir Diseño</h3>

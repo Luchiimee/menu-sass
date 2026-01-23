@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, ExternalLink, Star, Tag } from 'lucide-react';
+import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, ExternalLink, Star, Tag, AlertTriangle } from 'lucide-react';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -35,8 +35,6 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // --- CORRECCIÓN DEL ERROR AQUÍ ---
-        // Antes buscábamos { user }, ahora obtenemos { session } y de ahí sacamos el user.
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.user) return; // Si no hay sesión, cortamos.
@@ -74,21 +72,29 @@ export default function SettingsPage() {
     if (!userId) return;
     setSaving(true);
     try {
-        // Guardar Datos Personales
-        await supabase.from('profiles').upsert({
+        // Guardar Datos Personales (UPSERT crea si no existe)
+        const { error: profileError } = await supabase.from('profiles').upsert({
             id: userId,
             first_name: profile.first_name,
             last_name: profile.last_name,
-            phone: profile.phone
+            phone: profile.phone,
+            updated_at: new Date()
         });
 
+        if (profileError) throw profileError;
+
         // Guardar Horarios del Restaurante
-        await supabase.from('restaurants').update({
+        const { error: restError } = await supabase.from('restaurants').update({
             business_hours: restaurant.business_hours
         }).eq('id', restaurant.id);
 
+        if (restError) throw restError;
+
         alert("¡Configuración guardada correctamente!");
-    } catch (error) { alert("Error al guardar"); } finally { setSaving(false); }
+    } catch (error: any) { 
+        console.error(error);
+        alert("Error al guardar: " + error.message); 
+    } finally { setSaving(false); }
   };
 
   const handlePasswordReset = async () => {
@@ -111,9 +117,9 @@ export default function SettingsPage() {
   };
 
  const handleSubscribe = async (planType: 'light' | 'plus') => {
-      if (planType === 'light') return; // El light es gratis
+      if (planType === 'light') return; 
       
-      setSaving(true); // Usamos el estado de carga para mostrar que está pensando
+      setSaving(true); 
 
       try {
           // 1. Llamamos a NUESTRA propia API que creamos recién
@@ -122,7 +128,7 @@ export default function SettingsPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   planType: planType,
-                  userId: userId, // Le mandamos quién es el usuario
+                  userId: userId, 
                   email: profile.email
               })
           });
@@ -222,9 +228,8 @@ export default function SettingsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 
-                {/* --- PLAN LIGHT ($6.400) --- */}
-                <div className={`relative p-6 rounded-3xl border-2 flex flex-col ${restaurant.subscription_plan === 'light' ? 'border-gray-900 bg-gray-50' : 'border-gray-100 bg-white'}`}>
-                    {restaurant.subscription_plan === 'light' && <span className="absolute top-4 right-4 text-[10px] font-bold bg-black text-white px-2 py-1 rounded">ACTUAL</span>}
+                {/* --- PLAN LIGHT (BASE) --- */}
+                <div className={`relative p-6 rounded-3xl border-2 flex flex-col ${restaurant.subscription_plan === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'}`}>
                     
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-700">Light</h3>
@@ -238,18 +243,18 @@ export default function SettingsPage() {
                          <li className="flex gap-2 opacity-50"><Lock size={16}/> Sin Panel de Pedidos</li>
                     </ul>
 
+                    {/* Botón Pasivo para Light */}
                     <button 
-                        disabled={restaurant.subscription_plan === 'light'}
-                        onClick={() => handleSubscribe('light')}
-                        className={`w-full py-3 rounded-xl font-bold text-sm ${restaurant.subscription_plan === 'light' ? 'bg-gray-200 text-gray-500' : 'border-2 border-gray-900 text-gray-900 hover:bg-gray-50'}`}
+                        disabled
+                        className="w-full py-3 rounded-xl font-bold text-sm bg-gray-200 text-gray-500 cursor-default"
                     >
-                        {restaurant.subscription_plan === 'light' ? 'Plan Actual' : 'Elegir Light'}
+                        {restaurant.subscription_plan === 'light' ? 'Tu Plan Base (Gratis)' : 'Incluido'}
                     </button>
                 </div>
 
-                {/* --- PLAN PLUS ($13.900) - DESTACADO --- */}
+                {/* --- PLAN PLUS (OBJETIVO) --- */}
                 <div className={`relative p-6 rounded-3xl border-2 flex flex-col shadow-xl scale-105 z-10 ${restaurant.subscription_plan === 'plus' ? 'border-blue-500 bg-blue-50' : 'border-blue-500 bg-white'}`}>
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm tracking-wide">MÁS ELEGIDO</div>
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm tracking-wide">RECOMENDADO</div>
                     
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-blue-600 flex items-center gap-2">Plus <Zap size={16} className="fill-current"/></h3>
@@ -263,26 +268,29 @@ export default function SettingsPage() {
                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Métricas de Caja</li>
                     </ul>
 
-                    {/* --- AQUÍ ESTÁ EL CAMBIO SOLICITADO --- */}
-                    <button 
-                        onClick={() => handleSubscribe('plus')}
-                        disabled={restaurant.subscription_plan === 'plus' || saving}
-                        className={`w-full py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition flex items-center justify-center gap-2 ${restaurant.subscription_plan === 'plus' ? 'bg-blue-200 text-blue-800' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                    >
-                        {restaurant.subscription_plan === 'plus' ? (
-                            'Plan Activo ✅'
-                        ) : (
-                            saving ? <Loader2 className="animate-spin" size={20}/> : 'Comenzar Prueba Gratis'
-                        )}
-                    </button>
-                    {restaurant.subscription_plan !== 'plus' && (
-                        <p className="text-[10px] text-gray-400 text-center mt-2">
-                            14 días gratis • Cancela cuando quieras
-                        </p>
+                    {/* --- BOTONES DE ACCIÓN --- */}
+                    {restaurant.subscription_plan === 'plus' ? (
+                         <button disabled className="w-full py-3 rounded-xl font-bold text-sm bg-blue-200 text-blue-800 flex items-center justify-center gap-2">
+                            Plan Activo ✅
+                         </button>
+                    ) : (
+                        <div className="space-y-2">
+                            <button 
+                                onClick={() => handleSubscribe('plus')}
+                                disabled={saving}
+                                className="w-full py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
+                            >
+                                {saving ? <Loader2 className="animate-spin" size={20}/> : 'Activar Plan (14 días gratis)'}
+                            </button>
+                            <p className="text-[10px] text-gray-400 text-center leading-tight">
+                                Comienza hoy tus 14 días gratis.<br/>
+                                El cobro se realiza automáticamente al finalizar el periodo de prueba.
+                            </p>
+                        </div>
                     )}
                 </div>
 
-                {/* --- PLAN MAX ($25.200) - BLUR --- */}
+                {/* --- PLAN MAX (PROXIMAMENTE) --- */}
                 <div className="relative p-6 rounded-3xl border border-gray-200 bg-gray-50 flex flex-col overflow-hidden">
                     <div className="absolute inset-0 backdrop-blur-[4px] bg-white/40 z-10 flex flex-col items-center justify-center text-center p-4">
                         <div className="bg-black text-white p-3 rounded-full mb-2 shadow-lg"><Star size={24} className="animate-pulse fill-yellow-400 text-yellow-400"/></div>
