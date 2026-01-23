@@ -2,13 +2,12 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import { useState } from 'react'
-import { Loader2, Mail, Lock, ArrowRight, Check } from 'lucide-react'
-import Image from 'next/image'
+import { Loader2, Mail, Lock, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isRegistering, setIsRegistering] = useState(false) // Para alternar entre Login y Registro
+  const [isRegistering, setIsRegistering] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -22,15 +21,24 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true)
     try {
+      // TRUCO: Detectamos dónde estamos parados
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      
+      console.log("Intentando redirigir a:", `${origin}/auth/callback`) // MIRA LA CONSOLA
+
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${location.origin}/auth/callback?next=/dashboard`,
-          queryParams: { access_type: 'offline', prompt: 'consent' },
+          // Esto le dice explícitamente: "Vuelve a donde estoy ahora"
+          redirectTo: `${origin}/auth/callback?next=/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
     } catch (error) {
-      console.error(error)
+      console.error("Error login:", error)
       setIsLoading(false)
     }
   }
@@ -39,21 +47,21 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     setMessage(null)
+    
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
 
     try {
       if (isRegistering) {
-        // --- LOGICA DE REGISTRO ---
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${location.origin}/auth/callback`,
+            emailRedirectTo: `${origin}/auth/callback`,
           },
         })
         if (error) throw error
-        setMessage('¡Cuenta creada! Revisa tu email para confirmar (o entra si desactivaste la confirmación).')
+        setMessage('¡Cuenta creada! Si no entraste automático, revisa tu email.')
       } else {
-        // --- LOGICA DE INICIO DE SESIÓN ---
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -71,13 +79,12 @@ export default function LoginPage() {
   return (
     <div className="flex h-screen w-full bg-white overflow-hidden">
       
-      {/* --- SECCIÓN IMAGEN (70% o oculto en móvil) --- */}
+      {/* --- SECCIÓN IMAGEN (70%) --- */}
       <div className="hidden lg:block lg:w-[65%] xl:w-[70%] relative bg-gray-900">
-        <div className="absolute inset-0 bg-black/30 z-10" /> {/* Oscurecedor */}
-        {/* Puedes cambiar esta URL por una foto de tu producto o una de Unsplash */}
+        <div className="absolute inset-0 bg-black/30 z-10" />
         <img 
           src="https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=2070&auto=format&fit=crop" 
-          alt="Restaurant Background" 
+          alt="Fondo Restaurante" 
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute bottom-20 left-10 z-20 text-white max-w-xl">
@@ -102,7 +109,6 @@ export default function LoginPage() {
       <div className="w-full lg:w-[35%] xl:w-[30%] flex flex-col justify-center px-8 md:px-12 lg:px-16 overflow-y-auto py-10">
         
         <div className="max-w-sm w-full mx-auto">
-          {/* Logo */}
           <div className="mb-8 flex items-center gap-2">
             <div className="h-10 w-10 bg-black text-white rounded-xl flex items-center justify-center font-bold text-xl">⚡</div>
             <span className="font-bold text-2xl tracking-tight">Snappy</span>
@@ -115,7 +121,6 @@ export default function LoginPage() {
             {isRegistering ? 'Empieza tus 14 días de prueba gratis.' : 'Ingresa tus datos para acceder al panel.'}
           </p>
 
-          {/* Botón Google */}
           <button
             onClick={handleGoogleLogin}
             disabled={isLoading}
@@ -132,7 +137,6 @@ export default function LoginPage() {
             <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">O ingresa con email</span></div>
           </div>
 
-          {/* Formulario Email/Pass */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Email</label>
@@ -181,7 +185,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Toggle Registro/Login */}
           <p className="text-center text-sm text-gray-500 mt-8">
             {isRegistering ? '¿Ya tienes cuenta?' : '¿Aún no tienes cuenta?'}
             <button 

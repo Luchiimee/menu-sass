@@ -1,368 +1,170 @@
 'use client';
-
-// 1. Velocidad: No guardar caché
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-// Agregué Zap aquí
-import { Plus, Search, Loader2, Trash2, Edit, X, Image as ImageIcon, Save, Zap } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
+import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, Archive, MoreHorizontal, UtensilsCrossed, Store, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
+  const [isLocked, setIsLocked] = useState(true); // Bloqueado por defecto
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
-  // --- ESTADOS PARA EL MODAL (VENTANA) ---
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentProdId, setCurrentProdId] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  // --- NUEVOS ESTADOS DE PLAN ---
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [plan, setPlan] = useState('free');
-
-  // Datos del formulario
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    image_url: ''
-  });
-
-  // --- 1. CARGA RÁPIDA (CON FUSIBLE) ---
   useEffect(() => {
-    let mounted = true;
-    
-    // Fusible de seguridad (2 segs)
-    const safetyTimer = setTimeout(() => {
-        if (mounted && loading) setLoading(false);
-    }, 2000);
+    const loadData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-    const loadProducts = async () => {
-        try {
-            // Usamos getSession (Rápido)
-            const { data: { session } } = await supabase.auth.getSession();
-            if(!session) return;
-            
-            // Traemos ID y PLAN en la misma consulta
-            const { data: rest } = await supabase
-                .from('restaurants')
-                .select('id, subscription_plan')
-                .eq('user_id', session.user.id)
-                .single();
-            
-            if(rest && mounted) {
-                setRestaurantId(rest.id);
-                // Chequeamos plan
-                if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
-                    setPlan('plus');
-                }
+        // 1. Verificar Restaurante y Plan
+        const { data: rest } = await supabase
+            .from('restaurants')
+            .select('id, subscription_plan')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+        if (rest) {
+            setRestaurantId(rest.id);
+            // Lógica de desbloqueo: Cualquier plan sirve
+            if (rest.subscription_plan) {
+                setIsLocked(false);
                 
-                const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', {ascending: false});
-                if(prods) setProducts(prods);
+                // Si está desbloqueado, cargamos productos
+                const { data: prods } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('restaurant_id', rest.id)
+                    .order('created_at', { ascending: false });
+                
+                if (prods) setProducts(prods);
+            } else {
+                setIsLocked(true);
             }
-        } catch(e) { console.error(e); } 
-        finally { if(mounted) setLoading(false); }
-    };
+        } else {
+            setIsLocked(true);
+        }
 
-    loadProducts();
-    return () => { mounted = false; clearTimeout(safetyTimer); };
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
-  // --- 2. FUNCIONES DEL MODAL ---
-  
-  const openNewModal = () => {
-    // 🛑 BLOQUEO DE SEGURIDAD
-    if (plan === 'free') {
-        setShowUpgradeModal(true);
-        return;
-    }
-
-    setFormData({ name: '', description: '', price: '', image_url: '' });
-    setIsEditing(false);
-    setCurrentProdId(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (product: any) => {
-    setFormData({
-        name: product.name,
-        description: product.description || '',
-        price: product.price,
-        image_url: product.image_url || ''
-    });
-    setIsEditing(true);
-    setCurrentProdId(product.id);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSaving(false);
-  };
-
-  // --- 3. FUNCIONES DE BASE DE DATOS ---
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    setUploading(true);
-    const file = e.target.files[0];
-    const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
-    try {
-        await supabase.storage.from('images').upload(fileName, file);
-        const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
-        setFormData({ ...formData, image_url: publicUrl });
-    } catch (error) { alert('Error subiendo imagen'); } 
-    finally { setUploading(false); }
-  };
-
-  const handleSave = async () => {
-    if (!formData.name || !formData.price) return alert("Nombre y Precio son obligatorios");
-    if (!restaurantId) return;
-
-    setSaving(true);
-    try {
-        if (isEditing && currentProdId) {
-            // ACTUALIZAR
-            const { error } = await supabase
-                .from('products')
-                .update({
-                    name: formData.name,
-                    description: formData.description,
-                    price: Number(formData.price),
-                    image_url: formData.image_url
-                })
-                .eq('id', currentProdId);
-            
-            if (error) throw error;
-            
-            // Actualizar lista localmente
-            setProducts(products.map(p => p.id === currentProdId ? { ...p, ...formData, price: Number(formData.price) } : p));
-
-        } else {
-            // CREAR NUEVO
-            // Buscar categoría (o crearla si no existe)
-            let categoryId;
-            const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', restaurantId).limit(1);
-            if (cats && cats.length > 0) categoryId = cats[0].id;
-            else {
-                const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: restaurantId, name: 'General', sort_order: 1 }).select().single();
-                if(newCat) categoryId = newCat.id;
-            }
-
-            const { data: newProd, error } = await supabase
-                .from('products')
-                .insert({
-                    restaurant_id: restaurantId,
-                    category_id: categoryId,
-                    name: formData.name,
-                    description: formData.description,
-                    price: Number(formData.price),
-                    image_url: formData.image_url
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
-            if (newProd) setProducts([newProd, ...products]);
-        }
-        closeModal();
-    } catch (error: any) {
-        alert("Error: " + error.message);
-    } finally {
-        setSaving(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Seguro que quieres borrar este producto?")) return;
-    const { error } = await supabase.from('products').delete().eq('id', id);
-    if (!error) {
-        setProducts(products.filter(p => p.id !== id));
-    } else {
-        alert("Error al borrar");
-    }
+      if(!confirm("¿Seguro que quieres eliminar este producto?")) return;
+      await supabase.from('products').delete().eq('id', id);
+      setProducts(products.filter(p => p.id !== id));
   };
 
-
-  // --- 4. RENDERIZADO ---
-
-  if (loading) return <div className="h-96 flex items-center justify-center"><Loader2 className="animate-spin mr-2"/> Cargando menú...</div>;
+  if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-gray-400"/></div>;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto relative min-h-[80vh]">
         
-        {/* CABECERA */}
-        <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Gestión de Menú</h1>
-            <button 
-                onClick={openNewModal}
-                className="bg-black text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-800 transition"
-            >
-                <Plus size={18}/> Agregar Nuevo
-            </button>
-        </div>
-        
-        {/* LISTA DE PRODUCTOS */}
-        {products.length === 0 ? (
-             <div className="text-center py-20 bg-white border border-dashed rounded-2xl">
-                <p className="text-gray-500 mb-4">No tienes productos aún.</p>
-                <button onClick={openNewModal} className="text-black underline font-bold">Crear el primero</button>
-             </div>
-        ) : (
-            <div className="grid gap-3">
-                {products.map(p => (
-                    <div key={p.id} className="bg-white p-4 rounded-xl border flex gap-4 items-center shadow-sm hover:shadow-md transition">
-                        
-                        {/* FOTO */}
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border">
-                            {p.image_url ? (
-                                <img src={p.image_url} className="w-full h-full object-cover"/>
-                            ) : (
-                                <ImageIcon className="w-6 h-6 m-auto mt-5 text-gray-300"/>
-                            )}
-                        </div>
-
-                        {/* INFO */}
-                        <div className="flex-1">
-                            <h3 className="font-bold text-gray-900">{p.name}</h3>
-                            <p className="text-sm text-gray-500 line-clamp-1">{p.description || "Sin descripción"}</p>
-                            <div className="text-sm font-bold mt-1">${p.price}</div>
-                        </div>
-
-                        {/* ACCIONES */}
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => openEditModal(p)}
-                                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition" 
-                                title="Editar"
-                            >
-                                <Edit size={18}/>
-                            </button>
-                            <button 
-                                onClick={() => handleDelete(p.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" 
-                                title="Borrar"
-                            >
-                                <Trash2 size={18}/>
-                            </button>
-                        </div>
+        {/* --- CAPA DE BLOQUEO --- */}
+        {isLocked && (
+            <div className="absolute inset-0 z-50 backdrop-blur-sm bg-white/50 flex items-center justify-center rounded-3xl overflow-hidden p-4">
+                <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-gray-100 animate-in zoom-in-95 duration-300">
+                    <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-black text-white">
+                        <Store size={32} />
                     </div>
-                ))}
-            </div>
-        )}
-
-        {/* --- MODAL (VENTANA EMERGENTE) --- */}
-        {isModalOpen && (
-            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    
-                    {/* Header Modal */}
-                    <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                        <h3 className="font-bold text-lg">{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-                        <button onClick={closeModal} className="text-gray-400 hover:text-black"><X size={20}/></button>
-                    </div>
-
-                    {/* Body Modal */}
-                    <div className="p-6 space-y-4">
-                        
-                        {/* Imagen Upload */}
-                        <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 bg-gray-100 rounded-xl border border-dashed border-gray-300 flex items-center justify-center relative overflow-hidden group cursor-pointer">
-                                <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10"/>
-                                {formData.image_url ? (
-                                    <img src={formData.image_url} className="w-full h-full object-cover"/>
-                                ) : (
-                                    <ImageIcon className="text-gray-400"/>
-                                )}
-                                {uploading && <div className="absolute inset-0 bg-white/80 flex items-center justify-center"><Loader2 className="animate-spin"/></div>}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                                <p className="font-bold text-gray-700">Foto del plato</p>
-                                <p className="text-xs">Recomendado: Cuadrada</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
-                            <input 
-                                value={formData.name} 
-                                onChange={e => setFormData({...formData, name: e.target.value})}
-                                className="w-full p-3 border rounded-xl outline-none focus:border-black"
-                                placeholder="Ej: Hamburguesa Doble"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Precio</label>
-                                <input 
-                                    type="number"
-                                    value={formData.price} 
-                                    onChange={e => setFormData({...formData, price: e.target.value})}
-                                    className="w-full p-3 border rounded-xl outline-none focus:border-black"
-                                    placeholder="$ 0.00"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
-                            <textarea 
-                                value={formData.description} 
-                                onChange={e => setFormData({...formData, description: e.target.value})}
-                                className="w-full p-3 border rounded-xl outline-none focus:border-black resize-none"
-                                rows={3}
-                                placeholder="Ingredientes, detalles..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Footer Modal */}
-                    <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
-                        <button onClick={closeModal} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-lg">Cancelar</button>
-                        <button 
-                            onClick={handleSave} 
-                            disabled={saving}
-                            className="px-6 py-2 bg-black text-white font-bold rounded-lg flex items-center gap-2 hover:bg-gray-800 disabled:opacity-50"
-                        >
-                            {saving && <Loader2 className="animate-spin" size={16}/>}
-                            {isEditing ? 'Guardar Cambios' : 'Crear Producto'}
-                        </button>
-                    </div>
-
+                    <h2 className="text-2xl font-bold mb-3 text-gray-900">Comienza a Vender</h2>
+                    <p className="text-gray-500 mb-8 text-base">
+                        Para crear tu catálogo de productos, primero debes activar un plan para tu negocio.
+                    </p>
+                    <Link href="/dashboard/settings" className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:-translate-y-1 bg-black text-white hover:bg-gray-800">
+                        Ver Planes <Zap size={20} fill="currentColor"/>
+                    </Link>
                 </div>
             </div>
         )}
 
-        
-        {/* --- MODAL UPGRADE (BLOQUEO) --- */}
-{showUpgradeModal && (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center relative shadow-2xl animate-in fade-in zoom-in duration-300 border border-gray-100">
-            <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-            <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-indigo-600">
-                <Zap size={32} fill="currentColor" />
+        {/* --- CONTENIDO REAL --- */}
+        <div className={`space-y-6 ${isLocked ? 'blur-sm pointer-events-none opacity-60' : ''}`}>
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <UtensilsCrossed className="text-gray-400"/> Mis Productos
+                    </h1>
+                    <p className="text-gray-500">Administra tu menú y precios.</p>
+                </div>
+                <button 
+                    onClick={() => alert("Función de agregar modal aquí")} // Aquí conectarías tu modal de crear producto
+                    className="bg-black text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 transition shadow-lg"
+                >
+                    <Plus size={20}/> Nuevo Producto
+                </button>
             </div>
-            <h3 className="text-2xl font-bold mb-2">Comienza tu Prueba Gratis</h3>
-            <p className="text-gray-500 mb-6">
-                Para gestionar tus productos, debes seleccionar un plan. 
-                <br/><span className="text-indigo-600 font-bold">¡Tienes 14 días gratis antes del primer cobro!</span>
-            </p>
-            <div className="flex gap-3 flex-col">
-                <Link href="/dashboard/settings" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-500/30">
-                    Elegir Plan y Comenzar
-                </Link>
-                <button onClick={() => setShowUpgradeModal(false)} className="text-gray-400 text-sm hover:underline">Solo estoy mirando</button>
+
+            {/* TABLA / LISTA */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="p-4 border-b flex items-center gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                        <input placeholder="Buscar producto..." className="w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg text-sm outline-none focus:ring-2 ring-black/5"/>
+                    </div>
+                </div>
+                
+                {products.length === 0 ? (
+                    <div className="p-12 text-center text-gray-400 flex flex-col items-center">
+                        <UtensilsCrossed size={48} className="mb-4 text-gray-200"/>
+                        <p>No tienes productos aún.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 border-b text-gray-500 uppercase text-xs">
+                                <tr>
+                                    <th className="px-6 py-4 font-bold">Imagen</th>
+                                    <th className="px-6 py-4 font-bold">Nombre</th>
+                                    <th className="px-6 py-4 font-bold">Precio</th>
+                                    <th className="px-6 py-4 font-bold text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {products.map((product) => (
+                                    <tr key={product.id} className="hover:bg-gray-50 transition">
+                                        <td className="px-6 py-3">
+                                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border">
+                                                {product.image_url ? (
+                                                    <img src={product.image_url} className="w-full h-full object-cover"/>
+                                                ) : (
+                                                    <ImageIcon className="w-full h-full p-3 text-gray-300"/>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3 font-medium text-gray-900">
+                                            {product.name}
+                                            <div className="text-gray-400 text-xs font-normal line-clamp-1">{product.description}</div>
+                                        </td>
+                                        <td className="px-6 py-3 font-bold">
+                                            ${product.price}
+                                        </td>
+                                        <td className="px-6 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><Edit2 size={16}/></button>
+                                                <button onClick={() => handleDelete(product.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500"><Trash2 size={16}/></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
-    </div>
-)}
     </div>
   );
 }

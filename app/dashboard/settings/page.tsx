@@ -1,8 +1,9 @@
 'use client';
 export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, ExternalLink, Star, Tag, AlertTriangle, CalendarDays } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
+import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Star } from 'lucide-react';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -17,8 +18,13 @@ const DAYS = [
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [processingPlan, setProcessingPlan] = useState<string | null>(null); // Para saber qué botón está cargando
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const [profile, setProfile] = useState({
     first_name: '',
@@ -28,9 +34,9 @@ export default function SettingsPage() {
   });
 
   const [restaurant, setRestaurant] = useState<any>({
-    id: '',
+    id: null, 
     business_hours: {},
-    subscription_plan: null, // null | 'light' | 'plus' | 'max'
+    subscription_plan: null,
     created_at: null
   });
 
@@ -39,13 +45,21 @@ export default function SettingsPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session?.user) return;
+        if (!session?.user) {
+            console.error("No se encontró sesión.");
+            return;
+        }
         
         const user = session.user;
         setUserId(user.id);
 
-        // 1. Carga Perfil
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        // 1. Carga Perfil - USAMOS maybeSingle() AQUÍ 👇
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle(); // <--- CAMBIO IMPORTANTE: Evita el error 406 si no existe
+
         if (profileData) {
             setProfile({ 
                 first_name: profileData.first_name || '', 
@@ -57,14 +71,19 @@ export default function SettingsPage() {
             setProfile(prev => ({ ...prev, email: user.email || '' }));
         }
 
-        // 2. Carga Restaurante y Plan
-        const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', user.id).single();
+        // 2. Carga Restaurante - USAMOS maybeSingle() AQUÍ TAMBIÉN 👇
+        const { data: restData } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle(); // <--- CAMBIO IMPORTANTE
+        
         if (restData) {
             const defaultHours = restData.business_hours || {};
             setRestaurant({ 
                 ...restData, 
                 business_hours: defaultHours, 
-                subscription_plan: restData.subscription_plan, // Respetamos lo que venga de la base
+                subscription_plan: restData.subscription_plan, 
                 created_at: restData.created_at
             });
         }
@@ -75,26 +94,29 @@ export default function SettingsPage() {
   }, []);
 
   const handleSave = async () => {
-    if (!userId) return;
     setSaving(true);
     try {
-        const { error: profileError } = await supabase.from('profiles').upsert({
-            id: userId,
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Sesión expirada.");
+
+        // Guardar Perfil
+        await supabase.from('profiles').upsert({
+            id: user.id,
             first_name: profile.first_name,
             last_name: profile.last_name,
             phone: profile.phone,
             updated_at: new Date()
         });
-        if (profileError) throw profileError;
 
-        const { error: restError } = await supabase.from('restaurants').update({
-            business_hours: restaurant.business_hours
-        }).eq('id', restaurant.id);
-        if (restError) throw restError;
+        // Actualizar restaurante (solo si ya existe)
+        if (restaurant.id) {
+            await supabase.from('restaurants').update({
+                business_hours: restaurant.business_hours
+            }).eq('id', restaurant.id);
+        }
 
-        alert("¡Configuración guardada correctamente!");
+        alert("¡Datos guardados!");
     } catch (error: any) { 
-        console.error(error);
         alert("Error al guardar: " + error.message); 
     } finally { setSaving(false); }
   };
@@ -118,39 +140,85 @@ export default function SettingsPage() {
       }));
   };
 
-  // --- PASO 1: ACTIVAR PRUEBA (SOLO DB) ---
+  // --- LÓGICA: ACTIVAR / CREAR ---
   const handleActivateTrial = async (planType: 'light' | 'plus') => {
       setProcessingPlan(planType);
       try {
-        // Guardamos el plan en la base de datos
-        const { error } = await supabase
-            .from('restaurants')
-            .update({ subscription_plan: planType })
-            .eq('id', restaurant.id);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert("Error: No se detecta el usuario. Recarga la página.");
+            return;
+        }
+
+        const currentUserId = user.id;
+        let error;
+        let newRestData;
+
+        // Si NO existe restaurante -> CREAMOS (INSERT)
+        if (!restaurant.id) {
+            const randomSlug = `restaurante-${currentUserId.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
+
+            const res = await supabase
+                .from('restaurants')
+                .insert({ 
+                    user_id: currentUserId,
+                    name: 'Mi Restaurante', 
+                    slug: randomSlug,
+                    subscription_plan: planType,
+                    subscription_status: 'active' 
+                })
+                .select()
+                .single();
+            
+            error = res.error;
+            newRestData = res.data;
+        } else {
+            // Si YA existe -> ACTUALIZAMOS (UPDATE)
+            const res = await supabase
+                .from('restaurants')
+                .update({ subscription_plan: planType })
+                .eq('id', restaurant.id)
+                .select()
+                .single();
+            
+            error = res.error;
+            newRestData = res.data;
+        }
         
         if (error) throw error;
 
-        // Actualizamos estado local
-        setRestaurant((prev: any) => ({ ...prev, subscription_plan: planType }));
-        alert(`¡Has activado la prueba del Plan ${planType === 'light' ? 'Light' : 'Plus'}! Ahora configura tu pago.`);
+        if (newRestData) {
+            setRestaurant({
+                ...restaurant,
+                id: newRestData.id,
+                subscription_plan: newRestData.subscription_plan,
+                created_at: newRestData.created_at
+            });
+        }
+        
+        window.location.reload(); 
 
-      } catch (error) {
-        alert("Error al activar plan");
+      } catch (error: any) {
+        console.error("Error completo:", error);
+        alert("Error al activar plan: " + (error.message || "Error desconocido"));
       } finally {
         setProcessingPlan(null);
       }
   };
 
-  // --- PASO 2: IR A PAGAR (MERCADO PAGO) ---
+  // --- PASO 2: IR A PAGAR ---
   const handleGoToPayment = async (planType: 'light' | 'plus') => {
       setProcessingPlan(planType);
       try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if(!user) return;
+
           const response = await fetch('/api/mercadopago/subscription', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   planType: planType,
-                  userId: userId, 
+                  userId: user.id, 
                   email: profile.email
               })
           });
@@ -170,12 +238,10 @@ export default function SettingsPage() {
       }
   };
 
-  // Calculamos fecha de cobro (14 días después del registro)
   const getChargeDate = () => {
-      if (!restaurant.created_at) return "14 días";
-      const created = new Date(restaurant.created_at);
-      const chargeDate = new Date(created);
-      chargeDate.setDate(created.getDate() + 14);
+      const dateBase = restaurant.created_at ? new Date(restaurant.created_at) : new Date();
+      const chargeDate = new Date(dateBase);
+      chargeDate.setDate(dateBase.getDate() + 14);
       return chargeDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
   };
 

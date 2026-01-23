@@ -4,17 +4,25 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, CheckCircle, XCircle, ChefHat, ArrowRight } from 'lucide-react';
+// 👇 Usamos el cliente seguro para evitar problemas de sesión
+import { createBrowserClient } from '@supabase/ssr';
+import { DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, CheckCircle, XCircle, ChefHat, ArrowRight, Store, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ orders: 0, revenue: 0, views: 0 }); // Views lo dejamos en 0 por ahora
+  const [isNewUser, setIsNewUser] = useState(false); // Estado para detectar si es nuevo
+  const [stats, setStats] = useState({ orders: 0, revenue: 0, views: 0 });
   const [storeLink, setStoreLink] = useState('');
   const [slug, setSlug] = useState('');
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
+
+  // Cliente Supabase
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -25,51 +33,57 @@ export default function DashboardHome() {
         if (!session) return;
 
         // 1. Obtener Datos del Restaurante (Slug)
+        // Usamos maybeSingle() para que NO tire error rojo si no existe
         const { data: rest } = await supabase
           .from('restaurants')
           .select('id, slug')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
-        if (rest && mounted) {
-          setSlug(rest.slug);
-          // Construimos el link completo (detecta si es localhost o producción)
-          const origin = window.location.origin;
-          setStoreLink(`${origin}/${rest.slug}`);
+        if (mounted) {
+            if (!rest) {
+                // SI NO HAY RESTAURANTE -> ES NUEVO
+                setIsNewUser(true);
+                setLoading(false);
+                return;
+            }
 
-          // 2. Obtener Pedidos de HOY (para las estadísticas)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0); // Inicio del día
+            // SI HAY RESTAURANTE -> CARGAMOS TU DASHBOARD
+            setSlug(rest.slug);
+            const origin = window.location.origin;
+            setStoreLink(`${origin}/${rest.slug}`);
 
-          const { data: todaysOrders } = await supabase
-            .from('orders')
-            .select('total, status')
-            .eq('restaurant_id', rest.id)
-            .gte('created_at', today.toISOString()); // Solo desde hoy a la madrugada
+            // 2. Obtener Pedidos de HOY
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-          if (todaysOrders) {
-            // Filtramos solo los que cuentan (no cancelados)
-            const validOrders = todaysOrders.filter(o => o.status !== 'cancelado');
-            
-            const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
-            setStats({
-                orders: validOrders.length,
-                revenue: totalRevenue,
-                views: 0 // Implementaremos contador de visitas luego
-            });
-          }
+            const { data: todaysOrders } = await supabase
+                .from('orders')
+                .select('total, status')
+                .eq('restaurant_id', rest.id)
+                .gte('created_at', today.toISOString());
 
-          // 3. Obtener ÚLTIMOS 20 PEDIDOS (Historial rápido)
-          const { data: lastOrders } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('restaurant_id', rest.id)
-            .order('created_at', { ascending: false })
-            .limit(20);
+            if (todaysOrders) {
+                const validOrders = todaysOrders.filter(o => o.status !== 'cancelado');
+                const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
+                setStats({
+                    orders: validOrders.length,
+                    revenue: totalRevenue,
+                    views: 0
+                });
+            }
 
-          if (lastOrders && mounted) {
-            setRecentOrders(lastOrders);
-          }
+            // 3. Obtener ÚLTIMOS 20 PEDIDOS
+            const { data: lastOrders } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('restaurant_id', rest.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (lastOrders) {
+                setRecentOrders(lastOrders);
+            }
         }
       } catch (error) {
         console.error("Error cargando dashboard:", error);
@@ -89,7 +103,6 @@ export default function DashboardHome() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Helper para badges de estado
   const getStatusBadge = (status: string) => {
     switch(status) {
         case 'pendiente': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>;
@@ -100,8 +113,34 @@ export default function DashboardHome() {
     }
   };
 
+  if (loading) {
+      return <div className="h-[60vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2"/> Cargando...</div>;
+  }
+
+  // --- 🚨 AQUÍ ESTÁ LA LÓGICA CLAVE PARA USUARIOS NUEVOS ---
+  // Si no tiene restaurante, mostramos esto en lugar de romper la página
+  if (isNewUser) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6 animate-in fade-in">
+        <div className="bg-gray-100 p-6 rounded-full">
+            <Store size={48} className="text-gray-400"/>
+        </div>
+        <div>
+            <h1 className="text-3xl font-bold text-gray-900">Bienvenido a Snappy</h1>
+            <p className="text-gray-500 mt-2 max-w-md mx-auto">
+                Todavía no tienes un negocio configurado. Comienza eligiendo un plan.
+            </p>
+        </div>
+        <Link href="/dashboard/settings" className="bg-black text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 transition shadow-lg hover:-translate-y-1">
+            Configurar mi Negocio <ArrowRight size={20}/>
+        </Link>
+      </div>
+    );
+  }
+
+  // --- SI YA TIENE RESTAURANTE, MUESTRA TU DISEÑO ORIGINAL 👇 ---
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in">
       
       {/* CABECERA */}
       <div>
@@ -191,9 +230,7 @@ export default function DashboardHome() {
         </div>
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            {loading ? (
-                <div className="p-8 text-center text-gray-400">Cargando actividad...</div>
-            ) : recentOrders.length === 0 ? (
+            {recentOrders.length === 0 ? (
                 <div className="p-12 text-center text-gray-400 flex flex-col items-center">
                     <ShoppingBag size={48} className="text-gray-200 mb-3"/>
                     <p>Aún no tienes pedidos.</p>

@@ -1,11 +1,15 @@
 'use client';
 
+// Agrego esto para asegurar datos frescos
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Check, Loader2, ArrowRight, Zap } from 'lucide-react'; // Agregué Zap aquí
+// 👇 CAMBIO 1: Cliente seguro para evitar errores de sesión
+import { createBrowserClient } from '@supabase/ssr';
+import { Check, Loader2, ArrowRight, Zap } from 'lucide-react'; 
 import Link from 'next/link';
 
-// DATOS DE LAS PLANTILLAS
+// DATOS DE LAS PLANTILLAS (INTACTO)
 export const TEMPLATES_DATA = [
   {
     id: 'urban',
@@ -58,24 +62,34 @@ export default function TemplatesPage() {
 
   // --- NUEVOS ESTADOS ---
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [plan, setPlan] = useState('free'); // Asumimos free por defecto para proteger
+  const [plan, setPlan] = useState('free'); 
+
+  // 👇 CLIENTE SUPABASE
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const loadCurrent = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if(user) {
-            // Traemos template_id Y subscription_plan en la misma consulta
+        const { data: { session } } = await supabase.auth.getSession();
+        if(session?.user) {
+            // Traemos template_id Y subscription_plan
             const { data } = await supabase
                 .from('restaurants')
                 .select('template_id, subscription_plan')
-                .eq('user_id', user.id)
-                .single();
+                .eq('user_id', session.user.id)
+                .maybeSingle();
             
             if(data) {
                 setActiveTemplate(data.template_id);
-                // Detectamos si es plan Plus o Max
-                if (data.subscription_plan === 'plus' || data.subscription_plan === 'max') {
-                    setPlan('plus');
+                
+                // 👇 CAMBIO 2: Si tiene CUALQUIER plan (no es null), lo marcamos como 'paid'
+                // Esto permite que el plan Light también cambie plantillas
+                if (data.subscription_plan) {
+                    setPlan('paid');
+                } else {
+                    setPlan('free');
                 }
             }
         }
@@ -85,8 +99,9 @@ export default function TemplatesPage() {
 
   const handleSelect = async (template: typeof TEMPLATES_DATA[0]) => {
     // --- BLOQUEO DE SEGURIDAD ---
+    // Si sigue en 'free' (sin plan), muestra el modal
     if (plan === 'free') {
-        setShowUpgradeModal(true); // 🛑 ALTO AHÍ
+        setShowUpgradeModal(true); 
         return;
     }
 
@@ -141,7 +156,7 @@ export default function TemplatesPage() {
 
                 {/* 2. CONTENIDO */}
                 <div className={`p-4 h-full overflow-hidden ${t.id === 'urban' ? 'bg-gray-900' : 'bg-white'}`}>
-                   
+                    
                    {/* ESTILO 1: URBANO */}
                    {t.id === 'urban' && (
                      <div className="space-y-3">
@@ -250,7 +265,7 @@ export default function TemplatesPage() {
                  <Zap size={32} fill="currentColor" />
               </div>
               <h3 className="text-2xl font-bold mb-2">¡Esta plantilla es Premium!</h3>
-              <p className="text-gray-500 mb-6">Para usar diseños profesionales y cambiar la imagen de tu negocio, necesitas el Plan Plus.</p>
+              <p className="text-gray-500 mb-6">Para usar diseños profesionales y cambiar la imagen de tu negocio, necesitas activar un Plan (Light o Plus).</p>
               <div className="flex gap-3 flex-col">
                  <Link href="/dashboard/settings" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
                     Ver Planes y Precios
