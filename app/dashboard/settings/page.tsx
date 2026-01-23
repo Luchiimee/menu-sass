@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, ExternalLink, Star, Tag, AlertTriangle } from 'lucide-react';
+import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, ExternalLink, Star, Tag, AlertTriangle, CalendarDays } from 'lucide-react';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -17,6 +17,7 @@ const DAYS = [
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null); // Para saber qué botón está cargando
   const [userId, setUserId] = useState<string | null>(null);
 
   const [profile, setProfile] = useState({
@@ -29,7 +30,8 @@ export default function SettingsPage() {
   const [restaurant, setRestaurant] = useState<any>({
     id: '',
     business_hours: {},
-    subscription_plan: 'light' // 'light', 'plus', 'max'
+    subscription_plan: null, // null | 'light' | 'plus' | 'max'
+    created_at: null
   });
 
   useEffect(() => {
@@ -37,12 +39,12 @@ export default function SettingsPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session?.user) return; // Si no hay sesión, cortamos.
+        if (!session?.user) return;
         
         const user = session.user;
         setUserId(user.id);
 
-        // 1. Carga Perfil (Datos Personales)
+        // 1. Carga Perfil
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (profileData) {
             setProfile({ 
@@ -52,7 +54,6 @@ export default function SettingsPage() {
                 email: user.email || ''
             });
         } else {
-            // Si no existe perfil aun, pre-llenamos el email
             setProfile(prev => ({ ...prev, email: user.email || '' }));
         }
 
@@ -60,7 +61,12 @@ export default function SettingsPage() {
         const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', user.id).single();
         if (restData) {
             const defaultHours = restData.business_hours || {};
-            setRestaurant({ ...restData, business_hours: defaultHours, subscription_plan: restData.subscription_plan || 'light' });
+            setRestaurant({ 
+                ...restData, 
+                business_hours: defaultHours, 
+                subscription_plan: restData.subscription_plan, // Respetamos lo que venga de la base
+                created_at: restData.created_at
+            });
         }
 
       } catch (error) { console.error("Error cargando datos:", error); } finally { setLoading(false); }
@@ -72,7 +78,6 @@ export default function SettingsPage() {
     if (!userId) return;
     setSaving(true);
     try {
-        // Guardar Datos Personales (UPSERT crea si no existe)
         const { error: profileError } = await supabase.from('profiles').upsert({
             id: userId,
             first_name: profile.first_name,
@@ -80,14 +85,11 @@ export default function SettingsPage() {
             phone: profile.phone,
             updated_at: new Date()
         });
-
         if (profileError) throw profileError;
 
-        // Guardar Horarios del Restaurante
         const { error: restError } = await supabase.from('restaurants').update({
             business_hours: restaurant.business_hours
         }).eq('id', restaurant.id);
-
         if (restError) throw restError;
 
         alert("¡Configuración guardada correctamente!");
@@ -116,13 +118,33 @@ export default function SettingsPage() {
       }));
   };
 
- const handleSubscribe = async (planType: 'light' | 'plus') => {
-      if (planType === 'light') return; 
-      
-      setSaving(true); 
-
+  // --- PASO 1: ACTIVAR PRUEBA (SOLO DB) ---
+  const handleActivateTrial = async (planType: 'light' | 'plus') => {
+      setProcessingPlan(planType);
       try {
-          // 1. Llamamos a NUESTRA propia API que creamos recién
+        // Guardamos el plan en la base de datos
+        const { error } = await supabase
+            .from('restaurants')
+            .update({ subscription_plan: planType })
+            .eq('id', restaurant.id);
+        
+        if (error) throw error;
+
+        // Actualizamos estado local
+        setRestaurant((prev: any) => ({ ...prev, subscription_plan: planType }));
+        alert(`¡Has activado la prueba del Plan ${planType === 'light' ? 'Light' : 'Plus'}! Ahora configura tu pago.`);
+
+      } catch (error) {
+        alert("Error al activar plan");
+      } finally {
+        setProcessingPlan(null);
+      }
+  };
+
+  // --- PASO 2: IR A PAGAR (MERCADO PAGO) ---
+  const handleGoToPayment = async (planType: 'light' | 'plus') => {
+      setProcessingPlan(planType);
+      try {
           const response = await fetch('/api/mercadopago/subscription', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -136,18 +158,25 @@ export default function SettingsPage() {
           const data = await response.json();
 
           if (data.url) {
-              // 2. Si todo salió bien, redirigimos a Mercado Pago
               window.location.href = data.url;
           } else {
               alert("Hubo un error al generar el pago.");
           }
-
       } catch (error) {
           console.error(error);
           alert("Error de conexión.");
       } finally {
-          setSaving(false);
+          setProcessingPlan(null);
       }
+  };
+
+  // Calculamos fecha de cobro (14 días después del registro)
+  const getChargeDate = () => {
+      if (!restaurant.created_at) return "14 días";
+      const created = new Date(restaurant.created_at);
+      const chargeDate = new Date(created);
+      chargeDate.setDate(created.getDate() + 14);
+      return chargeDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
   };
 
   return (
@@ -228,8 +257,9 @@ export default function SettingsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 
-                {/* --- PLAN LIGHT (BASE) --- */}
-                <div className={`relative p-6 rounded-3xl border-2 flex flex-col ${restaurant.subscription_plan === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'}`}>
+                {/* --- PLAN LIGHT ($6.400) --- */}
+                <div className={`relative p-6 rounded-3xl border-2 flex flex-col transition-all ${restaurant.subscription_plan === 'light' ? 'border-gray-900 bg-gray-50 ring-1 ring-gray-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                    {restaurant.subscription_plan === 'light' && <span className="absolute top-4 right-4 text-[10px] font-bold bg-black text-white px-2 py-1 rounded">TU PLAN</span>}
                     
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-700">Light</h3>
@@ -243,17 +273,37 @@ export default function SettingsPage() {
                          <li className="flex gap-2 opacity-50"><Lock size={16}/> Sin Panel de Pedidos</li>
                     </ul>
 
-                    {/* Botón Pasivo para Light */}
-                    <button 
-                        disabled
-                        className="w-full py-3 rounded-xl font-bold text-sm bg-gray-200 text-gray-500 cursor-default"
-                    >
-                        {restaurant.subscription_plan === 'light' ? 'Tu Plan Base (Gratis)' : 'Incluido'}
-                    </button>
+                    {/* BOTONERA LIGHT */}
+                    {restaurant.subscription_plan === 'light' ? (
+                        <div className="space-y-3">
+                            <div className="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1">
+                                <Check size={14}/> Prueba Activa
+                            </div>
+                            <button 
+                                onClick={() => handleGoToPayment('light')}
+                                disabled={processingPlan === 'light'}
+                                className="w-full py-3 rounded-xl font-bold text-sm bg-black text-white hover:bg-gray-800 shadow-lg flex items-center justify-center gap-2"
+                            >
+                                {processingPlan === 'light' ? <Loader2 className="animate-spin" size={18}/> : 'Configurar Pago'}
+                            </button>
+                            <p className="text-[10px] text-gray-400 text-center leading-tight">
+                                <CalendarDays size={10} className="inline mr-1"/>
+                                El cobro de $6.400 se realizará el <b>{getChargeDate()}</b>
+                            </p>
+                        </div>
+                    ) : (
+                        <button 
+                            onClick={() => handleActivateTrial('light')}
+                            disabled={processingPlan === 'light'}
+                            className="w-full py-3 rounded-xl font-bold text-sm border-2 border-gray-900 text-gray-900 hover:bg-gray-50"
+                        >
+                            {processingPlan === 'light' ? <Loader2 className="animate-spin" size={18}/> : 'Comenzar Prueba Gratis'}
+                        </button>
+                    )}
                 </div>
 
-                {/* --- PLAN PLUS (OBJETIVO) --- */}
-                <div className={`relative p-6 rounded-3xl border-2 flex flex-col shadow-xl scale-105 z-10 ${restaurant.subscription_plan === 'plus' ? 'border-blue-500 bg-blue-50' : 'border-blue-500 bg-white'}`}>
+                {/* --- PLAN PLUS ($13.900) --- */}
+                <div className={`relative p-6 rounded-3xl border-2 flex flex-col shadow-xl scale-105 z-10 transition-all ${restaurant.subscription_plan === 'plus' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-blue-500 bg-white'}`}>
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm tracking-wide">RECOMENDADO</div>
                     
                     <div className="mb-4">
@@ -268,46 +318,51 @@ export default function SettingsPage() {
                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Métricas de Caja</li>
                     </ul>
 
-                    {/* --- BOTONES DE ACCIÓN --- */}
+                    {/* BOTONERA PLUS */}
                     {restaurant.subscription_plan === 'plus' ? (
-                         <button disabled className="w-full py-3 rounded-xl font-bold text-sm bg-blue-200 text-blue-800 flex items-center justify-center gap-2">
-                            Plan Activo ✅
-                         </button>
-                    ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
+                            <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1">
+                                <Check size={14}/> Prueba Activa
+                            </div>
                             <button 
-                                onClick={() => handleSubscribe('plus')}
-                                disabled={saving}
-                                className="w-full py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
+                                onClick={() => handleGoToPayment('plus')}
+                                disabled={processingPlan === 'plus'}
+                                className="w-full py-3 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 shadow-lg flex items-center justify-center gap-2"
                             >
-                                {saving ? <Loader2 className="animate-spin" size={20}/> : 'Activar Plan (14 días gratis)'}
+                                {processingPlan === 'plus' ? <Loader2 className="animate-spin" size={18}/> : 'Configurar Pago'}
                             </button>
-                            <p className="text-[10px] text-gray-400 text-center leading-tight">
-                                Comienza hoy tus 14 días gratis.<br/>
-                                El cobro se realiza automáticamente al finalizar el periodo de prueba.
+                            <p className="text-[10px] text-blue-400 text-center leading-tight">
+                                <CalendarDays size={10} className="inline mr-1"/>
+                                El cobro de $13.900 se realizará el <b>{getChargeDate()}</b>
                             </p>
                         </div>
+                    ) : (
+                        <button 
+                            onClick={() => handleActivateTrial('plus')}
+                            disabled={processingPlan === 'plus'}
+                            className="w-full py-3 rounded-xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                        >
+                            {processingPlan === 'plus' ? <Loader2 className="animate-spin" size={18}/> : 'Comenzar Prueba Gratis'}
+                        </button>
                     )}
                 </div>
 
                 {/* --- PLAN MAX (PROXIMAMENTE) --- */}
-                <div className="relative p-6 rounded-3xl border border-gray-200 bg-gray-50 flex flex-col overflow-hidden">
-                    <div className="absolute inset-0 backdrop-blur-[4px] bg-white/40 z-10 flex flex-col items-center justify-center text-center p-4">
+                <div className="relative p-6 rounded-3xl border border-gray-200 bg-gray-50 flex flex-col overflow-hidden opacity-80">
+                    <div className="absolute inset-0 backdrop-blur-[2px] bg-white/40 z-10 flex flex-col items-center justify-center text-center p-4">
                         <div className="bg-black text-white p-3 rounded-full mb-2 shadow-lg"><Star size={24} className="animate-pulse fill-yellow-400 text-yellow-400"/></div>
                         <h3 className="font-bold text-gray-900">PRÓXIMAMENTE</h3>
-                        <p className="text-xs text-gray-500 mt-1 font-medium">Automatización Total</p>
                     </div>
 
-                    <div className="mb-4 opacity-50 filter blur-[2px]">
+                    <div className="mb-4 opacity-50 filter blur-[1px]">
                         <h3 className="text-lg font-bold text-purple-600">Max</h3>
                         <p className="text-3xl font-black mt-2 text-gray-900">$25.200</p>
                     </div>
                     
-                    <ul className="space-y-3 text-sm text-gray-400 flex-1 mb-6 opacity-50 filter blur-[2px]">
+                    <ul className="space-y-3 text-sm text-gray-400 flex-1 mb-6 opacity-50 filter blur-[1px]">
                          <li className="flex gap-2"><Check size={16}/> Cobros con MP</li>
                          <li className="flex gap-2"><Check size={16}/> Pagos Automáticos</li>
                          <li className="flex gap-2"><Check size={16}/> Estadísticas Pro</li>
-                         <li className="flex gap-2"><Check size={16}/> API WhatsApp</li>
                     </ul>
 
                     <button disabled className="w-full py-3 rounded-xl font-bold text-sm bg-gray-200 text-gray-400 opacity-50">
@@ -316,7 +371,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* --- CUPÓN DE DESCUENTO --- */}
+            {/* --- CUPÓN --- */}
             <div className="bg-white border border-dashed border-gray-300 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="bg-yellow-100 p-2 rounded-lg text-yellow-600"><Tag size={20}/></div>
