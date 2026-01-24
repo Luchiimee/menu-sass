@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 // Usamos createBrowserClient para evitar errores de sesión
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Lock, Zap } from 'lucide-react';
+import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Lock, Zap, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { TEMPLATES_DATA } from '../templates/page'; 
 
@@ -68,9 +68,9 @@ export default function DesignPage() {
           // Solo bloqueamos si NO tiene plan (es decir, usuario nuevo).
           // Si tiene Light O Plus, se desbloquea.
           if (!rest.subscription_plan) {
-             setIsLocked(true);
+              setIsLocked(true);
           } else {
-             setIsLocked(false);
+              setIsLocked(false);
           }
 
           // 3. Cargar Productos
@@ -352,12 +352,26 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* LINK + BOTÓN DE VER */}
-              <section className="border rounded-xl overflow-hidden flex items-center">
-                  <div className="bg-gray-100 px-3 py-3 border-r text-gray-500 text-sm">snappy.uno/</div>
-                  <input value={data.slug} onChange={(e) => setData({...data, slug: e.target.value})} className="flex-1 p-3 outline-none font-bold text-gray-800 bg-white"/>
-                  <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-l border-r"><Copy size={18}/></button>
-                  <a href={`/${data.slug}`} target="_blank" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black" title="Ir al link"><ExternalLink size={18}/></a>
+              {/* --- LINK / DOMINIO --- */}
+              <section className="border rounded-xl overflow-hidden">
+                  <div className="bg-yellow-50 px-4 py-3 flex items-start gap-2 border-b border-yellow-100">
+                      <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0"/>
+                     <p className="text-xs text-yellow-800">
+    Este será el enlace de tu menú digital. Puedes personalizarlo para que sea fácil de recordar.
+    Puedes poner el nombre de tu negocio
+</p>
+                  </div>
+                  <div className="flex items-center bg-white p-1">
+                      <div className="bg-gray-100 px-3 py-3 rounded-l-lg border-r text-gray-500 text-sm font-medium">snappy.uno/</div>
+                      <input 
+                          value={data.slug} 
+                          onChange={(e) => setData({...data, slug: e.target.value})} 
+                          className="flex-1 p-3 outline-none font-bold text-gray-800 bg-white" 
+                          placeholder="nombre-de-tu-negocio"
+                      />
+                      <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-l border-r"><Copy size={18}/></button>
+                      <a href={`/${data.slug}`} target="_blank" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link"><ExternalLink size={18}/></a>
+                  </div>
               </section>
 
               {/* Identidad */}
@@ -388,13 +402,24 @@ export default function DesignPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center border rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 p-3 border-r text-gray-400"><Phone size={16}/></div>
-                          <input value={data.phone || ''} onChange={(e) => setData({...data, phone: e.target.value})} className="w-full p-3 text-sm outline-none font-bold" placeholder="WhatsApp"/>
+                      {/* --- WHATSAPP --- */}
+                      <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Recibir Pedidos en:</label>
+                          <div className="flex items-center border rounded-xl overflow-hidden bg-white">
+                              <div className="bg-green-50 p-3 border-r text-green-600"><Phone size={16}/></div>
+                              <input value={data.phone || ''} onChange={(e) => setData({...data, phone: e.target.value})} className="w-full p-3 text-sm outline-none font-bold" placeholder="WhatsApp (Ej: 11...)"/>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-1">A este número llegarán las alertas.</p>
                       </div>
-                      <div className="flex items-center border rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 p-3 border-r text-gray-400"><Bike size={16}/></div>
-                          <input type="number" value={data.delivery_cost} onChange={(e) => setData({...data, delivery_cost: Number(e.target.value)})} className="w-full p-3 text-sm outline-none font-bold" placeholder="Envío $"/>
+
+                      {/* --- COSTO ENVÍO --- */}
+                      <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Costo de Envío:</label>
+                          <div className="flex items-center border rounded-xl overflow-hidden bg-white">
+                              <div className="bg-gray-50 p-3 border-r text-gray-400"><Bike size={16}/></div>
+                              <input type="number" value={data.delivery_cost} onChange={(e) => setData({...data, delivery_cost: Number(e.target.value)})} className="w-full p-3 text-sm outline-none font-bold" placeholder="0"/>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-1">Se sumará al total del pedido.</p>
                       </div>
                   </div>
 

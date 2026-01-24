@@ -3,19 +3,19 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-// 👇 Usamos el cliente seguro
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Calendar, Bike, Store, MapPin, CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle, LayoutGrid, List, Zap } from 'lucide-react';
+import { Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin, CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle, LayoutGrid, List, Zap, Send } from 'lucide-react';
 import Link from 'next/link';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list');
-  
-  // --- ESTADO DE BLOQUEO ---
-  // Bloqueado por defecto hasta demostrar que es PLUS o MAX
+  const [restaurantName, setRestaurantName] = useState(''); 
   const [isLocked, setIsLocked] = useState(true);
+  
+  // --- NUEVO ESTADO PARA REALTIME ---
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,6 +34,7 @@ export default function OrdersPage() {
       localStorage.setItem('ordersView', newView);
   };
 
+  // 1. CARGA INICIAL
   useEffect(() => {
     let mounted = true;
 
@@ -42,20 +43,19 @@ export default function OrdersPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // 1. Verificar Plan
             const { data: rest } = await supabase
                 .from('restaurants')
-                .select('id, subscription_plan')
+                .select('id, subscription_plan, name')
                 .eq('user_id', user.id)
                 .single();
             
             if (mounted && rest) {
-                // LÓGICA ESTRICTA: Solo se desbloquea si es PLUS o MAX
-                // Si es Light o no tiene plan, se queda bloqueado.
+                setRestaurantName(rest.name || 'nuestro local');
+                setRestaurantId(rest.id); // Guardamos ID para realtime
+
                 if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
                     setIsLocked(false);
                     
-                    // Solo cargamos pedidos si está desbloqueado
                     const { data: ords } = await supabase
                         .from('orders')
                         .select('*')
@@ -76,28 +76,45 @@ export default function OrdersPage() {
 
     loadOrders();
 
-    // Realtime (Solo si no está bloqueado para ahorrar recursos)
-    const channel = supabase.channel('orders_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-          if (!isLocked) {
-             const fetchAgain = async () => {
-                 const { data: { user } } = await supabase.auth.getUser();
-                 if(!user) return;
-                 const { data: rest } = await supabase.from('restaurants').select('id').eq('user_id', user.id).single();
-                 if (!rest) return;
-                 const { data: ords } = await supabase.from('orders').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: false });
-                 if(ords) setOrders(ords);
-             }
-             fetchAgain();
-          }
-      })
-      .subscribe();
+    return () => { mounted = false; };
+  }, []);
 
-    return () => { 
-        mounted = false;
-        supabase.removeChannel(channel); 
-    };
-  }, [isLocked]);
+  // 2. REALTIME OPTIMIZADO (Solo se activa con ID y si no está bloqueado)
+  useEffect(() => {
+      if (!restaurantId || isLocked) return;
+
+      console.log("🟢 Conectando Realtime para:", restaurantId);
+
+      const channel = supabase
+          .channel('orders_channel')
+          .on(
+              'postgres_changes',
+              {
+                  event: '*', // Escuchar todo
+                  schema: 'public',
+                  table: 'orders',
+                  filter: `restaurant_id=eq.${restaurantId}` // Filtro clave
+              },
+              (payload) => {
+                  console.log("🔔 Cambio:", payload);
+
+                  if (payload.eventType === 'INSERT') {
+                      setOrders((prev) => [payload.new, ...prev]);
+                  } 
+                  else if (payload.eventType === 'UPDATE') {
+                      setOrders((prev) => prev.map(o => o.id === payload.new.id ? payload.new : o));
+                  }
+                  else if (payload.eventType === 'DELETE') {
+                      setOrders((prev) => prev.filter(o => o.id !== payload.old.id));
+                  }
+              }
+          )
+          .subscribe();
+
+      return () => {
+          supabase.removeChannel(channel);
+      };
+  }, [restaurantId, isLocked]);
 
   const updateStatus = async (id: string, newStatus: string) => {
       setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
@@ -110,10 +127,20 @@ export default function OrdersPage() {
       await supabase.from('orders').delete().eq('id', id);
   };
 
+  // --- TU LÓGICA DE WHATSAPP INTACTA ---
+  const getWhatsAppLink = (phone: string, type: 'notify' | 'chat') => {
+      let message = '';
+      if (type === 'notify') {
+          message = `Hola! 🛵 Tu pedido de *${restaurantName}* acaba de salir hacia tu dirección.`;
+      }
+      return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+  };
+
   const getStatusBadge = (status: string) => {
       switch(status) {
           case 'pendiente': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><Clock size={12}/> Pendiente</span>;
-          case 'en_proceso': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><ChefHat size={12}/> En Cocina</span>;
+          case 'en_proceso': return <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><ChefHat size={12}/> En Cocina</span>;
+          case 'en_camino': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><Bike size={12}/> En Camino</span>;
           case 'completado': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><CheckCircle size={12}/> Completado</span>;
           case 'cancelado': return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><XCircle size={12}/> Cancelado</span>;
           default: return null;
@@ -125,7 +152,6 @@ export default function OrdersPage() {
   return (
     <div className="max-w-6xl mx-auto h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar p-2 relative">
       
-      {/* --- MODAL DE BLOQUEO (Solo visible si isLocked es true) --- */}
       {isLocked && (
         <div className="absolute inset-0 z-50 backdrop-blur-sm bg-white/60 flex items-center justify-center rounded-3xl overflow-hidden p-4 h-full">
             <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-gray-100 animate-in zoom-in-95 duration-300">
@@ -134,7 +160,7 @@ export default function OrdersPage() {
                 </div>
                 <h2 className="text-2xl font-bold mb-3 text-gray-900">Gestor de Pedidos</h2>
                 <p className="text-gray-500 mb-8 text-base">
-                    El panel de control en tiempo real, estados de cocina y métricas es exclusivo del <b>Plan Plus</b>.
+                    El panel de control en tiempo real, estados de cocina y notificaciones automáticas es exclusivo del <b>Plan Plus</b>.
                 </p>
                 <Link href="/dashboard/settings" className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:-translate-y-1 bg-blue-600 text-white hover:bg-blue-700">
                     Actualizar a Plus <Zap size={20} fill="currentColor"/>
@@ -144,10 +170,8 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* --- TU CONTENIDO ORIGINAL (Con blur si está bloqueado) --- */}
       <div className={`${isLocked ? 'blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-full' : ''}`}>
           
-          {/* HEADER SUPERIOR */}
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <h1 className="text-2xl font-bold flex items-center gap-2">
                 Pedidos <span className="bg-black text-white text-sm px-2 py-0.5 rounded-full">{orders.length}</span>
@@ -170,10 +194,8 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {/* CONTENEDOR DINÁMICO */}
           <div className={view === 'list' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 align-start'}>
               
-              {/* Si no hay pedidos y no está bloqueado */}
               {!isLocked && orders.length === 0 && (
                   <div className="col-span-full py-20 text-center text-gray-400">
                       <ShoppingBag size={48} className="mx-auto mb-4 opacity-20"/>
@@ -181,7 +203,6 @@ export default function OrdersPage() {
                   </div>
               )}
 
-              {/* Si está bloqueado, mostramos placeholders para que el blur se vea bien */}
               {isLocked && [1, 2, 3].map((i) => (
                   <div key={i} className="bg-white border rounded-xl p-5 shadow-sm h-48 flex items-center justify-center text-gray-300">
                       Contenido Oculto
@@ -234,23 +255,48 @@ export default function OrdersPage() {
                         </div>
                     </div>
 
-                    <div className={`flex gap-2 pt-2 border-t mt-2 ${view === 'grid' ? 'flex-col' : 'justify-end'}`}>
+                    <div className={`flex flex-col gap-2 pt-2 border-t mt-2`}>
                         {order.status === 'pendiente' && (
-                            <>
-                                <button onClick={() => updateStatus(order.id, 'cancelado')} className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold transition w-full">Rechazar</button>
-                                <button onClick={() => updateStatus(order.id, 'en_proceso')} className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg text-sm font-bold transition shadow-lg flex items-center justify-center gap-2 w-full"><ChefHat size={16}/> Cocinar</button>
-                            </>
+                            <div className="flex gap-2">
+                                <button onClick={() => updateStatus(order.id, 'cancelado')} className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold transition flex-1">Rechazar</button>
+                                <button onClick={() => updateStatus(order.id, 'en_proceso')} className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg text-sm font-bold transition shadow-lg flex items-center justify-center gap-2 flex-1"><ChefHat size={16}/> Cocinar</button>
+                            </div>
                         )}
+
                         {order.status === 'en_proceso' && (
-                            <button onClick={() => updateStatus(order.id, 'completado')} className="bg-green-600 text-white hover:bg-green-700 px-6 py-2 rounded-lg text-sm font-bold transition shadow-lg flex items-center justify-center gap-2 animate-pulse w-full"><Check size={16}/> Cobrar</button>
+                            <button onClick={() => updateStatus(order.id, 'en_camino')} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-lg text-sm font-bold transition shadow-lg flex items-center justify-center gap-2 w-full">
+                                <Send size={16}/> Enviar Pedido
+                            </button>
                         )}
+
+                        {order.status === 'en_camino' && (
+                            <div className="flex flex-col gap-2">
+                                {order.customer_phone && (
+                                    <a 
+                                        href={getWhatsAppLink(order.customer_phone, 'notify')}
+                                        className="bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition shadow flex items-center justify-center gap-2 w-full no-underline"
+                                    >
+                                        <MessageCircle size={18}/> Avisar: "Tu pedido salió" 🛵
+                                    </a>
+                                )}
+                                <button onClick={() => updateStatus(order.id, 'completado')} className="bg-gray-900 text-white hover:bg-black px-6 py-2 rounded-lg text-sm font-bold transition shadow flex items-center justify-center gap-2 w-full">
+                                    <Check size={16}/> Marcar Entregado/Cobrado
+                                </button>
+                            </div>
+                        )}
+
                         {(order.status === 'completado' || order.status === 'cancelado') && (
-                            <button onClick={() => deleteOrder(order.id)} className="text-gray-400 hover:text-red-500 p-2 transition w-full flex justify-center" title="Eliminar del historial"><Trash2 size={18}/></button>
-                        )}
-                        {order.customer_phone && (
-                            <a href={`https://wa.me/${order.customer_phone}`} target="_blank" className="bg-green-100 text-green-700 px-3 py-2 rounded-lg hover:bg-green-200 transition flex items-center justify-center gap-2 font-bold text-xs w-full">
-                                <MessageCircle size={16}/> Chat
-                            </a>
+                            <div className="flex gap-2">
+                                {order.customer_phone && (
+                                    <a 
+                                        href={getWhatsAppLink(order.customer_phone, 'chat')}
+                                        className="flex-1 bg-green-50 text-green-700 border border-green-200 px-3 py-2 rounded-lg hover:bg-green-100 transition flex items-center justify-center gap-2 font-bold text-xs no-underline"
+                                    >
+                                        <MessageCircle size={16}/> Chat
+                                    </a>
+                                )}
+                                <button onClick={() => deleteOrder(order.id)} className="text-gray-400 hover:text-red-500 p-2 transition flex justify-center w-10 bg-gray-50 rounded-lg border border-gray-200" title="Eliminar del historial"><Trash2 size={18}/></button>
+                            </div>
                         )}
                     </div>
                 </div>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
-  LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, AlertTriangle 
+  LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3 
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -117,6 +117,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Personalizar', href: '/dashboard/design', icon: Palette },
     { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
     { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
+    // 👇 AQUÍ AGREGAMOS MÉTRICAS 👇
+    { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];

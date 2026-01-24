@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Star } from 'lucide-react';
+import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Star, Mail } from 'lucide-react';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -45,40 +45,38 @@ export default function SettingsPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session?.user) {
-            console.error("No se encontró sesión.");
-            return;
-        }
+        if (!session?.user) return;
         
         const user = session.user;
         setUserId(user.id);
 
-        // 1. Carga Perfil - USAMOS maybeSingle() AQUÍ 👇
+        // 1. Carga Perfil
         const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .maybeSingle(); // <--- CAMBIO IMPORTANTE: Evita el error 406 si no existe
+            .maybeSingle();
 
         if (profileData) {
             setProfile({ 
                 first_name: profileData.first_name || '', 
                 last_name: profileData.last_name || '', 
                 phone: profileData.phone || '',
-                email: user.email || ''
+                email: user.email || '' 
             });
         } else {
             setProfile(prev => ({ ...prev, email: user.email || '' }));
         }
 
-        // 2. Carga Restaurante - USAMOS maybeSingle() AQUÍ TAMBIÉN 👇
+        // 2. Carga Restaurante
         const { data: restData } = await supabase
             .from('restaurants')
             .select('*')
             .eq('user_id', user.id)
-            .maybeSingle(); // <--- CAMBIO IMPORTANTE
+            .maybeSingle();
         
         if (restData) {
+            // Aseguramos que business_hours tenga un valor por defecto
             const defaultHours = restData.business_hours || {};
             setRestaurant({ 
                 ...restData, 
@@ -88,7 +86,11 @@ export default function SettingsPage() {
             });
         }
 
-      } catch (error) { console.error("Error cargando datos:", error); } finally { setLoading(false); }
+      } catch (error) { 
+          console.error("Error cargando datos:", error); 
+      } finally { 
+          setTimeout(() => setLoading(false), 300); 
+      }
     };
     loadData();
   }, []);
@@ -99,24 +101,49 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Sesión expirada.");
 
-        // Guardar Perfil
-        await supabase.from('profiles').upsert({
+        // 1. Guardar Perfil
+        const { error: profileError } = await supabase.from('profiles').upsert({
             id: user.id,
             first_name: profile.first_name,
             last_name: profile.last_name,
-            phone: profile.phone,
-            updated_at: new Date()
+            phone: profile.phone
         });
 
-        // Actualizar restaurante (solo si ya existe)
+        if (profileError) throw profileError;
+
+        // 2. Guardar Restaurante (Horarios)
         if (restaurant.id) {
-            await supabase.from('restaurants').update({
+            // CASO A: YA EXISTE -> ACTUALIZAMOS
+            const { error: restError } = await supabase.from('restaurants').update({
                 business_hours: restaurant.business_hours
             }).eq('id', restaurant.id);
+            
+            if (restError) throw restError;
+
+        } else {
+            // CASO B: NO EXISTE -> LO CREAMOS AHORA MISMO
+            const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
+            
+            const { data: newRest, error: createError } = await supabase.from('restaurants').insert({
+                user_id: user.id,
+                name: 'Mi Restaurante', // Nombre por defecto
+                slug: randomSlug,
+                business_hours: restaurant.business_hours, // Guardamos los horarios que editaste
+                subscription_status: 'active'
+            }).select().single();
+
+            if (createError) throw createError;
+
+            // Actualizamos el estado local para que la próxima vez sea un update
+            if (newRest) {
+                // 👇 AQUÍ ESTÁ LA CORRECCIÓN: Agregamos (prev: any)
+                setRestaurant((prev: any) => ({ ...prev, id: newRest.id }));
+            }
         }
 
-        alert("¡Datos guardados!");
+        alert("¡Datos y horarios guardados correctamente!");
     } catch (error: any) { 
+        console.error(error);
         alert("Error al guardar: " + error.message); 
     } finally { setSaving(false); }
   };
@@ -127,7 +154,7 @@ export default function SettingsPage() {
           redirectTo: `${window.location.origin}/dashboard/settings`,
       });
       if (error) alert("Error: " + error.message);
-      else alert(`Correo enviado a ${profile.email}`);
+      else alert(`Correo de recuperación enviado a ${profile.email}`);
   };
 
   const updateHour = (day: string, field: string, value: any) => {
@@ -135,78 +162,45 @@ export default function SettingsPage() {
           ...prev,
           business_hours: {
               ...prev.business_hours,
-              [day]: { ...prev.business_hours[day], [field]: value }
+              [day]: { 
+                  ...(prev.business_hours[day] || {}), 
+                  [field]: value 
+              }
           }
       }));
   };
 
-  // --- LÓGICA: ACTIVAR / CREAR ---
   const handleActivateTrial = async (planType: 'light' | 'plus') => {
       setProcessingPlan(planType);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            alert("Error: No se detecta el usuario. Recarga la página.");
-            return;
-        }
+        if (!user) return;
 
-        const currentUserId = user.id;
-        let error;
-        let newRestData;
-
-        // Si NO existe restaurante -> CREAMOS (INSERT)
-        if (!restaurant.id) {
-            const randomSlug = `restaurante-${currentUserId.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
-
-            const res = await supabase
-                .from('restaurants')
-                .insert({ 
-                    user_id: currentUserId,
+        // Si ya tenemos ID (porque guardamos horarios antes), actualizamos. Si no, creamos.
+        if (restaurant.id) {
+            const { error } = await supabase.from('restaurants').update({ subscription_plan: planType }).eq('id', restaurant.id);
+            if (error) throw error;
+        } else {
+            const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
+            const { error } = await supabase.from('restaurants').insert({ 
+                    user_id: user.id,
                     name: 'Mi Restaurante', 
                     slug: randomSlug,
                     subscription_plan: planType,
-                    subscription_status: 'active' 
-                })
-                .select()
-                .single();
-            
-            error = res.error;
-            newRestData = res.data;
-        } else {
-            // Si YA existe -> ACTUALIZAMOS (UPDATE)
-            const res = await supabase
-                .from('restaurants')
-                .update({ subscription_plan: planType })
-                .eq('id', restaurant.id)
-                .select()
-                .single();
-            
-            error = res.error;
-            newRestData = res.data;
-        }
-        
-        if (error) throw error;
-
-        if (newRestData) {
-            setRestaurant({
-                ...restaurant,
-                id: newRestData.id,
-                subscription_plan: newRestData.subscription_plan,
-                created_at: newRestData.created_at
+                    subscription_status: 'active',
+                    business_hours: restaurant.business_hours // No perdemos los horarios si estaban en memoria
             });
+            if (error) throw error;
         }
         
         window.location.reload(); 
-
       } catch (error: any) {
-        console.error("Error completo:", error);
-        alert("Error al activar plan: " + (error.message || "Error desconocido"));
+        alert("Error al activar plan: " + error.message);
       } finally {
         setProcessingPlan(null);
       }
   };
 
-  // --- PASO 2: IR A PAGAR ---
   const handleGoToPayment = async (planType: 'light' | 'plus') => {
       setProcessingPlan(planType);
       try {
@@ -222,16 +216,10 @@ export default function SettingsPage() {
                   email: profile.email
               })
           });
-
           const data = await response.json();
-
-          if (data.url) {
-              window.location.href = data.url;
-          } else {
-              alert("Hubo un error al generar el pago.");
-          }
+          if (data.url) window.location.href = data.url;
+          else alert("Error al generar el pago.");
       } catch (error) {
-          console.error(error);
           alert("Error de conexión.");
       } finally {
           setProcessingPlan(null);
@@ -245,8 +233,16 @@ export default function SettingsPage() {
       return chargeDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
   };
 
+  if (loading) {
+      return (
+          <div className="flex h-[80vh] w-full items-center justify-center">
+              <Loader2 className="animate-spin text-gray-300" size={40} />
+          </div>
+      );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-24 px-4">
+    <div className="max-w-6xl mx-auto space-y-8 pb-24 px-4 animate-in fade-in duration-500">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -256,11 +252,13 @@ export default function SettingsPage() {
           </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* COLUMNA IZQUIERDA (DATOS) */}
-        <div className="xl:col-span-4 space-y-6">
-            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+        {/* === COLUMNA IZQUIERDA (Datos + Cupón) === */}
+        <div className="lg:col-span-4 space-y-6">
+            
+            {/* 1. MIS DATOS */}
+            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                     <div className="bg-gray-100 p-2 rounded-lg text-gray-600"><User size={20}/></div>
                     Mis Datos
@@ -269,53 +267,68 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">Nombre</label>
-                            <input value={profile.first_name} onChange={e => setProfile({...profile, first_name: e.target.value})} className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black" placeholder="Nombre"/>
+                            <input 
+                                value={profile.first_name} 
+                                onChange={e => setProfile({...profile, first_name: e.target.value})} 
+                                className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" 
+                                placeholder="Tu Nombre"
+                            />
                         </div>
                         <div>
                             <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">Apellido</label>
-                            <input value={profile.last_name} onChange={e => setProfile({...profile, last_name: e.target.value})} className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black" placeholder="Apellido"/>
+                            <input 
+                                value={profile.last_name} 
+                                onChange={e => setProfile({...profile, last_name: e.target.value})} 
+                                className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" 
+                                placeholder="Tu Apellido"
+                            />
                         </div>
                     </div>
+
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">Correo Electrónico</label>
+                        <div className="relative">
+                            <input 
+                                value={profile.email} 
+                                disabled 
+                                className="w-full p-3 border rounded-xl text-sm font-bold text-gray-500 bg-gray-50 outline-none pl-10 cursor-not-allowed" 
+                            />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
+                        </div>
+                    </div>
+
                     <div>
                         <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">WhatsApp Personal</label>
-                        <input value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black" placeholder="Ej: 11 1234 5678" type="tel"/>
+                        <input value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" placeholder="Ej: 11 1234 5678" type="tel"/>
                     </div>
+
                     <div className="pt-2">
                          <button onClick={handlePasswordReset} className="w-full py-2 text-sm font-bold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cambiar Contraseña</button>
                     </div>
                 </div>
             </section>
 
-            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                    <div className="bg-green-100 p-2 rounded-lg text-green-600"><Clock size={20}/></div>
-                    Horarios
-                </h2>
-                <div className="space-y-3">
-                    {DAYS.map((day) => {
-                        const dayData = restaurant.business_hours?.[day.key] || { isOpen: false, open: '19:00', close: '23:30' };
-                        return (
-                            <div key={day.key} className="flex items-center justify-between text-sm">
-                                <div className="font-bold text-gray-700 w-20">{day.label}</div>
-                                <label className="relative inline-flex items-center cursor-pointer mr-2">
-                                    <input type="checkbox" className="sr-only peer" checked={dayData.isOpen} onChange={(e) => updateHour(day.key, 'isOpen', e.target.checked)}/>
-                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                                </label>
-                                {dayData.isOpen ? (
-                                    <div className="flex gap-1">
-                                        <input type="time" value={dayData.open} onChange={(e) => updateHour(day.key, 'open', e.target.value)} className="w-16 p-1 border rounded bg-gray-50 text-xs outline-none text-center"/>
-                                        <input type="time" value={dayData.close} onChange={(e) => updateHour(day.key, 'close', e.target.value)} className="w-16 p-1 border rounded bg-gray-50 text-xs outline-none text-center"/>
-                                    </div>
-                                ) : <span className="text-xs text-gray-300 font-bold uppercase w-32 text-center">Cerrado</span>}
-                            </div>
-                        );
-                    })}
+            {/* 2. CUPÓN */}
+            <div className="bg-white border border-dashed border-gray-300 p-6 rounded-2xl flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="bg-yellow-100 p-2 rounded-lg text-yellow-600"><Tag size={20}/></div>
+                    <div>
+                        <p className="text-sm font-bold text-gray-700">¿Tienes un cupón?</p>
+                        <p className="text-xs text-gray-400">Canjea tu código aquí.</p>
+                    </div>
                 </div>
-            </section>
+                <div className="flex gap-2">
+                    <input type="text" placeholder="CÓDIGO" className="bg-gray-50 border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 ring-gray-200 uppercase w-full"/>
+                    <button onClick={() => alert("Función de cupón próximamente")} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+
         </div>
 
-        {/* COLUMNA DERECHA (PLANES) */}
-        <div className="xl:col-span-8">
+        {/* === COLUMNA DERECHA (Planes) === */}
+        <div className="lg:col-span-8">
             <h2 className="font-bold text-xl flex items-center gap-2 mb-6">
                 <div className="bg-purple-100 p-2 rounded-lg text-purple-600"><CreditCard size={24}/></div> 
                 Elige tu Plan
@@ -339,7 +352,6 @@ export default function SettingsPage() {
                          <li className="flex gap-2 opacity-50"><Lock size={16}/> Sin Panel de Pedidos</li>
                     </ul>
 
-                    {/* BOTONERA LIGHT */}
                     {restaurant.subscription_plan === 'light' ? (
                         <div className="space-y-3">
                             <div className="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1">
@@ -384,7 +396,6 @@ export default function SettingsPage() {
                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Métricas de Caja</li>
                     </ul>
 
-                    {/* BOTONERA PLUS */}
                     {restaurant.subscription_plan === 'plus' ? (
                         <div className="space-y-3">
                             <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1">
@@ -436,24 +447,88 @@ export default function SettingsPage() {
                     </button>
                 </div>
             </div>
+        </div>
 
-            {/* --- CUPÓN --- */}
-            <div className="bg-white border border-dashed border-gray-300 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="bg-yellow-100 p-2 rounded-lg text-yellow-600"><Tag size={20}/></div>
-                    <div>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">¿Tienes un cupón?</p>
-                        <p className="text-xs text-gray-400">Si tienes un código promocional, ingrésalo aquí.</p>
-                    </div>
-                </div>
-                <div className="flex w-full md:w-auto gap-2">
-                    <input type="text" placeholder="CÓDIGO" className="bg-gray-50 border rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 ring-gray-200 uppercase w-full md:w-40"/>
-                    <button onClick={() => alert("Función de cupón próximamente")} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition">
-                        Aplicar
-                    </button>
-                </div>
-            </div>
+        {/* === FILA DE HORARIOS (Ancho Completo) === */}
+        <div className="col-span-full">
+            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <div className="bg-green-100 p-2 rounded-lg text-green-600"><Clock size={20}/></div>
+                    Horarios de Atención
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {DAYS.map((day) => {
+                        const dayData = restaurant.business_hours?.[day.key] || {};
+                        const isOpen = dayData.isOpen || false;
+                        const isSplit = dayData.isSplit || false;
+                        const open = dayData.open || '09:00';
+                        const close = dayData.close || '13:00';
+                        const open2 = dayData.open2 || '17:00';
+                        const close2 = dayData.close2 || '23:00';
 
+                        return (
+                            <div key={day.key} className={`border rounded-xl p-4 transition-all ${isOpen ? 'bg-white border-green-200 shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="font-bold text-gray-700 capitalize flex items-center gap-2">
+                                        {day.label}
+                                        {isOpen && <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>}
+                                    </div>
+                                    
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only peer" 
+                                            checked={isOpen} 
+                                            onChange={(e) => updateHour(day.key, 'isOpen', e.target.checked)}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                    </label>
+                                </div>
+
+                                {isOpen ? (
+                                    <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
+                                        {/* Turno 1 */}
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={14} className="text-gray-400"/>
+                                            <input type="time" value={open} onChange={(e) => updateHour(day.key, 'open', e.target.value)} className="flex-1 p-2 border rounded-lg bg-gray-50 text-sm font-bold text-center outline-none focus:ring-2 ring-black/5"/>
+                                            <span className="text-gray-300">-</span>
+                                            <input type="time" value={close} onChange={(e) => updateHour(day.key, 'close', e.target.value)} className="flex-1 p-2 border rounded-lg bg-gray-50 text-sm font-bold text-center outline-none focus:ring-2 ring-black/5"/>
+                                        </div>
+
+                                        {/* Turno 2 (Condicional) */}
+                                        {isSplit && (
+                                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                                                <Clock size={14} className="text-gray-400"/>
+                                                <input type="time" value={open2} onChange={(e) => updateHour(day.key, 'open2', e.target.value)} className="flex-1 p-2 border rounded-lg bg-gray-50 text-sm font-bold text-center outline-none focus:ring-2 ring-black/5"/>
+                                                <span className="text-gray-300">-</span>
+                                                <input type="time" value={close2} onChange={(e) => updateHour(day.key, 'close2', e.target.value)} className="flex-1 p-2 border rounded-lg bg-gray-50 text-sm font-bold text-center outline-none focus:ring-2 ring-black/5"/>
+                                            </div>
+                                        )}
+
+                                        {/* Toggle Split */}
+                                        <div className="pt-2 border-t border-dashed">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isSplit} 
+                                                    onChange={(e) => updateHour(day.key, 'isSplit', e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                                                />
+                                                <span className="text-xs font-bold text-gray-500 group-hover:text-black transition">Habilitar doble turno</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-sm text-gray-400 font-medium py-4 text-center bg-gray-100 rounded-lg border border-dashed border-gray-200">
+                                        Cerrado todo el día
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </section>
         </div>
 
       </div>
