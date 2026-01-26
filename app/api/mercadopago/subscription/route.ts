@@ -1,11 +1,10 @@
 // app/api/mercadopago/subscription/route.ts
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
-import { supabase } from '@/lib/supabase'; // Asegúrate que esta ruta sea correcta
 
 // 1. Configura tu cliente con el Access Token
 const client = new MercadoPagoConfig({ 
-    accessToken: 'APP_USR-7993102997429224-012119-bfa50f1ec737617062e24089c3bbd985-191097426' // <--- PEGA TU TOKEN AQUÍ
+    accessToken: 'APP_USR-7993102997429224-012119-bfa50f1ec737617062e24089c3bbd985-191097426'
 });
 
 export async function POST(request: Request) {
@@ -13,9 +12,23 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { planType, userId, email } = body;
 
-        // Definimos el precio según el plan
-        const amount = planType === 'plus' ? 13900 : 25200; 
-        const reason = planType === 'plus' ? 'Plan Plus - Snappy' : 'Plan Max - Snappy';
+        // --- CORRECCIÓN AQUÍ ---
+        // Definimos el precio y nombre explícitamente para cada plan
+        let amount = 0;
+        let reason = '';
+
+        if (planType === 'light') {
+            amount = 6400;
+            reason = 'Plan Light - Snappy';
+        } else if (planType === 'plus') {
+            amount = 13900;
+            reason = 'Plan Plus - Snappy';
+        } else {
+            // Por defecto asumimos MAX si no es ni light ni plus
+            amount = 25200;
+            reason = 'Plan Max - Snappy';
+        }
+        // -----------------------
 
         // 2. Inicializamos la Suscripción (PreApproval)
         const preapproval = new PreApproval(client);
@@ -24,7 +37,7 @@ export async function POST(request: Request) {
         const response = await preapproval.create({
             body: {
                 reason: reason,
-                external_reference: userId, // CLAVE: Aquí mandamos el ID del usuario para identificarlo después
+                external_reference: userId, // CLAVE: ID del usuario
                 payer_email: email,
                 auto_recurring: {
                     frequency: 1,
@@ -32,7 +45,7 @@ export async function POST(request: Request) {
                     transaction_amount: amount,
                     currency_id: 'ARS',
                 },
-               back_url: 'https://snappy.uno/dashboard/settings', // A donde vuelve el usuario al terminar
+                back_url: 'https://snappy.uno/dashboard/settings',
                 status: 'pending',
             }
         });

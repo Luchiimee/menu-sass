@@ -14,7 +14,6 @@ export default function OrdersPage() {
   const [restaurantName, setRestaurantName] = useState(''); 
   const [isLocked, setIsLocked] = useState(true);
   
-  // --- NUEVO ESTADO PARA REALTIME ---
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
@@ -51,7 +50,7 @@ export default function OrdersPage() {
             
             if (mounted && rest) {
                 setRestaurantName(rest.name || 'nuestro local');
-                setRestaurantId(rest.id); // Guardamos ID para realtime
+                setRestaurantId(rest.id); 
 
                 if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
                     setIsLocked(false);
@@ -60,6 +59,8 @@ export default function OrdersPage() {
                         .from('orders')
                         .select('*')
                         .eq('restaurant_id', rest.id)
+                        .neq('order_type', 'apertura') // Oculta Inicios de Caja
+                        .neq('customer_name', 'Venta Detectada (Cierre)') // Oculta Ajustes de Cierre
                         .order('created_at', { ascending: false });
 
                     setOrders(ords || []);
@@ -79,7 +80,7 @@ export default function OrdersPage() {
     return () => { mounted = false; };
   }, []);
 
-  // 2. REALTIME OPTIMIZADO (Solo se activa con ID y si no está bloqueado)
+  // 2. REALTIME OPTIMIZADO
   useEffect(() => {
       if (!restaurantId || isLocked) return;
 
@@ -90,13 +91,20 @@ export default function OrdersPage() {
           .on(
               'postgres_changes',
               {
-                  event: '*', // Escuchar todo
+                  event: '*', 
                   schema: 'public',
                   table: 'orders',
-                  filter: `restaurant_id=eq.${restaurantId}` // Filtro clave
+                  filter: `restaurant_id=eq.${restaurantId}` 
               },
               (payload) => {
                   console.log("🔔 Cambio:", payload);
+
+                  // --- FILTRO DE SEGURIDAD EN VIVO ---
+                  // Ignoramos aperturas Y cierres automáticos para que no aparezcan de la nada
+                  if (payload.new && 'order_type' in payload.new) {
+                      if (payload.new.order_type === 'apertura') return;
+                      if (payload.new.customer_name === 'Venta Detectada (Cierre)') return;
+                  }
 
                   if (payload.eventType === 'INSERT') {
                       setOrders((prev) => [payload.new, ...prev]);
@@ -127,12 +135,13 @@ export default function OrdersPage() {
       await supabase.from('orders').delete().eq('id', id);
   };
 
-  // --- TU LÓGICA DE WHATSAPP INTACTA ---
+  // --- LÓGICA WHATSAPP (Directo a la App) ---
   const getWhatsAppLink = (phone: string, type: 'notify' | 'chat') => {
       let message = '';
       if (type === 'notify') {
           message = `Hola! 🛵 Tu pedido de *${restaurantName}* acaba de salir hacia tu dirección.`;
       }
+      // Usamos whatsapp:// para abrir la app directo en PC y Móvil
       return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
   };
 
@@ -141,6 +150,7 @@ export default function OrdersPage() {
           case 'pendiente': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><Clock size={12}/> Pendiente</span>;
           case 'en_proceso': return <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><ChefHat size={12}/> En Cocina</span>;
           case 'en_camino': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><Bike size={12}/> En Camino</span>;
+          case 'entregado': 
           case 'completado': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><CheckCircle size={12}/> Completado</span>;
           case 'cancelado': return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><XCircle size={12}/> Cancelado</span>;
           default: return null;
@@ -189,7 +199,7 @@ export default function OrdersPage() {
 
                 <div className="bg-green-50 border border-green-200 px-4 py-2 rounded-xl text-right">
                     <p className="text-[10px] text-green-600 font-bold uppercase">Ventas Hoy</p>
-                    <p className="text-lg font-bold text-green-900">${orders.filter(o => o.status === 'completado').reduce((acc, curr) => acc + Number(curr.total), 0)}</p>
+                    <p className="text-lg font-bold text-green-900">${orders.filter(o => o.status === 'completado' || o.status === 'entregado').reduce((acc, curr) => acc + Number(curr.total), 0)}</p>
                 </div>
             </div>
           </div>
@@ -269,9 +279,11 @@ export default function OrdersPage() {
                             </button>
                         )}
 
+                        {/* 👇 AQUÍ ESTÁ EL BOTÓN QUE FALTABA 👇 */}
                         {order.status === 'en_camino' && (
                             <div className="flex flex-col gap-2">
                                 {order.customer_phone && (
+                                    /* Se eliminó target="_blank" para que funcione fluido */
                                     <a 
                                         href={getWhatsAppLink(order.customer_phone, 'notify')}
                                         className="bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition shadow flex items-center justify-center gap-2 w-full no-underline"
@@ -285,7 +297,7 @@ export default function OrdersPage() {
                             </div>
                         )}
 
-                        {(order.status === 'completado' || order.status === 'cancelado') && (
+                        {(order.status === 'completado' || order.status === 'entregado' || order.status === 'cancelado') && (
                             <div className="flex gap-2">
                                 {order.customer_phone && (
                                     <a 

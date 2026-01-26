@@ -264,7 +264,7 @@ export default function TemplatesPage() {
               <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
                  <Zap size={32} fill="currentColor" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">¡Esta plantilla es Premium!</h3>
+              <h3 className="text-2xl font-bold mb-2">¡Primero elige un plan!</h3>
               <p className="text-gray-500 mb-6">Para usar diseños profesionales y cambiar la imagen de tu negocio, necesitas activar un Plan (Light o Plus).</p>
               <div className="flex gap-3 flex-col">
                  <Link href="/dashboard/settings" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">

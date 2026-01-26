@@ -23,26 +23,26 @@ function GoogleAuthHandler() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  
+   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 1. ESTADO DE CARGA: Arranca en TRUE para no mostrar mentiras
+  // 1. ESTADO DE CARGA
   const [isLoading, setIsLoading] = useState(true);
 
-  // 2. ESTADO DE DATOS: Arranca TOTALMENTE NULO
+  // 2. ESTADO DE DATOS
   const [restaurant, setRestaurant] = useState<{
     name: string,
-    plan: string | null, // null significa SIN PLAN
+    plan: string | null,
     status: string
   }>({
-    name: '',     
-    plan: null,   
+    name: '',      
+    plan: null,    
     status: 'active'
   });
-  
+   
   useEffect(() => {
     let mounted = true;
 
@@ -58,27 +58,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
       try {
-        // Consultar base de datos
+        // A. Consultar Restaurante (para el Plan)
         const { data: rest } = await supabase
           .from('restaurants')
           .select('name, subscription_plan, subscription_status') 
           .eq('user_id', session.user.id)
-          .maybeSingle(); 
+          .maybeSingle();
+        
+        // B. Consultar Perfil (para el Nombre del Usuario) - LO NUEVO
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', session.user.id)
+          .maybeSingle();
         
         if (mounted) {
+            // --- LÓGICA DEL NOMBRE (Prioridad: Perfil > Google > Restaurante) ---
+            let displayName = "Bienvenido";
+
+            if (profile?.first_name) {
+                // Si hay perfil: "Juan P."
+                const initial = profile.last_name ? ` ${profile.last_name[0]}.` : '';
+                displayName = `${profile.first_name}${initial}`;
+            } else if (session.user.user_metadata?.full_name || session.user.user_metadata?.name) {
+                // Si es Google: "Juan P."
+                const fullName = session.user.user_metadata.full_name || session.user.user_metadata.name;
+                const parts = fullName.split(' ');
+                const firstName = parts[0];
+                const initial = parts.length > 1 ? ` ${parts[1][0]}.` : '';
+                displayName = `${firstName}${initial}`;
+            } else if (rest?.name) {
+                // Si no, nombre del restaurante
+                displayName = rest.name;
+            } else {
+                // Si no, email
+                displayName = session.user.email?.split('@')[0] || "Usuario";
+            }
+
+            // Guardamos el estado
             if (rest) {
-                // SI EXISTE EN LA BASE DE DATOS
                 setRestaurant({
-                    name: rest.name || "Mi Restaurante",
-                    plan: rest.subscription_plan, // Si esto viene null de la DB, se queda null
+                    name: displayName, // Usamos el nombre del usuario calculado
+                    plan: rest.subscription_plan,
                     status: rest.subscription_status || 'active'
                 });
             } else {
-                // SI NO EXISTE (NUEVO USUARIO ABSOLUTO)
-                console.log("Usuario nuevo detectado: Sin restaurante aún.");
+                // Nuevo usuario absoluto
                 setRestaurant({
-                    name: "Bienvenido",
-                    plan: null, // Forzamos NULL aquí
+                    name: displayName,
+                    plan: null,
                     status: 'active'
                 });
             }
@@ -86,7 +114,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } catch (error) {
         console.error("Error layout:", error);
       } finally {
-        // Solo cuando terminamos de verificar, quitamos el loading
         if (mounted) setIsLoading(false);
       }
     };
@@ -117,24 +144,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Personalizar', href: '/dashboard/design', icon: Palette },
     { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
     { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
-    // 👇 AQUÍ AGREGAMOS MÉTRICAS 👇
     { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
 
-  // LÓGICA DE ETIQUETAS: Esto determina qué texto ves
   const getPlanLabel = () => {
       if (restaurant.plan === 'plus') return 'Plan Plus ⚡';
       if (restaurant.plan === 'light') return 'Plan Light';
-      // Si es null, undefined, o cualquier otra cosa:
+      if (restaurant.plan === 'max') return 'Plan Max 👑';
       return 'Sin Plan Activo';
   };
 
   const getPlanColor = () => {
       if (restaurant.plan === 'plus') return 'text-blue-600';
       if (restaurant.plan === 'light') return 'text-black';
-      // Color gris apagado para "Sin Plan"
+      if (restaurant.plan === 'max') return 'text-purple-600';
       return 'text-gray-400';
   };
 
@@ -152,15 +177,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           
           <div className="overflow-hidden">
             {isLoading ? (
-                // MIENTRAS CARGA: Muestra barras grises (No muestra texto falso)
                 <div className="space-y-2 animate-pulse">
                     <div className="h-4 w-24 bg-gray-200 rounded"></div>
                     <div className="h-3 w-16 bg-gray-100 rounded"></div>
                 </div>
             ) : (
-                // YA CARGÓ: Muestra la realidad
                 <>
-                    <h2 className="font-bold text-sm leading-tight truncate w-32">
+                    <h2 className="font-bold text-sm leading-tight truncate w-32 capitalize">
                         {restaurant.name}
                     </h2>
                     <p className={`text-[10px] font-bold uppercase mt-0.5 ${getPlanColor()}`}>
@@ -192,19 +215,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 pb-24 md:pb-0 flex flex-col"> 
         
-        {/* Header Mobile */}
-        <div className="md:hidden bg-white p-4 border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
-            <span className="font-bold text-lg">Snappy</span>
-            {/* Si no hay plan, no mostramos estado de "En Linea/Pausado" porque confunde */}
-            {restaurant.plan && (
-                <div className={`text-xs px-2 py-1 rounded font-bold ${restaurant.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {restaurant.status === 'active' ? 'En Línea' : 'Pausado'}
-                </div>
-            )}
-        </div>
-
-        {/* --- BANNER DE ALERTA O PRUEBA --- */}
-        {/* Solo mostramos banners si realmente hay un plan configurado */}
+        {/* Header Mobile - Ahora oculto porque usamos MobileNav */}
+        
+        {/* --- BANNER DE ALERTA --- */}
         {restaurant.plan && restaurant.status === 'paused' && (
           <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
             <div className="flex items-center gap-2">
@@ -217,7 +230,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {/* Solo mostrar banner de prueba si hay plan */}
+        {/* Banner de Prueba */}
         {restaurant.plan && <TrialBanner />}
 
         <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1">
@@ -225,7 +238,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      <MobileNav />
+      {/* Pasamos los datos al menú móvil para que no tire error */}
+      <MobileNav displayName={restaurant.name} displaySubtext={getPlanLabel()} />
     </div>
   );
 }

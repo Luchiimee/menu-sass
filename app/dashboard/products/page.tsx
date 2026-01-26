@@ -2,20 +2,25 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // <--- Agregamos esto para redirigir
 import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductsPage() {
+  const router = useRouter(); // <--- Inicializamos el router
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
   const [isLocked, setIsLocked] = useState(true); 
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   
-  // --- ESTADO DE VISTA (Persistente) ---
+  // Estado del Plan
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  
+  // Estado de Vista
   const [view, setView] = useState('list'); 
 
-  // --- ESTADOS DEL MODAL ---
+  // Estados del Modal
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -33,7 +38,6 @@ export default function ProductsPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 1. RECUPERAR VISTA GUARDADA AL CARGAR
   useEffect(() => {
       const savedView = localStorage.getItem('productsView');
       if (savedView) {
@@ -41,7 +45,6 @@ export default function ProductsPage() {
       }
   }, []);
 
-  // 2. FUNCIÓN PARA CAMBIAR Y GUARDAR VISTA
   const changeView = (newView: string) => {
       setView(newView);
       localStorage.setItem('productsView', newView);
@@ -53,7 +56,6 @@ export default function ProductsPage() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // Verificar Restaurante y Plan
         const { data: rest } = await supabase
             .from('restaurants')
             .select('id, subscription_plan')
@@ -62,11 +64,10 @@ export default function ProductsPage() {
 
         if (rest) {
             setRestaurantId(rest.id);
-            // Cualquier plan desbloquea
+            setCurrentPlan(rest.subscription_plan);
+
             if (rest.subscription_plan) {
                 setIsLocked(false);
-                
-                // Cargar productos
                 const { data: prods } = await supabase
                     .from('products')
                     .select('*')
@@ -93,6 +94,20 @@ export default function ProductsPage() {
   // --- FUNCIONES ---
 
   const openCreateModal = () => {
+      // 👇 BLOQUEO PREVENTIVO AMIGABLE 👇
+      // Si el usuario es Light y ya tiene 15 o más productos, no le dejamos abrir el modal.
+      if (!isLocked && currentPlan === 'light' && products.length >= 15) {
+           const wantUpgrade = confirm(
+               "🚀 ¡Tu menú está completo! (15/15)\n\nEl Plan Light te permite hasta 15 platos. Para agregar productos ILIMITADOS y seguir creciendo, pásate al Plan Plus.\n\n¿Quieres ver el Plan Plus ahora?"
+           );
+           
+           if (wantUpgrade) {
+               router.push('/dashboard/settings'); // Redirige a la configuración
+           }
+           return; // Cortamos la función aquí. No se abre el formulario.
+      }
+      // 👆 FIN DEL BLOQUEO 👆
+
       setEditingId(null);
       setFormData({ name: '', description: '', price: '', image_url: '' });
       setShowModal(true);
@@ -128,6 +143,11 @@ export default function ProductsPage() {
   const handleSaveProduct = async () => {
       if (!formData.name || !formData.price) return alert("Nombre y Precio son obligatorios");
       if (!restaurantId) return;
+
+      // (Seguridad extra: Doble chequeo por si acaso)
+      if (!editingId && currentPlan === 'light' && products.length >= 15) {
+          return alert("Límite de productos alcanzado.");
+      }
 
       setSaving(true);
       try {
@@ -225,12 +245,16 @@ export default function ProductsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <UtensilsCrossed className="text-gray-400"/> Mis Productos
+                        {!isLocked && currentPlan === 'light' && (
+                            <span className={`text-xs px-2 py-1 rounded-full border ${products.length >= 15 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                {products.length} / 15 (Light)
+                            </span>
+                        )}
                     </h1>
                     <p className="text-gray-500">Administra tu menú y precios.</p>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                    {/* TOGGLE VISTA (CON PERSISTENCIA) */}
                     <div className="bg-white border rounded-xl p-1 flex items-center shadow-sm">
                         <button onClick={() => changeView('list')} className={`p-2 rounded-lg transition ${view === 'list' ? 'bg-gray-100 text-black' : 'text-gray-400 hover:text-gray-600'}`}>
                             <List size={20}/>
@@ -266,7 +290,6 @@ export default function ProductsPage() {
                     </div>
                 ) : (
                     <>
-                        {/* --- VISTA LISTA (TABLA) --- */}
                         {view === 'list' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
@@ -310,12 +333,10 @@ export default function ProductsPage() {
                             </div>
                         )}
 
-                        {/* --- VISTA GRILLA (TARJETAS) --- */}
                         {view === 'grid' && (
                             <div className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {products.map((product) => (
                                     <div key={product.id} className="border rounded-xl overflow-hidden hover:shadow-md transition flex flex-col group relative">
-                                        {/* Botones Flotantes */}
                                         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10">
                                             <button onClick={() => openEditModal(product)} className="bg-white p-2 rounded-full shadow text-gray-600 hover:text-black"><Edit2 size={14}/></button>
                                             <button onClick={() => handleDelete(product.id)} className="bg-white p-2 rounded-full shadow text-red-500 hover:bg-red-50"><Trash2 size={14}/></button>

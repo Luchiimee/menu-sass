@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Lock, Zap, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+// Asegúrate que esta ruta sea correcta en tu proyecto
 import { TEMPLATES_DATA } from '../templates/page'; 
 
 export default function DesignPage() {
@@ -25,9 +26,19 @@ export default function DesignPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // Estado inicial robusto
   const [data, setData] = useState<any>({
-    name: '', description: '', phone: '', delivery_cost: 0, theme_color: '#000000', slug: '', 
-    logo_url: '', banner_url: '', logo_position: 'left', banner_opacity: 50,
+    id: null, // Agregado ID para asegurar updates correctos
+    name: '', 
+    description: '', 
+    phone: '', 
+    delivery_cost: 0, 
+    theme_color: '#000000', 
+    slug: '', 
+    logo_url: '', 
+    banner_url: '', 
+    logo_position: 'left', 
+    banner_opacity: 50,
     template_id: 'classic'
   });
 
@@ -40,7 +51,8 @@ export default function DesignPage() {
       description: 'Las mejores hamburguesas de la ciudad',
       theme_color: '#000000',
       banner_opacity: 50,
-      logo_position: 'left'
+      logo_position: 'left',
+      template_id: 'classic'
   };
 
   useEffect(() => {
@@ -62,15 +74,31 @@ export default function DesignPage() {
             .single();
         
         if(rest && mounted) {
-          setData({ ...rest, delivery_cost: rest.delivery_cost || 0 });
+          // --- CORRECCIÓN CLAVE: Mapeo seguro de datos ---
+          // Aseguramos que ningún campo sea null/undefined para que los inputs no fallen
+          setData({
+              id: rest.id,
+              name: rest.name || '',
+              description: rest.description || '',
+              phone: rest.phone || '',
+              delivery_cost: rest.delivery_cost || 0,
+              theme_color: rest.theme_color || '#000000',
+              slug: rest.slug || '',
+              logo_url: rest.logo_url || '',
+              banner_url: rest.banner_url || '',
+              logo_position: rest.logo_position || 'left',
+              banner_opacity: rest.banner_opacity || 50,
+              template_id: rest.template_id || 'classic',
+              // Mantenemos el resto por si acaso
+              subscription_plan: rest.subscription_plan
+          });
           
-          // --- LÓGICA DE BLOQUEO CORREGIDA ---
-          // Solo bloqueamos si NO tiene plan (es decir, usuario nuevo).
-          // Si tiene Light O Plus, se desbloquea.
-          if (!rest.subscription_plan) {
-              setIsLocked(true);
-          } else {
+          // --- LÓGICA DE BLOQUEO ---
+          // Si tiene plan (cualquiera que no sea null), se desbloquea.
+          if (rest.subscription_plan) {
               setIsLocked(false);
+          } else {
+              setIsLocked(true);
           }
 
           // 3. Cargar Productos
@@ -82,9 +110,9 @@ export default function DesignPage() {
             
           if(prods && mounted) setProducts(prods);
         } else {
-           // Si no hay restaurante (usuario muy nuevo) -> BLOQUEADO
+           // Si no hay restaurante (usuario muy nuevo)
            if(mounted) {
-               setData(mockData);
+               // No sobreescribimos data con mockData para no romper el formulario real si luego carga
                setIsLocked(true);
            }
         }
@@ -103,12 +131,13 @@ export default function DesignPage() {
   }, []);
 
   // --- LÓGICA VISUAL ---
-  const activeTemplateId = previewTemplateId || data.template_id;
-  const activeTemplate = TEMPLATES_DATA.find(t => t.id === activeTemplateId) || TEMPLATES_DATA[0];
+  const activeTemplateId = previewTemplateId || data.template_id || 'classic';
+  // Buscamos el template o usamos el primero por defecto si no existe
+  const activeTemplate = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === activeTemplateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
   const mockImages = activeTemplate?.mock || {};
   
-  const displayBanner = data.banner_url || (mockImages as any).banner || '';
-  const displayLogo = data.logo_url || (mockImages as any).logo || '';
+  const displayBanner = data.banner_url || (mockImages as any)?.banner || '';
+  const displayLogo = data.logo_url || (mockImages as any)?.logo || '';
 
   const displayProducts = products.length > 0 ? products : [
     { id: 'demo1', name: 'Producto Ejemplo 1', price: 1200, description: 'Descripción corta.', image_url: null },
@@ -147,19 +176,34 @@ export default function DesignPage() {
 
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Nombre y precio obligatorios");
+    
+    // Si estamos bloqueados, no dejar guardar
+    if (isLocked) return alert("Debes elegir un plan para agregar productos.");
+
     try {
+        // Asegurar categoría 'General'
         let categoryId;
         const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
-        if (cats && cats.length > 0) categoryId = cats[0].id;
-        else {
+        
+        if (cats && cats.length > 0) {
+            categoryId = cats[0].id;
+        } else {
             const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: data.id, name: 'General', sort_order: 1 }).select().single();
             if(newCat) categoryId = newCat.id;
         }
+        
         if (!categoryId) throw new Error("No se pudo asignar categoría");
 
         await supabase.from('products').insert({
-            restaurant_id: data.id, category_id: categoryId, name: newProd.name, description: newProd.description, price: Number(newProd.price), image_url: newProd.image_url
+            restaurant_id: data.id, 
+            category_id: categoryId, 
+            name: newProd.name, 
+            description: newProd.description, 
+            price: Number(newProd.price), 
+            image_url: newProd.image_url
         });
+        
+        // Recargar productos
         const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
         if (refreshed) { 
             setProducts(refreshed); 
@@ -175,20 +219,48 @@ export default function DesignPage() {
   };
 
   const handleSave = async () => {
+    if (isLocked) return alert("Debes elegir un plan para guardar cambios.");
+    
     setLoading(true);
-    const { error } = await supabase.from('restaurants').update(data).eq('id', data.id);
+    
+    // Filtramos solo los campos que queremos guardar en la tabla restaurants
+    const updates = {
+        name: data.name,
+        description: data.description,
+        phone: data.phone,
+        delivery_cost: data.delivery_cost,
+        theme_color: data.theme_color,
+        slug: data.slug,
+        logo_url: data.logo_url,
+        banner_url: data.banner_url,
+        logo_position: data.logo_position,
+        banner_opacity: data.banner_opacity,
+        template_id: data.template_id
+    };
+
+    const { error } = await supabase.from('restaurants').update(updates).eq('id', data.id);
+    
     setLoading(false);
-    if (error) alert("Error: " + error.message);
-    else alert("¡Guardado!");
+    if (error) alert("Error al guardar: " + error.message);
+    else alert("¡Cambios guardados correctamente!");
   };
 
+  // --- MOCKUP VISUAL ---
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
-      const t = TEMPLATES_DATA.find(t => t.id === templateId) || TEMPLATES_DATA[0];
+      const t = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === templateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
       const safeTemplateId = t?.id || 'classic';
       
       return (
         <div className="w-full h-full bg-white flex flex-col overflow-hidden relative">
-             {/* ... (Tu código del Mockup igual que antes) ... */}
+             {/* HEADER DEL MOCKUP */}
+             <div className="h-6 bg-black w-full z-20 flex justify-between px-4 items-center">
+                 <div className="text-[8px] text-white font-bold">9:41</div>
+                 <div className="flex gap-1">
+                     <div className="w-2 h-2 bg-white rounded-full"></div>
+                     <div className="w-2 h-2 bg-white rounded-full"></div>
+                 </div>
+             </div>
+
              {safeTemplateId === 'fresh' ? (
                  <div className="flex-shrink-0 bg-white z-10 pb-2">
                     <div className="relative w-full h-28 overflow-hidden z-0">
@@ -229,11 +301,11 @@ export default function DesignPage() {
                  <div className={safeTemplateId === 'fresh' ? 'grid grid-cols-2 gap-2' : 'space-y-3'}>
                     {displayProducts.map((p, i) => {
                          const mockKey = `prod${i + 1}` as keyof typeof mockImages;
-                         const fallbackImg = (mockImages as any)[mockKey] || (mockImages as any).prod1 || '';
+                         const fallbackImg = (mockImages as any)?.[mockKey] || (mockImages as any)?.prod1 || '';
                          const finalImg = p.image_url || fallbackImg; 
 
                          if (safeTemplateId === 'fresh') {
-                            return (
+                           return (
                                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden shadow-sm bg-gray-200">
                                     <img src={finalImg} className="w-full h-full object-cover" />
                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
@@ -243,7 +315,7 @@ export default function DesignPage() {
                                         </div>
                                     </div>
                                 </div>
-                            );
+                           );
                          }
                          if (safeTemplateId === 'classic') {
                              return (
@@ -315,12 +387,12 @@ export default function DesignPage() {
         </div>
       )}
 
-      {/* --- AQUÍ ESTÁ TU DISEÑO ORIGINAL (CON BLUR SI ESTÁ BLOQUEADO) --- */}
+      {/* --- EDITOR PRINCIPAL --- */}
       <div className={`transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60 select-none' : ''}`}>
           
           <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0">
             
-            {/* --- EDITOR --- */}
+            {/* --- COLUMNA IZQUIERDA: FORMULARIO --- */}
             <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8 animate-in fade-in slide-in-from-bottom-4">
               
               <div className="flex items-center justify-between">
@@ -337,7 +409,7 @@ export default function DesignPage() {
               <section className="bg-gray-50 p-4 rounded-xl border lg:hidden">
                   <h3 className="font-bold flex items-center gap-2 mb-3 text-sm uppercase text-gray-500"><LayoutTemplate size={16}/> Elegir Diseño</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      {TEMPLATES_DATA.map((t) => (
+                      {TEMPLATES_DATA && TEMPLATES_DATA.map((t) => (
                           <div key={t.id} className="flex items-center gap-2">
                               <button 
                                   onClick={() => setData({...data, template_id: t.id})}
@@ -356,10 +428,9 @@ export default function DesignPage() {
               <section className="border rounded-xl overflow-hidden">
                   <div className="bg-yellow-50 px-4 py-3 flex items-start gap-2 border-b border-yellow-100">
                       <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0"/>
-                     <p className="text-xs text-yellow-800">
-    Este será el enlace de tu menú digital. Puedes personalizarlo para que sea fácil de recordar.
-    Puedes poner el nombre de tu negocio
-</p>
+                      <p className="text-xs text-yellow-800">
+                        Este será el enlace de tu menú digital. Recomendamos usar el nombre de tu negocio sin espacios.
+                      </p>
                   </div>
                   <div className="flex items-center bg-white p-1">
                       <div className="bg-gray-100 px-3 py-3 rounded-l-lg border-r text-gray-500 text-sm font-medium">snappy.uno/</div>
@@ -374,7 +445,7 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* Identidad */}
+              {/* IDENTIDAD VISUAL */}
               <section className="space-y-4">
                   <h3 className="font-bold flex items-center gap-2"><Layout size={18}/> Identidad</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -393,7 +464,7 @@ export default function DesignPage() {
                   <div className="space-y-3">
                       <input value={data.name} onChange={(e) => setData({...data, name: e.target.value})} className="w-full p-3 border rounded-xl font-bold outline-none" placeholder="Nombre del Negocio"/>
                       <textarea 
-                          value={data.description || ''} 
+                          value={data.description} 
                           onChange={(e) => setData({...data, description: e.target.value})} 
                           className="w-full p-3 border rounded-xl text-sm outline-none" 
                           rows={2} 
@@ -402,17 +473,17 @@ export default function DesignPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                      {/* --- WHATSAPP --- */}
+                      {/* WHATSAPP */}
                       <div>
                           <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Recibir Pedidos en:</label>
                           <div className="flex items-center border rounded-xl overflow-hidden bg-white">
                               <div className="bg-green-50 p-3 border-r text-green-600"><Phone size={16}/></div>
-                              <input value={data.phone || ''} onChange={(e) => setData({...data, phone: e.target.value})} className="w-full p-3 text-sm outline-none font-bold" placeholder="WhatsApp (Ej: 11...)"/>
+                              <input value={data.phone} onChange={(e) => setData({...data, phone: e.target.value})} className="w-full p-3 text-sm outline-none font-bold" placeholder="WhatsApp (Ej: 11...)"/>
                           </div>
                           <p className="text-[10px] text-gray-400 mt-1">A este número llegarán las alertas.</p>
                       </div>
 
-                      {/* --- COSTO ENVÍO --- */}
+                      {/* COSTO ENVÍO */}
                       <div>
                           <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Costo de Envío:</label>
                           <div className="flex items-center border rounded-xl overflow-hidden bg-white">
@@ -432,7 +503,7 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* Carga Rápida */}
+              {/* CARGA RÁPIDA DE PRODUCTOS */}
               <section className="space-y-4 pt-4 border-t">
                   <h3 className="font-bold flex items-center gap-2"><Store size={18}/> Agregar Plato Rápido</h3>
                   

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Star, Mail } from 'lucide-react';
+import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Star, Mail, AlertCircle } from 'lucide-react';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -50,7 +50,7 @@ export default function SettingsPage() {
         const user = session.user;
         setUserId(user.id);
 
-        // 1. Carga Perfil
+        // 1. Carga Perfil (Intentamos buscar en la tabla profiles)
         const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
@@ -58,6 +58,7 @@ export default function SettingsPage() {
             .maybeSingle();
 
         if (profileData) {
+            // Si ya existen datos guardados, los usamos
             setProfile({ 
                 first_name: profileData.first_name || '', 
                 last_name: profileData.last_name || '', 
@@ -65,7 +66,28 @@ export default function SettingsPage() {
                 email: user.email || '' 
             });
         } else {
-            setProfile(prev => ({ ...prev, email: user.email || '' }));
+            // --- AQUÍ ESTÁ LA MAGIA DE GOOGLE ---
+            // Si no hay perfil guardado, sacamos los datos de Google (user_metadata)
+            const meta = user.user_metadata || {};
+            
+            // Google suele mandar 'full_name' o 'name'. Intentamos separarlo.
+            let firstName = '';
+            let lastName = '';
+
+            if (meta.full_name) {
+                const parts = meta.full_name.split(' ');
+                firstName = parts[0];
+                lastName = parts.slice(1).join(' ');
+            } else if (meta.name) {
+                firstName = meta.name;
+            }
+
+            setProfile({ 
+                first_name: firstName, 
+                last_name: lastName, 
+                email: user.email || '',
+                phone: '' 
+            });
         }
 
         // 2. Carga Restaurante
@@ -76,7 +98,6 @@ export default function SettingsPage() {
             .maybeSingle();
         
         if (restData) {
-            // Aseguramos que business_hours tenga un valor por defecto
             const defaultHours = restData.business_hours || {};
             setRestaurant({ 
                 ...restData, 
@@ -101,7 +122,7 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Sesión expirada.");
 
-        // 1. Guardar Perfil
+        // 1. Guardar Perfil (Aquí guardamos lo que trajimos de Google en la base de datos real)
         const { error: profileError } = await supabase.from('profiles').upsert({
             id: user.id,
             first_name: profile.first_name,
@@ -111,9 +132,8 @@ export default function SettingsPage() {
 
         if (profileError) throw profileError;
 
-        // 2. Guardar Restaurante (Horarios)
+        // 2. Guardar Restaurante
         if (restaurant.id) {
-            // CASO A: YA EXISTE -> ACTUALIZAMOS
             const { error: restError } = await supabase.from('restaurants').update({
                 business_hours: restaurant.business_hours
             }).eq('id', restaurant.id);
@@ -121,27 +141,26 @@ export default function SettingsPage() {
             if (restError) throw restError;
 
         } else {
-            // CASO B: NO EXISTE -> LO CREAMOS AHORA MISMO
             const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
-            
             const { data: newRest, error: createError } = await supabase.from('restaurants').insert({
                 user_id: user.id,
-                name: 'Mi Restaurante', // Nombre por defecto
+                name: 'Mi Restaurante',
                 slug: randomSlug,
-                business_hours: restaurant.business_hours, // Guardamos los horarios que editaste
+                business_hours: restaurant.business_hours,
                 subscription_status: 'active'
             }).select().single();
 
             if (createError) throw createError;
 
-            // Actualizamos el estado local para que la próxima vez sea un update
             if (newRest) {
-                // 👇 AQUÍ ESTÁ LA CORRECCIÓN: Agregamos (prev: any)
                 setRestaurant((prev: any) => ({ ...prev, id: newRest.id }));
             }
         }
 
-        alert("¡Datos y horarios guardados correctamente!");
+        alert("¡Datos guardados correctamente!");
+        // Recargamos para que el Sidebar (Layout) actualice el nombre "Hola Juan"
+        window.location.reload(); 
+
     } catch (error: any) { 
         console.error(error);
         alert("Error al guardar: " + error.message); 
@@ -176,19 +195,18 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Si ya tenemos ID (porque guardamos horarios antes), actualizamos. Si no, creamos.
         if (restaurant.id) {
             const { error } = await supabase.from('restaurants').update({ subscription_plan: planType }).eq('id', restaurant.id);
             if (error) throw error;
         } else {
             const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
             const { error } = await supabase.from('restaurants').insert({ 
-                    user_id: user.id,
-                    name: 'Mi Restaurante', 
-                    slug: randomSlug,
-                    subscription_plan: planType,
-                    subscription_status: 'active',
-                    business_hours: restaurant.business_hours // No perdemos los horarios si estaban en memoria
+                  user_id: user.id,
+                  name: 'Mi Restaurante', 
+                  slug: randomSlug,
+                  subscription_plan: planType,
+                  subscription_status: 'active',
+                  business_hours: restaurant.business_hours
             });
             if (error) throw error;
         }
@@ -425,24 +443,28 @@ export default function SettingsPage() {
                 </div>
 
                 {/* --- PLAN MAX (PROXIMAMENTE) --- */}
-                <div className="relative p-6 rounded-3xl border border-gray-200 bg-gray-50 flex flex-col overflow-hidden opacity-80">
-                    <div className="absolute inset-0 backdrop-blur-[2px] bg-white/40 z-10 flex flex-col items-center justify-center text-center p-4">
-                        <div className="bg-black text-white p-3 rounded-full mb-2 shadow-lg"><Star size={24} className="animate-pulse fill-yellow-400 text-yellow-400"/></div>
-                        <h3 className="font-bold text-gray-900">PRÓXIMAMENTE</h3>
+                {/* Visual ajustado: Menos opacidad (80%), blur solo en precio, Mercado Pago agregado */}
+                <div className="relative p-6 rounded-3xl border border-gray-200 bg-gray-50 flex flex-col overflow-hidden opacity-90">
+                    <div className="absolute top-4 right-4 bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-300 z-20">
+                        PRÓXIMAMENTE
                     </div>
 
-                    <div className="mb-4 opacity-50 filter blur-[1px]">
+                    <div className="mb-4 relative z-0">
                         <h3 className="text-lg font-bold text-purple-600">Max</h3>
-                        <p className="text-3xl font-black mt-2 text-gray-900">$25.200</p>
+                        {/* Blur fuerte solo en el precio */}
+                        <div className="filter blur-[5px] select-none mt-2">
+                            <p className="text-3xl font-black text-gray-900">$21.200<span className="text-xs font-medium text-gray-400">/mes</span></p>
+                        </div>
                     </div>
                     
-                    <ul className="space-y-3 text-sm text-gray-400 flex-1 mb-6 opacity-50 filter blur-[1px]">
-                         <li className="flex gap-2"><Check size={16}/> Cobros con MP</li>
-                         <li className="flex gap-2"><Check size={16}/> Pagos Automáticos</li>
+                    <ul className="space-y-3 text-sm text-gray-500 flex-1 mb-6 relative z-0">
+                         <li className="flex gap-2"><Check size={16}/> Integración Mercado Pago</li>
+                         <li className="flex gap-2"><Check size={16}/> Cobros Automáticos</li>
                          <li className="flex gap-2"><Check size={16}/> Estadísticas Pro</li>
+                         <li className="flex gap-2"><Check size={16}/> Soporte Prioritario</li>
                     </ul>
 
-                    <button disabled className="w-full py-3 rounded-xl font-bold text-sm bg-gray-200 text-gray-400 opacity-50">
+                    <button disabled className="w-full py-3 rounded-xl font-bold text-sm bg-gray-200 text-gray-400 opacity-70 cursor-not-allowed relative z-20">
                         Muy Pronto
                     </button>
                 </div>
@@ -488,7 +510,6 @@ export default function SettingsPage() {
 
                                 {isOpen ? (
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
-                                        {/* Turno 1 */}
                                         <div className="flex items-center gap-2">
                                             <Clock size={14} className="text-gray-400"/>
                                             <input type="time" value={open} onChange={(e) => updateHour(day.key, 'open', e.target.value)} className="flex-1 p-2 border rounded-lg bg-gray-50 text-sm font-bold text-center outline-none focus:ring-2 ring-black/5"/>
@@ -496,7 +517,6 @@ export default function SettingsPage() {
                                             <input type="time" value={close} onChange={(e) => updateHour(day.key, 'close', e.target.value)} className="flex-1 p-2 border rounded-lg bg-gray-50 text-sm font-bold text-center outline-none focus:ring-2 ring-black/5"/>
                                         </div>
 
-                                        {/* Turno 2 (Condicional) */}
                                         {isSplit && (
                                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                                                 <Clock size={14} className="text-gray-400"/>
@@ -506,7 +526,6 @@ export default function SettingsPage() {
                                             </div>
                                         )}
 
-                                        {/* Toggle Split */}
                                         <div className="pt-2 border-t border-dashed">
                                             <label className="flex items-center gap-2 cursor-pointer group">
                                                 <input 
