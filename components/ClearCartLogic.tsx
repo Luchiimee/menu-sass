@@ -12,17 +12,27 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // --- HELPER: Parsear fecha forzando UTC ---
+  // Esto arregla el bug de Android que interpreta la fecha como Local en vez de UTC
+  const parseDateUTC = (dateString: string) => {
+      // Si la fecha viene sin zona horaria (sin Z y sin +), le agregamos la Z
+      if (!dateString.endsWith('Z') && !dateString.includes('+')) {
+          return new Date(dateString + 'Z').getTime();
+      }
+      return new Date(dateString).getTime();
+  };
+
   // 1. Limpieza por cambio de Restaurante
   useEffect(() => {
     if (cartRestaurantId && cartRestaurantId !== currentRestaurantId) {
         console.log("🧹 Cambio de local detectado: Limpiando carrito...");
         clearCart(); 
-        setActiveOrderId(null); // También olvidamos el pedido del otro local
+        setActiveOrderId(null); 
     }
   }, [cartRestaurantId, currentRestaurantId, clearCart, setActiveOrderId]);
 
-  // 2. Limpieza por Tiempo (1 hora después de completado)
- useEffect(() => {
+  // 2. Limpieza por Tiempo (5 MINUTOS)
+  useEffect(() => {
       const checkOrderStatus = async () => {
           if (!activeOrderId) return;
 
@@ -33,11 +43,13 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
               .single();
 
           if (order && (order.status === 'completado' || order.status === 'cancelado')) {
-              const lastUpdate = new Date(order.updated_at).getTime();
+              // USAMOS LA FUNCIÓN SEGURA AQUÍ 👇
+              const lastUpdate = parseDateUTC(order.updated_at);
               const now = new Date().getTime();
               
-              // CAMBIO AQUÍ: Dividimos por (1000 * 60) para obtener MINUTOS
               const minutesPassed = (now - lastUpdate) / (1000 * 60);
+
+              console.log(`⏱️ Minutos pasados: ${minutesPassed.toFixed(2)}`); // Para depurar si lo necesitas
 
               // Si pasaron más de 5 minutos
               if (minutesPassed > 5) {
@@ -48,11 +60,9 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
           }
       };
 
-      // Revisamos cada vez que se carga el componente
       checkOrderStatus();
       
-      // Opcional: Revisar cada 1 minuto automáticamente por si el cliente deja la pantalla abierta
-      const interval = setInterval(checkOrderStatus, 60000);
+      const interval = setInterval(checkOrderStatus, 30000); // Revisar cada 30 segundos
       return () => clearInterval(interval);
 
   }, [activeOrderId, supabase, setActiveOrderId, clearCart]);
