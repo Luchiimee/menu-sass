@@ -22,31 +22,39 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
   }, [cartRestaurantId, currentRestaurantId, clearCart, setActiveOrderId]);
 
   // 2. Limpieza por Tiempo (1 hora después de completado)
-  useEffect(() => {
+ useEffect(() => {
       const checkOrderStatus = async () => {
           if (!activeOrderId) return;
 
           const { data: order } = await supabase
               .from('orders')
-              .select('status, updated_at') // Usamos updated_at para saber cuándo cambió a completado
+              .select('status, updated_at')
               .eq('id', activeOrderId)
               .single();
 
           if (order && (order.status === 'completado' || order.status === 'cancelado')) {
               const lastUpdate = new Date(order.updated_at).getTime();
               const now = new Date().getTime();
-              const hoursPassed = (now - lastUpdate) / (1000 * 60 * 60);
+              
+              // CAMBIO AQUÍ: Dividimos por (1000 * 60) para obtener MINUTOS
+              const minutesPassed = (now - lastUpdate) / (1000 * 60);
 
-              // Si pasó más de 1 hora desde que se completó/canceló
-              if (hoursPassed > 1) {
-                  console.log("🕒 El pedido expiró. Limpiando seguimiento...");
+              // Si pasaron más de 5 minutos
+              if (minutesPassed > 5) {
+                  console.log("🕒 El pedido expiró hace 5 minutos. Limpiando seguimiento...");
                   setActiveOrderId(null);
                   clearCart();
               }
           }
       };
 
+      // Revisamos cada vez que se carga el componente
       checkOrderStatus();
+      
+      // Opcional: Revisar cada 1 minuto automáticamente por si el cliente deja la pantalla abierta
+      const interval = setInterval(checkOrderStatus, 60000);
+      return () => clearInterval(interval);
+
   }, [activeOrderId, supabase, setActiveOrderId, clearCart]);
 
   return null;
