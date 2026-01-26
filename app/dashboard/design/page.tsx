@@ -4,11 +4,9 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-// Usamos createBrowserClient para evitar errores de sesión
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Lock, Zap, AlertCircle } from 'lucide-react';
+import { Loader2, Layout, Copy, Check, ExternalLink, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, LayoutTemplate, Eye, X, Zap, AlertCircle, Save, CreditCard } from 'lucide-react';
 import Link from 'next/link';
-// Asegúrate que esta ruta sea correcta en tu proyecto
 import { TEMPLATES_DATA } from '../templates/page'; 
 
 export default function DesignPage() {
@@ -17,24 +15,23 @@ export default function DesignPage() {
   const [copied, setCopied] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   
-  // Lógica de bloqueo
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
 
-  // Cliente Supabase en vivo
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Estado inicial robusto
   const [data, setData] = useState<any>({
-    id: null, // Agregado ID para asegurar updates correctos
+    id: null, 
     name: '', 
     description: '', 
     phone: '', 
     delivery_cost: 0, 
     theme_color: '#000000', 
     slug: '', 
+    alias_mp: '', // <--- NUEVO CAMPO PARA EL ALIAS
     logo_url: '', 
     banner_url: '', 
     logo_position: 'left', 
@@ -45,15 +42,22 @@ export default function DesignPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
-  // Datos Fake para mostrar de fondo si está bloqueado
-  const mockData = {
-      name: 'Tu Restaurante',
-      description: 'Las mejores hamburguesas de la ciudad',
-      theme_color: '#000000',
-      banner_opacity: 50,
-      logo_position: 'left',
-      template_id: 'classic'
-  };
+  // --- EFECTO: ALERTA AL SALIR SIN GUARDAR ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (unsavedChanges) {
+            e.preventDefault();
+            e.returnValue = ''; 
+            return '';
+        }
+    };
+    if (unsavedChanges) {
+        window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+    return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [unsavedChanges]);
 
   useEffect(() => {
     let mounted = true;
@@ -61,12 +65,10 @@ export default function DesignPage() {
     const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
         if (!session?.user) return; 
 
         const userId = session.user.id;
 
-        // 1. Cargar datos del restaurante
         const { data: rest } = await supabase
             .from('restaurants')
             .select('*')
@@ -74,8 +76,6 @@ export default function DesignPage() {
             .single();
         
         if(rest && mounted) {
-          // --- CORRECCIÓN CLAVE: Mapeo seguro de datos ---
-          // Aseguramos que ningún campo sea null/undefined para que los inputs no fallen
           setData({
               id: rest.id,
               name: rest.name || '',
@@ -84,24 +84,18 @@ export default function DesignPage() {
               delivery_cost: rest.delivery_cost || 0,
               theme_color: rest.theme_color || '#000000',
               slug: rest.slug || '',
+              alias_mp: rest.alias_mp || '', // <--- CARGAMOS EL ALIAS SI EXISTE
               logo_url: rest.logo_url || '',
               banner_url: rest.banner_url || '',
               logo_position: rest.logo_position || 'left',
               banner_opacity: rest.banner_opacity || 50,
               template_id: rest.template_id || 'classic',
-              // Mantenemos el resto por si acaso
               subscription_plan: rest.subscription_plan
           });
           
-          // --- LÓGICA DE BLOQUEO ---
-          // Si tiene plan (cualquiera que no sea null), se desbloquea.
-          if (rest.subscription_plan) {
-              setIsLocked(false);
-          } else {
-              setIsLocked(true);
-          }
+          if (rest.subscription_plan) setIsLocked(false);
+          else setIsLocked(true);
 
-          // 3. Cargar Productos
           const { data: prods } = await supabase
             .from('products')
             .select('*')
@@ -110,11 +104,7 @@ export default function DesignPage() {
             
           if(prods && mounted) setProducts(prods);
         } else {
-           // Si no hay restaurante (usuario muy nuevo)
-           if(mounted) {
-               // No sobreescribimos data con mockData para no romper el formulario real si luego carga
-               setIsLocked(true);
-           }
+           if(mounted) setIsLocked(true);
         }
 
       } catch (error) { 
@@ -126,19 +116,15 @@ export default function DesignPage() {
     };
 
     loadData();
-
     return () => { mounted = false; };
   }, []);
 
-  // --- LÓGICA VISUAL ---
+  // ... (Resto de helpers igual que antes) ...
   const activeTemplateId = previewTemplateId || data.template_id || 'classic';
-  // Buscamos el template o usamos el primero por defecto si no existe
   const activeTemplate = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === activeTemplateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
   const mockImages = activeTemplate?.mock || {};
-  
   const displayBanner = data.banner_url || (mockImages as any)?.banner || '';
   const displayLogo = data.logo_url || (mockImages as any)?.logo || '';
-
   const displayProducts = products.length > 0 ? products : [
     { id: 'demo1', name: 'Producto Ejemplo 1', price: 1200, description: 'Descripción corta.', image_url: null },
     { id: 'demo2', name: 'Producto Ejemplo 2', price: 850, description: 'Otra descripción.', image_url: null },
@@ -159,6 +145,7 @@ export default function DesignPage() {
       await supabase.storage.from('images').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
       setData({ ...data, [field]: publicUrl });
+      setUnsavedChanges(true); 
     } catch (error) { alert('Error subiendo imagen'); } finally { setUploading(false); }
   };
 
@@ -176,22 +163,17 @@ export default function DesignPage() {
 
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Nombre y precio obligatorios");
-    
-    // Si estamos bloqueados, no dejar guardar
     if (isLocked) return alert("Debes elegir un plan para agregar productos.");
 
     try {
-        // Asegurar categoría 'General'
         let categoryId;
         const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
-        
         if (cats && cats.length > 0) {
             categoryId = cats[0].id;
         } else {
             const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: data.id, name: 'General', sort_order: 1 }).select().single();
             if(newCat) categoryId = newCat.id;
         }
-        
         if (!categoryId) throw new Error("No se pudo asignar categoría");
 
         await supabase.from('products').insert({
@@ -203,7 +185,6 @@ export default function DesignPage() {
             image_url: newProd.image_url
         });
         
-        // Recargar productos
         const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
         if (refreshed) { 
             setProducts(refreshed); 
@@ -220,10 +201,9 @@ export default function DesignPage() {
 
   const handleSave = async () => {
     if (isLocked) return alert("Debes elegir un plan para guardar cambios.");
-    
     setLoading(true);
     
-    // Filtramos solo los campos que queremos guardar en la tabla restaurants
+    // AQUÍ AGREGAMOS alias_mp AL UPDATE
     const updates = {
         name: data.name,
         description: data.description,
@@ -231,6 +211,7 @@ export default function DesignPage() {
         delivery_cost: data.delivery_cost,
         theme_color: data.theme_color,
         slug: data.slug,
+        alias_mp: data.alias_mp, // <--- GUARDAR ALIAS
         logo_url: data.logo_url,
         banner_url: data.banner_url,
         logo_position: data.logo_position,
@@ -241,18 +222,21 @@ export default function DesignPage() {
     const { error } = await supabase.from('restaurants').update(updates).eq('id', data.id);
     
     setLoading(false);
-    if (error) alert("Error al guardar: " + error.message);
-    else alert("¡Cambios guardados correctamente!");
+    if (error) {
+        alert("Error al guardar: " + error.message);
+    } else {
+        setUnsavedChanges(false); 
+        alert("¡Cambios guardados correctamente!");
+    }
   };
 
-  // --- MOCKUP VISUAL ---
+  // ... (El resto del componente PhoneMockup es igual) ...
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
       const t = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === templateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
       const safeTemplateId = t?.id || 'classic';
       
       return (
         <div className="w-full h-full bg-white flex flex-col overflow-hidden relative">
-             {/* HEADER DEL MOCKUP */}
              <div className="h-6 bg-black w-full z-20 flex justify-between px-4 items-center">
                  <div className="text-[8px] text-white font-bold">9:41</div>
                  <div className="flex gap-1">
@@ -355,64 +339,59 @@ export default function DesignPage() {
   return (
     <div className="relative min-h-[85vh]">
       
-      {/* ---------------------------------------------------- */}
-      {/* 🔒 CAPA DE BLOQUEO (EFECTO VIDRIO) SOLO SI NO HAY PLAN */}
-      {/* ---------------------------------------------------- */}
       {isLocked && (
         <div className="absolute inset-0 z-50 backdrop-blur-sm bg-white/50 flex items-center justify-center rounded-3xl overflow-hidden p-4">
             <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-gray-100 animate-in zoom-in-95 duration-300">
                 <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-black text-white">
                     <Store size={32} />
                 </div>
-
-                <h2 className="text-2xl font-bold mb-3 text-gray-900">
-                    Bienvenido a Snappy
-                </h2>
-                
+                <h2 className="text-2xl font-bold mb-3 text-gray-900">Bienvenido a Snappy</h2>
                 <p className="text-gray-500 mb-8 text-base leading-relaxed">
                     Para comenzar a crear tu menú y subir productos, primero debes elegir un plan que se adapte a tu negocio.
                 </p>
-
                 <div className="space-y-3">
-                    <Link 
-                        href="/dashboard/settings" 
-                        className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:-translate-y-1 bg-black text-white hover:bg-gray-800"
-                    >
+                    <Link href="/dashboard/settings" className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:-translate-y-1 bg-black text-white hover:bg-gray-800">
                         Elegir un Plan <Zap size={20} fill="currentColor"/>
                     </Link>
-                    
                     <p className="text-xs text-gray-400">14 días de prueba gratis en cualquier plan.</p>
                 </div>
             </div>
         </div>
       )}
 
-      {/* --- EDITOR PRINCIPAL --- */}
       <div className={`transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60 select-none' : ''}`}>
-          
           <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0">
             
-            {/* --- COLUMNA IZQUIERDA: FORMULARIO --- */}
             <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8 animate-in fade-in slide-in-from-bottom-4">
               
               <div className="flex items-center justify-between">
                   <div>
                       <span className="bg-black text-white text-xs px-2 py-1 rounded mb-2 inline-block">Editor</span>
-                      <h1 className="text-xl font-bold">Personalizar Tienda</h1>
+                      <div className="flex items-center gap-4">
+                          <h1 className="text-xl font-bold">Personalizar Tienda</h1>
+                          <button 
+                            onClick={handleSave} 
+                            disabled={loading}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm text-white transition shadow-md hover:shadow-lg active:scale-95 ${unsavedChanges ? 'bg-green-600 hover:bg-green-700 animate-pulse' : 'bg-gray-900 hover:bg-black'}`}
+                          >
+                             {loading ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>}
+                             {loading ? 'Guardando...' : 'Guardar Cambios'}
+                          </button>
+                      </div>
                   </div>
                   <a href={`/${data.slug}`} target="_blank" className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1">
                       Ver Tienda <ExternalLink size={14}/>
                   </a>
               </div>
 
-              {/* SELECTOR PLANTILLAS (SOLO MOBILE) */}
+              {/* SELECTOR PLANTILLAS */}
               <section className="bg-gray-50 p-4 rounded-xl border lg:hidden">
                   <h3 className="font-bold flex items-center gap-2 mb-3 text-sm uppercase text-gray-500"><LayoutTemplate size={16}/> Elegir Diseño</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       {TEMPLATES_DATA && TEMPLATES_DATA.map((t) => (
                           <div key={t.id} className="flex items-center gap-2">
                               <button 
-                                  onClick={() => setData({...data, template_id: t.id})}
+                                  onClick={() => { setData({...data, template_id: t.id}); setUnsavedChanges(true); }}
                                   className={`flex-1 p-2 rounded-lg border text-center transition flex items-center justify-center gap-2 ${data.template_id === t.id ? 'bg-black text-white border-black ring-2 ring-black/20' : 'bg-white hover:bg-gray-100'}`}
                               >
                                   <span className="text-xs font-bold">{t.name}</span>
@@ -424,7 +403,7 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* --- LINK / DOMINIO --- */}
+              {/* LINK */}
               <section className="border rounded-xl overflow-hidden">
                   <div className="bg-yellow-50 px-4 py-3 flex items-start gap-2 border-b border-yellow-100">
                       <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0"/>
@@ -436,7 +415,7 @@ export default function DesignPage() {
                       <div className="bg-gray-100 px-3 py-3 rounded-l-lg border-r text-gray-500 text-sm font-medium">snappy.uno/</div>
                       <input 
                           value={data.slug} 
-                          onChange={(e) => setData({...data, slug: e.target.value})} 
+                          onChange={(e) => { setData({...data, slug: e.target.value}); setUnsavedChanges(true); }}
                           className="flex-1 p-3 outline-none font-bold text-gray-800 bg-white" 
                           placeholder="nombre-de-tu-negocio"
                       />
@@ -445,7 +424,22 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* IDENTIDAD VISUAL */}
+              {/* --- AQUÍ ESTÁ EL NUEVO INPUT DE ALIAS --- */}
+              <section className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                  <div className="flex items-center gap-2 mb-2">
+                      <div className="bg-white p-1.5 rounded-md text-purple-600 shadow-sm"><CreditCard size={16}/></div>
+                      <h3 className="font-bold text-sm text-purple-900">Alias Rápido (Transferencias)</h3>
+                  </div>
+                  <input 
+                      value={data.alias_mp} 
+                      onChange={(e) => { setData({...data, alias_mp: e.target.value}); setUnsavedChanges(true); }}
+                      className="w-full p-3 border border-purple-200 rounded-xl font-bold outline-none focus:ring-2 ring-purple-100 bg-white" 
+                      placeholder="Ej: mi.negocio.mp"
+                  />
+                  <p className="text-[10px] text-purple-600/70 mt-1 pl-1">Se mostrará con un botón de copiar si el cliente elige pagar con Transferencia.</p>
+              </section>
+
+              {/* IDENTIDAD */}
               <section className="space-y-4">
                   <h3 className="font-bold flex items-center gap-2"><Layout size={18}/> Identidad</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -462,10 +456,10 @@ export default function DesignPage() {
                   </div>
                   
                   <div className="space-y-3">
-                      <input value={data.name} onChange={(e) => setData({...data, name: e.target.value})} className="w-full p-3 border rounded-xl font-bold outline-none" placeholder="Nombre del Negocio"/>
+                      <input value={data.name} onChange={(e) => { setData({...data, name: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl font-bold outline-none" placeholder="Nombre del Negocio"/>
                       <textarea 
                           value={data.description} 
-                          onChange={(e) => setData({...data, description: e.target.value})} 
+                          onChange={(e) => { setData({...data, description: e.target.value}); setUnsavedChanges(true); }}
                           className="w-full p-3 border rounded-xl text-sm outline-none" 
                           rows={2} 
                           placeholder="Descripción breve..."
@@ -473,37 +467,46 @@ export default function DesignPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                      {/* WHATSAPP */}
                       <div>
                           <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Recibir Pedidos en:</label>
                           <div className="flex items-center border rounded-xl overflow-hidden bg-white">
                               <div className="bg-green-50 p-3 border-r text-green-600"><Phone size={16}/></div>
-                              <input value={data.phone} onChange={(e) => setData({...data, phone: e.target.value})} className="w-full p-3 text-sm outline-none font-bold" placeholder="WhatsApp (Ej: 11...)"/>
+                              <input value={data.phone} onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 text-sm outline-none font-bold" placeholder="WhatsApp (Ej: 11...)"/>
                           </div>
                           <p className="text-[10px] text-gray-400 mt-1">A este número llegarán las alertas.</p>
                       </div>
 
-                      {/* COSTO ENVÍO */}
                       <div>
                           <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Costo de Envío:</label>
                           <div className="flex items-center border rounded-xl overflow-hidden bg-white">
                               <div className="bg-gray-50 p-3 border-r text-gray-400"><Bike size={16}/></div>
-                              <input type="number" value={data.delivery_cost} onChange={(e) => setData({...data, delivery_cost: Number(e.target.value)})} className="w-full p-3 text-sm outline-none font-bold" placeholder="0"/>
+                              <input 
+                                  type="text" 
+                                  inputMode="numeric"
+                                  value={data.delivery_cost === 0 ? '' : data.delivery_cost}
+                                  onChange={(e) => {
+                                      const val = e.target.value.replace(/[^0-9]/g, '');
+                                      setData({...data, delivery_cost: val === '' ? 0 : Number(val)});
+                                      setUnsavedChanges(true); 
+                                  }} 
+                                  className="w-full p-3 text-sm outline-none font-bold" 
+                                  placeholder="0"
+                              />
                           </div>
                           <p className="text-[10px] text-gray-400 mt-1">Se sumará al total del pedido.</p>
                       </div>
                   </div>
 
                   <div className="flex gap-4 items-center bg-gray-50 p-3 rounded-xl">
-                      <input type="color" value={data.theme_color} onChange={(e) => setData({...data, theme_color: e.target.value})} className="w-10 h-10 rounded border cursor-pointer"/>
+                      <input type="color" value={data.theme_color} onChange={(e) => { setData({...data, theme_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded border cursor-pointer"/>
                       <div className="flex-1">
                             <label className="text-xs font-bold block mb-1 text-gray-500">Opacidad Portada</label>
-                            <input type="range" min="0" max="90" value={data.banner_opacity} onChange={(e) => setData({...data, banner_opacity: parseInt(e.target.value)})} className="w-full h-1.5 bg-gray-300 rounded-lg accent-black cursor-pointer"/>
+                            <input type="range" min="0" max="90" value={data.banner_opacity} onChange={(e) => { setData({...data, banner_opacity: parseInt(e.target.value)}); setUnsavedChanges(true); }} className="w-full h-1.5 bg-gray-300 rounded-lg accent-black cursor-pointer"/>
                       </div>
                   </div>
               </section>
 
-              {/* CARGA RÁPIDA DE PRODUCTOS */}
+              {/* PRODUCTOS RÁPIDOS */}
               <section className="space-y-4 pt-4 border-t">
                   <h3 className="font-bold flex items-center gap-2"><Store size={18}/> Agregar Plato Rápido</h3>
                   
@@ -538,7 +541,18 @@ export default function DesignPage() {
                               </div>
                               <div className="flex-1 space-y-2">
                                   <input value={newProd.name} onChange={(e) => setNewProd({...newProd, name: e.target.value})} placeholder="Nombre" className="w-full p-2 border rounded text-sm font-bold"/>
-                                  <input type="number" value={newProd.price} onChange={(e) => setNewProd({...newProd, price: e.target.value})} placeholder="$ Precio" className="w-full p-2 border rounded text-sm"/>
+                                  
+                                  <input 
+                                      type="text" 
+                                      inputMode="numeric"
+                                      value={newProd.price === '' ? '' : newProd.price} 
+                                      onChange={(e) => {
+                                          const val = e.target.value.replace(/[^0-9]/g, '');
+                                          setNewProd({...newProd, price: val});
+                                      }} 
+                                      placeholder="$ Precio" 
+                                      className="w-full p-2 border rounded text-sm"
+                                  />
                               </div>
                           </div>
                           
@@ -561,13 +575,9 @@ export default function DesignPage() {
                       </div>
                   )}
               </section>
-
-              <button onClick={handleSave} className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold shadow-lg sticky bottom-4 z-10">
-                  {loading ? 'Guardando...' : 'Guardar Cambios'}
-              </button>
             </div>
 
-            {/* --- PREVIEW ESCRITORIO --- */}
+            {/* PREVIEW */}
             <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-10 relative h-[calc(100vh-120px)] sticky top-6">
               <div className="w-[320px] h-[650px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col">
                   <PhoneMockup templateId={data.template_id} />
@@ -575,14 +585,14 @@ export default function DesignPage() {
               <div className="absolute bottom-6 text-gray-400 text-xs font-medium">Vista Previa en Vivo</div>
             </div>
 
-            {/* --- MODAL PREVIEW MÓVIL --- */}
+            {/* MODAL */}
             {previewTemplateId && (
                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="relative w-full max-w-sm h-[80vh] bg-white rounded-3xl overflow-hidden shadow-2xl">
                         <button onClick={() => setPreviewTemplateId(null)} className="absolute top-4 right-4 z-20 bg-black text-white p-2 rounded-full shadow-lg"><X size={20} /></button>
                         <PhoneMockup templateId={previewTemplateId} />
                         <div className="absolute bottom-4 left-4 right-4 z-20">
-                            <button onClick={() => { setData({...data, template_id: previewTemplateId}); setPreviewTemplateId(null); }} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-xl hover:bg-green-700 transition">Usar este Diseño</button>
+                            <button onClick={() => { setData({...data, template_id: previewTemplateId}); setUnsavedChanges(true); setPreviewTemplateId(null); }} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-xl hover:bg-green-700 transition">Usar este Diseño</button>
                         </div>
                     </div>
                 </div>

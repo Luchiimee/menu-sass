@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
     Loader2, TrendingUp, ShoppingBag, BarChart3, 
     Zap, Receipt, CreditCard, Banknote, Download, Calculator, 
-    Store, X, Info, ChevronDown, ChevronUp, Lock, Plus, Coins, Monitor
+    Store, X, Info, ChevronDown, ChevronUp, Lock, Plus, Coins, Monitor, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
@@ -31,6 +31,9 @@ export default function AnalyticsPage() {
   // Filtros de fecha
   const [startDate, setStartDate] = useState(getLocalISO());
   const [endDate, setEndDate] = useState(getLocalISO());
+  
+  // Estado para saber qué botón está activo ("hoy", "ayer", "custom")
+  const [activeFilter, setActiveFilter] = useState<'hoy' | 'ayer' | 'custom'>('hoy');
 
   // Estado para "Ver más" movimientos
   const [viewAllMovements, setViewAllMovements] = useState(false);
@@ -106,15 +109,15 @@ export default function AnalyticsPage() {
       const totalRevenue = salesMovements.reduce((acc, curr) => acc + Number(curr.total), 0);
       const totalOrders = salesMovements.length;
 
-      // KPI 2.1: VENTAS MOSTRADOR (Lo que sumaste en cierre o manual)
+      // KPI 2.1: VENTAS MOSTRADOR
       const counterSales = salesMovements
         .filter(o => o.order_type === 'mostrador')
         .reduce((acc, curr) => acc + Number(curr.total), 0);
 
-      // KPI 2.2: VENTAS WEB (Delivery/Retiro/Mesa)
+      // KPI 2.2: VENTAS WEB
       const webSales = totalRevenue - counterSales;
 
-      // KPI 3: EFECTIVO EN CAJA (Lo que el sistema calcula)
+      // KPI 3: EFECTIVO EN CAJA
       const cashSales = salesMovements
         .filter(o => o.payment_method === 'efectivo')
         .reduce((acc, curr) => acc + Number(curr.total), 0);
@@ -162,8 +165,8 @@ export default function AnalyticsPage() {
               totalOrders, 
               openingBalance, 
               totalCashInBox, 
-              counterSales, // Ventas Mostrador (Cierre)
-              webSales      // Ventas Web
+              counterSales, 
+              webSales      
           },
           paymentMethods: { digitalTotal, cashDelivery },
           chartData,
@@ -200,16 +203,26 @@ export default function AnalyticsPage() {
       return extraCount > 0 ? `${firstItem} +${extraCount}` : firstItem;
   };
 
+  // --- HANDLERS DE FECHA MEJORADOS ---
   const setDateToday = () => {
+      setActiveFilter('hoy');
       setStartDate(getLocalISO());
       setEndDate(getLocalISO());
   };
 
   const setDateYesterday = () => {
+      setActiveFilter('ayer');
       const d = new Date();
       d.setDate(d.getDate() - 1);
-      setStartDate(getLocalISO(d));
-      setEndDate(getLocalISO(d));
+      const iso = getLocalISO(d);
+      setStartDate(iso);
+      setEndDate(iso);
+  };
+
+  const handleCustomDateChange = (type: 'start' | 'end', value: string) => {
+      setActiveFilter('custom');
+      if(type === 'start') setStartDate(value);
+      else setEndDate(value);
   };
 
   const openApertura = () => {
@@ -314,7 +327,7 @@ export default function AnalyticsPage() {
 
         <div className={`${isLocked ? 'blur-md opacity-50 pointer-events-none' : ''} space-y-6`}>
             
-            {/* HEADER */}
+            {/* HEADER CON FILTROS MEJORADOS */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -324,15 +337,38 @@ export default function AnalyticsPage() {
                 </div>
                 
                 <div className="flex flex-col md:flex-row gap-3 items-end md:items-center">
-                    <div className="flex bg-gray-100 p-1 rounded-xl">
-                        <button onClick={setDateYesterday} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition">Ayer</button>
-                        <button onClick={setDateToday} className="px-3 py-1.5 text-xs font-bold text-black bg-white shadow-sm rounded-lg transition">Hoy</button>
+                    
+                    {/* --- SELECTOR DE FECHAS MEJORADO --- */}
+                    <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner">
+                        <button 
+                            onClick={setDateYesterday} 
+                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === 'ayer' ? 'bg-white text-black shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Ayer
+                        </button>
+                        <button 
+                            onClick={setDateToday} 
+                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === 'hoy' ? 'bg-white text-black shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Hoy
+                        </button>
                     </div>
 
-                    <div className="bg-white border p-1 rounded-xl flex items-center gap-2 shadow-sm">
-                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-xs font-bold bg-transparent outline-none p-2 text-gray-600"/>
+                    <div className={`bg-white border p-1 rounded-xl flex items-center gap-2 shadow-sm transition-all ${activeFilter === 'custom' ? 'ring-2 ring-black border-transparent' : 'border-gray-200'}`}>
+                        <div className="pl-2 text-gray-400"><Calendar size={16}/></div>
+                        <input 
+                            type="date" 
+                            value={startDate} 
+                            onChange={(e) => handleCustomDateChange('start', e.target.value)} 
+                            className="text-xs font-bold bg-transparent outline-none p-2 text-gray-700 cursor-pointer"
+                        />
                         <span className="text-gray-300">-</span>
-                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-xs font-bold bg-transparent outline-none p-2 text-gray-600"/>
+                        <input 
+                            type="date" 
+                            value={endDate} 
+                            onChange={(e) => handleCustomDateChange('end', e.target.value)} 
+                            className="text-xs font-bold bg-transparent outline-none p-2 text-gray-700 cursor-pointer"
+                        />
                     </div>
 
                     <button onClick={openCierre} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition shadow-lg whitespace-nowrap">
@@ -351,12 +387,12 @@ export default function AnalyticsPage() {
             {/* KPI CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 
-                {/* 1. VENTAS HOY (MODIFICADA COMO PEDISTE) */}
+                {/* 1. VENTAS HOY */}
                 <div className="md:col-span-1 bg-gray-900 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between relative overflow-hidden">
                     <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
                     <div>
                         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-2">
-                            <Store size={14}/> Ventas Hoy
+                            <Store size={14}/> Ventas {activeFilter === 'ayer' ? 'Ayer' : 'Hoy'}
                         </p>
                         <p className="text-3xl font-black mt-2">${kpi.totalRevenue.toLocaleString()}</p>
                     </div>
@@ -475,7 +511,6 @@ export default function AnalyticsPage() {
                     {(viewAllMovements ? filteredOrders : filteredOrders.slice(0, 3)).map((order) => (
                         <div key={order.id} className="border rounded-xl p-3 flex justify-between items-center hover:bg-gray-50 transition group">
                             <div className="flex items-center gap-3">
-                                {/* ICONO DINAMICO */}
                                 <div className={`p-2 rounded-lg ${order.order_type === 'apertura' ? 'bg-orange-100 text-orange-600' : (order.payment_method === 'efectivo' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600')}`}>
                                     {order.order_type === 'apertura' ? <Coins size={16}/> : (order.payment_method === 'efectivo' ? <Banknote size={16}/> : <CreditCard size={16}/>)}
                                 </div>
@@ -484,7 +519,6 @@ export default function AnalyticsPage() {
                                         <span className="truncate">{getOrderSummary(order)}</span>
                                     </p>
                                     <p className="text-xs text-gray-400 truncate">
-                                        {/* DETALLE TIPO */}
                                         {order.order_type === 'apertura' ? 'Saldo Inicial' : (
                                             order.customer_name === 'Venta Detectada (Cierre)' ? 'Ajuste de Cierre' : 
                                             (`#${order.id.slice(0,4)} • ${new Date(order.created_at).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}`)
@@ -566,7 +600,6 @@ export default function AnalyticsPage() {
                             </div>
                         </div>
 
-                        {/* --- AQUÍ ESTÁ EL RESUMEN MATEMÁTICO QUE PEDISTE --- */}
                         {manualMode === 'cierre' && currentInputAmount > 0 && (
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2 border border-dashed border-gray-200 text-sm">
                                 <div className="flex justify-between text-gray-500">

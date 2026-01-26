@@ -1,175 +1,273 @@
 'use client';
 
-import { useCartStore } from '@/store/cart-store';
-import { supabase } from '@/lib/supabase';
-import { Send, ChevronUp, Minus, Plus, Bike, Store, MapPin, CreditCard, Banknote, User, Phone, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useCart } from '@/context/CartContext';
+import { createBrowserClient } from '@supabase/ssr'; // Para crear el pedido
+import { ShoppingBag, X, Send, CreditCard, Banknote, Bike, Store, MapPin, Copy, Check, Loader2 } from 'lucide-react';
+import OrderTracker from './OrderTracker'; // <--- IMPORTAMOS EL TRACKER
 
-interface Props {
-    phone: string;
-    deliveryCost?: number;
-    restaurantId: string;
+interface CartFooterProps {
+  phone: string; 
+  deliveryCost: number;
+  restaurantId: string;
+  aliasMp?: string;
+  planType: 'light' | 'plus' | 'max' | null; // <--- NUEVO PROP
 }
 
-export default function CartFooter({ phone, deliveryCost = 0, restaurantId }: Props) {
-  const { items, addItem, removeItem, total, clearCart } = useCartStore((state: any) => state);
-  const [mounted, setMounted] = useState(false);
+export default function CartFooter({ phone: restaurantPhone, deliveryCost, restaurantId, aliasMp, planType }: CartFooterProps) {
+  const { cart, total, removeFromCart, clearCart, activeOrderId, setActiveOrderId } = useCart();
   const [isOpen, setIsOpen] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryType, setDeliveryType] = useState<'delivery' | 'retiro' | 'mesa'>('delivery');
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
+  const [address, setAddress] = useState('');
+  
+  const [copiedAlias, setCopiedAlias] = useState(false);
 
-  // DATOS DEL CLIENTE
-  const [paymentMethod, setPaymentMethod] = useState('efectivo');
-  const [orderType, setOrderType] = useState('delivery');
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
+  // Cliente Supabase para el insert (solo en Plus)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  useEffect(() => setMounted(true), []);
+  // --- SI HAY UN PEDIDO ACTIVO (SOLO PLUS), MOSTRAMOS EL TRACKER Y OCULTAMOS EL CARRITO ---
+  if (activeOrderId && (planType === 'plus' || planType === 'max')) {
+      return (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-50">
+              <div className="max-w-md mx-auto">
+                  <OrderTracker orderId={activeOrderId} />
+                  <button onClick={() => setIsOpen(true)} className="text-xs text-gray-400 underline w-full text-center mt-2">Ver detalle del pedido</button>
+              </div>
+              {/* Checkout modal sigue disponible para ver qué pidio, pero en modo lectura (opcional, por ahora lo oculto al tener pedido activo) */}
+          </div>
+      );
+  }
 
-  if (!mounted || items.length === 0) return null;
+  if (cart.length === 0) return null;
 
-  const subtotal = total();
-  const finalDeliveryCost = orderType === 'delivery' ? deliveryCost : 0;
-  const finalTotal = subtotal + finalDeliveryCost;
+  const finalTotal = deliveryType === 'delivery' ? total + deliveryCost : total;
 
-  const handleCheckout = async () => {
-    if (!clientName.trim()) return alert("Por favor escribe tu nombre.");
-    
-    setSending(true);
+  const copyAlias = () => {
+      if (aliasMp) {
+          navigator.clipboard.writeText(aliasMp);
+          setCopiedAlias(true);
+          setTimeout(() => setCopiedAlias(false), 2000);
+      }
+  };
 
-    try {
-        const cleanItems = items.map((i: any) => ({
-            id: i.id, name: i.name, price: i.price, quantity: i.quantity
-        }));
+  const handleSendOrder = async () => {
+      if (!customerName.trim()) return alert("Por favor, escribe tu nombre.");
+      if (!customerPhone.trim()) return alert("El teléfono es obligatorio.");
+      if (deliveryType === 'delivery' && !address.trim()) return alert("Escribe tu dirección de envío.");
 
-        // 1. GUARDAR EN BD
-        const { error } = await supabase.from('orders').insert({
-            restaurant_id: restaurantId,
-            items: cleanItems,
-            total: finalTotal,
-            delivery_cost: finalDeliveryCost,
-            status: 'pendiente',
-            payment_method: paymentMethod,
-            order_type: orderType,
-            customer_name: clientName,
-            customer_phone: clientPhone
-        });
+      setIsSending(true);
 
-        if (error) console.error('Error Supabase:', error);
+      try {
+          let orderIdCreated = null;
 
-        // 2. WHATSAPP
-        let message = `Hola! Soy *${clientName}*. Nuevo Pedido (${orderType.toUpperCase()}):%0A%0A`;
-        items.forEach((item: any) => {
-            message += `▪ ${item.quantity}x ${item.name} ($${item.price * item.quantity})%0A`;
-        });
-        message += `%0ASubtotal: $${subtotal}`;
-        if (finalDeliveryCost > 0) message += `%0AEnvío: $${finalDeliveryCost}`;
-        message += `%0A*Total: $${finalTotal}*`;
-        message += `%0A%0A----------------`;
-        message += `%0A💳 Pago: ${paymentMethod.toUpperCase()}`;
-        message += `%0A📍 Entrega: ${orderType.toUpperCase()}`;
-        if (clientPhone) message += `%0A📞 Mi Tel: ${clientPhone}`;
-        
-        const targetPhone = phone || '5491100000000'; 
-        
-        window.open(`https://wa.me/${targetPhone}?text=${message}`, '_blank');
+          // --- LÓGICA PLAN PLUS: GUARDAR EN DB ---
+          if (planType === 'plus' || planType === 'max') {
+              const { data: newOrder, error } = await supabase.from('orders').insert({
+                  restaurant_id: restaurantId,
+                  customer_name: customerName,
+                  customer_phone: customerPhone,
+                  address: address, // Asegúrate de tener esta columna o guardarla en un campo jsonb
+                  order_type: deliveryType,
+                  payment_method: paymentMethod,
+                  total: finalTotal,
+                  status: 'pendiente',
+                  delivery_cost: deliveryType === 'delivery' ? deliveryCost : 0,
+                  items: cart // Se guarda el JSON del carrito
+              }).select().single();
 
-    } catch (err) { console.error(err); } finally {
-        setSending(false); setIsOpen(false); 
-    }
+              if (error) {
+                  console.error(error);
+                  alert("Hubo un error guardando el pedido, pero te enviaremos a WhatsApp.");
+              } else if (newOrder) {
+                  orderIdCreated = newOrder.id;
+                  setActiveOrderId(newOrder.id); // <--- ACTIVAMOS EL TRACKING
+              }
+          }
+
+          // --- CONSTRUIR MENSAJE WHATSAPP ---
+          let msg = `*¡Hola! Nuevo Pedido* 🍔\n`;
+          if (orderIdCreated) msg += `Ref: #${orderIdCreated.slice(0,5)}\n`; // Referencia corta si hay DB
+          msg += `------------------\n`;
+          msg += `*Nombre:* ${customerName}\n`;
+          msg += `*Tel:* ${customerPhone}\n`;
+          msg += `*Entrega:* ${deliveryType.toUpperCase()} ${deliveryType === 'delivery' ? `(${address})` : ''}\n`;
+          msg += `*Pago:* ${paymentMethod.toUpperCase()}\n\n`;
+          
+          msg += `*Pedido:*\n`;
+          cart.forEach(item => {
+              msg += `• ${item.quantity}x ${item.name} ($${item.price * item.quantity})\n`;
+          });
+
+          if (deliveryType === 'delivery') {
+              msg += `• Envío: $${deliveryCost}\n`;
+          }
+
+          msg += `\n*TOTAL: $${finalTotal}*`;
+
+          // --- REDIRECCIÓN ---
+          const link = `https://wa.me/${restaurantPhone}?text=${encodeURIComponent(msg)}`;
+          window.location.href = link; // Usamos location.href para que en móvil sea más agresivo el cambio a la app
+          
+          // Si es Plus, cerramos el modal porque ahora se mostrará el Tracker
+          if (orderIdCreated) {
+              setIsOpen(false);
+              clearCart(); // Limpiamos el carrito visual, pero ActiveOrderId sigue vivo en context
+          }
+
+      } catch (err) {
+          alert("Error procesando el pedido.");
+      } finally {
+          setIsSending(false);
+      }
   };
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />}
-
-      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-white shadow-[0_-5px_20px_rgba(0,0,0,0.15)] transition-all duration-300 rounded-t-3xl ${isOpen ? 'h-[90vh]' : 'h-auto'}`}>
-        
-        <div className="p-4 cursor-pointer hover:bg-gray-50 rounded-t-3xl transition" onClick={() => setIsOpen(!isOpen)}>
-             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="bg-black text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-md">
-                        {items.reduce((a: number, b: any) => a + b.quantity, 0)}
-                    </div>
-                    <div>
-                        <p className="text-xs text-gray-500 font-medium">Total Estimado</p>
-                        <p className="font-bold text-xl text-gray-900">${finalTotal}</p>
-                    </div>
-                </div>
-                <button className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg">
-                    {isOpen ? 'Confirmar' : 'Ver Pedido'} {isOpen ? <Send size={18}/> : <ChevronUp size={18}/>}
-                </button>
-             </div>
-        </div>
-
-        {isOpen && (
-            <div className="p-4 h-[calc(100%-100px)] overflow-y-auto custom-scrollbar pb-32">
-                
-                <h3 className="font-bold text-lg mb-3 text-gray-800">Tus Datos</h3>
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="border rounded-xl p-2 flex items-center gap-2 bg-gray-50">
-                        <User size={18} className="text-gray-400"/>
-                        {/* AQUÍ ESTÁ EL CAMBIO: text-gray-900 */}
-                        <input 
-                            value={clientName} 
-                            onChange={e => setClientName(e.target.value)} 
-                            placeholder="Tu Nombre *" 
-                            className="bg-transparent w-full outline-none text-sm font-bold text-gray-900 placeholder-gray-400"
-                        />
-                    </div>
-                    <div className="border rounded-xl p-2 flex items-center gap-2 bg-gray-50">
-                        <Phone size={18} className="text-gray-400"/>
-                        {/* AQUÍ ESTÁ EL CAMBIO: text-gray-900 */}
-                        <input 
-                            value={clientPhone} 
-                            onChange={e => setClientPhone(e.target.value)} 
-                            placeholder="Tel (Opcional)" 
-                            type="tel" 
-                            className="bg-transparent w-full outline-none text-sm font-bold text-gray-900 placeholder-gray-400"
-                        />
-                    </div>
-                </div>
-
-                <h3 className="font-bold text-lg mb-3 text-gray-800">Tu Pedido</h3>
-                <div className="space-y-3 mb-6">
-                    {items.map((item: any) => (
-                        <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-sm">
-                            <div className="flex-1">
-                                <p className="font-bold text-gray-900">{item.name}</p>
-                                <p className="text-xs text-gray-500">${item.price}</p>
-                            </div>
-                            <div className="flex items-center gap-2 bg-white border rounded px-1">
-                                <button onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} className="p-1 text-red-500"><Minus size={14}/></button>
-                                <span className="font-bold text-xs w-4 text-center text-gray-900">{item.quantity}</span>
-                                <button onClick={(e) => { e.stopPropagation(); addItem(item); }} className="p-1 text-green-600"><Plus size={14}/></button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mb-6">
-                    <h3 className="font-bold text-sm mb-2 text-gray-500 uppercase">Tipo de Entrega</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => setOrderType('delivery')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${orderType === 'delivery' ? 'bg-black text-white border-black' : 'bg-white text-gray-500'}`}><Bike size={20}/> Delivery</button>
-                        <button onClick={() => setOrderType('retiro')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${orderType === 'retiro' ? 'bg-black text-white border-black' : 'bg-white text-gray-500'}`}><Store size={20}/> Retiro</button>
-                        <button onClick={() => setOrderType('local')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${orderType === 'local' ? 'bg-black text-white border-black' : 'bg-white text-gray-500'}`}><MapPin size={20}/> Mesa</button>
-                    </div>
-                </div>
-
-                <div className="mb-6">
-                    <h3 className="font-bold text-sm mb-2 text-gray-500 uppercase">Forma de Pago</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setPaymentMethod('efectivo')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'efectivo' ? 'bg-green-100 text-green-800 border-green-500' : 'bg-white text-gray-500'}`}><Banknote size={18}/> Efectivo</button>
-                        <button onClick={() => setPaymentMethod('transferencia')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'transferencia' ? 'bg-blue-100 text-blue-800 border-blue-500' : 'bg-white text-gray-500'}`}><CreditCard size={18}/> Transferencia</button>
-                    </div>
-                </div>
-
-                <button onClick={handleCheckout} disabled={sending} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-green-700 transition flex items-center justify-center gap-2 disabled:opacity-70">
-                    {sending ? <Loader2 className="animate-spin"/> : <><Send size={20}/> Enviar Pedido</>}
-                </button>
+      {!isOpen && (
+        <div className="fixed bottom-4 left-4 right-4 z-50 animate-in slide-in-from-bottom-4">
+          <button 
+            onClick={() => setIsOpen(true)}
+            className="w-full bg-black text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between font-bold text-lg hover:scale-[1.02] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+                <span className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center text-sm">{cart.reduce((a,b)=>a+b.quantity,0)}</span>
+                <span>Ver Pedido</span>
             </div>
-        )}
-      </div>
+            <span>${total.toLocaleString()}</span>
+          </button>
+        </div>
+      )}
+
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
+            <div className="bg-white w-full max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+                
+                <div className="p-5 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                    <h2 className="text-xl font-bold flex items-center gap-2"><ShoppingBag/> Tu Pedido</h2>
+                    <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20}/></button>
+                </div>
+
+                <div className="p-5 space-y-6">
+                    <div className="space-y-4">
+                        {cart.map((item) => (
+                            <div key={item.id} className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="font-bold text-gray-900">{item.quantity}x</div>
+                                    <div>
+                                        <p className="font-medium text-sm text-gray-800">{item.name}</p>
+                                        <p className="text-xs text-gray-500">${item.price}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-bold text-sm">${item.price * item.quantity}</span>
+                                    <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><X size={16}/></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <hr className="border-dashed"/>
+
+                    <div className="space-y-3">
+                        <h3 className="font-bold text-sm text-gray-500 uppercase">Tus Datos</h3>
+                        <input 
+                            placeholder="Tu Nombre *" 
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            className="w-full p-3 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-2 ring-black/5"
+                        />
+                        <input 
+                            placeholder="Tu Teléfono (Obligatorio) *" 
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                            type="tel"
+                            className="w-full p-3 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-2 ring-black/5"
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="font-bold text-sm text-gray-500 uppercase">Entrega</h3>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => setDeliveryType('delivery')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'delivery' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                                <Bike size={20}/> Delivery
+                            </button>
+                            <button onClick={() => setDeliveryType('retiro')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'retiro' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                                <Store size={20}/> Retiro
+                            </button>
+                            <button onClick={() => setDeliveryType('mesa')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'mesa' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                                <MapPin size={20}/> Mesa
+                            </button>
+                        </div>
+                        
+                        {deliveryType === 'delivery' && (
+                            <div className="animate-in fade-in space-y-2">
+                                <input 
+                                    placeholder="Dirección exacta (Calle, Altura, Piso)..." 
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:ring-2 ring-black/5"
+                                />
+                                {deliveryCost > 0 && (
+                                    <div className="flex justify-between items-center bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold">
+                                        <span>Costo de envío:</span>
+                                        <span>+${deliveryCost}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="font-bold text-sm text-gray-500 uppercase">Pago</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => setPaymentMethod('efectivo')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'efectivo' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                                <Banknote size={18}/> Efectivo
+                            </button>
+                            <button onClick={() => setPaymentMethod('transferencia')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'transferencia' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                                <CreditCard size={18}/> Transferencia
+                            </button>
+                        </div>
+
+                        {paymentMethod === 'transferencia' && aliasMp && (
+                            <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                                <div>
+                                    <p className="text-[10px] uppercase font-bold text-purple-400 mb-1">Alias para transferir:</p>
+                                    <p className="text-lg font-black text-purple-900 select-all">{aliasMp}</p>
+                                </div>
+                                <button onClick={copyAlias} className="bg-white border border-purple-200 text-purple-600 p-2 rounded-lg hover:bg-purple-100 transition shadow-sm">
+                                    {copiedAlias ? <Check size={20}/> : <Copy size={20}/>}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                </div>
+
+                <div className="p-5 border-t bg-gray-50 sticky bottom-0 z-10">
+                    <div className="flex justify-between items-end mb-4">
+                        <span className="text-gray-500 font-medium">Total a Pagar:</span>
+                        <span className="text-3xl font-black text-gray-900">${finalTotal.toLocaleString()}</span>
+                    </div>
+                    <button 
+                        onClick={handleSendOrder}
+                        disabled={isSending}
+                        className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition shadow-lg flex items-center justify-center gap-2 active:scale-[0.98]"
+                    >
+                        {isSending ? <Loader2 className="animate-spin" size={24}/> : <><Send size={20}/> Confirmar Pedido</>}
+                    </button>
+                </div>
+
+            </div>
+        </div>
+      )}
     </>
   );
 }
