@@ -1,5 +1,6 @@
 'use client';
 
+// 1. Velocidad y datos frescos siempre
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
@@ -111,42 +112,53 @@ export default function DashboardHome() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // --- FUNCIÓN MEJORADA: HACK PARA IOS/ANDROID PWA ---
+  // --- FUNCIÓN AGREGADA: FORZAR APERTURA EN NAVEGADOR ---
   const openStoreInBrowser = () => {
-    // Usamos el mismo hack del elemento invisible
-    const link = document.createElement('a');
-    link.href = storeLink;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Usamos window.open con _blank, esto fuerza al navegador externo en móviles (PWA)
+    window.open(storeLink, '_blank', 'noopener,noreferrer');
   };
+  // ------------------------------------------------------
 
+  // --- FUNCIÓN: DESCARGAR QR PDF ---
   const handleDownloadQrPdf = async () => {
     try {
         setGeneratingPdf(true);
         const QRCode = (await import('qrcode')).default; 
         const { jsPDF } = await import('jspdf');
 
+        // 1. Generar la imagen del QR
         const qrDataUrl = await QRCode.toDataURL(storeLink, {
             width: 400,
             margin: 2,
-            color: { dark: '#000000', light: '#ffffff' }
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            }
         });
 
+        // 2. Crear el PDF
         const doc = new jsPDF();
+        
+        // Título
         doc.setFontSize(22);
         doc.text(`Escanea para ver el Menú`, 105, 40, { align: 'center' });
+        
+        // Slug / Nombre
         doc.setFontSize(16);
         doc.setTextColor(100);
         doc.text(`snappy.uno/${slug}`, 105, 50, { align: 'center' });
+
+        // Imagen QR centrada
         const qrSize = 100;
-        const xPos = (210 - qrSize) / 2;
+        const xPos = (210 - qrSize) / 2; // (Ancho A4 - Ancho QR) / 2
         doc.addImage(qrDataUrl, 'PNG', xPos, 60, qrSize, qrSize);
+
+        // Pie de página
         doc.setFontSize(10);
         doc.setTextColor(150);
         doc.text("Powered by Snappy", 105, 180, { align: 'center' });
+
+        // 3. Descargar
         doc.save(`qr-menu-${slug}.pdf`);
 
     } catch (error) {
@@ -169,12 +181,20 @@ export default function DashboardHome() {
 
   if (loading) return <div className="h-[60vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2"/> Cargando...</div>;
 
+  // CASO 1: USUARIO NUEVO SIN RESTAURANTE (BIENVENIDA + PLANES ACTUALIZADOS)
   if (isNewUser) {
     return (
       <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in space-y-8 pt-24 md:pt-8">
+        {/* HEADER DE BIENVENIDA CON LOGO */}
         <div className="text-center space-y-6 mb-10">
             <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-purple-900/20 p-3">
-                <Image src="/logo.svg" alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
+                <Image 
+                  src="/logo.svg" 
+                  alt="Logo" 
+                  width={40} 
+                  height={40} 
+                  className="w-full h-full object-contain"
+                />
             </div>
             <div>
                 <h1 className="text-4xl font-black text-gray-900 tracking-tight">¡Bienvenido a Snappy! 🚀</h1>
@@ -195,7 +215,10 @@ export default function DashboardHome() {
             </div>
         </div>
 
+        {/* GRID DE PLANES - SELECCIÓN INICIAL */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            
+            {/* LIGHT */}
             <div className="bg-white border border-gray-200 p-6 rounded-3xl hover:border-gray-300 transition shadow-sm flex flex-col h-full">
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-gray-500">Plan Light</h3>
@@ -217,6 +240,7 @@ export default function DashboardHome() {
                 <Link href="/dashboard/settings" className="mt-6 block w-full py-3 bg-gray-100 text-gray-600 font-bold text-center rounded-xl hover:bg-gray-200 transition">Elegir Light</Link>
             </div>
 
+            {/* PLUS */}
             <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border border-gray-800 h-full">
                 <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[10px] font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
                 <div className="mb-4 relative z-10">
@@ -240,10 +264,12 @@ export default function DashboardHome() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
             </div>
 
+            {/* MAX */}
             <div className="bg-white border-2 border-gray-100 p-6 rounded-3xl flex flex-col relative overflow-hidden h-full">
                 <div className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200">PRÓXIMAMENTE</div>
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-gray-400 flex items-center gap-2">Plan Max <Crown size={16}/></h3>
+                    {/* Precio borroso */}
                     <div className="flex items-baseline gap-1 mt-2 select-none filter blur-[5px]">
                         <span className="text-4xl font-bold text-gray-300">$28.600</span>
                         <span className="text-sm text-gray-300">/mes</span>
@@ -264,14 +290,17 @@ export default function DashboardHome() {
     );
   }
 
+  // CASO 2: USUARIO CON PLAN (LIGHT O PLUS) - MUESTRA DASHBOARD
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in pb-10 pt-24 md:pt-0">
       
+      {/* CABECERA */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Resumen de hoy</h1>
         <p className="text-gray-500 text-sm">Así va tu negocio este {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>
       </div>
       
+      {/* TARJETAS DE ESTADÍSTICAS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 relative overflow-hidden">
           <div className={`p-3 rounded-xl ${isPlus ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
@@ -302,6 +331,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      {/* BANNER DE LINK */}
       <div className="bg-gray-900 text-white p-6 md:p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
         <div className="relative z-10 space-y-2">
@@ -318,12 +348,14 @@ export default function DashboardHome() {
             </div>
         </div>
         
+        {/* BOTONES DE ACCIÓN: COPIAR, PDF, ABRIR */}
         <div className="relative z-10 flex flex-col sm:flex-row gap-3">
             <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 bg-white text-black px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-100 transition shadow-lg active:scale-95">
             {copied ? <CheckCircle size={18} className="text-green-600"/> : <Copy size={18}/>}
             {copied ? '¡Copiado!' : 'Copiar'}
             </button>
             
+            {/* BOTÓN QR PDF */}
             <button 
                 onClick={handleDownloadQrPdf} 
                 disabled={generatingPdf}
@@ -333,7 +365,7 @@ export default function DashboardHome() {
                 QR PDF
             </button>
 
-            {/* BOTÓN CON HACK DE ANCHOR PARA SALIR DE PWA */}
+            {/* BOTÓN ABRIR - CORREGIDO PARA PWA (Usa botón + JS en vez de enlace) */}
             <button 
                 onClick={openStoreInBrowser} 
                 className="flex items-center justify-center gap-2 bg-gray-800 text-white border border-gray-700 px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-700 transition"
@@ -343,7 +375,9 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      {/* SECCIÓN INFERIOR */}
       {isPlus ? (
+        // VISTA PLUS
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-900">Actividad Reciente</h2>
@@ -391,6 +425,7 @@ export default function DashboardHome() {
             </div>
         </div>
       ) : (
+        // VISTA LIGHT
         <div className="bg-white border border-gray-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
             <div className="flex items-center gap-4">
                 <div className="bg-blue-50 p-3 rounded-full text-blue-600">
