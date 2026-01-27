@@ -463,7 +463,7 @@ export default function SettingsPage() {
                     
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-700">Light</h3>
-                        <p className="text-3xl font-black mt-2 text-gray-900">$6.400<span className="text-xs font-medium text-gray-400">/mes</span></p>
+                        <p className="text-3xl font-black mt-2 text-gray-900">$7.000<span className="text-xs font-medium text-gray-400">/mes</span></p>
                     </div>
                     
                     <ul className="space-y-3 text-sm text-gray-500 flex-1 mb-6">
@@ -507,7 +507,7 @@ export default function SettingsPage() {
                     
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-blue-600 flex items-center gap-2">Plus <Zap size={16} className="fill-current"/></h3>
-                        <p className="text-4xl font-black mt-2 text-gray-900">$13.900<span className="text-xs font-medium text-gray-400">/mes</span></p>
+                        <p className="text-4xl font-black mt-2 text-gray-900">$15.900<span className="text-xs font-medium text-gray-400">/mes</span></p>
                     </div>
                     
                     <ul className="space-y-3 text-sm text-gray-600 flex-1 mb-6 font-medium">
@@ -554,7 +554,7 @@ export default function SettingsPage() {
                     <div className="mb-4 relative z-0">
                         <h3 className="text-lg font-bold text-purple-600">Max</h3>
                         <div className="filter blur-[5px] select-none mt-2">
-                            <p className="text-3xl font-black text-gray-900">$21.200<span className="text-xs font-medium text-gray-400">/mes</span></p>
+                            <p className="text-3xl font-black text-gray-900">$28.600<span className="text-xs font-medium text-gray-400">/mes</span></p>
                         </div>
                     </div>
                     
