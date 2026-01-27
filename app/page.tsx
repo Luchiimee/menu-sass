@@ -1,26 +1,35 @@
+'use client'; 
+
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  ArrowRight, Check, Zap, Smartphone, TrendingUp, 
-  Layout, Star, QrCode, MessageCircle, HelpCircle, ChevronRight
+  ArrowRight, Check, Zap, Star, QrCode, MessageCircle, HelpCircle, ChevronRight, Menu, X, Layout 
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-green-100">
       
       {/* --- NAVBAR --- */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
-              <Zap size={20} fill="currentColor" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">Snappy.</span>
-          </div>
           
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-bold text-gray-500 hover:text-black transition hidden sm:block">
+          <div className="flex items-center gap-2">
+  <Image 
+    src="/logo.svg" 
+    alt="Logo Snappy" 
+    width={32} 
+    height={32} 
+    className="w-8 h-8 object-contain" 
+  />
+  <span className="font-bold text-xl tracking-tight">Snappy.</span>
+</div>
+          
+          <div className="hidden md:flex items-center gap-4">
+            <Link href="/login" className="text-sm font-bold text-gray-500 hover:text-black transition">
               Iniciar Sesión
             </Link>
             <Link 
@@ -30,15 +39,38 @@ export default function LandingPage() {
               Prueba Gratis <ArrowRight size={16}/>
             </Link>
           </div>
+
+          <button 
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
+
+        {isMenuOpen && (
+            <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-100 shadow-xl p-4 flex flex-col gap-4 animate-in slide-in-from-top-5 h-screen bg-white/95 backdrop-blur-xl z-40">
+                <Link 
+                    href="/login" 
+                    className="text-center font-bold text-gray-600 py-4 hover:bg-gray-50 rounded-xl transition text-lg"
+                >
+                    Iniciar Sesión
+                </Link>
+                <Link 
+                    href="/login" 
+                    className="bg-black text-white py-4 rounded-xl font-bold text-center shadow-lg flex items-center justify-center gap-2 text-lg"
+                >
+                    Prueba Gratis <ArrowRight size={20}/>
+                </Link>
+            </div>
+        )}
       </nav>
 
-      {/* --- HERO SECTION (TEXTO IZQ - MOCKUP DER) --- */}
+      {/* --- HERO SECTION --- */}
       <section className="pt-32 pb-20 px-4 overflow-hidden">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             
-            {/* COLUMNA IZQUIERDA: TEXTO */}
-            <div className="text-center lg:text-left order-2 lg:order-1">
+            <div className="text-center lg:text-left">
                 <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-1.5 rounded-full text-xs font-bold mb-6 border border-green-100 animate-in fade-in slide-in-from-bottom-4">
                     <Star size={12} fill="currentColor"/> Nuevo: Seguimiento de pedidos en vivo
                 </div>
@@ -68,19 +100,13 @@ export default function LandingPage() {
                 </div>
             </div>
 
-            {/* COLUMNA DERECHA: MOCKUP GRANDE */}
-            <div className="relative order-1 lg:order-2 flex justify-center lg:justify-end animate-in fade-in zoom-in duration-1000 delay-200 perspective-1000">
-                {/* Aura de fondo */}
+            <div className="relative flex justify-center lg:justify-end animate-in fade-in zoom-in duration-1000 delay-200 perspective-1000 mt-10 lg:mt-0">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-tr from-green-400/20 to-purple-400/20 blur-3xl rounded-full w-[120%] h-[120%] -z-10"></div>
                 
                 <div className="relative bg-gray-900 rounded-[45px] p-3 shadow-2xl border-[6px] border-gray-800 w-[300px] h-[600px] md:w-[340px] md:h-[680px]">
-                    <div className="absolute top-0 inset-x-0 h-6 bg-black z-20 flex justify-center rounded-t-[40px]">
-                        <div className="w-20 h-4 bg-black rounded-b-xl"></div>
-                    </div>
-                    {/* PANTALLA PRINCIPAL */}
                     <div className="relative w-full h-full rounded-[35px] overflow-hidden bg-white">
                          <Image 
-                            src="/menu-sushi.jpeg" // Asegúrate que esta imagen exista en /public
+                            src="/menu-sushi.jpeg" 
                             alt="App Screenshot" 
                             fill 
                             className="object-cover"
@@ -103,7 +129,6 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end justify-center">
                 
-                {/* Template 1: Classic */}
                 <div className="flex flex-col items-center">
                     <div className="bg-white p-2 rounded-[36px] shadow-xl border-4 border-gray-100 mb-6 w-[240px] h-[480px] relative hover:-translate-y-2 transition-transform duration-300">
                         <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-gray-100">
@@ -114,7 +139,6 @@ export default function LandingPage() {
                     <p className="text-sm text-gray-500">Limpio y eficiente.</p>
                 </div>
 
-                 {/* Template 2: Fresh (Central y más grande) */}
                 <div className="flex flex-col items-center md:-mt-12 relative z-10">
                     <div className="bg-black p-2.5 rounded-[40px] shadow-2xl border-4 border-black mb-6 w-[280px] h-[560px] relative hover:-translate-y-2 transition-transform duration-300">
                          <div className="absolute top-4 right-4 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20 shadow-sm">TOP</div>
@@ -126,7 +150,6 @@ export default function LandingPage() {
                     <p className="text-sm text-gray-500 font-medium">Visual y moderno.</p>
                 </div>
 
-                 {/* Template 3: Urban */}
                 <div className="flex flex-col items-center">
                     <div className="bg-gray-900 p-2 rounded-[36px] shadow-xl border-4 border-gray-700 mb-6 w-[240px] h-[480px] relative hover:-translate-y-2 transition-transform duration-300">
                         <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-gray-800">
@@ -151,7 +174,6 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-                {/* Flechas conectoras (solo desktop) */}
                 <div className="hidden md:block absolute top-1/2 left-1/3 w-1/3 h-px bg-gray-200 -z-10 text-gray-300 flex justify-end"><ChevronRight size={24} className="translate-x-1/2 -translate-y-1/2"/></div>
                 <div className="hidden md:block absolute top-1/2 right-1/3 w-1/3 h-px bg-gray-200 -z-10 text-gray-300 flex justify-end"><ChevronRight size={24} className="translate-x-1/2 -translate-y-1/2"/></div>
 
@@ -196,14 +218,14 @@ export default function LandingPage() {
             <p className="text-gray-500 text-lg">Sin comisiones por venta. Cancela cuando quieras.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* PLAN LIGHT */}
-            <div className="bg-white border border-gray-200 rounded-3xl p-8 hover:border-gray-300 transition relative">
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 hover:border-gray-300 transition relative flex flex-col h-full">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Light</h3>
               <p className="text-sm text-gray-500 mb-6">Para empezar a vender online.</p>
               <div className="mb-6">
-                <span className="text-4xl font-black">$6.400</span>
+                <span className="text-4xl font-black">$7.000</span>
                 <span className="text-gray-400">/mes</span>
               </div>
               
@@ -211,7 +233,8 @@ export default function LandingPage() {
                 Prueba 14 días gratis
               </Link>
 
-              <ul className="space-y-4 text-sm text-gray-600">
+              <ul className="space-y-4 text-sm text-gray-600 flex-1">
+                <li className="flex gap-3"><Check size={18} className="text-green-600 flex-shrink-0"/> <b>Hasta 15 Productos</b></li>
                 <li className="flex gap-3"><Check size={18} className="text-green-600 flex-shrink-0"/> Catálogo Digital Interactivo</li>
                 <li className="flex gap-3"><Check size={18} className="text-green-600 flex-shrink-0"/> Pedidos directos a WhatsApp</li>
                 <li className="flex gap-3"><Check size={18} className="text-green-600 flex-shrink-0"/> Mostrar Alias para Transferencias</li>
@@ -221,55 +244,58 @@ export default function LandingPage() {
             </div>
 
             {/* PLAN PLUS (DESTACADO) */}
-            <div className="bg-white border-2 border-green-600 rounded-3xl p-8 relative shadow-xl scale-105 z-10">
+            <div className="bg-white border-2 border-green-600 rounded-3xl p-8 relative shadow-xl scale-105 z-10 flex flex-col h-full">
               <div className="absolute top-0 right-0 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">
                 RECOMENDADO
               </div>
               <h3 className="text-xl font-bold text-green-700 mb-2 flex items-center gap-2">Plus <Zap size={18} fill="currentColor"/></h3>
               <p className="text-sm text-gray-500 mb-6">Profesionaliza tu gestión.</p>
               <div className="mb-6">
-                <span className="text-5xl font-black text-gray-900">$13.900</span>
+                <span className="text-5xl font-black text-gray-900">$15.900</span>
                 <span className="text-gray-400">/mes</span>
               </div>
               
               <Link href="/login" className="block w-full py-4 rounded-xl bg-green-600 text-white font-bold text-center hover:bg-green-700 transition shadow-lg mb-8 hover:scale-[1.02]">
-                Empezar Prueba Gratis
+                Prueba 14 días gratis
               </Link>
 
-              <ul className="space-y-4 text-sm text-gray-700 font-medium">
+              <ul className="space-y-4 text-sm text-gray-700 font-medium flex-1">
+                <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> <b>Productos Ilimitados</b> ✨</li>
                 <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> Todo lo del plan Light</li>
                 <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> <b>Seguimiento de Pedido en Vivo</b> 🚀</li>
+                {/* NUEVO ITEM AGREGADO */}
+                <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> <b>QR Inteligente</b></li>
                 <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> Panel de Comandas (Cocina)</li>
                 <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> Control básico de Caja</li>
                 <li className="flex gap-3"><span className="bg-green-200 text-green-700 rounded-full p-0.5"><Check size={14}/></span> Acceso a todas las plantillas</li>
               </ul>
             </div>
 
-            {/* PLAN MAX */}
-            <div className="bg-white border border-gray-200 rounded-3xl p-8 opacity-70 relative overflow-hidden grayscale-[30%]">
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center z-20">
-                    <span className="bg-gray-100 border border-gray-300 shadow-sm px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-gray-600">Próximamente</span>
+            {/* PLAN MAX (AJUSTADO) */}
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 relative overflow-hidden flex flex-col h-full">
+                <div className="absolute top-4 right-4 bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-300 z-20">
+                    PRÓXIMAMENTE
                 </div>
                 
-                <div className="filter blur-[1px] select-none pointer-events-none">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Max</h3>
-                    <p className="text-sm text-gray-500 mb-6">Para escalar sin límites.</p>
-                    <div className="mb-6">
-                        <span className="text-4xl font-black">$21.200</span>
-                        <span className="text-gray-400">/mes</span>
-                    </div>
-                    
-                    <button disabled className="block w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-bold text-center mb-8 cursor-not-allowed">
-                        Unirse a la lista de espera
-                    </button>
-
-                    <ul className="space-y-4 text-sm text-gray-500">
-                        <li className="flex gap-3"><Check size={18}/> Todo lo del plan Plus</li>
-                        <li className="flex gap-3"><Check size={18}/> Panel Pro para Caja</li>
-                        <li className="flex gap-3"><Check size={18}/> Integración con Mercado Pago</li>
-                        <li className="flex gap-3"><Check size={18}/> Gestión de hasta 2 sucursales</li>
-                    </ul>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Max</h3>
+                <p className="text-sm text-gray-500 mb-6">Para escalar sin límites.</p>
+                
+                <div className="mb-6 filter blur-[6px] opacity-60 select-none">
+                    <span className="text-4xl font-black">$28.600</span>
+                    <span className="text-gray-400">/mes</span>
                 </div>
+
+                {/* BOTÓN DESHABILITADO PARA IGUALAR ALTURA */}
+                <button disabled className="block w-full py-4 rounded-xl bg-gray-100 text-gray-400 font-bold text-center mb-8 cursor-not-allowed">
+                    Próximamente
+                </button>
+
+                <ul className="space-y-4 text-sm text-gray-500 flex-1">
+                    <li className="flex gap-3"><Check size={18}/> Todo lo del plan Plus</li>
+                    <li className="flex gap-3"><Check size={18}/> Panel Pro para Caja</li>
+                    <li className="flex gap-3"><Check size={18}/> Integración con Mercado Pago</li>
+                    <li className="flex gap-3"><Check size={18}/> Gestión de hasta 2 sucursales</li>
+                </ul>
             </div>
 
           </div>
@@ -336,13 +362,20 @@ export default function LandingPage() {
       {/* --- FOOTER --- */}
       <footer className="py-10 border-t border-gray-100 text-center text-sm text-gray-500 bg-gray-50">
         <div className="flex items-center justify-center gap-2 mb-4 opacity-50">
-            <Zap size={16}/> <b>Snappy</b>
-        </div>
-        <p>&copy; {new Date().getFullYear()} Snappy. Hecho con 🖤 en Argentina.</p>
+    <Image 
+      src="/logo.svg" 
+      alt="Logo Snappy" 
+      width={20} 
+      height={20} 
+      className="w-5 h-5 object-contain" 
+    />
+    <b>Snappy</b>
+</div>
+        <p>&copy; {new Date().getFullYear()} Snappy.</p>
         <div className="flex justify-center gap-6 mt-6 font-medium">
             <a href="#" className="hover:text-black transition">Términos</a>
             <a href="#" className="hover:text-black transition">Privacidad</a>
-            <a href="https://wa.me/TU_NUMERO" target="_blank" className="hover:text-black transition flex items-center gap-1"><MessageCircle size={14}/> Soporte</a>
+            <a href="https://wa.me/2324694045" target="_blank" className="hover:text-black transition flex items-center gap-1"><MessageCircle size={14}/> Soporte</a>
         </div>
       </footer>
 

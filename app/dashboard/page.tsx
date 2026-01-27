@@ -11,13 +11,13 @@ import {
     Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck 
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image'; // <--- IMPORTED CORRECTLY
 
 export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
   const [isPlus, setIsPlus] = useState(false);
   
-  // Nuevo estado para saber si ya eligió AL MENOS el plan Light
   const [hasPlan, setHasPlan] = useState(false);
 
   const [stats, setStats] = useState({ orders: 0, revenue: 0, views: 0 });
@@ -54,7 +54,7 @@ export default function DashboardHome() {
 
             // DETECTAR PLAN
             const plan = rest.subscription_plan;
-            setHasPlan(!!plan); // True si tiene Light, Plus o Max
+            setHasPlan(!!plan); 
             setIsPlus(plan === 'plus' || plan === 'max');
 
             setSlug(rest.slug);
@@ -122,14 +122,20 @@ export default function DashboardHome() {
 
   if (loading) return <div className="h-[60vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2"/> Cargando...</div>;
 
-  // CASO 1: USUARIO NUEVO SIN RESTAURANTE (BIENVENIDA + PLANES)
+  // CASO 1: USUARIO NUEVO SIN RESTAURANTE (BIENVENIDA + PLANES ACTUALIZADOS)
   if (isNewUser) {
     return (
       <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in space-y-8 pt-24 md:pt-8">
-        {/* HEADER DE BIENVENIDA */}
+        {/* HEADER DE BIENVENIDA CON LOGO */}
         <div className="text-center space-y-6 mb-10">
-            <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-purple-900/20">
-                <Store size={32}/>
+            <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-purple-900/20 p-3">
+                <Image 
+                  src="/logo.svg" 
+                  alt="Logo" 
+                  width={40} 
+                  height={40} 
+                  className="w-full h-full object-contain"
+                />
             </div>
             <div>
                 <h1 className="text-4xl font-black text-gray-900 tracking-tight">¡Bienvenido a Snappy! 🚀</h1>
@@ -152,44 +158,63 @@ export default function DashboardHome() {
 
         {/* GRID DE PLANES - SELECCIÓN INICIAL */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            
             {/* LIGHT */}
-            <div className="bg-white border border-gray-200 p-6 rounded-3xl hover:border-gray-300 transition shadow-sm flex flex-col">
+            <div className="bg-white border border-gray-200 p-6 rounded-3xl hover:border-gray-300 transition shadow-sm flex flex-col h-full">
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-gray-500">Plan Light</h3>
-                    <div className="flex items-baseline gap-1 mt-2"><span className="text-4xl font-bold text-gray-900">$6.400</span><span className="text-sm text-gray-400">/mes</span></div>
+                    <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-4xl font-bold text-gray-900">$7.000</span>
+                        <span className="text-sm text-gray-400">/mes</span>
+                    </div>
                     <p className="text-sm text-gray-400 mt-2">Para arrancar.</p>
                 </div>
                 <hr className="border-gray-100 my-4"/>
                 <ul className="space-y-3 text-sm text-gray-600 flex-1">
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> 15 Productos</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> <b>Hasta 15 Productos</b></li>
                     <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Pedidos WhatsApp</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Catálogo Digital Interactivo</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Mostrar Alias para Transferencias</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Dominio Personalizable</li>
                     <li className="flex gap-2 text-gray-400 line-through"><XCircle size={18}/> Métricas</li>
                 </ul>
                 <Link href="/dashboard/settings" className="mt-6 block w-full py-3 bg-gray-100 text-gray-600 font-bold text-center rounded-xl hover:bg-gray-200 transition">Elegir Light</Link>
             </div>
+
             {/* PLUS */}
-            <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border border-gray-800">
+            <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border border-gray-800 h-full">
                 <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[10px] font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
                 <div className="mb-4 relative z-10">
                     <h3 className="text-lg font-bold text-purple-300">Plan Plus</h3>
-                    <div className="flex items-baseline gap-1 mt-2"><span className="text-4xl font-bold text-white">$13.900</span><span className="text-sm text-gray-400">/mes</span></div>
+                    <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-4xl font-bold text-white">$15.900</span>
+                        <span className="text-sm text-gray-400">/mes</span>
+                    </div>
                     <p className="text-sm text-green-400 font-bold mt-2 flex items-center gap-1"><Zap size={14}/> 14 días GRATIS hoy</p>
                 </div>
                 <hr className="border-gray-800 my-4 relative z-10"/>
                 <ul className="space-y-3 text-sm text-gray-300 flex-1 relative z-10">
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Productos Ilimitados</li>
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Control de Caja</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> <b>Productos Ilimitados</b></li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Todo lo del plan Light</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Seguimiento de Pedido en Vivo 🚀</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Panel de Comandas (Cocina)</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Control básico de Caja</li>
                     <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> QR Personalizado</li>
                 </ul>
                 <Link href="/dashboard/settings" className="mt-6 block w-full py-4 bg-white text-black font-black text-center rounded-xl hover:bg-gray-100 transition shadow-lg relative z-10">Probar Gratis</Link>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
             </div>
+
             {/* MAX */}
-            <div className="bg-white border-2 border-gray-100 p-6 rounded-3xl flex flex-col relative overflow-hidden opacity-60">
+            <div className="bg-white border-2 border-gray-100 p-6 rounded-3xl flex flex-col relative overflow-hidden h-full">
                 <div className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-200">PRÓXIMAMENTE</div>
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-gray-400 flex items-center gap-2">Plan Max <Crown size={16}/></h3>
-                    <div className="flex items-baseline gap-1 mt-2 select-none filter blur-[5px]"><span className="text-4xl font-bold text-gray-300">$21.200</span><span className="text-sm text-gray-300">/mes</span></div>
+                    {/* Precio borroso */}
+                    <div className="flex items-baseline gap-1 mt-2 select-none filter blur-[5px]">
+                        <span className="text-4xl font-bold text-gray-300">$28.600</span>
+                        <span className="text-sm text-gray-300">/mes</span>
+                    </div>
                     <p className="text-sm text-gray-400 mt-2">La herramienta definitiva.</p>
                 </div>
                 <hr className="border-gray-100 my-4"/>
@@ -197,8 +222,9 @@ export default function DashboardHome() {
                     <li className="flex gap-2"><CheckCircle2 size={18}/> Todo lo del Plus</li>
                     <li className="flex gap-2"><CheckCircle2 size={18}/> Métricas Avanzadas</li>
                     <li className="flex gap-2"><CheckCircle2 size={18}/> Integración Mercado Pago</li>
+                    <li className="flex gap-2"><CheckCircle2 size={18}/> Gestión hasta dos sucursales</li>
                 </ul>
-                <button disabled className="mt-6 block w-full py-3 bg-gray-50 text-gray-300 font-bold text-center rounded-xl cursor-not-allowed">No Disponible</button>
+                <button disabled className="mt-6 block w-full py-3 bg-gray-50 text-gray-300 font-bold text-center rounded-xl cursor-not-allowed">Próximamente</button>
             </div>
         </div>
       </div>
@@ -207,7 +233,6 @@ export default function DashboardHome() {
 
   // CASO 2: USUARIO CON PLAN (LIGHT O PLUS) - MUESTRA DASHBOARD
   return (
-    // AQUÍ ESTÁ EL CAMBIO: 'pt-24' (mucho más espacio) para móvil, 'md:pt-0' para escritorio
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in pb-10 pt-24 md:pt-0">
       
       {/* CABECERA */}
@@ -216,7 +241,7 @@ export default function DashboardHome() {
         <p className="text-gray-500 text-sm">Así va tu negocio este {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>
       </div>
       
-      {/* TARJETAS DE ESTADÍSTICAS (Siempre visibles, incluso en Light) */}
+      {/* TARJETAS DE ESTADÍSTICAS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 relative overflow-hidden">
           <div className={`p-3 rounded-xl ${isPlus ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
@@ -247,7 +272,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* BANNER DE LINK - SIEMPRE VISIBLE */}
+      {/* BANNER DE LINK */}
       <div className="bg-gray-900 text-white p-6 md:p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
         <div className="relative z-10 space-y-2">
@@ -276,7 +301,7 @@ export default function DashboardHome() {
 
       {/* SECCIÓN INFERIOR */}
       {isPlus ? (
-        // === VISTA PLUS: TABLA DE PEDIDOS ===
+        // VISTA PLUS
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-900">Actividad Reciente</h2>
@@ -324,7 +349,7 @@ export default function DashboardHome() {
             </div>
         </div>
       ) : (
-        // === VISTA LIGHT: BANNER PEQUEÑO (NO LA GRILLA GIGANTE) ===
+        // VISTA LIGHT
         <div className="bg-white border border-gray-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
             <div className="flex items-center gap-4">
                 <div className="bg-blue-50 p-3 rounded-full text-blue-600">
