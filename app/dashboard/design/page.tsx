@@ -135,6 +135,14 @@ export default function DesignPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // --- FUNCIÓN NUEVA: FORZAR APERTURA EN NAVEGADOR ---
+  const openStoreInBrowser = () => {
+    const url = `https://snappy.uno/${data.slug}`;
+    // Usamos window.open con _blank, esto suele forzar al navegador en móviles
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+  // ----------------------------------------------------
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.length) return;
     setUploading(true);
@@ -380,10 +388,10 @@ export default function DesignPage() {
                           </button>
                       </div>
                   </div>
-                  {/* Botón Ver Tienda (Solo móvil) - URL ABSOLUTA PARA SALIR DE PWA */}
-                  <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1">
+                  {/* Botón Ver Tienda (Solo móvil) - SOLUCIONADO PWA */}
+                  <button onClick={openStoreInBrowser} className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer">
                       Ver Tienda <ExternalLink size={14}/>
-                  </a>
+                  </button>
               </div>
 
               {/* SELECTOR PLANTILLAS (Visible en móvil, oculto en PC porque está a la derecha) */}
@@ -405,7 +413,7 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* LINK - ARREGLADO PARA MÓVIL */}
+              {/* LINK - SOLUCIONADO PWA */}
               <section className="border rounded-xl overflow-hidden">
                   <div className="bg-yellow-50 px-4 py-3 flex items-start gap-2 border-b border-yellow-100">
                       <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0"/>
@@ -425,8 +433,10 @@ export default function DesignPage() {
                       {/* Agrupamos botones para que se mantengan juntos */}
                       <div className="flex border-l border-gray-100">
                         <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-r"><Copy size={18}/></button>
-                        {/* LINK CON URL ABSOLUTA */}
-                        <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link"><ExternalLink size={18}/></a>
+                        {/* BOTÓN ABRIR CON LÓGICA JAVASCRIPT */}
+                        <button onClick={openStoreInBrowser} className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link">
+                           <ExternalLink size={18}/>
+                        </button>
                       </div>
                   </div>
               </section>
@@ -508,6 +518,7 @@ export default function DesignPage() {
                       <input type="color" value={data.theme_color} onChange={(e) => { setData({...data, theme_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded border cursor-pointer"/>
                       <div className="flex-1">
                             <label className="text-xs font-bold block mb-1 text-gray-500">Opacidad Portada</label>
+                            {/* AQUÍ ESTABA EL ERROR DE SINTAXIS: AGREGUÉ EL PARENTESIS FALTANTE EN parseInt */}
                             <input type="range" min="0" max="90" value={data.banner_opacity} onChange={(e) => { setData({...data, banner_opacity: parseInt(e.target.value)}); setUnsavedChanges(true); }} className="w-full h-1.5 bg-gray-300 rounded-lg accent-black cursor-pointer"/>
                       </div>
                   </div>

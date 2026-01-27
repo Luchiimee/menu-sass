@@ -9,12 +9,10 @@ import {
     DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, 
     CheckCircle, XCircle, ChefHat, ArrowRight, Store, Loader2, 
     Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck,
-    QrCode // <--- AGREGADO: Importamos el icono del QR
+    QrCode 
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-
-// IMPORTACIONES DINÁMICAS SE HARÁN DENTRO DE LA FUNCIÓN PARA NO PESAR LA PÁGINA
 
 export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
@@ -28,7 +26,7 @@ export default function DashboardHome() {
   const [slug, setSlug] = useState('');
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
-  const [generatingPdf, setGeneratingPdf] = useState(false); // <--- AGREGADO: Estado para carga del PDF
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -114,11 +112,17 @@ export default function DashboardHome() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // --- FUNCIÓN AGREGADA: DESCARGAR QR PDF ---
+  // --- FUNCIÓN AGREGADA: FORZAR APERTURA EN NAVEGADOR ---
+  const openStoreInBrowser = () => {
+    // Usamos window.open con _blank, esto fuerza al navegador externo en móviles (PWA)
+    window.open(storeLink, '_blank', 'noopener,noreferrer');
+  };
+  // ------------------------------------------------------
+
+  // --- FUNCIÓN: DESCARGAR QR PDF ---
   const handleDownloadQrPdf = async () => {
     try {
         setGeneratingPdf(true);
-        // Importamos dinámicamente para que no falle si no están instaladas al inicio o en el servidor
         const QRCode = (await import('qrcode')).default; 
         const { jsPDF } = await import('jspdf');
 
@@ -164,7 +168,6 @@ export default function DashboardHome() {
         setGeneratingPdf(false);
     }
   };
-  // ------------------------------------------
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -352,7 +355,7 @@ export default function DashboardHome() {
             {copied ? '¡Copiado!' : 'Copiar'}
             </button>
             
-            {/* --- BOTÓN AGREGADO: QR PDF --- */}
+            {/* BOTÓN QR PDF */}
             <button 
                 onClick={handleDownloadQrPdf} 
                 disabled={generatingPdf}
@@ -361,11 +364,14 @@ export default function DashboardHome() {
                 {generatingPdf ? <Loader2 size={18} className="animate-spin"/> : <QrCode size={18}/>}
                 QR PDF
             </button>
-            {/* ----------------------------- */}
 
-            <a href={storeLink} target="_blank" className="flex items-center justify-center gap-2 bg-gray-800 text-white border border-gray-700 px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-700 transition">
+            {/* BOTÓN ABRIR - CORREGIDO PARA PWA (Usa botón + JS en vez de enlace) */}
+            <button 
+                onClick={openStoreInBrowser} 
+                className="flex items-center justify-center gap-2 bg-gray-800 text-white border border-gray-700 px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-700 transition"
+            >
             <ExternalLink size={18}/> Abrir
-            </a>
+            </button>
         </div>
       </div>
 
