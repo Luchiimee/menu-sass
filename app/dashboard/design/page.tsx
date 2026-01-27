@@ -135,11 +135,19 @@ export default function DesignPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // --- FUNCIÓN NUEVA: FORZAR APERTURA EN NAVEGADOR ---
+  // --- FUNCIÓN MEJORADA: HACK PARA IOS/ANDROID PWA ---
   const openStoreInBrowser = () => {
     const url = `https://snappy.uno/${data.slug}`;
-    // Usamos window.open con _blank, esto suele forzar al navegador en móviles
-    window.open(url, '_blank', 'noopener,noreferrer');
+    
+    // Creamos un elemento <a> invisible y le hacemos clic.
+    // Esto suele ser más efectivo que window.open en iOS para salir de la PWA.
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   // ----------------------------------------------------
 
@@ -236,7 +244,7 @@ export default function DesignPage() {
     }
   };
 
-  // MOCKUP (Igual que antes)
+  // MOCKUP
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
       const t = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === templateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
       const safeTemplateId = t?.id || 'classic';
@@ -366,13 +374,10 @@ export default function DesignPage() {
       )}
 
       <div className={`transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60 select-none' : ''}`}>
-          {/* LAYOUT PRINCIPAL: MANTENEMOS xl:flex-row PARA ESCRITORIO */}
           <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0 min-w-0">
             
-            {/* COLUMNA IZQUIERDA (EDITOR) */}
             <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
               
-              {/* CABECERA: Usamos flex-wrap para que los botones bajen si no entran en celular */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
                       <span className="bg-black text-white text-xs px-2 py-1 rounded mb-2 inline-block">Editor</span>
@@ -388,13 +393,12 @@ export default function DesignPage() {
                           </button>
                       </div>
                   </div>
-                  {/* Botón Ver Tienda (Solo móvil) - SOLUCIONADO PWA */}
+                  {/* Botón Ver Tienda (Solo móvil) */}
                   <button onClick={openStoreInBrowser} className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer">
                       Ver Tienda <ExternalLink size={14}/>
                   </button>
               </div>
 
-              {/* SELECTOR PLANTILLAS (Visible en móvil, oculto en PC porque está a la derecha) */}
               <section className="bg-gray-50 p-4 rounded-xl border xl:hidden">
                   <h3 className="font-bold flex items-center gap-2 mb-3 text-sm uppercase text-gray-500"><LayoutTemplate size={16}/> Elegir Diseño</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -413,7 +417,6 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* LINK - SOLUCIONADO PWA */}
               <section className="border rounded-xl overflow-hidden">
                   <div className="bg-yellow-50 px-4 py-3 flex items-start gap-2 border-b border-yellow-100">
                       <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0"/>
@@ -421,7 +424,6 @@ export default function DesignPage() {
                         Este será el enlace de tu menú digital. Recomendamos usar el nombre de tu negocio sin espacios.
                       </p>
                   </div>
-                  {/* Flex wrap y min-w en el input para que no se rompa */}
                   <div className="flex flex-wrap items-center bg-white p-1">
                       <div className="bg-gray-100 px-3 py-3 rounded-l-lg border-r text-gray-500 text-sm font-medium whitespace-nowrap">snappy.uno/</div>
                       <input 
@@ -430,10 +432,9 @@ export default function DesignPage() {
                           className="flex-1 p-3 outline-none font-bold text-gray-800 bg-white min-w-[100px]" 
                           placeholder="nombre"
                       />
-                      {/* Agrupamos botones para que se mantengan juntos */}
                       <div className="flex border-l border-gray-100">
                         <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-r"><Copy size={18}/></button>
-                        {/* BOTÓN ABRIR CON LÓGICA JAVASCRIPT */}
+                        {/* BOTÓN CON HACK DE ANCHOR */}
                         <button onClick={openStoreInBrowser} className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link">
                            <ExternalLink size={18}/>
                         </button>
@@ -441,7 +442,6 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* ALIAS MP */}
               <section className="bg-purple-50 p-4 rounded-xl border border-purple-100">
                   <div className="flex items-center gap-2 mb-2">
                       <div className="bg-white p-1.5 rounded-md text-purple-600 shadow-sm"><CreditCard size={16}/></div>
@@ -456,7 +456,6 @@ export default function DesignPage() {
                   <p className="text-[10px] text-purple-600/70 mt-1 pl-1">Se mostrará con un botón de copiar si el cliente elige pagar con Transferencia.</p>
               </section>
 
-              {/* IDENTIDAD */}
               <section className="space-y-4">
                   <h3 className="font-bold flex items-center gap-2"><Layout size={18}/> Identidad</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -518,13 +517,11 @@ export default function DesignPage() {
                       <input type="color" value={data.theme_color} onChange={(e) => { setData({...data, theme_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded border cursor-pointer"/>
                       <div className="flex-1">
                             <label className="text-xs font-bold block mb-1 text-gray-500">Opacidad Portada</label>
-                            {/* AQUÍ ESTABA EL ERROR DE SINTAXIS: AGREGUÉ EL PARENTESIS FALTANTE EN parseInt */}
                             <input type="range" min="0" max="90" value={data.banner_opacity} onChange={(e) => { setData({...data, banner_opacity: parseInt(e.target.value)}); setUnsavedChanges(true); }} className="w-full h-1.5 bg-gray-300 rounded-lg accent-black cursor-pointer"/>
                       </div>
                   </div>
               </section>
 
-              {/* PRODUCTOS RÁPIDOS */}
               <section className="space-y-4 pt-4 border-t">
                   <h3 className="font-bold flex items-center gap-2"><Store size={18}/> Agregar Plato Rápido</h3>
                   
@@ -595,7 +592,6 @@ export default function DesignPage() {
               </section>
             </div>
 
-            {/* COLUMNA DERECHA (PREVIEW) - SOLO PC - SE QUEDA IGUAL QUE ANTES (xl:flex) */}
             <div className="hidden xl:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-10 relative h-[calc(100vh-120px)] sticky top-6">
               <div className="w-[320px] h-[650px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col">
                   <PhoneMockup templateId={data.template_id} />
@@ -603,7 +599,6 @@ export default function DesignPage() {
               <div className="absolute bottom-6 text-gray-400 text-xs font-medium">Vista Previa en Vivo</div>
             </div>
 
-            {/* MODAL MÓVIL (PREVIEW) */}
             {previewTemplateId && (
                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="relative w-full max-w-sm h-[80vh] bg-white rounded-3xl overflow-hidden shadow-2xl">

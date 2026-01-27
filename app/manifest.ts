@@ -5,12 +5,12 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Snappy Menu',
     short_name: 'Snappy',
     description: 'Gestiona tu menú digital en segundos',
-    start_url: '/login', 
-    display: 'standalone', 
+    // CAMBIO CLAVE: start_url debe coincidir con el scope
+    start_url: '/dashboard', 
+    display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#000000',
-    // ESTA ES LA LÍNEA CLAVE QUE FALTABA:
-    // Define que el "territorio" de la app es solo el panel de administración.
+    // Esto expulsa todo lo que NO sea /dashboard/ al navegador
     scope: '/dashboard/', 
     icons: [
       {
@@ -18,7 +18,6 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: 'any',
         type: 'image/x-icon',
       },
-      // Más adelante puedes agregar íconos de 192x192 y 512x512
     ],
   }
 }
