@@ -8,10 +8,13 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
     DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, 
     CheckCircle, XCircle, ChefHat, ArrowRight, Store, Loader2, 
-    Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck 
+    Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck,
+    QrCode // <--- AGREGADO: Importamos el icono del QR
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image'; // <--- IMPORTED CORRECTLY
+import Image from 'next/image';
+
+// IMPORTACIONES DINÁMICAS SE HARÁN DENTRO DE LA FUNCIÓN PARA NO PESAR LA PÁGINA
 
 export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
@@ -25,6 +28,7 @@ export default function DashboardHome() {
   const [slug, setSlug] = useState('');
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false); // <--- AGREGADO: Estado para carga del PDF
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,6 +113,58 @@ export default function DashboardHome() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // --- FUNCIÓN AGREGADA: DESCARGAR QR PDF ---
+  const handleDownloadQrPdf = async () => {
+    try {
+        setGeneratingPdf(true);
+        // Importamos dinámicamente para que no falle si no están instaladas al inicio o en el servidor
+        const QRCode = (await import('qrcode')).default; 
+        const { jsPDF } = await import('jspdf');
+
+        // 1. Generar la imagen del QR
+        const qrDataUrl = await QRCode.toDataURL(storeLink, {
+            width: 400,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            }
+        });
+
+        // 2. Crear el PDF
+        const doc = new jsPDF();
+        
+        // Título
+        doc.setFontSize(22);
+        doc.text(`Escanea para ver el Menú`, 105, 40, { align: 'center' });
+        
+        // Slug / Nombre
+        doc.setFontSize(16);
+        doc.setTextColor(100);
+        doc.text(`snappy.uno/${slug}`, 105, 50, { align: 'center' });
+
+        // Imagen QR centrada
+        const qrSize = 100;
+        const xPos = (210 - qrSize) / 2; // (Ancho A4 - Ancho QR) / 2
+        doc.addImage(qrDataUrl, 'PNG', xPos, 60, qrSize, qrSize);
+
+        // Pie de página
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text("Powered by Snappy", 105, 180, { align: 'center' });
+
+        // 3. Descargar
+        doc.save(`qr-menu-${slug}.pdf`);
+
+    } catch (error) {
+        console.error("Error generando PDF", error);
+        alert("Hubo un error al generar el PDF. Intenta nuevamente.");
+    } finally {
+        setGeneratingPdf(false);
+    }
+  };
+  // ------------------------------------------
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -288,11 +344,25 @@ export default function DashboardHome() {
                 <span className="font-bold text-white pr-2">{slug || '...'}</span>
             </div>
         </div>
+        
+        {/* BOTONES DE ACCIÓN: COPIAR, PDF, ABRIR */}
         <div className="relative z-10 flex flex-col sm:flex-row gap-3">
             <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 bg-white text-black px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-100 transition shadow-lg active:scale-95">
             {copied ? <CheckCircle size={18} className="text-green-600"/> : <Copy size={18}/>}
             {copied ? '¡Copiado!' : 'Copiar'}
             </button>
+            
+            {/* --- BOTÓN AGREGADO: QR PDF --- */}
+            <button 
+                onClick={handleDownloadQrPdf} 
+                disabled={generatingPdf}
+                className="flex items-center justify-center gap-2 bg-white text-black px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-100 transition shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+                {generatingPdf ? <Loader2 size={18} className="animate-spin"/> : <QrCode size={18}/>}
+                QR PDF
+            </button>
+            {/* ----------------------------- */}
+
             <a href={storeLink} target="_blank" className="flex items-center justify-center gap-2 bg-gray-800 text-white border border-gray-700 px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-700 transition">
             <ExternalLink size={18}/> Abrir
             </a>

@@ -380,8 +380,8 @@ export default function DesignPage() {
                           </button>
                       </div>
                   </div>
-                  {/* Botón Ver Tienda (Solo móvil) */}
-                  <a href={`/${data.slug}`} target="_blank" className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1">
+                  {/* Botón Ver Tienda (Solo móvil) - URL ABSOLUTA PARA SALIR DE PWA */}
+                  <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1">
                       Ver Tienda <ExternalLink size={14}/>
                   </a>
               </div>
@@ -425,7 +425,8 @@ export default function DesignPage() {
                       {/* Agrupamos botones para que se mantengan juntos */}
                       <div className="flex border-l border-gray-100">
                         <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-r"><Copy size={18}/></button>
-                        <a href={`/${data.slug}`} target="_blank" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link"><ExternalLink size={18}/></a>
+                        {/* LINK CON URL ABSOLUTA */}
+                        <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link"><ExternalLink size={18}/></a>
                       </div>
                   </div>
               </section>
