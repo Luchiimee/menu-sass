@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { Clock, Star } from 'lucide-react';
+import { Clock, Star } from 'lucide-react'; 
 import AddToCartBtn from '@/components/AddToCartBtn'; 
 import CartFooter from '@/components/CartFooter'; 
 import ClearCartLogic from '@/components/ClearCartLogic'; 
-import { CartProvider } from '@/context/CartContext'; // <--- 1. IMPORTAR ESTO
+import { CartProvider } from '@/context/CartContext'; 
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -23,20 +23,51 @@ async function getRestaurant(slug: string) {
   return restaurant;
 }
 
+// --- FUNCIÓN DE HORARIOS CORREGIDA (Soporte para 00:00) ---
 function checkIsOpen(businessHours: any) {
   if (!businessHours) return true; 
-  
-  const now = new Date();
-  const options = { timeZone: "America/Argentina/Buenos_Aires", hour12: false, hour: '2-digit', minute: '2-digit', weekday: 'long' } as const;
-  const dayNameEn = new Date().toLocaleDateString('en-US', { timeZone: "America/Argentina/Buenos_Aires", weekday: 'long' }).toLowerCase();
-  const todayConfig = businessHours[dayNameEn]; 
 
+  const now = new Date();
+
+  // 1. Obtener DÍA (Argentina)
+  const dayFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    weekday: 'long',
+  });
+  const dayName = dayFormatter.format(now).toLowerCase(); 
+
+  // 2. Obtener HORA ACTUAL (Argentina)
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const currentTime = timeFormatter.format(now); // Ej: "23:45"
+
+  // 3. Buscar configuración
+  const todayConfig = businessHours[dayName];
   if (!todayConfig || !todayConfig.isOpen) return false;
 
-  const formatter = new Intl.DateTimeFormat('en-US', { ...options, weekday: undefined });
-  const currentTime = formatter.format(now); 
+  // 4. Definir horarios CON "TRUCO" PARA 00:00
+  // Si la hora de cierre es "00:00", la convertimos a "24:00" para que la matemática funcione (23:45 < 24:00)
+  const fixTime = (time: string) => time === '00:00' ? '24:00' : time;
+
+  const open1 = todayConfig.open || '09:00';
+  const close1 = fixTime(todayConfig.close || '13:00');
   
-  return currentTime >= todayConfig.open && currentTime <= todayConfig.close;
+  const open2 = todayConfig.open2 || '17:00';
+  const close2 = fixTime(todayConfig.close2 || '23:00');
+
+  // 5. Comparar horarios
+  const isOpenTurn1 = currentTime >= open1 && currentTime <= close1;
+  
+  let isOpenTurn2 = false;
+  if (todayConfig.isSplit) {
+      isOpenTurn2 = currentTime >= open2 && currentTime <= close2;
+  }
+
+  return isOpenTurn1 || isOpenTurn2;
 }
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,6 +77,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   if (!restaurant) return notFound();
 
   const isOpen = checkIsOpen(restaurant.business_hours);
+
   const TEMPLATE = restaurant.template_id || 'classic';
   const IS_DARK = TEMPLATE === 'urban';
   const PRIMARY_COLOR = restaurant.theme_color || '#000000';
@@ -57,7 +89,6 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
   const TEXT_DESC = IS_DARK ? 'text-gray-400' : 'text-gray-500';
 
   return (
-    // 2. ENVOLVEMOS TODO EN EL PROVIDER
     <CartProvider>
         <div className={`min-h-screen pb-24 font-sans ${BG_PAGE}`}>
         
@@ -152,7 +183,6 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                         ${TEMPLATE === 'urban' ? `rounded-xl border shadow-sm p-3 flex gap-3 items-center ${CARD_BG}` : ''}
                     `}>
                     
-                    {/* CARD FRESH */}
                     {TEMPLATE === 'fresh' && (
                         <>
                             {product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" /> : <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">Sin Foto</div>}
@@ -160,13 +190,12 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                                 <h3 className="font-bold leading-tight text-sm mb-0.5 line-clamp-2">{product.name}</h3>
                                 <div className="flex justify-between items-center mt-1">
                                     <span className="font-bold text-sm">${product.price}</span>
-                                    <AddToCartBtn product={product} variant="full" />
+                                    <AddToCartBtn product={product} variant="full" disabled={!isOpen} />
                                 </div>
                             </div>
                         </>
                     )}
                     
-                    {/* CARD CLASSIC */}
                     {TEMPLATE === 'classic' && (
                         <>
                             <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
@@ -177,11 +206,12 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                                 <p className={`text-xs line-clamp-2 ${TEXT_DESC}`}>{product.description}</p>
                                 <div className={`font-bold mt-2 ${TEXT_TITLE}`}>${product.price}</div>
                             </div>
-                            <div className="flex-shrink-0"><AddToCartBtn product={product} variant="icon" isDark={false} /></div>
+                            <div className="flex-shrink-0">
+                                <AddToCartBtn product={product} variant="icon" isDark={false} disabled={!isOpen} />
+                            </div>
                         </>
                     )}
 
-                    {/* CARD URBAN */}
                     {TEMPLATE === 'urban' && (
                         <>
                             <div className="flex-1 min-w-0">
@@ -189,7 +219,9 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
                                 <p className={`text-xs line-clamp-2 ${TEXT_DESC}`}>{product.description}</p>
                                 <div className={`font-bold mt-2 ${TEXT_TITLE}`}>${product.price}</div>
                             </div>
-                            <div className="flex-shrink-0"><AddToCartBtn product={product} variant="icon" isDark={true} /></div>
+                            <div className="flex-shrink-0">
+                                <AddToCartBtn product={product} variant="icon" isDark={true} disabled={!isOpen} />
+                            </div>
                             <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800 ml-2">
                                 {product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">Sin Foto</div>}
                             </div>

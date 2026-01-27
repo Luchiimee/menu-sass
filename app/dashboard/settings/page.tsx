@@ -2,8 +2,9 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Star, Mail, AlertCircle } from 'lucide-react';
+import { Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, CalendarDays, Mail, AlertTriangle, LogOut, Trash2, MessageCircle } from 'lucide-react';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -16,10 +17,12 @@ const DAYS = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter(); 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,6 +44,22 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (unsavedChanges) {
+            e.preventDefault();
+            e.returnValue = ''; 
+            return '';
+        }
+    };
+    if (unsavedChanges) {
+        window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+    return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [unsavedChanges]);
+
+  useEffect(() => {
     const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -50,7 +69,6 @@ export default function SettingsPage() {
         const user = session.user;
         setUserId(user.id);
 
-        // 1. Carga Perfil (Intentamos buscar en la tabla profiles)
         const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
@@ -58,7 +76,6 @@ export default function SettingsPage() {
             .maybeSingle();
 
         if (profileData) {
-            // Si ya existen datos guardados, los usamos
             setProfile({ 
                 first_name: profileData.first_name || '', 
                 last_name: profileData.last_name || '', 
@@ -66,11 +83,7 @@ export default function SettingsPage() {
                 email: user.email || '' 
             });
         } else {
-            // --- AQUÍ ESTÁ LA MAGIA DE GOOGLE ---
-            // Si no hay perfil guardado, sacamos los datos de Google (user_metadata)
             const meta = user.user_metadata || {};
-            
-            // Google suele mandar 'full_name' o 'name'. Intentamos separarlo.
             let firstName = '';
             let lastName = '';
 
@@ -90,7 +103,6 @@ export default function SettingsPage() {
             });
         }
 
-        // 2. Carga Restaurante
         const { data: restData } = await supabase
             .from('restaurants')
             .select('*')
@@ -116,13 +128,44 @@ export default function SettingsPage() {
     loadData();
   }, []);
 
+  const handleLogout = async () => {
+      await supabase.auth.signOut();
+      router.push('/login');
+      router.refresh();
+  };
+
+  const handleDeleteAccount = async () => {
+      const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nAl eliminar tu cuenta se borrará tu menú, tus pedidos y todo tu historial de forma permanente.");
+      if (!confirm1) return;
+
+      const confirm2 = confirm("⛔️ ESTA ACCIÓN NO SE PUEDE DESHACER.\n\nSe cancelará tu acceso y se eliminarán tus datos.\n\n¿Confirmar eliminación definitiva?");
+      if (!confirm2) return;
+
+      setSaving(true);
+      try {
+          if (restaurant.id) {
+              await supabase.from('restaurants').delete().eq('id', restaurant.id);
+          }
+          if (userId) {
+              await supabase.from('profiles').delete().eq('id', userId);
+          }
+          
+          await supabase.auth.signOut();
+          router.push('/login');
+          alert("Tu cuenta ha sido eliminada correctamente.");
+
+      } catch (error: any) {
+          alert("Error al eliminar: " + error.message);
+          setSaving(false);
+      }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Sesión expirada.");
 
-        // 1. Guardar Perfil (Aquí guardamos lo que trajimos de Google en la base de datos real)
         const { error: profileError } = await supabase.from('profiles').upsert({
             id: user.id,
             first_name: profile.first_name,
@@ -132,7 +175,6 @@ export default function SettingsPage() {
 
         if (profileError) throw profileError;
 
-        // 2. Guardar Restaurante
         if (restaurant.id) {
             const { error: restError } = await supabase.from('restaurants').update({
                 business_hours: restaurant.business_hours
@@ -157,8 +199,8 @@ export default function SettingsPage() {
             }
         }
 
+        setUnsavedChanges(false); 
         alert("¡Datos guardados correctamente!");
-        // Recargamos para que el Sidebar (Layout) actualice el nombre "Hola Juan"
         window.location.reload(); 
 
     } catch (error: any) { 
@@ -177,6 +219,7 @@ export default function SettingsPage() {
   };
 
   const updateHour = (day: string, field: string, value: any) => {
+      setUnsavedChanges(true); 
       setRestaurant((prev: any) => ({
           ...prev,
           business_hours: {
@@ -201,11 +244,11 @@ export default function SettingsPage() {
         } else {
             const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
             const { error } = await supabase.from('restaurants').insert({ 
-                  user_id: user.id,
+                  user_id: user.id, 
                   name: 'Mi Restaurante', 
-                  slug: randomSlug,
-                  subscription_plan: planType,
-                  subscription_status: 'active',
+                  slug: randomSlug, 
+                  subscription_plan: planType, 
+                  subscription_status: 'active', 
                   business_hours: restaurant.business_hours
             });
             if (error) throw error;
@@ -260,23 +303,32 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-24 px-4 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto space-y-8 pb-24 px-4 animate-in fade-in duration-500 pt-24 md:pt-0">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-          <button onClick={handleSave} disabled={saving} className="bg-black text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition shadow-lg w-full md:w-auto">
-              {saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Guardar Cambios
+          
+          <button 
+            onClick={handleSave} 
+            disabled={saving} 
+            className={`
+                px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg w-full md:w-auto text-sm md:text-base
+                ${unsavedChanges ? 'bg-green-600 hover:bg-green-700 text-white animate-pulse' : 'bg-black text-white hover:bg-gray-800'}
+            `}
+          >
+              {saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} 
+              {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* === COLUMNA IZQUIERDA (Datos + Cupón) === */}
+        {/* === COLUMNA IZQUIERDA === */}
         <div className="lg:col-span-4 space-y-6">
             
             {/* 1. MIS DATOS */}
-            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit">
+            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                     <div className="bg-gray-100 p-2 rounded-lg text-gray-600"><User size={20}/></div>
                     Mis Datos
@@ -287,7 +339,12 @@ export default function SettingsPage() {
                             <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">Nombre</label>
                             <input 
                                 value={profile.first_name} 
-                                onChange={e => setProfile({...profile, first_name: e.target.value})} 
+                                onChange={
+                                    (e) => {
+                                        setProfile({...profile, first_name: e.target.value});
+                                        setUnsavedChanges(true);
+                                    }
+                                } 
                                 className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" 
                                 placeholder="Tu Nombre"
                             />
@@ -296,7 +353,7 @@ export default function SettingsPage() {
                             <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">Apellido</label>
                             <input 
                                 value={profile.last_name} 
-                                onChange={e => setProfile({...profile, last_name: e.target.value})} 
+                                onChange={e => { setProfile({...profile, last_name: e.target.value}); setUnsavedChanges(true); }} 
                                 className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" 
                                 placeholder="Tu Apellido"
                             />
@@ -317,16 +374,24 @@ export default function SettingsPage() {
 
                     <div>
                         <label className="text-xs font-bold text-gray-400 mb-1 block uppercase">WhatsApp Personal</label>
-                        <input value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" placeholder="Ej: 11 1234 5678" type="tel"/>
+                        <input 
+                            value={profile.phone} 
+                            onChange={e => { setProfile({...profile, phone: e.target.value}); setUnsavedChanges(true); }} 
+                            className="w-full p-3 border rounded-xl text-sm font-bold outline-none focus:border-black transition" 
+                            placeholder="Ej: 11 1234 5678" type="tel"
+                        />
                     </div>
 
-                    <div className="pt-2">
-                         <button onClick={handlePasswordReset} className="w-full py-2 text-sm font-bold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cambiar Contraseña</button>
+                    <div className="pt-2 flex gap-2">
+                         <button onClick={handlePasswordReset} className="flex-1 py-2 text-sm font-bold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cambiar Pass</button>
+                         <button onClick={handleLogout} className="md:hidden flex-1 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-1">
+                            <LogOut size={16}/> Salir
+                         </button>
                     </div>
                 </div>
             </section>
 
-            {/* 2. CUPÓN */}
+            {/* 2. CUPÓN DE DESCUENTO */}
             <div className="bg-white border border-dashed border-gray-300 p-6 rounded-2xl flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-yellow-100 p-2 rounded-lg text-yellow-600"><Tag size={20}/></div>
@@ -343,18 +408,56 @@ export default function SettingsPage() {
                 </div>
             </div>
 
+            {/* 3. SUGERENCIAS WHATSAPP */}
+            <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm"><MessageCircle size={20}/></div>
+                    <p className="text-sm font-bold text-blue-900">¿Necesitas algo?</p>
+                </div>
+                <p className="text-xs text-blue-800/80 leading-relaxed">
+                    Estamos haciendo la app para ti. Si quieres que cambiemos algo o necesitas que agreguemos una función, comunícate con nosotros.
+                </p>
+                <a 
+                    href="https://wa.me/5491100000000?text=Hola%20equipo,%20tengo%20una%20sugerencia%20para%20Snappy..." 
+                    target="_blank" 
+                    className="w-full bg-white text-blue-700 border border-blue-200 px-4 py-3 rounded-xl text-xs font-bold hover:bg-blue-100 transition text-center shadow-sm"
+                >
+                    Enviar Sugerencia
+                </a>
+            </div>
+
+            {/* 4. ZONA DE PELIGRO (Aquí abajo como pediste) */}
+            <div className="bg-red-50 border border-red-100 p-6 rounded-2xl flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg text-red-600 shadow-sm"><AlertTriangle size={20}/></div>
+                    <div>
+                        <p className="text-sm font-bold text-red-900">Zona de Peligro</p>
+                        <p className="text-xs text-red-700/70">Acciones irreversibles.</p>
+                    </div>
+                </div>
+                <button 
+                    onClick={handleDeleteAccount} 
+                    className="w-full bg-white border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-bold hover:bg-red-600 hover:text-white transition flex items-center justify-center gap-2 shadow-sm"
+                >
+                    <Trash2 size={16}/> Eliminar Cuenta
+                </button>
+                <p className="text-[10px] text-center text-red-400">
+                    Al eliminar la cuenta, se borrarán todos los datos y se cancelará el servicio.
+                </p>
+            </div>
+
         </div>
 
-        {/* === COLUMNA DERECHA (Planes) === */}
-        <div className="lg:col-span-8">
-            <h2 className="font-bold text-xl flex items-center gap-2 mb-6">
+        {/* === COLUMNA DERECHA (Planes + Horarios) === */}
+        <div className="lg:col-span-8 space-y-6">
+            <h2 className="font-bold text-xl flex items-center gap-2">
                 <div className="bg-purple-100 p-2 rounded-lg text-purple-600"><CreditCard size={24}/></div> 
                 Elige tu Plan
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
-                {/* --- PLAN LIGHT ($6.400) --- */}
+                {/* --- PLAN LIGHT --- */}
                 <div className={`relative p-6 rounded-3xl border-2 flex flex-col transition-all ${restaurant.subscription_plan === 'light' ? 'border-gray-900 bg-gray-50 ring-1 ring-gray-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
                     {restaurant.subscription_plan === 'light' && <span className="absolute top-4 right-4 text-[10px] font-bold bg-black text-white px-2 py-1 rounded">TU PLAN</span>}
                     
@@ -364,10 +467,10 @@ export default function SettingsPage() {
                     </div>
                     
                     <ul className="space-y-3 text-sm text-gray-500 flex-1 mb-6">
-                         <li className="flex gap-2"><Check size={16} className="text-green-500"/> Menú Digital</li>
-                         <li className="flex gap-2"><Check size={16} className="text-green-500"/> Pedidos WhatsApp</li>
-                         <li className="flex gap-2"><Check size={16} className="text-green-500"/> Hasta 15 Productos</li>
-                         <li className="flex gap-2 opacity-50"><Lock size={16}/> Sin Panel de Pedidos</li>
+                          <li className="flex gap-2"><Check size={16} className="text-green-500"/> Menú Digital</li>
+                          <li className="flex gap-2"><Check size={16} className="text-green-500"/> Pedidos WhatsApp</li>
+                          <li className="flex gap-2"><Check size={16} className="text-green-500"/> Hasta 15 Productos</li>
+                          <li className="flex gap-2 opacity-50"><Lock size={16}/> Sin Panel de Pedidos</li>
                     </ul>
 
                     {restaurant.subscription_plan === 'light' ? (
@@ -398,7 +501,7 @@ export default function SettingsPage() {
                     )}
                 </div>
 
-                {/* --- PLAN PLUS ($13.900) --- */}
+                {/* --- PLAN PLUS --- */}
                 <div className={`relative p-6 rounded-3xl border-2 flex flex-col shadow-xl scale-105 z-10 transition-all ${restaurant.subscription_plan === 'plus' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-blue-500 bg-white'}`}>
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm tracking-wide">RECOMENDADO</div>
                     
@@ -408,10 +511,10 @@ export default function SettingsPage() {
                     </div>
                     
                     <ul className="space-y-3 text-sm text-gray-600 flex-1 mb-6 font-medium">
-                         <li className="flex gap-2"><Check size={16} className="text-blue-500"/> <b>Productos Ilimitados</b></li>
-                         <li className="flex gap-2"><Check size={16} className="text-blue-500"/> <b>Panel de Pedidos</b></li>
-                         <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Aviso WhatsApp 1-Clic</li>
-                         <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Métricas de Caja</li>
+                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> <b>Productos Ilimitados</b></li>
+                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> <b>Panel de Pedidos</b></li>
+                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Aviso WhatsApp 1-Clic</li>
+                          <li className="flex gap-2"><Check size={16} className="text-blue-500"/> Métricas de Caja</li>
                     </ul>
 
                     {restaurant.subscription_plan === 'plus' ? (
@@ -443,7 +546,6 @@ export default function SettingsPage() {
                 </div>
 
                 {/* --- PLAN MAX (PROXIMAMENTE) --- */}
-                {/* Visual ajustado: Menos opacidad (80%), blur solo en precio, Mercado Pago agregado */}
                 <div className="relative p-6 rounded-3xl border border-gray-200 bg-gray-50 flex flex-col overflow-hidden opacity-90">
                     <div className="absolute top-4 right-4 bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-300 z-20">
                         PRÓXIMAMENTE
@@ -451,17 +553,16 @@ export default function SettingsPage() {
 
                     <div className="mb-4 relative z-0">
                         <h3 className="text-lg font-bold text-purple-600">Max</h3>
-                        {/* Blur fuerte solo en el precio */}
                         <div className="filter blur-[5px] select-none mt-2">
                             <p className="text-3xl font-black text-gray-900">$21.200<span className="text-xs font-medium text-gray-400">/mes</span></p>
                         </div>
                     </div>
                     
                     <ul className="space-y-3 text-sm text-gray-500 flex-1 mb-6 relative z-0">
-                         <li className="flex gap-2"><Check size={16}/> Integración Mercado Pago</li>
-                         <li className="flex gap-2"><Check size={16}/> Cobros Automáticos</li>
-                         <li className="flex gap-2"><Check size={16}/> Estadísticas Pro</li>
-                         <li className="flex gap-2"><Check size={16}/> Soporte Prioritario</li>
+                          <li className="flex gap-2"><Check size={16}/> Integración Mercado Pago</li>
+                          <li className="flex gap-2"><Check size={16}/> Cobros Automáticos</li>
+                          <li className="flex gap-2"><Check size={16}/> Estadísticas Pro</li>
+                          <li className="flex gap-2"><Check size={16}/> Soporte Prioritario</li>
                     </ul>
 
                     <button disabled className="w-full py-3 rounded-xl font-bold text-sm bg-gray-200 text-gray-400 opacity-70 cursor-not-allowed relative z-20">
@@ -469,17 +570,15 @@ export default function SettingsPage() {
                     </button>
                 </div>
             </div>
-        </div>
 
-        {/* === FILA DE HORARIOS (Ancho Completo) === */}
-        <div className="col-span-full">
-            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            {/* === SECCIÓN HORARIOS === */}
+            <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mt-6">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                     <div className="bg-green-100 p-2 rounded-lg text-green-600"><Clock size={20}/></div>
                     Horarios de Atención
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {DAYS.map((day) => {
                         const dayData = restaurant.business_hours?.[day.key] || {};
                         const isOpen = dayData.isOpen || false;

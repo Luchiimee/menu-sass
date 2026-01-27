@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3 
 } from 'lucide-react';
-import MobileNav from '@/components/MobileNav';
+import MobileNav from '@/components/MobileNav'; // La barra de abajo
 import TrialBanner from '@/components/TrialBanner';
 
 function GoogleAuthHandler() {
@@ -23,16 +23,13 @@ function GoogleAuthHandler() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-   
+    
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 1. ESTADO DE CARGA
   const [isLoading, setIsLoading] = useState(true);
-
-  // 2. ESTADO DE DATOS
   const [restaurant, setRestaurant] = useState<{
     name: string,
     plan: string | null,
@@ -42,12 +39,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     plan: null,    
     status: 'active'
   });
-   
+    
   useEffect(() => {
     let mounted = true;
 
     const loadData = async () => {
-      // Verificar sesión
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
@@ -58,14 +54,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
       try {
-        // A. Consultar Restaurante (para el Plan)
         const { data: rest } = await supabase
           .from('restaurants')
           .select('name, subscription_plan, subscription_status') 
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        // B. Consultar Perfil (para el Nombre del Usuario) - LO NUEVO
         const { data: profile } = await supabase
           .from('profiles')
           .select('first_name, last_name')
@@ -73,37 +67,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .maybeSingle();
         
         if (mounted) {
-            // --- LÓGICA DEL NOMBRE (Prioridad: Perfil > Google > Restaurante) ---
             let displayName = "Bienvenido";
 
             if (profile?.first_name) {
-                // Si hay perfil: "Juan P."
                 const initial = profile.last_name ? ` ${profile.last_name[0]}.` : '';
                 displayName = `${profile.first_name}${initial}`;
             } else if (session.user.user_metadata?.full_name || session.user.user_metadata?.name) {
-                // Si es Google: "Juan P."
                 const fullName = session.user.user_metadata.full_name || session.user.user_metadata.name;
                 const parts = fullName.split(' ');
                 const firstName = parts[0];
                 const initial = parts.length > 1 ? ` ${parts[1][0]}.` : '';
                 displayName = `${firstName}${initial}`;
             } else if (rest?.name) {
-                // Si no, nombre del restaurante
                 displayName = rest.name;
             } else {
-                // Si no, email
                 displayName = session.user.email?.split('@')[0] || "Usuario";
             }
 
-            // Guardamos el estado
             if (rest) {
                 setRestaurant({
-                    name: displayName, // Usamos el nombre del usuario calculado
+                    name: displayName, 
                     plan: rest.subscription_plan,
                     status: rest.subscription_status || 'active'
                 });
             } else {
-                // Nuevo usuario absoluto
                 setRestaurant({
                     name: displayName,
                     plan: null,
@@ -150,10 +137,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const getPlanLabel = () => {
-      if (restaurant.plan === 'plus') return 'Plan Plus ⚡';
+      if (restaurant.plan === 'plus') return 'Plan Plus';
       if (restaurant.plan === 'light') return 'Plan Light';
-      if (restaurant.plan === 'max') return 'Plan Max 👑';
-      return 'Sin Plan Activo';
+      if (restaurant.plan === 'max') return 'Plan Max';
+      return 'Free';
   };
 
   const getPlanColor = () => {
@@ -164,17 +151,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans text-gray-900">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
       <Suspense fallback={null}>
          <GoogleAuthHandler />
       </Suspense>
 
-      {/* --- SIDEBAR (PC) --- */}
-      <aside className="hidden md:flex w-64 bg-white border-r flex-col h-full z-20 sticky top-0">
+      {/* --- SIDEBAR (SOLO PC) --- */}
+      <aside className="hidden md:flex w-64 bg-white border-r flex-col h-full z-20 flex-shrink-0">
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
-          
           <div className="overflow-hidden">
             {isLoading ? (
                 <div className="space-y-2 animate-pulse">
@@ -187,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {restaurant.name}
                     </h2>
                     <p className={`text-[10px] font-bold uppercase mt-0.5 ${getPlanColor()}`}>
-                        {getPlanLabel()}
+                        {getPlanLabel()} {restaurant.plan === 'plus' && '⚡'}
                     </p>
                 </>
             )}
@@ -213,16 +199,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 overflow-y-auto relative bg-gray-50 pb-24 md:pb-0 flex flex-col"> 
+      {/* AGREGADO: min-w-0 para evitar que el contenido rompa el ancho en flexbox */}
+      <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
         
-        {/* Header Mobile - Ahora oculto porque usamos MobileNav */}
-        
-        {/* --- BANNER DE ALERTA --- */}
+        {/* Alerta de Pagos */}
         {restaurant.plan && restaurant.status === 'paused' && (
           <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
             <div className="flex items-center gap-2">
               <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
-              <p className="font-bold text-sm text-center md:text-left">Hubo un problema con tu pago. Tu plan está pausado.</p>
+              <p className="font-bold text-sm text-center md:text-left">Tu plan está pausado por falta de pago.</p>
             </div>
             <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-red-600 px-4 py-1 rounded-full text-xs font-bold uppercase hover:bg-gray-100 transition whitespace-nowrap">
               Solucionar
@@ -230,15 +215,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {/* Banner de Prueba */}
         {restaurant.plan && <TrialBanner />}
 
-        <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1">
+        <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 md:pb-10">
             {children}
         </div>
       </main>
 
-      {/* Pasamos los datos al menú móvil para que no tire error */}
+      {/* --- AQUÍ ARREGLAMOS EL ERROR: PASAMOS LAS PROPS --- */}
       <MobileNav displayName={restaurant.name} displaySubtext={getPlanLabel()} />
     </div>
   );

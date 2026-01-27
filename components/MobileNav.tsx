@@ -1,101 +1,85 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   ShoppingBag, 
   UtensilsCrossed, 
   BarChart3, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
-  Store, 
-  Zap 
+  Palette, 
+  User,
+  Store,
+  Zap
 } from 'lucide-react';
 
-// 👇 Definimos qué datos va a recibir el componente (Esto arregla el error rojo)
 interface MobileNavProps {
   displayName: string;
   displaySubtext: string;
 }
 
 export default function MobileNav({ displayName, displaySubtext }: MobileNavProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  const navItems = [
+    { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
+    { name: 'Productos', href: '/dashboard/products', icon: UtensilsCrossed },
+    { name: 'Diseño', href: '/dashboard/design', icon: Palette }, 
+    { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
+  ];
 
   return (
     <>
-      {/* --- BARRA SUPERIOR (Visible solo en celular) --- */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b sticky top-0 z-20">
+      {/* --- HEADER SUPERIOR (FIXED) --- */}
+      {/* CAMBIO CLAVE: Usamos 'fixed top-0' para que se pegue al techo sí o sí */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm">
          
-         {/* INFO DEL USUARIO / RESTAURANTE */}
          <div className="flex items-center gap-3">
             <div className="bg-black text-white p-2 rounded-lg">
                 <Store size={20} />
             </div>
             <div className="flex flex-col">
-                <span className="font-bold text-sm text-gray-900 leading-tight truncate w-40">
-                    {displayName}
+                <span className="font-bold text-sm text-gray-900 leading-tight truncate w-32 sm:w-48">
+                    {displayName || 'Cargando...'}
                 </span>
                 <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
                     {displaySubtext}
-                    {displaySubtext.includes('Plus') && <Zap size={10} className="text-yellow-400 fill-current"/>}
+                    {displaySubtext && displaySubtext.includes('Plus') && <Zap size={10} className="text-yellow-400 fill-current"/>}
                 </span>
             </div>
          </div>
 
-         {/* BOTÓN HAMBURGUESA */}
-         <button onClick={() => setIsOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-            <Menu size={24} />
-         </button>
+         {/* AQUÍ ESTÁ LA PERSONITA (Settings) */}
+         <Link href="/dashboard/settings" className="p-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition active:scale-95 border border-gray-200">
+            <User size={20} />
+         </Link>
       </div>
 
-      {/* --- MENÚ DESPLEGABLE (OVERLAY) --- */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden animate-in fade-in">
-            <div className="absolute right-0 top-0 h-full w-64 bg-white shadow-2xl p-4 flex flex-col animate-in slide-in-from-right">
-                
-                <div className="flex justify-end mb-6">
-                    <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-500">
-                        <X size={20}/>
-                    </button>
-                </div>
+      {/* --- BARRA INFERIOR (FIXED) --- */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-16 z-50 flex items-center justify-around pb-1 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] safe-area-bottom">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
 
-                <nav className="space-y-1 flex-1">
-                    <p className="px-2 text-xs font-semibold text-gray-400 uppercase mb-2">Principal</p>
-                    
-                    <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
-                        <LayoutDashboard size={18} /> Inicio
-                    </Link>
-                    <Link href="/dashboard/orders" onClick={() => setIsOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
-                        <ShoppingBag size={18} /> Pedidos
-                    </Link>
-                    <Link href="/dashboard/products" onClick={() => setIsOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
-                        <UtensilsCrossed size={18} /> Productos
-                    </Link>
-
-                    <p className="px-2 text-xs font-semibold text-gray-400 uppercase mb-2 mt-6">Gestión</p>
-
-                    <Link href="/dashboard/analytics" onClick={() => setIsOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
-                        <BarChart3 size={18} /> Caja y Métricas
-                    </Link>
-                    <Link href="/dashboard/settings" onClick={() => setIsOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
-                        <Settings size={18} /> Configuración
-                    </Link>
-                </nav>
-
-                <div className="border-t pt-4">
-                    <form action="/auth/signout" method="post">
-                        <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition">
-                            <LogOut size={18} /> Cerrar sesión
-                        </button>
-                    </form>
-                </div>
-
-            </div>
-        </div>
-      )}
+          return (
+            <Link 
+              key={item.href} 
+              href={item.href}
+              className={`flex flex-col items-center justify-center w-full h-full transition-all duration-200 active:scale-95 ${
+                  isActive ? 'text-black' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {isActive && <div className="absolute top-0 w-8 h-0.5 bg-black rounded-b-full"></div>}
+              
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <span className={`text-[10px] mt-1 font-medium ${isActive ? 'font-bold' : ''}`}>
+                {item.name}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
     </>
   );
 }

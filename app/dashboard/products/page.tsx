@@ -2,25 +2,21 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // <--- Agregamos esto para redirigir
+import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductsPage() {
-  const router = useRouter(); // <--- Inicializamos el router
+  const router = useRouter(); 
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
   const [isLocked, setIsLocked] = useState(true); 
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   
-  // Estado del Plan
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
-  
-  // Estado de Vista
   const [view, setView] = useState('list'); 
 
-  // Estados del Modal
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -94,19 +90,16 @@ export default function ProductsPage() {
   // --- FUNCIONES ---
 
   const openCreateModal = () => {
-      // 👇 BLOQUEO PREVENTIVO AMIGABLE 👇
-      // Si el usuario es Light y ya tiene 15 o más productos, no le dejamos abrir el modal.
       if (!isLocked && currentPlan === 'light' && products.length >= 15) {
            const wantUpgrade = confirm(
                "🚀 ¡Tu menú está completo! (15/15)\n\nEl Plan Light te permite hasta 15 platos. Para agregar productos ILIMITADOS y seguir creciendo, pásate al Plan Plus.\n\n¿Quieres ver el Plan Plus ahora?"
            );
            
            if (wantUpgrade) {
-               router.push('/dashboard/settings'); // Redirige a la configuración
+               router.push('/dashboard/settings'); 
            }
-           return; // Cortamos la función aquí. No se abre el formulario.
+           return; 
       }
-      // 👆 FIN DEL BLOQUEO 👆
 
       setEditingId(null);
       setFormData({ name: '', description: '', price: '', image_url: '' });
@@ -144,7 +137,6 @@ export default function ProductsPage() {
       if (!formData.name || !formData.price) return alert("Nombre y Precio son obligatorios");
       if (!restaurantId) return;
 
-      // (Seguridad extra: Doble chequeo por si acaso)
       if (!editingId && currentPlan === 'light' && products.length >= 15) {
           return alert("Límite de productos alcanzado.");
       }
@@ -218,7 +210,8 @@ export default function ProductsPage() {
   if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-gray-400"/></div>;
 
   return (
-    <div className="max-w-6xl mx-auto relative min-h-[80vh]">
+    // AQUÍ ESTÁ EL CAMBIO: 'pt-24' para bajar el contenido en móvil, 'md:pt-0' para dejarlo igual en PC
+    <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-24 md:pt-0">
         
         {/* --- CAPA DE BLOQUEO --- */}
         {isLocked && (

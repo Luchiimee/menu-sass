@@ -31,7 +31,7 @@ export default function DesignPage() {
     delivery_cost: 0, 
     theme_color: '#000000', 
     slug: '', 
-    alias_mp: '', // <--- NUEVO CAMPO PARA EL ALIAS
+    alias_mp: '',
     logo_url: '', 
     banner_url: '', 
     logo_position: 'left', 
@@ -84,7 +84,7 @@ export default function DesignPage() {
               delivery_cost: rest.delivery_cost || 0,
               theme_color: rest.theme_color || '#000000',
               slug: rest.slug || '',
-              alias_mp: rest.alias_mp || '', // <--- CARGAMOS EL ALIAS SI EXISTE
+              alias_mp: rest.alias_mp || '', 
               logo_url: rest.logo_url || '',
               banner_url: rest.banner_url || '',
               logo_position: rest.logo_position || 'left',
@@ -119,7 +119,6 @@ export default function DesignPage() {
     return () => { mounted = false; };
   }, []);
 
-  // ... (Resto de helpers igual que antes) ...
   const activeTemplateId = previewTemplateId || data.template_id || 'classic';
   const activeTemplate = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === activeTemplateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
   const mockImages = activeTemplate?.mock || {};
@@ -203,7 +202,6 @@ export default function DesignPage() {
     if (isLocked) return alert("Debes elegir un plan para guardar cambios.");
     setLoading(true);
     
-    // AQUÍ AGREGAMOS alias_mp AL UPDATE
     const updates = {
         name: data.name,
         description: data.description,
@@ -211,7 +209,7 @@ export default function DesignPage() {
         delivery_cost: data.delivery_cost,
         theme_color: data.theme_color,
         slug: data.slug,
-        alias_mp: data.alias_mp, // <--- GUARDAR ALIAS
+        alias_mp: data.alias_mp, 
         logo_url: data.logo_url,
         banner_url: data.banner_url,
         logo_position: data.logo_position,
@@ -230,7 +228,7 @@ export default function DesignPage() {
     }
   };
 
-  // ... (El resto del componente PhoneMockup es igual) ...
+  // MOCKUP (Igual que antes)
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
       const t = (TEMPLATES_DATA && TEMPLATES_DATA.find(t => t.id === templateId)) || (TEMPLATES_DATA ? TEMPLATES_DATA[0] : null);
       const safeTemplateId = t?.id || 'classic';
@@ -293,10 +291,10 @@ export default function DesignPage() {
                                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden shadow-sm bg-gray-200">
                                     <img src={finalImg} className="w-full h-full object-cover" />
                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
-                                        <p className="text-xs font-bold truncate">{p.name}</p>
-                                        <div className="flex justify-between items-center mt-1">
-                                            <span className="text-[10px]">${p.price}</span>
-                                        </div>
+                                            <p className="text-xs font-bold truncate">{p.name}</p>
+                                            <div className="flex justify-between items-center mt-1">
+                                                <span className="text-[10px]">${p.price}</span>
+                                            </div>
                                     </div>
                                 </div>
                            );
@@ -360,32 +358,36 @@ export default function DesignPage() {
       )}
 
       <div className={`transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60 select-none' : ''}`}>
-          <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0">
+          {/* LAYOUT PRINCIPAL: MANTENEMOS xl:flex-row PARA ESCRITORIO */}
+          <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0 min-w-0">
             
-            <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            {/* COLUMNA IZQUIERDA (EDITOR) */}
+            <div className="flex-1 bg-white p-5 rounded-2xl shadow-sm border space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
               
-              <div className="flex items-center justify-between">
-                  <div>
+              {/* CABECERA: Usamos flex-wrap para que los botones bajen si no entran en celular */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
                       <span className="bg-black text-white text-xs px-2 py-1 rounded mb-2 inline-block">Editor</span>
-                      <div className="flex items-center gap-4">
-                          <h1 className="text-xl font-bold">Personalizar Tienda</h1>
+                      <div className="flex flex-wrap items-center gap-4">
+                          <h1 className="text-xl font-bold whitespace-nowrap">Personalizar Tienda</h1>
                           <button 
                             onClick={handleSave} 
                             disabled={loading}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm text-white transition shadow-md hover:shadow-lg active:scale-95 ${unsavedChanges ? 'bg-green-600 hover:bg-green-700 animate-pulse' : 'bg-gray-900 hover:bg-black'}`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm text-white transition shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap ${unsavedChanges ? 'bg-green-600 hover:bg-green-700 animate-pulse' : 'bg-gray-900 hover:bg-black'}`}
                           >
                              {loading ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>}
                              {loading ? 'Guardando...' : 'Guardar Cambios'}
                           </button>
                       </div>
                   </div>
+                  {/* Botón Ver Tienda (Solo móvil) */}
                   <a href={`/${data.slug}`} target="_blank" className="xl:hidden bg-gray-100 text-gray-700 p-2 rounded-lg text-xs font-bold flex items-center gap-1">
                       Ver Tienda <ExternalLink size={14}/>
                   </a>
               </div>
 
-              {/* SELECTOR PLANTILLAS */}
-              <section className="bg-gray-50 p-4 rounded-xl border lg:hidden">
+              {/* SELECTOR PLANTILLAS (Visible en móvil, oculto en PC porque está a la derecha) */}
+              <section className="bg-gray-50 p-4 rounded-xl border xl:hidden">
                   <h3 className="font-bold flex items-center gap-2 mb-3 text-sm uppercase text-gray-500"><LayoutTemplate size={16}/> Elegir Diseño</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       {TEMPLATES_DATA && TEMPLATES_DATA.map((t) => (
@@ -403,28 +405,32 @@ export default function DesignPage() {
                   </div>
               </section>
 
-              {/* LINK */}
+              {/* LINK - ARREGLADO PARA MÓVIL */}
               <section className="border rounded-xl overflow-hidden">
                   <div className="bg-yellow-50 px-4 py-3 flex items-start gap-2 border-b border-yellow-100">
                       <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0"/>
-                      <p className="text-xs text-yellow-800">
+                      <p className="text-xs text-yellow-800 leading-tight">
                         Este será el enlace de tu menú digital. Recomendamos usar el nombre de tu negocio sin espacios.
                       </p>
                   </div>
-                  <div className="flex items-center bg-white p-1">
-                      <div className="bg-gray-100 px-3 py-3 rounded-l-lg border-r text-gray-500 text-sm font-medium">snappy.uno/</div>
+                  {/* Flex wrap y min-w en el input para que no se rompa */}
+                  <div className="flex flex-wrap items-center bg-white p-1">
+                      <div className="bg-gray-100 px-3 py-3 rounded-l-lg border-r text-gray-500 text-sm font-medium whitespace-nowrap">snappy.uno/</div>
                       <input 
                           value={data.slug} 
                           onChange={(e) => { setData({...data, slug: e.target.value}); setUnsavedChanges(true); }}
-                          className="flex-1 p-3 outline-none font-bold text-gray-800 bg-white" 
-                          placeholder="nombre-de-tu-negocio"
+                          className="flex-1 p-3 outline-none font-bold text-gray-800 bg-white min-w-[100px]" 
+                          placeholder="nombre"
                       />
-                      <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-l border-r"><Copy size={18}/></button>
-                      <a href={`/${data.slug}`} target="_blank" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link"><ExternalLink size={18}/></a>
+                      {/* Agrupamos botones para que se mantengan juntos */}
+                      <div className="flex border-l border-gray-100">
+                        <button onClick={copyLink} className="p-3 bg-white text-gray-500 hover:text-black border-r"><Copy size={18}/></button>
+                        <a href={`/${data.slug}`} target="_blank" className="p-3 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-black rounded-r-lg" title="Ir al link"><ExternalLink size={18}/></a>
+                      </div>
                   </div>
               </section>
 
-              {/* --- AQUÍ ESTÁ EL NUEVO INPUT DE ALIAS --- */}
+              {/* ALIAS MP */}
               <section className="bg-purple-50 p-4 rounded-xl border border-purple-100">
                   <div className="flex items-center gap-2 mb-2">
                       <div className="bg-white p-1.5 rounded-md text-purple-600 shadow-sm"><CreditCard size={16}/></div>
@@ -443,12 +449,12 @@ export default function DesignPage() {
               <section className="space-y-4">
                   <h3 className="font-bold flex items-center gap-2"><Layout size={18}/> Identidad</h3>
                   <div className="grid grid-cols-2 gap-4">
-                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center relative group hover:bg-gray-50 cursor-pointer">
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center relative group hover:bg-gray-50 cursor-pointer aspect-square flex flex-col items-center justify-center">
                           <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'logo_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                           <img src={displayLogo} className="h-14 w-14 object-cover mx-auto rounded-full shadow-md" />
                           <p className="text-[10px] text-gray-400 mt-2 font-bold">Cambiar Logo</p>
                       </div>
-                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center relative group overflow-hidden hover:bg-gray-50 cursor-pointer">
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center relative group overflow-hidden hover:bg-gray-50 cursor-pointer aspect-square flex flex-col items-center justify-center">
                           <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'banner_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                           <img src={displayBanner} className="absolute inset-0 w-full h-full object-cover opacity-40" />
                           <div className="relative z-0 flex items-center justify-center h-full"><p className="text-[10px] text-gray-600 font-bold bg-white/80 px-2 py-1 rounded">Cambiar Portada</p></div>
@@ -466,7 +472,7 @@ export default function DesignPage() {
                       />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                           <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Recibir Pedidos en:</label>
                           <div className="flex items-center border rounded-xl overflow-hidden bg-white">
@@ -514,11 +520,11 @@ export default function DesignPage() {
                       <div className="space-y-2 mb-4 bg-white border border-gray-100 rounded-xl p-2">
                           {products.slice(0, 2).map(p => (
                               <div key={p.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
-                                  <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden border">
+                                  <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden border flex-shrink-0">
                                       {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon size={16} className="m-auto mt-2 text-gray-400"/>}
                                   </div>
-                                  <div className="flex-1">
-                                      <div className="text-sm font-bold">{p.name}</div>
+                                  <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-bold truncate">{p.name}</div>
                                       <div className="text-xs text-gray-500">${p.price}</div>
                                   </div>
                                   {products.length <= 2 && (
@@ -535,11 +541,11 @@ export default function DesignPage() {
                       <div className="bg-gray-50 border p-4 rounded-xl space-y-3 relative">
                           {uploading && <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center"><Loader2 className="animate-spin"/></div>}
                           <div className="flex gap-3">
-                              <div className="w-16 h-16 bg-white border border-dashed border-gray-300 rounded-lg flex items-center justify-center relative cursor-pointer">
+                              <div className="w-16 h-16 bg-white border border-dashed border-gray-300 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0">
                                   <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
                                   {newProd.image_url ? <img src={newProd.image_url} className="w-full h-full object-cover rounded-lg"/> : <ImageIcon size={20} className="text-gray-400"/>}
                               </div>
-                              <div className="flex-1 space-y-2">
+                              <div className="flex-1 space-y-2 min-w-0">
                                   <input value={newProd.name} onChange={(e) => setNewProd({...newProd, name: e.target.value})} placeholder="Nombre" className="w-full p-2 border rounded text-sm font-bold"/>
                                   
                                   <input 
@@ -559,7 +565,7 @@ export default function DesignPage() {
                           <textarea 
                               value={newProd.description} 
                               onChange={(e) => setNewProd({...newProd, description: e.target.value})} 
-                              placeholder="Descripción del plato (Ej: Con papas y gaseosa...)" 
+                              placeholder="Descripción del plato..." 
                               className="w-full p-2 border rounded text-sm outline-none resize-none"
                               rows={2}
                           />
@@ -577,15 +583,15 @@ export default function DesignPage() {
               </section>
             </div>
 
-            {/* PREVIEW */}
-            <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-10 relative h-[calc(100vh-120px)] sticky top-6">
+            {/* COLUMNA DERECHA (PREVIEW) - SOLO PC - SE QUEDA IGUAL QUE ANTES (xl:flex) */}
+            <div className="hidden xl:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-10 relative h-[calc(100vh-120px)] sticky top-6">
               <div className="w-[320px] h-[650px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col">
                   <PhoneMockup templateId={data.template_id} />
               </div>
               <div className="absolute bottom-6 text-gray-400 text-xs font-medium">Vista Previa en Vivo</div>
             </div>
 
-            {/* MODAL */}
+            {/* MODAL MÓVIL (PREVIEW) */}
             {previewTemplateId && (
                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="relative w-full max-w-sm h-[80vh] bg-white rounded-3xl overflow-hidden shadow-2xl">

@@ -125,7 +125,7 @@ export default function DashboardHome() {
   // CASO 1: USUARIO NUEVO SIN RESTAURANTE (BIENVENIDA + PLANES)
   if (isNewUser) {
     return (
-      <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in space-y-8">
+      <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in space-y-8 pt-24 md:pt-8">
         {/* HEADER DE BIENVENIDA */}
         <div className="text-center space-y-6 mb-10">
             <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-purple-900/20">
@@ -207,7 +207,8 @@ export default function DashboardHome() {
 
   // CASO 2: USUARIO CON PLAN (LIGHT O PLUS) - MUESTRA DASHBOARD
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in pb-10">
+    // AQUÍ ESTÁ EL CAMBIO: 'pt-24' (mucho más espacio) para móvil, 'md:pt-0' para escritorio
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in pb-10 pt-24 md:pt-0">
       
       {/* CABECERA */}
       <div>

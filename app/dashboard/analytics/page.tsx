@@ -306,7 +306,8 @@ export default function AnalyticsPage() {
   if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-gray-400"/></div>;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12 relative min-h-[80vh]">
+    // FIX 1: 'pt-24' para que el título no quede tapado en móvil
+    <div className="max-w-6xl mx-auto space-y-6 pb-12 relative min-h-[80vh] pt-24 md:pt-0">
         
         {isLocked && (
             <div className="absolute inset-0 z-50 backdrop-blur-sm bg-white/60 flex items-center justify-center rounded-3xl overflow-hidden p-4">
@@ -336,51 +337,57 @@ export default function AnalyticsPage() {
                     <p className="text-gray-500 text-sm">Control unificado de ventas online y mostrador.</p>
                 </div>
                 
-                <div className="flex flex-col md:flex-row gap-3 items-end md:items-center">
+                {/* FIX 2: Quitamos items-end, usamos items-start y flex-wrap para que no se rompan los botones en móvil */}
+                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center w-full md:w-auto">
                     
-                    {/* --- SELECTOR DE FECHAS MEJORADO --- */}
-                    <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner">
-                        <button 
-                            onClick={setDateYesterday} 
-                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === 'ayer' ? 'bg-white text-black shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Ayer
-                        </button>
-                        <button 
-                            onClick={setDateToday} 
-                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === 'hoy' ? 'bg-white text-black shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Hoy
-                        </button>
+                    <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                        {/* --- SELECTOR DE FECHAS --- */}
+                        <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner">
+                            <button 
+                                onClick={setDateYesterday} 
+                                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === 'ayer' ? 'bg-white text-black shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Ayer
+                            </button>
+                            <button 
+                                onClick={setDateToday} 
+                                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === 'hoy' ? 'bg-white text-black shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Hoy
+                            </button>
+                        </div>
+
+                        <div className={`bg-white border p-1 rounded-xl flex items-center gap-2 shadow-sm transition-all ${activeFilter === 'custom' ? 'ring-2 ring-black border-transparent' : 'border-gray-200'}`}>
+                            <div className="pl-2 text-gray-400"><Calendar size={16}/></div>
+                            <input 
+                                type="date" 
+                                value={startDate} 
+                                onChange={(e) => handleCustomDateChange('start', e.target.value)} 
+                                className="text-xs font-bold bg-transparent outline-none p-2 text-gray-700 cursor-pointer w-24 md:w-auto"
+                            />
+                            <span className="text-gray-300">-</span>
+                            <input 
+                                type="date" 
+                                value={endDate} 
+                                onChange={(e) => handleCustomDateChange('end', e.target.value)} 
+                                className="text-xs font-bold bg-transparent outline-none p-2 text-gray-700 cursor-pointer w-24 md:w-auto"
+                            />
+                        </div>
                     </div>
 
-                    <div className={`bg-white border p-1 rounded-xl flex items-center gap-2 shadow-sm transition-all ${activeFilter === 'custom' ? 'ring-2 ring-black border-transparent' : 'border-gray-200'}`}>
-                        <div className="pl-2 text-gray-400"><Calendar size={16}/></div>
-                        <input 
-                            type="date" 
-                            value={startDate} 
-                            onChange={(e) => handleCustomDateChange('start', e.target.value)} 
-                            className="text-xs font-bold bg-transparent outline-none p-2 text-gray-700 cursor-pointer"
-                        />
-                        <span className="text-gray-300">-</span>
-                        <input 
-                            type="date" 
-                            value={endDate} 
-                            onChange={(e) => handleCustomDateChange('end', e.target.value)} 
-                            className="text-xs font-bold bg-transparent outline-none p-2 text-gray-700 cursor-pointer"
-                        />
+                    {/* BOTONES DE ACCIÓN (Ahora envueltos para que bajen si no entran) */}
+                    <div className="flex gap-2 flex-wrap w-full md:w-auto">
+                        <button onClick={openCierre} className="flex-1 md:flex-none bg-black text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-gray-800 transition shadow-lg whitespace-nowrap">
+                            <Calculator size={16}/> Cierre
+                        </button>
+                        <button onClick={openApertura} className="flex-1 md:flex-none bg-white border border-gray-300 text-black px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-gray-50 transition shadow-sm whitespace-nowrap">
+                            <Plus size={16}/> Inicio
+                        </button>
+
+                        <button onClick={() => handleExport(filteredOrders)} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition shadow-lg whitespace-nowrap">
+                            <Download size={16}/>
+                        </button>
                     </div>
-
-                    <button onClick={openCierre} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition shadow-lg whitespace-nowrap">
-                        <Calculator size={16}/> Cierre de Caja
-                    </button>
-                    <button onClick={openApertura} className="bg-white border border-gray-300 text-black px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm whitespace-nowrap">
-                        <Plus size={16}/> Inicio de Caja
-                    </button>
-
-                    <button onClick={() => handleExport(filteredOrders)} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition shadow-lg whitespace-nowrap">
-                        <Download size={16}/>
-                    </button>
                 </div>
             </div>
 
