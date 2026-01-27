@@ -2,14 +2,24 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import { useState } from 'react'
-import { Loader2, Mail, Lock, ArrowRight } from 'lucide-react'
+import { Loader2, Mail, Lock, ArrowRight, User, Phone, Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
+  const [showPassword, setShowPassword] = useState(false) // Nuevo estado para el ojito
+  
+  // Estados para el formulario
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  
+  // Estados nuevos para el registro
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+
   const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
 
@@ -21,15 +31,12 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true)
     try {
-      // TRUCO: Detectamos dónde estamos parados
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      
-      console.log("Intentando redirigir a:", `${origin}/auth/callback`) // MIRA LA CONSOLA
+      console.log("Intentando redirigir a:", `${origin}/auth/callback`) 
 
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Esto le dice explícitamente: "Vuelve a donde estoy ahora"
           redirectTo: `${origin}/auth/callback?next=/dashboard`,
           queryParams: {
             access_type: 'offline',
@@ -52,16 +59,39 @@ export default function LoginPage() {
 
     try {
       if (isRegistering) {
-        const { error } = await supabase.auth.signUp({
+        // --- LÓGICA DE REGISTRO ---
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${origin}/auth/callback`,
+            data: {
+                full_name: `${firstName} ${lastName}`.trim(),
+            }
           },
         })
-        if (error) throw error
+
+        if (authError) throw authError
+
+        if (authData.user) {
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: authData.user.id,
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: phone,
+                })
+            
+            if (profileError) {
+                console.error("Error guardando perfil:", profileError)
+            }
+        }
+
         setMessage('¡Cuenta creada! Si no entraste automático, revisa tu email.')
+
       } else {
+        // --- LÓGICA DE LOGIN ---
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -73,6 +103,27 @@ export default function LoginPage() {
       setMessage(error.message || 'Ocurrió un error')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Función para resetear contraseña
+  const handleResetPassword = async () => {
+    if (!email) {
+        setMessage("Por favor, escribe tu email primero.")
+        return
+    }
+    setIsLoading(true)
+    try {
+        const origin = typeof window !== 'undefined' ? window.location.origin : ''
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${origin}/auth/callback?next=/dashboard/settings`,
+        })
+        if (error) throw error
+        setMessage("¡Te enviamos un correo para recuperar tu contraseña!")
+    } catch (error: any) {
+        setMessage(error.message)
+    } finally {
+        setIsLoading(false)
     }
   }
 
@@ -109,15 +160,23 @@ export default function LoginPage() {
       <div className="w-full lg:w-[35%] xl:w-[30%] flex flex-col justify-center px-8 md:px-12 lg:px-16 overflow-y-auto py-10">
         
         <div className="max-w-sm w-full mx-auto">
-          <div className="mb-8 flex items-center gap-2">
-            <div className="h-10 w-10 bg-black text-white rounded-xl flex items-center justify-center font-bold text-xl">⚡</div>
-            <span className="font-bold text-2xl tracking-tight">Snappy</span>
+          
+          <div className="mb-8 flex flex-col items-center justify-center gap-3">
+            <div className="relative w-20 h-20"> 
+                <Image 
+                    src="/logo-animado.svg" 
+                    alt="Snappy Logo" 
+                    fill 
+                    className="object-contain"
+                />
+            </div>
+            <span className="font-bold text-2xl tracking-tight text-gray-900">Snappy</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
             {isRegistering ? 'Crear cuenta' : 'Bienvenido de nuevo'}
           </h1>
-          <p className="text-gray-500 mb-8">
+          <p className="text-gray-500 mb-8 text-center">
             {isRegistering ? 'Empieza tus 14 días de prueba gratis.' : 'Ingresa tus datos para acceder al panel.'}
           </p>
 
@@ -138,6 +197,50 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
+            
+            {isRegistering && (
+                <div className="space-y-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre</label>
+                            <input 
+                                type="text" 
+                                value={firstName}
+                                onChange={e => setFirstName(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-black focus:ring-1 ring-black transition"
+                                placeholder="Juan"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Apellido</label>
+                            <input 
+                                type="text" 
+                                value={lastName}
+                                onChange={e => setLastName(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-black focus:ring-1 ring-black transition"
+                                placeholder="Pérez"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Teléfono</label>
+                        <div className="relative">
+                            <Phone className="absolute left-3 top-3 text-gray-400" size={18} />
+                            <input 
+                                type="tel" 
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-black focus:ring-1 ring-black transition"
+                                placeholder="11 1234 5678"
+                                required
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Email</label>
               <div className="relative">
@@ -158,18 +261,39 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} // Alternar tipo
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-black focus:ring-1 ring-black transition"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl outline-none focus:border-black focus:ring-1 ring-black transition"
                   placeholder="••••••••"
                   required
                 />
+                {/* Botón del Ojito */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-black transition"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
+            {/* Botón Olvidé Contraseña (solo en login) */}
+            {!isRegistering && (
+                <div className="flex justify-end">
+                    <button 
+                        type="button"
+                        onClick={handleResetPassword}
+                        className="text-xs font-bold text-gray-500 hover:text-black transition"
+                    >
+                        ¿Olvidaste tu contraseña?
+                    </button>
+                </div>
+            )}
+
             {message && (
-              <div className={`p-3 rounded-lg text-sm ${message.includes('creada') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+              <div className={`p-3 rounded-lg text-sm ${message.includes('creada') || message.includes('enviamos') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                 {message}
               </div>
             )}
