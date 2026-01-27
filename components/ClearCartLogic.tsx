@@ -12,10 +12,8 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // --- HELPER: Parsear fecha forzando UTC ---
-  // Esto arregla el bug de Android que interpreta la fecha como Local en vez de UTC
+  // Helper para fechas UTC
   const parseDateUTC = (dateString: string) => {
-      // Si la fecha viene sin zona horaria (sin Z y sin +), le agregamos la Z
       if (!dateString.endsWith('Z') && !dateString.includes('+')) {
           return new Date(dateString + 'Z').getTime();
       }
@@ -25,13 +23,12 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
   // 1. Limpieza por cambio de Restaurante
   useEffect(() => {
     if (cartRestaurantId && cartRestaurantId !== currentRestaurantId) {
-        console.log("🧹 Cambio de local detectado: Limpiando carrito...");
         clearCart(); 
         setActiveOrderId(null); 
     }
   }, [cartRestaurantId, currentRestaurantId, clearCart, setActiveOrderId]);
 
-  // 2. Limpieza por Tiempo (5 MINUTOS)
+  // 2. Limpieza por Tiempo (5 Minutos)
   useEffect(() => {
       const checkOrderStatus = async () => {
           if (!activeOrderId) return;
@@ -42,27 +39,21 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
               .eq('id', activeOrderId)
               .single();
 
-          if (order && (order.status === 'completado' || order.status === 'cancelado')) {
-              // USAMOS LA FUNCIÓN SEGURA AQUÍ 👇
+          if (order && (order.status === 'completado' || order.status === 'cancelado' || order.status === 'entregado')) { 
               const lastUpdate = parseDateUTC(order.updated_at);
               const now = new Date().getTime();
-              
               const minutesPassed = (now - lastUpdate) / (1000 * 60);
 
-              console.log(`⏱️ Minutos pasados: ${minutesPassed.toFixed(2)}`); // Para depurar si lo necesitas
-
-              // Si pasaron más de 5 minutos
               if (minutesPassed > 5) {
-                  console.log("🕒 El pedido expiró hace 5 minutos. Limpiando seguimiento...");
                   setActiveOrderId(null);
                   clearCart();
+                  window.location.reload(); // Recarga suave para limpiar la UI
               }
           }
       };
 
       checkOrderStatus();
-      
-      const interval = setInterval(checkOrderStatus, 30000); // Revisar cada 30 segundos
+      const interval = setInterval(checkOrderStatus, 30000); // Revisar cada 30 segs
       return () => clearInterval(interval);
 
   }, [activeOrderId, supabase, setActiveOrderId, clearCart]);
