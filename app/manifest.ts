@@ -5,13 +5,15 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Snappy Menu',
     short_name: 'Snappy',
     description: 'Gestiona tu menú digital en segundos',
-    // CAMBIO CLAVE: start_url debe coincidir con el scope
-    start_url: '/dashboard', 
+    // Usamos la URL completa para ser muy específicos
+    start_url: 'https://snappy.uno/dashboard', 
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#000000',
-    // Esto expulsa todo lo que NO sea /dashboard/ al navegador
-    scope: '/dashboard/', 
+    // ESTO ES LO MÁS IMPORTANTE:
+    // Le decimos al celular: "Solo lo que empiece por /dashboard es la app.
+    // Lo demás (como /pizzeria) NO es la app".
+    scope: 'https://snappy.uno/dashboard/', 
     icons: [
       {
         src: '/favicon.ico',

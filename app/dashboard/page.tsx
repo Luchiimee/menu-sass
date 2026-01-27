@@ -111,16 +111,18 @@ export default function DashboardHome() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // --- FUNCIÓN MEJORADA: HACK PARA IOS/ANDROID PWA ---
+ 
+// --- FUNCIÓN CON RETARDO (TRUCO PARA PWA) ---
   const openStoreInBrowser = () => {
-    // Usamos el mismo hack del elemento invisible
-    const link = document.createElement('a');
-    link.href = storeLink;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // CORRECCIÓN: Aquí usamos slug a secas
+    const url = `https://snappy.uno/${slug}`; 
+    
+    setTimeout(() => {
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+            window.location.assign(url);
+        }
+    }, 100);
   };
 
   const handleDownloadQrPdf = async () => {

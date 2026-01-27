@@ -135,19 +135,18 @@ export default function DesignPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // --- FUNCIÓN MEJORADA: HACK PARA IOS/ANDROID PWA ---
+
+  // --- FUNCIÓN CON RETARDO (TRUCO PARA PWA) ---
   const openStoreInBrowser = () => {
-    const url = `https://snappy.uno/${data.slug}`;
+    // CORRECCIÓN: Aquí usamos data.slug porque estamos en el editor
+    const url = `https://snappy.uno/${data.slug}`; 
     
-    // Creamos un elemento <a> invisible y le hacemos clic.
-    // Esto suele ser más efectivo que window.open en iOS para salir de la PWA.
-    const link = document.createElement('a');
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setTimeout(() => {
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+            window.location.assign(url);
+        }
+    }, 100);
   };
   // ----------------------------------------------------
 
