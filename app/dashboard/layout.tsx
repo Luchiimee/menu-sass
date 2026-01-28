@@ -7,10 +7,10 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3 
 } from 'lucide-react';
-import MobileNav from '@/components/MobileNav'; // La barra de abajo
+import MobileNav from '@/components/MobileNav'; 
 import TrialBanner from '@/components/TrialBanner';
-// CORRECCIÓN AQUÍ: Usamos '@' en lugar de './' porque la carpeta está en la raíz
 import OrderListener from '@/components/OrderListener'; 
+import PhoneBanner from '@/components/dashboard/PhoneBanner'; // <--- IMPORTANTE
 
 function GoogleAuthHandler() {
   const searchParams = useSearchParams();
@@ -35,11 +35,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [restaurant, setRestaurant] = useState<{
     name: string,
     plan: string | null,
-    status: string
+    status: string,
+    phone: string | null // <--- AGREGADO
   }>({
     name: '',      
     plan: null,    
-    status: 'active'
+    status: 'active',
+    phone: 'valid' // Evita parpadeo inicial
   });
     
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const { data: rest } = await supabase
           .from('restaurants')
-          .select('name, subscription_plan, subscription_status') 
+          .select('name, subscription_plan, subscription_status, phone') // <--- TRAEMOS EL TELÉFONO
           .eq('user_id', session.user.id)
           .maybeSingle();
         
@@ -86,19 +88,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 displayName = session.user.email?.split('@')[0] || "Usuario";
             }
 
-            if (rest) {
-                setRestaurant({
-                    name: displayName, 
-                    plan: rest.subscription_plan,
-                    status: rest.subscription_status || 'active'
-                });
-            } else {
-                setRestaurant({
-                    name: displayName,
-                    plan: null,
-                    status: 'active'
-                });
-            }
+            setRestaurant({
+                name: displayName, 
+                plan: rest?.subscription_plan || null,
+                status: rest?.subscription_status || 'active',
+                phone: rest?.phone || null // <--- GUARDAMOS EL TELÉFONO
+            });
         }
       } catch (error) {
         console.error("Error layout:", error);
@@ -155,7 +150,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
-      {/* 2. AGREGADO: Aquí vive el escucha invisible */}
       <OrderListener />
 
       <Suspense fallback={null}>
@@ -206,6 +200,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
         
+        {/* 1. Banner de Teléfono (Prioridad sobre pausa) */}
+        {!isLoading && <PhoneBanner hasPhone={!!restaurant.phone} />}
+
         {/* Alerta de Pagos */}
         {restaurant.plan && restaurant.status === 'paused' && (
           <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
