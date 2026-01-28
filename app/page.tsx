@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  ArrowRight, Check, Zap, Star, QrCode, MessageCircle, Menu, X, Layout, Smartphone, MousePointer2 
+  ArrowRight, Check, Zap, Star, QrCode, MessageCircle, Menu, X, Layout, Smartphone, MousePointer2, HelpCircle, CreditCard // <-- AGREGADO AQUÍ
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -13,6 +13,19 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-green-100 overflow-x-hidden">
       
+      {/* --- BOTÓN WHATSAPP FLOTANTE --- */}
+      <a 
+        href="https://wa.me/2324694045" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-[60] bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-90 flex items-center justify-center group"
+      >
+        <MessageCircle size={28} fill="currentColor" />
+        <span className="absolute right-full mr-3 bg-white text-gray-800 px-3 py-1 rounded-lg text-sm font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-gray-100">
+          ¿Necesitas ayuda?
+        </span>
+      </a>
+
       {/* --- NAVBAR --- */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 transition-all">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -69,7 +82,6 @@ export default function LandingPage() {
 
       {/* --- HERO SECTION --- */}
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
-        {/* Fondo decorativo */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-green-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 -z-10"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-100/40 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 -z-10"></div>
 
@@ -105,22 +117,16 @@ export default function LandingPage() {
                 </div>
             </div>
 
-            {/* HERO IMAGE - PANTALLA VERTICAL LIMPIA (MÁS CHICA) */}
             <div className="relative animate-in fade-in zoom-in duration-1000 delay-200 group order-1 lg:order-2 flex justify-center lg:justify-end">
-                {/* Sombra de color detrás */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-green-500 to-purple-600 rounded-[45px] blur-2xl opacity-20 group-hover:opacity-30 transition duration-500 mx-auto w-full max-w-[280px] md:max-w-[320px] translate-y-4"></div>
                 
-                {/* Imagen Principal */}
                 <div className="relative rounded-[40px] overflow-hidden shadow-2xl border-4 border-white bg-white aspect-[9/16] w-full max-w-[280px] md:max-w-[320px]">
                      <Image 
-                        src="/menu-sushi.jpeg" 
+                        src="/menu-burguer.jpeg" 
                         alt="Vista del Menú Digital en Celular" 
                         fill 
                         className="object-cover hover:scale-105 transition duration-700 ease-in-out"
                     />
-                    {/* SE ELIMINÓ LA CAPA DE OPACIDAD AQUÍ */}
-                    
-                    {/* Badge Flotante */}
                     <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-max bg-white/90 backdrop-blur-md px-3 py-2 rounded-2xl shadow-lg border border-white/50 flex items-center gap-2">
                         <div className="bg-green-100 p-1.5 rounded-full text-green-700">
                             <QrCode size={16}/>
@@ -136,32 +142,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- SECCIÓN: DASHBOARD VS MENU (Estilo Yumzi) --- */}
+      {/* --- SECCIÓN: DASHBOARD VS MENU --- */}
       <section id="demo" className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
             
-            {/* BLOQUE 1: GESTIÓN (TÚ) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-32">
                 <div className="order-2 lg:order-1 relative">
-                    {/* Simulación de Dashboard con CSS y HTML */}
-                    {/* IMAGEN REAL DEL DASHBOARD */}
-<div className="relative rounded-3xl shadow-2xl border border-gray-200 overflow-hidden group hover:-translate-y-2 transition-transform duration-500 bg-white">
-    <Image 
-        src="/panel-productos.png"  // <--- AQUÍ PONES EL NOMBRE DE TU FOTO
-        alt="Panel de Control Snappy" 
-        width={800} 
-        height={600}
-        className="w-full h-auto object-cover"
-    />
-    
-    {/* Badge Flotante (Opcional: Si quieres que aparezca "Panel de Control" al pasar el mouse) */}
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-        <MousePointer2 size={18}/> Panel de Control
-    </div>
-                      
-                        
+                    <div className="relative rounded-3xl shadow-2xl border border-gray-200 overflow-hidden group hover:-translate-y-2 transition-transform duration-500 bg-white">
+                        <Image 
+                            src="/panel-control.gif" 
+                            alt="Panel de Control Snappy" 
+                            width={800} 
+                            height={600}
+                            className="w-full h-auto object-cover"
+                        />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <MousePointer2 size={18}/> Panel de Control
+                        </div>
                     </div>
-                    {/* Decoración */}
                     <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-200 rounded-full blur-3xl -z-10"></div>
                 </div>
 
@@ -183,7 +181,6 @@ export default function LandingPage() {
                 </div>
             </div>
 
-            {/* BLOQUE 2: EXPERIENCIA CLIENTE */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                 <div>
                     <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-600 mb-6">
@@ -200,32 +197,81 @@ export default function LandingPage() {
                 </div>
 
                 <div className="relative flex justify-center lg:justify-end">
-                    {/* Imagen limpia redonda vertical */}
-                    <div className="relative rounded-[40px] overflow-hidden shadow-2xl border-4 border-white aspect-[9/16] w-full max-w-[300px] transform rotate-2 hover:rotate-0 transition duration-500">
+                    <div className="relative rounded-[30px] overflow-hidden shadow-2xl border-4 border-white w-full max-w-[320px] transform rotate-2 hover:rotate-0 transition duration-500 bg-white">
                          <Image 
-                            src="/menu-sushi.jpeg" 
+                            src="/menu-cliente-burguer.gif" 
                             alt="Menú Móvil" 
-                            fill 
-                            className="object-cover"
+                            width={400} 
+                            height={711} 
+                            className="w-full h-auto block"
                         />
                     </div>
-                    {/* Elementos flotantes */}
-                    <div className="absolute top-20 right-0 lg:right-10 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce duration-[3000ms] z-10">
+                    <div className="absolute top-10 -right-4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce duration-[3000ms] z-10 border border-gray-100">
                         <div className="bg-green-100 p-2 rounded-full text-green-600"><Check size={16}/></div>
-                        <div className="text-xs font-bold">¡Pedido Enviado!</div>
+                        <div className="text-xs font-bold text-gray-900">¡Pedido Enviado!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+{/* BLOQUE 3: PAGOS (ALIAS) */}
+<section className="py-24 bg-white">
+    <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            
+            {/* IMAGEN: Aquí suplantarás por tu captura del carrito con el Alias */}
+            <div className="relative flex justify-center lg:justify-start order-2 lg:order-1">
+                <div className="absolute inset-0 bg-purple-100 rounded-[40px] blur-3xl opacity-30 -z-10"></div>
+                <div className="relative rounded-[30px] overflow-hidden shadow-2xl border-4 border-white w-full max-w-[320px] bg-white transition-transform hover:scale-[1.02] duration-500">
+                    <Image 
+                        src="/boton-transferencia.jpeg" 
+                        alt="Botón copiar Alias en el pedido" 
+                        width={400} 
+                        height={711} 
+                        className="w-full h-auto block"
+                    />
+                    {/* Badge de Copiado (Simulado) */}
+                    <div className="absolute bottom-10 right-4 bg-purple-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-bounce">
+                        <Check size={16}/> <span className="text-xs font-bold">¡Alias Copiado!</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* TEXTO EXPLICATIVO */}
+            <div className="order-1 lg:order-2">
+                <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mb-6">
+                    <CreditCard size={24}/>
+                </div>
+                <h2 className="text-4xl font-bold mb-6 text-gray-900 leading-tight">
+                    Cobros más rápidos, <br/> sin idas y vueltas
+                </h2>
+                <p className="text-lg text-gray-500 mb-8 leading-relaxed">
+                    Tus clientes pueden copiar tu <b>Alias o CBU</b> directamente desde el resumen del pedido. 
+                    Así, cuando te envían el WhatsApp, ya adjuntan el comprobante de transferencia al instante.
+                </p>
+                <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                        <div className="bg-green-100 p-1 rounded-full text-green-600 mt-1"><Check size={16}/></div>
+                        <p className="text-gray-700 font-medium text-sm">Botón de copiado con un solo toque.</p>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <div className="bg-green-100 p-1 rounded-full text-green-600 mt-1"><Check size={16}/></div>
+                        <p className="text-gray-700 font-medium text-sm">Menos tiempo respondiendo datos bancarios.</p>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <div className="bg-green-100 p-1 rounded-full text-green-600 mt-1"><Check size={16}/></div>
+                        <p className="text-gray-700 font-medium text-sm">Recibes pedido y comprobante en el mismo mensaje.</p>
                     </div>
                 </div>
             </div>
 
         </div>
-      </section>
-
-      {/* --- SECCIÓN: PLANTILLAS (NUEVO DISEÑO) --- */}
+    </div>
+</section>
+      {/* --- SECCIÓN: PLANTILLAS --- */}
       <section className="py-32 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                
-                {/* Texto a la izquierda */}
                 <div className="lg:col-span-4">
                     <h2 className="text-4xl font-bold mb-6">Diseños que abren <br/> el apetito 🍔</h2>
                     <p className="text-gray-500 text-lg mb-8 leading-relaxed">
@@ -248,11 +294,8 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                {/* Carrusel de Imágenes a la derecha (Grid) */}
                 <div className="lg:col-span-8">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                        
-                        {/* Card 1 */}
                         <div className="group relative h-[400px] rounded-[30px] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300">
                             <Image src="/menu-clasic.jpeg" alt="Classic" fill className="object-cover group-hover:scale-110 transition duration-700"/>
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition"></div>
@@ -262,7 +305,6 @@ export default function LandingPage() {
                             </div>
                         </div>
 
-                        {/* Card 2 (Destacada) */}
                         <div className="group relative h-[400px] rounded-[30px] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 -mt-0 md:-mt-12">
                             <div className="absolute top-4 right-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full z-20">POPULAR</div>
                             <Image src="/menu-sushi.jpeg" alt="Fresh" fill className="object-cover group-hover:scale-110 transition duration-700"/>
@@ -273,7 +315,6 @@ export default function LandingPage() {
                             </div>
                         </div>
 
-                        {/* Card 3 */}
                         <div className="group relative h-[400px] rounded-[30px] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300">
                             <Image src="/menu-urban.jpeg" alt="Urban" fill className="object-cover group-hover:scale-110 transition duration-700"/>
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition"></div>
@@ -282,10 +323,8 @@ export default function LandingPage() {
                                 <p className="text-xs opacity-80">Modo oscuro elegante</p>
                             </div>
                         </div>
-
                     </div>
                 </div>
-
             </div>
         </div>
       </section>
@@ -299,8 +338,6 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* PLAN LIGHT */}
             <div className="bg-white border border-gray-200 rounded-3xl p-8 hover:border-gray-300 transition relative flex flex-col h-full hover:-translate-y-1 hover:shadow-lg duration-300">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Light</h3>
               <p className="text-sm text-gray-500 mb-6">Para empezar a vender online.</p>
@@ -308,11 +345,9 @@ export default function LandingPage() {
                 <span className="text-4xl font-black">$7.000</span>
                 <span className="text-gray-400">/mes</span>
               </div>
-              
               <Link href="/login" className="block w-full py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-bold text-center hover:bg-gray-50 transition mb-8">
                 Prueba 14 días gratis
               </Link>
-
               <ul className="space-y-4 text-sm text-gray-600 flex-1">
                 <li className="flex gap-3"><Check size={18} className="text-green-600 flex-shrink-0"/> <b>Hasta 15 Productos</b></li>
                 <li className="flex gap-3"><Check size={18} className="text-green-600 flex-shrink-0"/> Catálogo Digital Interactivo</li>
@@ -322,7 +357,6 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* PLAN PLUS (DESTACADO) */}
             <div className="bg-gray-900 text-white border-2 border-gray-900 rounded-3xl p-8 relative shadow-2xl scale-105 z-10 flex flex-col h-full">
               <div className="absolute top-0 right-0 bg-green-500 text-black text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">
                 MÁS ELEGIDO
@@ -333,11 +367,9 @@ export default function LandingPage() {
                 <span className="text-5xl font-black text-white">$15.900</span>
                 <span className="text-gray-400">/mes</span>
               </div>
-              
               <Link href="/login" className="block w-full py-4 rounded-xl bg-green-500 text-black font-bold text-center hover:bg-green-400 transition shadow-lg mb-8 hover:scale-[1.02]">
                 Prueba 14 días gratis
               </Link>
-
               <ul className="space-y-4 text-sm text-gray-300 font-medium flex-1">
                 <li className="flex gap-3"><span className="bg-green-900 text-green-400 rounded-full p-0.5"><Check size={14}/></span> <b>Productos Ilimitados</b> ✨</li>
                 <li className="flex gap-3"><span className="bg-green-900 text-green-400 rounded-full p-0.5"><Check size={14}/></span> Todo lo del plan Light</li>
@@ -348,24 +380,19 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* PLAN MAX */}
             <div className="bg-white border border-gray-200 rounded-3xl p-8 relative overflow-hidden flex flex-col h-full opacity-70 hover:opacity-100 transition duration-300">
                 <div className="absolute top-4 right-4 bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-300 z-20">
                     PRÓXIMAMENTE
                 </div>
-                
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Max</h3>
                 <p className="text-sm text-gray-500 mb-6">Para escalar sin límites.</p>
-                
                 <div className="mb-6 filter blur-[4px] select-none">
                     <span className="text-4xl font-black">$28.600</span>
                     <span className="text-gray-400">/mes</span>
                 </div>
-
                 <button disabled className="block w-full py-4 rounded-xl bg-gray-100 text-gray-400 font-bold text-center mb-8 cursor-not-allowed">
                     Próximamente
                 </button>
-
                 <ul className="space-y-4 text-sm text-gray-500 flex-1">
                     <li className="flex gap-3"><Check size={18}/> Todo lo del plan Plus</li>
                     <li className="flex gap-3"><Check size={18}/> Panel Pro para Caja</li>
@@ -373,7 +400,55 @@ export default function LandingPage() {
                     <li className="flex gap-3"><Check size={18}/> Gestión de hasta 2 sucursales</li>
                 </ul>
             </div>
+          </div>
+        </div>
+      </section>
 
+      {/* --- SECCIÓN: PREGUNTAS FRECUENTES --- */}
+      <section className="py-24 px-6 bg-white border-t border-gray-100">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <HelpCircle size={48} className="mx-auto text-green-600 mb-4" />
+            <h2 className="text-4xl font-bold mb-4">Preguntas Frecuentes</h2>
+            <p className="text-gray-500 text-lg italic">Resolvemos tus dudas antes de empezar.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 hover:border-green-200 transition-colors">
+              <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
+                <span className="text-green-600">01.</span> ¿Cobran comisión?
+              </h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                <b>Absolutamente no.</b> Solo pagas la suscripción mensual fija. El 100% de tus ventas va directo a tu bolsillo.
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 hover:border-green-200 transition-colors">
+              <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
+                <span className="text-green-600">02.</span> ¿Necesitan una App?
+              </h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                No. Tus clientes acceden escaneando un QR. Abre al instante en cualquier navegador, sin descargas molestas.
+              </p>
+            </div>
+
+           <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 hover:border-green-200 transition-colors">
+  <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
+    <span className="text-green-600">03.</span> ¿Cómo recibo pagos?
+  </h3>
+  <p className="text-gray-600 leading-relaxed text-sm">
+    El cliente puede <b>copiar tu Alias de Mercado Pago</b> directamente desde el carrito de compras. Así, al enviarte el pedido por WhatsApp, ya puede adjuntar el comprobante de transferencia al instante.
+  </p>
+</div>
+
+            <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 hover:border-green-200 transition-colors">
+              <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
+                <span className="text-green-600">04.</span> ¿Puedo cancelar?
+              </h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                Sí, en cualquier momento desde tu panel. No tenemos contratos de permanencia ni letras chicas.
+              </p>
+            </div>
           </div>
         </div>
       </section>
