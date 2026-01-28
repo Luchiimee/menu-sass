@@ -13,9 +13,8 @@ export default function OrderListener() {
   );
 
   useEffect(() => {
-    // 1. CARGAMOS EL AUDIO
-    // Importante: El archivo notification.mp3 debe pesar algo (no estar vacío)
-    audioRef.current = new Audio('/notification.mp3');
+    // CORRECCIÓN AQUÍ: Cambiamos el nombre para que coincida con tu archivo
+    audioRef.current = new Audio('/pedido.mp3');
     audioRef.current.volume = 1.0; 
 
     const setupListener = async () => {
@@ -43,8 +42,6 @@ export default function OrderListener() {
           (payload) => {
             console.log('🔔 PEDIDO NUEVO:', payload);
             
-            // --- AQUÍ ESTÁ LA MAGIA ---
-            
             // 1. Mostrar Pop-up Negro (Sonner)
             toast.success('¡Nuevo Pedido Recibido!', {
                 description: `Total: $${payload.new.total}`,
@@ -57,10 +54,15 @@ export default function OrderListener() {
 
             // 2. Reproducir Sonido
             if (audioRef.current) {
+              // Reiniciamos el audio por si ya estaba sonando
+              audioRef.current.currentTime = 0;
               const playPromise = audioRef.current.play();
+              
               if (playPromise !== undefined) {
                 playPromise.catch((error) => {
-                  console.error("Audio bloqueado:", error);
+                  console.error("Audio bloqueado por el navegador:", error);
+                  // Si no suena, avisamos con un toast pequeño
+                  toast.info("Haz clic en la pantalla para activar el sonido.");
                 });
               }
             }
