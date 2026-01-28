@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    // 👇 AQUÍ ESTÁ EL CAMBIO: Agregamos 'await' antes de cookies()
     const cookieStore = await cookies()
 
     const supabase = createServerClient(
@@ -29,12 +28,20 @@ export async function GET(request: Request) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    // Intercambiamos el código por la sesión
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
+    if (!error && data?.user) {
+      // 🚀 GANCHO DE SUPERADMIN CORREGIDO: 
+      // Apuntamos a la ruta real donde tienes el archivo: /dashboard/superadmin
+      if (data.user.email === 'luchiimee2@gmail.com') {
+        return NextResponse.redirect(`${origin}/dashboard/superadmin`)
+      }
+
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
+  // Si algo falla, al login con error
   return NextResponse.redirect(`${origin}/login?error=auth`)
 }

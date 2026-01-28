@@ -9,13 +9,11 @@ import Image from 'next/image'
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
-  const [showPassword, setShowPassword] = useState(false) // Nuevo estado para el ojito
+  const [showPassword, setShowPassword] = useState(false) 
   
-  // Estados para el formulario
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   
-  // Estados nuevos para el registro
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
@@ -32,8 +30,6 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      console.log("Intentando redirigir a:", `${origin}/auth/callback`) 
-
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -59,7 +55,6 @@ export default function LoginPage() {
 
     try {
       if (isRegistering) {
-        // --- LÓGICA DE REGISTRO ---
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
@@ -91,13 +86,19 @@ export default function LoginPage() {
         setMessage('¡Cuenta creada! Si no entraste automático, revisa tu email.')
 
       } else {
-        // --- LÓGICA DE LOGIN ---
-        const { error } = await supabase.auth.signInWithPassword({
+        // --- LÓGICA DE LOGIN CON REDIRECCIÓN SUPERADMIN CORREGIDA ---
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        router.push('/dashboard')
+
+        // Redirección inteligente hacia la ruta real
+        if (data.user?.email === 'luchiimee2@gmail.com') {
+            router.push('/dashboard/superadmin') // Ruta corregida
+        } else {
+            router.push('/dashboard')
+        }
       }
     } catch (error: any) {
       setMessage(error.message || 'Ocurrió un error')
@@ -106,7 +107,6 @@ export default function LoginPage() {
     }
   }
 
-  // Función para resetear contraseña
   const handleResetPassword = async () => {
     if (!email) {
         setMessage("Por favor, escribe tu email primero.")
@@ -130,7 +130,6 @@ export default function LoginPage() {
   return (
     <div className="flex h-screen w-full bg-white overflow-hidden">
       
-      {/* --- SECCIÓN IMAGEN (70%) --- */}
       <div className="hidden lg:block lg:w-[65%] xl:w-[70%] relative bg-gray-900">
         <div className="absolute inset-0 bg-black/30 z-10" />
         <img 
@@ -140,23 +139,22 @@ export default function LoginPage() {
         />
         <div className="absolute bottom-20 left-10 z-20 text-white max-w-xl">
           <div className="bg-white/20 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl">
-             <h2 className="text-4xl font-bold mb-4">Gestiona tu menú en segundos.</h2>
-             <p className="text-lg text-gray-200">
-               "Snappy cambió la forma en que gestionamos los pedidos. Es rápido, simple y a los clientes les encanta."
-             </p>
-             <div className="flex items-center gap-3 mt-6">
+              <h2 className="text-4xl font-bold mb-4">Gestiona tu menú en segundos.</h2>
+              <p className="text-lg text-gray-200">
+                "Snappy cambió la forma en que gestionamos los pedidos. Es rápido, simple y a los clientes les encanta."
+              </p>
+              <div className="flex items-center gap-3 mt-6">
                 <div className="flex -space-x-2">
-                   {[1,2,3].map(i => (
+                    {[1,2,3].map(i => (
                      <div key={i} className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white"/>
-                   ))}
+                    ))}
                 </div>
                 <span className="text-sm font-medium">+500 restaurantes confían en nosotros</span>
-             </div>
+              </div>
           </div>
         </div>
       </div>
 
-      {/* --- SECCIÓN FORMULARIO (30%) --- */}
       <div className="w-full lg:w-[35%] xl:w-[30%] flex flex-col justify-center px-8 md:px-12 lg:px-16 overflow-y-auto py-10">
         
         <div className="max-w-sm w-full mx-auto">
@@ -261,14 +259,13 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
                 <input 
-                  type={showPassword ? "text" : "password"} // Alternar tipo
+                  type={showPassword ? "text" : "password"} 
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl outline-none focus:border-black focus:ring-1 ring-black transition"
                   placeholder="••••••••"
                   required
                 />
-                {/* Botón del Ojito */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -279,7 +276,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Botón Olvidé Contraseña (solo en login) */}
             {!isRegistering && (
                 <div className="flex justify-end">
                     <button 
