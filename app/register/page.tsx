@@ -25,7 +25,7 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`, // Vuelve al dashboard
+        redirectTo: `${window.location.origin}/dashboard`, 
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -50,7 +50,7 @@ export default function RegisterPage() {
         password: formData.password,
         options: {
             data: {
-                full_name: `${formData.firstName} ${formData.lastName}`, // Para el trigger
+                full_name: `${formData.firstName} ${formData.lastName}`,
                 phone: formData.phone
             }
         }
@@ -59,13 +59,18 @@ export default function RegisterPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Error creando usuario");
 
-      // 2. Actualizar perfil con datos específicos manuales (Teléfono)
-      // El Trigger ya creó la fila, ahora actualizamos lo que falta
+      // 2. Actualizar perfil (Tabla profiles)
       await supabase.from('profiles').update({
         first_name: formData.firstName,
         last_name: formData.lastName,
         phone: formData.phone
       }).eq('id', authData.user.id);
+
+      // 3. 🚀 ACTUALIZACIÓN CLAVE: Guardar teléfono en la tabla restaurants
+      // Esto hace que el banner de "Falta teléfono" desaparezca al entrar
+      await supabase.from('restaurants').update({
+        phone: formData.phone
+      }).eq('user_id', authData.user.id);
 
       alert("¡Cuenta creada! Revisa tu correo.");
       router.push('/login');
