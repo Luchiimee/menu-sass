@@ -418,7 +418,7 @@ export default function SettingsPage() {
                     Estamos haciendo la app para ti. Si quieres que cambiemos algo o necesitas que agreguemos una función, comunícate con nosotros.
                 </p>
                 <a 
-                    href="https://wa.me/5491100000000?text=Hola%20equipo,%20tengo%20una%20sugerencia%20para%20Snappy..." 
+                    href="https://wa.me/5492324694045?text=Hola%20equipo,%20tengo%20una%20sugerencia%20para%20Snappy..." 
                     target="_blank" 
                     className="w-full bg-white text-blue-700 border border-blue-200 px-4 py-3 rounded-xl text-xs font-bold hover:bg-blue-100 transition text-center shadow-sm"
                 >
@@ -487,7 +487,7 @@ export default function SettingsPage() {
                             </button>
                             <p className="text-[10px] text-gray-400 text-center leading-tight">
                                 <CalendarDays size={10} className="inline mr-1"/>
-                                El cobro de $6.400 se realizará el <b>{getChargeDate()}</b>
+                                El cobro de $7.000 se realizará el <b>{getChargeDate()}</b>
                             </p>
                         </div>
                     ) : (
@@ -531,7 +531,7 @@ export default function SettingsPage() {
                             </button>
                             <p className="text-[10px] text-blue-400 text-center leading-tight">
                                 <CalendarDays size={10} className="inline mr-1"/>
-                                El cobro de $13.900 se realizará el <b>{getChargeDate()}</b>
+                                El cobro de $15.900 se realizará el <b>{getChargeDate()}</b>
                             </p>
                         </div>
                     ) : (

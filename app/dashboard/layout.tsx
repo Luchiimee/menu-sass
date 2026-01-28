@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav'; // La barra de abajo
 import TrialBanner from '@/components/TrialBanner';
+// CORRECCIÓN AQUÍ: Usamos '@' en lugar de './' porque la carpeta está en la raíz
+import OrderListener from '@/components/OrderListener'; 
 
 function GoogleAuthHandler() {
   const searchParams = useSearchParams();
@@ -153,6 +155,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
+      {/* 2. AGREGADO: Aquí vive el escucha invisible */}
+      <OrderListener />
+
       <Suspense fallback={null}>
          <GoogleAuthHandler />
       </Suspense>
@@ -199,7 +204,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      {/* AGREGADO: min-w-0 para evitar que el contenido rompa el ancho en flexbox */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
         
         {/* Alerta de Pagos */}
@@ -222,7 +226,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* --- AQUÍ ARREGLAMOS EL ERROR: PASAMOS LAS PROPS --- */}
       <MobileNav displayName={restaurant.name} displaySubtext={getPlanLabel()} />
     </div>
   );
