@@ -18,14 +18,14 @@ export async function POST(request: Request) {
         let reason = '';
 
         if (planType === 'light') {
-            amount = 6400;
+            amount = 7000;
             reason = 'Plan Light - Snappy';
         } else if (planType === 'plus') {
-            amount = 13900;
+            amount = 15900;
             reason = 'Plan Plus - Snappy';
         } else {
             // Por defecto asumimos MAX si no es ni light ni plus
-            amount = 25200;
+            amount = 28600;
             reason = 'Plan Max - Snappy';
         }
         // -----------------------

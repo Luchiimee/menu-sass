@@ -32,11 +32,10 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // --- SI HAY UN PEDIDO ACTIVO (SOLO PLUS/MAX), MOSTRAMOS EL TRACKER ---
   if (activeOrderId && (planType === 'plus' || planType === 'max')) {
       return (
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-50 animate-in slide-in-from-bottom-2">
-              <div className="max-w-md mx-auto">
+              <div className="max-w-md mx-auto text-gray-900">
                   <OrderTracker orderId={activeOrderId} />
                   <button onClick={() => setIsOpen(true)} className="text-xs text-gray-400 underline w-full text-center mt-2">
                       Ver detalle del pedido
@@ -68,7 +67,6 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
       try {
           let orderIdCreated = null;
 
-          // 1. GUARDAR EN SUPABASE
           if (planType === 'plus' || planType === 'max') {
               const { data: newOrder, error } = await supabase.from('orders').insert({
                   restaurant_id: restaurantId,
@@ -89,7 +87,6 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
               }
           }
 
-          // 2. MENSAJE WHATSAPP
           let msg = `*¡Hola! Nuevo Pedido* 🍔\n`;
           if (orderIdCreated) msg += `Ref: #${orderIdCreated.slice(0,5)}\n`;
           msg += `------------------\n`;
@@ -109,23 +106,16 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
 
           msg += `\n*TOTAL: $${finalTotal}*`;
 
-          // 3. LIMPIEZA VISUAL
           setIsOpen(false);
           if (orderIdCreated) clearCart(); 
 
-          // 4. REDIRECCIÓN DEFINITIVA
           setTimeout(() => {
               const textEncoded = encodeURIComponent(msg);
-              
-              // TRUCO: Detectamos si es PC por el ANCHO de la ventana (> 768px es Tablet/PC)
-              // Esto ignora si el "Simulador" de Chrome dice ser un iPhone.
               const isDesktopScreen = window.innerWidth > 768; 
 
               if (isDesktopScreen) {
-                  // MODO PC: Usamos el protocolo directo. NO abre pestaña, abre la APP.
                   window.location.href = `whatsapp://send?phone=${restaurantPhone}&text=${textEncoded}`;
               } else {
-                  // MODO CELULAR REAL: Usamos wa.me que funciona mejor en Android/iOS
                   window.location.href = `https://wa.me/${restaurantPhone}?text=${textEncoded}`;
               }
               
@@ -158,11 +148,11 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
 
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
-            <div className="bg-white w-full max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+            <div className="bg-white w-full max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col text-gray-900">
                 
                 <div className="p-5 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-                    <h2 className="text-xl font-bold flex items-center gap-2"><ShoppingBag/> Tu Pedido</h2>
-                    <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20}/></button>
+                    <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900"><ShoppingBag/> Tu Pedido</h2>
+                    <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600"><X size={20}/></button>
                 </div>
 
                 <div className="p-5 space-y-6">
@@ -177,31 +167,48 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="font-bold text-sm">${item.price * item.quantity}</span>
+                                    <span className="font-bold text-sm text-gray-900">${item.price * item.quantity}</span>
                                     <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><X size={16}/></button>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <hr className="border-dashed"/>
+                    <hr className="border-dashed border-gray-200"/>
 
                     <div className="space-y-3">
                         <h3 className="font-bold text-sm text-gray-500 uppercase">Tus Datos</h3>
-                        <input placeholder="Tu Nombre *" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full p-3 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-2 ring-black/5"/>
-                        <input placeholder="Tu Teléfono (Obligatorio) *" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} type="tel" className="w-full p-3 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-2 ring-black/5"/>
+                        {/* INPUTS CORREGIDOS: bg-gray-50 y text-gray-900 forzado */}
+                        <input 
+                          placeholder="Tu Nombre *" 
+                          value={customerName} 
+                          onChange={(e) => setCustomerName(e.target.value)} 
+                          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 ring-black/5"
+                        />
+                        <input 
+                          placeholder="Tu Teléfono (Obligatorio) *" 
+                          value={customerPhone} 
+                          onChange={(e) => setCustomerPhone(e.target.value)} 
+                          type="tel" 
+                          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 ring-black/5"
+                        />
                     </div>
 
                     <div className="space-y-3">
                         <h3 className="font-bold text-sm text-gray-500 uppercase">Entrega</h3>
                         <div className="grid grid-cols-3 gap-2">
-                            <button onClick={() => setDeliveryType('delivery')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'delivery' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}><Bike size={20}/> Delivery</button>
-                            <button onClick={() => setDeliveryType('retiro')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'retiro' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}><Store size={20}/> Retiro</button>
-                            <button onClick={() => setDeliveryType('mesa')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'mesa' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50'}`}><MapPin size={20}/> Mesa</button>
+                            <button onClick={() => setDeliveryType('delivery')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'delivery' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-200'}`}><Bike size={20}/> Delivery</button>
+                            <button onClick={() => setDeliveryType('retiro')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'retiro' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-200'}`}><Store size={20}/> Retiro</button>
+                            <button onClick={() => setDeliveryType('mesa')} className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition ${deliveryType === 'mesa' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-200'}`}><MapPin size={20}/> Mesa</button>
                         </div>
                         {deliveryType === 'delivery' && (
                             <div className="animate-in fade-in space-y-2">
-                                <input placeholder="Dirección exacta (Calle, Altura, Piso)..." value={address} onChange={(e) => setAddress(e.target.value)} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:ring-2 ring-black/5"/>
+                                <input 
+                                  placeholder="Dirección exacta (Calle, Altura, Piso)..." 
+                                  value={address} 
+                                  onChange={(e) => setAddress(e.target.value)} 
+                                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 ring-black/5"
+                                />
                                 {deliveryCost > 0 && (<div className="flex justify-between items-center bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold"><span>Costo de envío:</span><span>+${deliveryCost}</span></div>)}
                             </div>
                         )}
@@ -210,8 +217,8 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
                     <div className="space-y-3">
                         <h3 className="font-bold text-sm text-gray-500 uppercase">Pago</h3>
                         <div className="grid grid-cols-2 gap-2">
-                            <button onClick={() => setPaymentMethod('efectivo')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'efectivo' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-white text-gray-500 hover:bg-gray-50'}`}><Banknote size={18}/> Efectivo</button>
-                            <button onClick={() => setPaymentMethod('transferencia')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'transferencia' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-white text-gray-500 hover:bg-gray-50'}`}><CreditCard size={18}/> Transferencia</button>
+                            <button onClick={() => setPaymentMethod('efectivo')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'efectivo' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-200'}`}><Banknote size={18}/> Efectivo</button>
+                            <button onClick={() => setPaymentMethod('transferencia')} className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition ${paymentMethod === 'transferencia' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-200'}`}><CreditCard size={18}/> Transferencia</button>
                         </div>
                         {paymentMethod === 'transferencia' && aliasMp && (
                             <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
