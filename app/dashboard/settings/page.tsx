@@ -166,6 +166,7 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Sesión expirada.");
 
+        // 1. Guardar en Profiles
         const { error: profileError } = await supabase.from('profiles').upsert({
             id: user.id,
             first_name: profile.first_name,
@@ -175,9 +176,11 @@ export default function SettingsPage() {
 
         if (profileError) throw profileError;
 
+        // 2. Guardar en Restaurants (Sincronizamos teléfono para borrar el banner)
         if (restaurant.id) {
             const { error: restError } = await supabase.from('restaurants').update({
-                business_hours: restaurant.business_hours
+                business_hours: restaurant.business_hours,
+                phone: profile.phone
             }).eq('id', restaurant.id);
             
             if (restError) throw restError;
@@ -189,6 +192,7 @@ export default function SettingsPage() {
                 name: 'Mi Restaurante',
                 slug: randomSlug,
                 business_hours: restaurant.business_hours,
+                phone: profile.phone,
                 subscription_status: 'active'
             }).select().single();
 
@@ -199,14 +203,21 @@ export default function SettingsPage() {
             }
         }
 
+        // 🚀 CORRECCIÓN AQUÍ: Desactivamos la alerta de cambios ANTES de recargar
         setUnsavedChanges(false); 
-        alert("¡Datos guardados correctamente!");
-        window.location.reload(); 
+        
+        // Pequeño timeout para asegurar que el estado se procese
+        setTimeout(() => {
+            alert("¡Datos guardados correctamente!");
+            window.location.reload(); 
+        }, 100);
 
     } catch (error: any) { 
         console.error(error);
         alert("Error al guardar: " + error.message); 
-    } finally { setSaving(false); }
+    } finally { 
+        setSaving(false); 
+    }
   };
 
   const handlePasswordReset = async () => {
@@ -426,7 +437,7 @@ export default function SettingsPage() {
                 </a>
             </div>
 
-            {/* 4. ZONA DE PELIGRO (Aquí abajo como pediste) */}
+            {/* 4. ZONA DE PELIGRO */}
             <div className="bg-red-50 border border-red-100 p-6 rounded-2xl flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-white p-2 rounded-lg text-red-600 shadow-sm"><AlertTriangle size={20}/></div>
@@ -448,7 +459,7 @@ export default function SettingsPage() {
 
         </div>
 
-        {/* === COLUMNA DERECHA (Planes + Horarios) === */}
+        {/* === COLUMNA DERECHA === */}
         <div className="lg:col-span-8 space-y-6">
             <h2 className="font-bold text-xl flex items-center gap-2">
                 <div className="bg-purple-100 p-2 rounded-lg text-purple-600"><CreditCard size={24}/></div> 
