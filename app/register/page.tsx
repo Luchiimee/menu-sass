@@ -39,7 +39,7 @@ export default function RegisterPage() {
   };
 
   // --- REGISTRO MANUAL CORREGIDO ---
- const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -58,26 +58,25 @@ export default function RegisterPage() {
 
       if (authError) throw authError;
       const newUser = authData.user;
-      if (!newUser) throw new Error("No se pudo crear el usuario en Auth");
+      if (!newUser) throw new Error("Error creando usuario");
 
-      console.log("Usuario creado:", newUser.id);
-
-      // 2. Intentar guardar en PROFILES y capturar error
+      // 2. Intentar guardar en PROFILES (Con detección de error RLS)
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: newUser.id,
           first_name: formData.firstName,
           last_name: formData.lastName,
-          phone: formData.phone,
+          phone: formData.phone
         });
 
       if (profileError) {
-        alert(`ERROR EN TABLA PROFILES: ${profileError.message} - Código: ${profileError.code}`);
-        console.error(profileError);
+        console.error("Error RLS en Profiles:", profileError.message);
+        // Si sale este alert, hay que habilitar las políticas en el panel de Supabase
+        alert("Aviso: El teléfono no se guardó en Perfil por permisos de base de datos.");
       }
 
-      // 3. Intentar guardar en RESTAURANTS y capturar error
+      // 3. Intentar guardar en RESTAURANTS (Para que el banner se vaya)
       const { error: restError } = await supabase
         .from('restaurants')
         .upsert({
@@ -88,17 +87,14 @@ export default function RegisterPage() {
         }, { onConflict: 'user_id' });
 
       if (restError) {
-        alert(`ERROR EN TABLA RESTAURANTS: ${restError.message} - Código: ${restError.code}`);
-        console.error(restError);
+        console.error("Error RLS en Restaurants:", restError.message);
       }
 
-      if (!profileError && !restError) {
-        alert("¡Cuenta creada y datos guardados! Revisa tu correo.");
-        router.push('/login');
-      }
+      alert("¡Cuenta creada! Revisa tu correo para confirmar.");
+      router.push('/login');
 
     } catch (error: any) {
-      alert("ERROR CRÍTICO: " + error.message);
+      alert("Error: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -117,6 +113,7 @@ export default function RegisterPage() {
 
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 w-full max-w-md">
         
+        {/* BOTÓN GOOGLE */}
         <button 
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
@@ -133,6 +130,7 @@ export default function RegisterPage() {
             <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">O manual</span></div>
         </div>
 
+        {/* FORMULARIO MANUAL */}
         <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
