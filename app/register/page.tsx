@@ -39,12 +39,12 @@ export default function RegisterPage() {
   };
 
   // --- REGISTRO MANUAL CORREGIDO ---
-  const handleRegister = async (e: React.FormEvent) => {
+ const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Crear usuario en Autenticación
+      // 1. Crear usuario Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -57,35 +57,48 @@ export default function RegisterPage() {
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Error creando usuario");
+      const newUser = authData.user;
+      if (!newUser) throw new Error("No se pudo crear el usuario en Auth");
 
-      const userId = authData.user.id;
+      console.log("Usuario creado:", newUser.id);
 
-      // 2. FORZAR el guardado en la tabla 'profiles'
-      // El upsert actualiza si ya existe o crea si no está, asegurando el teléfono.
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: userId,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone: formData.phone
-      });
+      // 2. Intentar guardar en PROFILES y capturar error
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: newUser.id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone,
+        });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        alert(`ERROR EN TABLA PROFILES: ${profileError.message} - Código: ${profileError.code}`);
+        console.error(profileError);
+      }
 
-      // 3. FORZAR el guardado en la tabla 'restaurants'
-      // Esto es vital para que el dashboard y el banner reconozcan el teléfono
-      await supabase.from('restaurants').upsert({
-        user_id: userId,
-        phone: formData.phone,
-        name: 'Mi Restaurante',
-        subscription_status: 'active'
-      }, { onConflict: 'user_id' });
+      // 3. Intentar guardar en RESTAURANTS y capturar error
+      const { error: restError } = await supabase
+        .from('restaurants')
+        .upsert({
+          user_id: newUser.id,
+          phone: formData.phone,
+          name: 'Mi Restaurante',
+          subscription_status: 'active'
+        }, { onConflict: 'user_id' });
 
-      alert("¡Cuenta creada! Por favor, revisa tu correo electrónico para confirmar el registro.");
-      router.push('/login');
+      if (restError) {
+        alert(`ERROR EN TABLA RESTAURANTS: ${restError.message} - Código: ${restError.code}`);
+        console.error(restError);
+      }
+
+      if (!profileError && !restError) {
+        alert("¡Cuenta creada y datos guardados! Revisa tu correo.");
+        router.push('/login');
+      }
 
     } catch (error: any) {
-      alert("Error: " + error.message);
+      alert("ERROR CRÍTICO: " + error.message);
     } finally {
       setLoading(false);
     }
