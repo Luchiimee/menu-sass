@@ -205,28 +205,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
-        {!isLoading && <PhoneBanner hasPhone={!!restaurant.phone || !!restaurant.profilePhone} />}
+     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
+  
+  {/* 1. Banner de Datos Personales (Si falta el celular en Settings) */}
+  {!isLoading && <PhoneBanner hasPhone={!!restaurant.profilePhone} />}
 
-        {restaurant.plan && restaurant.status === 'paused' && (
-          <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
-              <p className="font-bold text-sm text-center md:text-left">Tu plan está pausado por falta de pago.</p>
-            </div>
-            <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-red-600 px-4 py-1 rounded-full text-xs font-bold uppercase hover:bg-gray-100 transition whitespace-nowrap">
-              Solucionar
-            </button>
-          </div>
-        )}
+  {/* 2. Alerta de Plan Pausado */}
+  {restaurant.plan && restaurant.status === 'paused' && (
+    <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
+      {/* ... contenido del banner rojo ... */}
+    </div>
+  )}
 
-        {/* 🚀 Pasar la fecha al TrialBanner */}
-        {restaurant.plan && <TrialBanner createdAt={restaurant.createdAt} />}
+  {/* 3. Banner de Días de Prueba (Trial) */}
+  {restaurant.plan && <TrialBanner createdAt={restaurant.createdAt} />}
 
-        <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 md:pb-10">
-            {children}
-        </div>
-      </main>
+  <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 md:pb-10">
+      {children}
+  </div>
+</main>
 
       <MobileNav displayName={restaurant.name} displaySubtext={getPlanLabel()} />
     </div>
