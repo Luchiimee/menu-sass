@@ -19,13 +19,17 @@ export default function RegisterPage() {
     password: ''
   });
 
+  // --- REGISTRO GOOGLE ---
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/dashboard`, 
-        queryParams: { access_type: 'offline', prompt: 'consent' },
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
     if (error) {
@@ -34,56 +38,50 @@ export default function RegisterPage() {
     }
   };
 
+  // --- REGISTRO MANUAL CORREGIDO ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Crear usuario en Supabase Auth
+      // 1. Crear usuario en Autenticación
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
             data: {
                 full_name: `${formData.firstName} ${formData.lastName}`,
-                phone: formData.phone // Se guarda en la sesión
+                phone: formData.phone
             }
         }
       });
 
       if (authError) throw authError;
-      const newUser = authData.user;
-      if (!newUser) throw new Error("Error creando usuario");
+      if (!authData.user) throw new Error("Error creando usuario");
 
-      // 2. 🚀 SOLUCIÓN DEFINITIVA: Usamos UPSERT
-      // El Upsert dice: "Si la fila ya existe (por el trigger), actualizala. Si no existe, creala".
-      // Esto fuerza a que el teléfono entre sí o sí.
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: newUser.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone: formData.phone,
-          updated_at: new Date().toISOString(),
-        });
+      const userId = authData.user.id;
 
-      if (profileError) console.error("Error Perfil:", profileError);
+      // 2. FORZAR el guardado en la tabla 'profiles'
+      // El upsert actualiza si ya existe o crea si no está, asegurando el teléfono.
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: userId,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone
+      });
 
-      // 3. También lo forzamos en la tabla de restaurantes por el banner
-      const { error: restError } = await supabase
-        .from('restaurants')
-        .upsert({
-          user_id: newUser.id,
-          phone: formData.phone,
-          name: 'Mi Restaurante',
-          subscription_status: 'active'
-        }, { onConflict: 'user_id' });
+      if (profileError) throw profileError;
 
-      if (restError) console.error("Error Restaurant:", restError);
+      // 3. FORZAR el guardado en la tabla 'restaurants'
+      // Esto es vital para que el dashboard y el banner reconozcan el teléfono
+      await supabase.from('restaurants').upsert({
+        user_id: userId,
+        phone: formData.phone,
+        name: 'Mi Restaurante',
+        subscription_status: 'active'
+      }, { onConflict: 'user_id' });
 
-      alert("¡Cuenta creada! Revisa tu correo.");
+      alert("¡Cuenta creada! Por favor, revisa tu correo electrónico para confirmar el registro.");
       router.push('/login');
 
     } catch (error: any) {
@@ -95,6 +93,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
+      
       <div className="mb-6 text-center">
         <div className="bg-black text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-xl">
             <Store size={24} />
@@ -104,6 +103,7 @@ export default function RegisterPage() {
       </div>
 
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 w-full max-w-md">
+        
         <button 
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
