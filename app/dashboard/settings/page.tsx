@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
-
+const [showToast, setShowToast] = useState(false);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -176,41 +176,25 @@ export default function SettingsPage() {
 
         if (profileError) throw profileError;
 
-        // 2. Guardar en Restaurants (Sincronizamos teléfono para borrar el banner)
+        // 2. Guardar en Restaurants (para el banner)
         if (restaurant.id) {
             const { error: restError } = await supabase.from('restaurants').update({
                 business_hours: restaurant.business_hours,
-                phone: profile.phone
+                phone: profile.phone 
             }).eq('id', restaurant.id);
             
             if (restError) throw restError;
-
-        } else {
-            const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
-            const { data: newRest, error: createError } = await supabase.from('restaurants').insert({
-                user_id: user.id,
-                name: 'Mi Restaurante',
-                slug: randomSlug,
-                business_hours: restaurant.business_hours,
-                phone: profile.phone,
-                subscription_status: 'active'
-            }).select().single();
-
-            if (createError) throw createError;
-
-            if (newRest) {
-                setRestaurant((prev: any) => ({ ...prev, id: newRest.id }));
-            }
         }
 
-        // 🚀 CORRECCIÓN AQUÍ: Desactivamos la alerta de cambios ANTES de recargar
+        // 🚀 LA MAGIA: Desactivamos cambios y mostramos NUESTRO pop-up
         setUnsavedChanges(false); 
+        setShowToast(true);
         
-        // Pequeño timeout para asegurar que el estado se procese
-        setTimeout(() => {
-            alert("¡Datos guardados correctamente!");
-            window.location.reload(); 
-        }, 100);
+        // El banner se irá solo porque router.refresh() actualiza los datos sin recargar la página
+        router.refresh();
+
+        // Ocultamos el pop-up después de 3 segundos
+        setTimeout(() => setShowToast(false), 3000);
 
     } catch (error: any) { 
         console.error(error);
@@ -218,7 +202,7 @@ export default function SettingsPage() {
     } finally { 
         setSaving(false); 
     }
-  };
+};
 
   const handlePasswordReset = async () => {
       if(!profile.email) return;
@@ -661,6 +645,17 @@ export default function SettingsPage() {
         </div>
 
       </div>
+      {/* 🚀 POP-UP VISUAL (TOAST) */}
+      {showToast && (
+        <div className="fixed bottom-10 right-10 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-black text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+            <div className="bg-green-500 rounded-full p-1">
+              <Check size={16} className="text-white" />
+            </div>
+            <p className="font-bold text-sm">¡Cambios guardados con éxito!</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
