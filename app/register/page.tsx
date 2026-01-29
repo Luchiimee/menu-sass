@@ -44,7 +44,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Crear usuario Auth
+      // 1. Crear usuario en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -58,9 +58,13 @@ export default function RegisterPage() {
 
       if (authError) throw authError;
       const newUser = authData.user;
-      if (!newUser) throw new Error("Error creando usuario");
+      if (!newUser) throw new Error("No se pudo crear el usuario");
 
-      // 2. Intentar guardar en PROFILES (Con detección de error RLS)
+      // 🚀 CLAVE: Esperamos 800ms para que Supabase reconozca la sesión
+      // y nos permita escribir en la base de datos sin errores 401 o 406
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 2. Guardar en la tabla 'profiles'
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -70,13 +74,9 @@ export default function RegisterPage() {
           phone: formData.phone
         });
 
-      if (profileError) {
-        console.error("Error RLS en Profiles:", profileError.message);
-        // Si sale este alert, hay que habilitar las políticas en el panel de Supabase
-        alert("Aviso: El teléfono no se guardó en Perfil por permisos de base de datos.");
-      }
+      if (profileError) console.error("Error en Perfil:", profileError.message);
 
-      // 3. Intentar guardar en RESTAURANTS (Para que el banner se vaya)
+      // 3. Guardar en la tabla 'restaurants' (Esto quita el banner naranja)
       const { error: restError } = await supabase
         .from('restaurants')
         .upsert({
@@ -86,15 +86,13 @@ export default function RegisterPage() {
           subscription_status: 'active'
         }, { onConflict: 'user_id' });
 
-      if (restError) {
-        console.error("Error RLS en Restaurants:", restError.message);
-      }
+      if (restError) console.error("Error en Restaurante:", restError.message);
 
-      alert("¡Cuenta creada! Revisa tu correo para confirmar.");
+      alert("¡Cuenta creada! Por favor, revisa tu email para confirmar tu cuenta.");
       router.push('/login');
 
     } catch (error: any) {
-      alert("Error: " + error.message);
+      alert("ERROR: " + error.message);
     } finally {
       setLoading(false);
     }
