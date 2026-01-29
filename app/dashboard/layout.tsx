@@ -10,7 +10,7 @@ import {
 import MobileNav from '@/components/MobileNav'; 
 import TrialBanner from '@/components/TrialBanner';
 import OrderListener from '@/components/OrderListener'; 
-import PhoneBanner from '@/components/dashboard/PhoneBanner'; // <--- IMPORTANTE
+import PhoneBanner from '@/components/dashboard/PhoneBanner';
 
 function GoogleAuthHandler() {
   const searchParams = useSearchParams();
@@ -36,12 +36,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     name: string,
     plan: string | null,
     status: string,
-    phone: string | null // <--- AGREGADO
+    phone: string | null,
+    createdAt: string | null, 
+    profilePhone: string | null
   }>({
     name: '',      
     plan: null,    
     status: 'active',
-    phone: 'valid' // Evita parpadeo inicial
+    phone: 'valid',
+    createdAt: null, // 🚀 Corregido
+    profilePhone: null
   });
     
   useEffect(() => {
@@ -58,14 +62,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
       try {
+        // 🚀 Corregido: Una sola consulta que trae todo, incluyendo created_at
         const { data: rest } = await supabase
           .from('restaurants')
-          .select('name, subscription_plan, subscription_status, phone') // <--- TRAEMOS EL TELÉFONO
+          .select('name, subscription_plan, subscription_status, phone, created_at')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
         const { data: profile } = await supabase
           .from('profiles')
+          .select('first_name, last_name, phone')
+          .select('first_name, last_name, phone')
           .select('first_name, last_name')
           .eq('id', session.user.id)
           .maybeSingle();
@@ -92,7 +99,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 name: displayName, 
                 plan: rest?.subscription_plan || null,
                 status: rest?.subscription_status || 'active',
-                phone: rest?.phone || null // <--- GUARDAMOS EL TELÉFONO
+                phone: rest?.phone || null,
+              profilePhone: (profile as any)?.phone || null,
+                createdAt: rest?.created_at || null // 🚀 Sincronizado
             });
         }
       } catch (error) {
@@ -156,7 +165,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
          <GoogleAuthHandler />
       </Suspense>
 
-      {/* --- SIDEBAR (SOLO PC) --- */}
       <aside className="hidden md:flex w-64 bg-white border-r flex-col h-full z-20 flex-shrink-0">
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
@@ -197,13 +205,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
-        
-        {/* 1. Banner de Teléfono (Prioridad sobre pausa) */}
-        {!isLoading && <PhoneBanner hasPhone={!!restaurant.phone} />}
+        {!isLoading && <PhoneBanner hasPhone={!!restaurant.phone || !!restaurant.profilePhone} />}
 
-        {/* Alerta de Pagos */}
         {restaurant.plan && restaurant.status === 'paused' && (
           <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
             <div className="flex items-center gap-2">
@@ -216,7 +220,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {restaurant.plan && <TrialBanner />}
+        {/* 🚀 Pasar la fecha al TrialBanner */}
+        {restaurant.plan && <TrialBanner createdAt={restaurant.createdAt} />}
 
         <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 md:pb-10">
             {children}

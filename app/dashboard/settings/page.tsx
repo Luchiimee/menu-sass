@@ -159,59 +159,56 @@ const [showToast, setShowToast] = useState(false);
           setSaving(false);
       }
   };
+const handlePasswordReset = async () => {
+    if (!profile.email) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+        redirectTo: `${window.location.origin}/dashboard/settings`,
+    });
+    if (error) alert("Error: " + error.message);
+    else alert(`Correo de recuperación enviado a ${profile.email}`);
+}; 
+ const handleSave = async () => {
+  setSaving(true);
+  try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sesión expirada.");
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Sesión expirada.");
-
-        // 1. Guardar en Profiles
-        const { error: profileError } = await supabase.from('profiles').upsert({
-            id: user.id,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            phone: profile.phone
-        });
-
-        if (profileError) throw profileError;
-
-        // 2. Guardar en Restaurants (para el banner)
-        if (restaurant.id) {
-            const { error: restError } = await supabase.from('restaurants').update({
-                business_hours: restaurant.business_hours,
-                phone: profile.phone 
-            }).eq('id', restaurant.id);
-            
-            if (restError) throw restError;
-        }
-
-        // 🚀 LA MAGIA: Desactivamos cambios y mostramos NUESTRO pop-up
-        setUnsavedChanges(false); 
-        setShowToast(true);
-        
-        // El banner se irá solo porque router.refresh() actualiza los datos sin recargar la página
-        router.refresh();
-
-        // Ocultamos el pop-up después de 3 segundos
-        setTimeout(() => setShowToast(false), 3000);
-
-    } catch (error: any) { 
-        console.error(error);
-        alert("Error al guardar: " + error.message); 
-    } finally { 
-        setSaving(false); 
-    }
-};
-
-  const handlePasswordReset = async () => {
-      if(!profile.email) return;
-      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-          redirectTo: `${window.location.origin}/dashboard/settings`,
+      // 1. Guardar en Profiles
+      const { error: profileError } = await supabase.from('profiles').upsert({
+          id: user.id,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          phone: profile.phone
       });
-      if (error) alert("Error: " + error.message);
-      else alert(`Correo de recuperación enviado a ${profile.email}`);
-  };
+
+      if (profileError) throw profileError;
+
+      // 2. Guardar en Restaurants (esto quita el banner)
+      if (restaurant.id) {
+          const { error: restError } = await supabase.from('restaurants').update({
+              business_hours: restaurant.business_hours,
+            
+          }).eq('id', restaurant.id);
+          
+          if (restError) throw restError;
+      }
+
+      // 🚀 MAGIA: Desactivamos la alerta de "cambios sin guardar"
+      setUnsavedChanges(false); 
+      setShowToast(true); // Mostramos tu Pop-up negro
+      
+      // Refrescamos la página después de un momento para que el banner se vaya
+      setTimeout(() => {
+          window.location.reload(); 
+      }, 1500);
+
+  } catch (error: any) { 
+      console.error(error);
+      alert("Error al guardar: " + error.message); 
+  } finally { 
+      setSaving(false); 
+  }
+};
 
   const updateHour = (day: string, field: string, value: any) => {
       setUnsavedChanges(true); 
