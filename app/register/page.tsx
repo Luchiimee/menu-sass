@@ -66,13 +66,27 @@ export default function RegisterPage() {
         phone: formData.phone
       }).eq('id', authData.user.id);
 
-      // 3. 🚀 ACTUALIZACIÓN CLAVE: Guardar teléfono en la tabla restaurants
-      // Esto hace que el banner de "Falta teléfono" desaparezca al entrar
-      await supabase.from('restaurants').update({
-        phone: formData.phone
-      }).eq('user_id', authData.user.id);
+      // 3. ACTUALIZACIÓN DEL TELÉFONO EN RESTAURANTS
+      // Intentamos guardar el teléfono. Si el trigger aún no creó la fila, 
+      // esperamos un segundo y reintentamos para que no falle.
+      const updatePhone = async () => {
+        const { error: firstTry } = await supabase
+          .from('restaurants')
+          .update({ phone: formData.phone })
+          .eq('user_id', authData.user!.id);
+        
+        if (firstTry) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await supabase
+            .from('restaurants')
+            .update({ phone: formData.phone })
+            .eq('user_id', authData.user!.id);
+        }
+      };
 
-      alert("¡Cuenta creada! Revisa tu correo.");
+      await updatePhone();
+
+      alert("¡Cuenta creada! Revisa tu correo para confirmar.");
       router.push('/login');
 
     } catch (error: any) {
