@@ -218,16 +218,24 @@ const handleSave = async () => {
         if (createError) throw createError;
         if (newRest) setRestaurant((prev: any) => ({ ...prev, id: newRest.id }));
         
-      } else {
-        // ⛔ ES REINCIDENTE: Lo mandamos directo a pagar (status paused)
+  } else {
+        // 🚀 ES REINCIDENTE: Verificamos si todavía le queda tiempo de su primera vez
+        const firstStart = new Date(alreadyUsed.first_trial_start);
+        const today = new Date();
+        const diffTime = today.getTime() - firstStart.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        // Si pasaron menos de 14 días, sigue 'active'. Si pasaron más, entra 'paused'.
+        const currentStatus = diffDays < 14 ? 'active' : 'paused';
+
         const { data: newRest, error: createError } = await supabase.from('restaurants').insert({
           user_id: user.id,
           name: 'Mi Restaurante',
           slug: randomSlug,
           business_hours: restaurant.business_hours,
-          subscription_status: 'paused', // <--- BLOQUEADO de entrada
+          subscription_status: currentStatus, // 🚀 HEREDA EL ESTADO SEGÚN EL TIEMPO
           subscription_plan: 'light',
-          created_at: alreadyUsed.first_trial_start // Mantiene su fecha vieja
+          created_at: alreadyUsed.first_trial_start // 🚀 HEREDA SU FECHA ORIGINAL
         }).select().single();
 
         if (createError) throw createError;
