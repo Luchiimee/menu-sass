@@ -26,10 +26,7 @@ export default function RegisterPage() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/dashboard`, 
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     });
     if (error) {
@@ -38,61 +35,33 @@ export default function RegisterPage() {
     }
   };
 
-  // --- REGISTRO MANUAL CORREGIDO ---
+  // --- REGISTRO MANUAL (VERSIÓN DEFINITIVA) ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Crear usuario en Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // 🚀 ENVIAMOS TODO A SUPABASE AUTH
+      // Al incluir 'phone' en data, el trigger de SQL lo guardará automáticamente 
+      // en las tablas de profiles y restaurants sin errores de permisos 406.
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-            data: {
-                full_name: `${formData.firstName} ${formData.lastName}`,
-                phone: formData.phone
-            }
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            phone: formData.phone 
+          }
         }
       });
 
-      if (authError) throw authError;
-      const newUser = authData.user;
-      if (!newUser) throw new Error("No se pudo crear el usuario");
+      if (error) throw error;
 
-      // 🚀 CLAVE: Esperamos 800ms para que Supabase reconozca la sesión
-      // y nos permita escribir en la base de datos sin errores 401 o 406
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 2. Guardar en la tabla 'profiles'
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: newUser.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone: formData.phone
-        });
-
-      if (profileError) console.error("Error en Perfil:", profileError.message);
-
-      // 3. Guardar en la tabla 'restaurants' (Esto quita el banner naranja)
-      const { error: restError } = await supabase
-        .from('restaurants')
-        .upsert({
-          user_id: newUser.id,
-          phone: formData.phone,
-          name: 'Mi Restaurante',
-          subscription_status: 'active'
-        }, { onConflict: 'user_id' });
-
-      if (restError) console.error("Error en Restaurante:", restError.message);
-
-      alert("¡Cuenta creada! Por favor, revisa tu email para confirmar tu cuenta.");
+      alert("¡Cuenta creada! Por favor, revisa tu correo para confirmar. El teléfono se verá reflejado apenas inicies sesión.");
       router.push('/login');
 
     } catch (error: any) {
-      alert("ERROR: " + error.message);
+      alert("Error: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -100,7 +69,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
-      
       <div className="mb-6 text-center">
         <div className="bg-black text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-xl">
             <Store size={24} />
@@ -110,8 +78,6 @@ export default function RegisterPage() {
       </div>
 
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 w-full max-w-md">
-        
-        {/* BOTÓN GOOGLE */}
         <button 
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
@@ -128,7 +94,6 @@ export default function RegisterPage() {
             <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">O manual</span></div>
         </div>
 
-        {/* FORMULARIO MANUAL */}
         <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
