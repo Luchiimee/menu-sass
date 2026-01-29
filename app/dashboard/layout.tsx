@@ -72,8 +72,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const { data: profile } = await supabase
           .from('profiles')
           .select('first_name, last_name, phone')
-          .select('first_name, last_name, phone')
-          .select('first_name, last_name')
           .eq('id', session.user.id)
           .maybeSingle();
         
@@ -95,14 +93,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 displayName = session.user.email?.split('@')[0] || "Usuario";
             }
 
-            setRestaurant({
+        setRestaurant({
                 name: displayName, 
                 plan: rest?.subscription_plan || null,
                 status: rest?.subscription_status || 'active',
                 phone: rest?.phone || null,
-              profilePhone: (profile as any)?.phone || null,
-                createdAt: rest?.created_at || null // 🚀 Sincronizado
-            });
+                profilePhone: (profile as any)?.phone || null,
+                createdAt: rest?.created_at || null 
+            });;
         }
       } catch (error) {
         console.error("Error layout:", error);

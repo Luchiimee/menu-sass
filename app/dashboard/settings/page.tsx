@@ -167,46 +167,87 @@ const handlePasswordReset = async () => {
     if (error) alert("Error: " + error.message);
     else alert(`Correo de recuperación enviado a ${profile.email}`);
 }; 
- const handleSave = async () => {
+const handleSave = async () => {
   setSaving(true);
   try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sesión expirada.");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Sesión expirada.");
 
-      // 1. Guardar en Profiles
-      const { error: profileError } = await supabase.from('profiles').upsert({
-          id: user.id,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          phone: profile.phone
-      });
+    // 1. Guardar en Profiles (Tus datos personales)
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: user.id,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      phone: profile.phone
+    });
 
-      if (profileError) throw profileError;
+    if (profileError) throw profileError;
 
-      // 2. Guardar en Restaurants (esto quita el banner)
-      if (restaurant.id) {
-          const { error: restError } = await supabase.from('restaurants').update({
-              business_hours: restaurant.business_hours,
-            
-          }).eq('id', restaurant.id);
-          
-          if (restError) throw restError;
+    // 2. Lógica de Restaurants
+    if (restaurant.id) {
+      // SI YA EXISTE: Solo actualizamos horarios
+      const { error: restError } = await supabase.from('restaurants').update({
+        business_hours: restaurant.business_hours,
+      }).eq('id', restaurant.id);
+
+      if (restError) throw restError;
+    } else {
+      // 🚀 SI ES NUEVO (O REINCIDENTE): Chequeamos la tabla de control
+      const { data: alreadyUsed } = await supabase
+        .from('trial_usage')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const randomSlug = `restaurante-${user.id.slice(0, 6)}-${Math.floor(Math.random() * 1000)}`;
+
+      if (!alreadyUsed) {
+        // ES TOTALMENTE NUEVO: Lo anotamos y le damos 14 días
+        await supabase.from('trial_usage').insert({ user_id: user.id });
+
+        const { data: newRest, error: createError } = await supabase.from('restaurants').insert({
+          user_id: user.id,
+          name: 'Mi Restaurante',
+          slug: randomSlug,
+          business_hours: restaurant.business_hours,
+          subscription_status: 'active', // <--- Tiene sus 14 días
+          subscription_plan: 'light', // O el que quieras por defecto
+          created_at: new Date().toISOString()
+        }).select().single();
+
+        if (createError) throw createError;
+        if (newRest) setRestaurant((prev: any) => ({ ...prev, id: newRest.id }));
+        
+      } else {
+        // ⛔ ES REINCIDENTE: Lo mandamos directo a pagar (status paused)
+        const { data: newRest, error: createError } = await supabase.from('restaurants').insert({
+          user_id: user.id,
+          name: 'Mi Restaurante',
+          slug: randomSlug,
+          business_hours: restaurant.business_hours,
+          subscription_status: 'paused', // <--- BLOQUEADO de entrada
+          subscription_plan: 'light',
+          created_at: alreadyUsed.first_trial_start // Mantiene su fecha vieja
+        }).select().single();
+
+        if (createError) throw createError;
+        if (newRest) setRestaurant((prev: any) => ({ ...prev, id: newRest.id }));
       }
+    }
 
-      // 🚀 MAGIA: Desactivamos la alerta de "cambios sin guardar"
-      setUnsavedChanges(false); 
-      setShowToast(true); // Mostramos tu Pop-up negro
-      
-      // Refrescamos la página después de un momento para que el banner se vaya
-      setTimeout(() => {
-          window.location.reload(); 
-      }, 1500);
+    // 3. Éxito y Refresco
+    setUnsavedChanges(false);
+    setShowToast(true);
 
-  } catch (error: any) { 
-      console.error(error);
-      alert("Error al guardar: " + error.message); 
-  } finally { 
-      setSaving(false); 
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+
+  } catch (error: any) {
+    console.error(error);
+    alert("Error al guardar: " + error.message);
+  } finally {
+    setSaving(false);
   }
 };
 
