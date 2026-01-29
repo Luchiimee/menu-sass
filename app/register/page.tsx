@@ -19,17 +19,13 @@ export default function RegisterPage() {
     password: ''
   });
 
-  // --- REGISTRO GOOGLE ---
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/dashboard`, 
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     });
     if (error) {
@@ -38,55 +34,56 @@ export default function RegisterPage() {
     }
   };
 
-  // --- REGISTRO MANUAL ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Crear usuario Auth
+      // 1. Crear usuario en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
             data: {
                 full_name: `${formData.firstName} ${formData.lastName}`,
-                phone: formData.phone
+                phone: formData.phone // Se guarda en la sesión
             }
         }
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Error creando usuario");
+      const newUser = authData.user;
+      if (!newUser) throw new Error("Error creando usuario");
 
-      // 2. Actualizar perfil (Tabla profiles)
-      await supabase.from('profiles').update({
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone: formData.phone
-      }).eq('id', authData.user.id);
+      // 2. 🚀 SOLUCIÓN DEFINITIVA: Usamos UPSERT
+      // El Upsert dice: "Si la fila ya existe (por el trigger), actualizala. Si no existe, creala".
+      // Esto fuerza a que el teléfono entre sí o sí.
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: newUser.id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone,
+          updated_at: new Date().toISOString(),
+        });
 
-      // 3. ACTUALIZACIÓN DEL TELÉFONO EN RESTAURANTS
-      // Intentamos guardar el teléfono. Si el trigger aún no creó la fila, 
-      // esperamos un segundo y reintentamos para que no falle.
-      const updatePhone = async () => {
-        const { error: firstTry } = await supabase
-          .from('restaurants')
-          .update({ phone: formData.phone })
-          .eq('user_id', authData.user!.id);
-        
-        if (firstTry) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await supabase
-            .from('restaurants')
-            .update({ phone: formData.phone })
-            .eq('user_id', authData.user!.id);
-        }
-      };
+      if (profileError) console.error("Error Perfil:", profileError);
 
-      await updatePhone();
+      // 3. También lo forzamos en la tabla de restaurantes por el banner
+      const { error: restError } = await supabase
+        .from('restaurants')
+        .upsert({
+          user_id: newUser.id,
+          phone: formData.phone,
+          name: 'Mi Restaurante',
+          subscription_status: 'active'
+        }, { onConflict: 'user_id' });
 
-      alert("¡Cuenta creada! Revisa tu correo para confirmar.");
+      if (restError) console.error("Error Restaurant:", restError);
+
+      alert("¡Cuenta creada! Revisa tu correo.");
       router.push('/login');
 
     } catch (error: any) {
@@ -98,7 +95,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
-      
       <div className="mb-6 text-center">
         <div className="bg-black text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-xl">
             <Store size={24} />
@@ -108,8 +104,6 @@ export default function RegisterPage() {
       </div>
 
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 w-full max-w-md">
-        
-        {/* BOTÓN GOOGLE */}
         <button 
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
@@ -126,7 +120,6 @@ export default function RegisterPage() {
             <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">O manual</span></div>
         </div>
 
-        {/* FORMULARIO MANUAL */}
         <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
