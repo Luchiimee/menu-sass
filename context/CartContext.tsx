@@ -17,7 +17,7 @@ type CartContextType = {
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  clearAll: () => void; // 🚀 Nueva: Limpieza total para Plan Plus
+  clearAll: () => void; // 🚀 Cambio 1: Agregado para el reset total
   total: number;
   cartRestaurantId: string | null;
   activeOrderId: string | null;
@@ -32,21 +32,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // 1. Cargar datos al inicio con VALIDACIÓN de Restaurante
+  // 1. Cargar datos al inicio con VALIDACIÓN de Link
   useEffect(() => {
     const savedCart = localStorage.getItem('snappy_cart');
     const savedRestId = localStorage.getItem('snappy_rest_id');
     const savedOrderId = localStorage.getItem('snappy_active_order_id');
     
-    // Obtenemos el slug de la URL actual
-    const currentSlug = window.location.pathname.split('/')[1];
+    // 🚀 Cambio 2: Verificamos el local actual
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const currentSlug = pathSegments[0];
 
-    // 🚀 VALIDACIÓN: Si el restaurante guardado es distinto al actual, borramos memoria vieja
+    // Si el local guardado NO es el que estamos viendo, limpiamos antes de cargar
     if (savedRestId && currentSlug && savedRestId !== currentSlug) {
       localStorage.removeItem('snappy_cart');
       localStorage.removeItem('snappy_rest_id');
       localStorage.removeItem('snappy_active_order_id');
-      // No seteamos estados aquí para que inicien vacíos
+      // No seteamos nada, que inicie vacío
     } else {
       if (savedCart) setCart(JSON.parse(savedCart));
       if (savedRestId) setCartRestaurantId(savedRestId);
@@ -74,8 +75,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addToCart = (product: Product) => {
-    // 🚀 Al agregar, nos aseguramos de marcar a qué restaurante pertenece este carrito
-    const currentSlug = window.location.pathname.split('/')[1];
+    // 🚀 Al agregar, anotamos el slug actual para que sepa de quién es el carrito
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const currentSlug = pathSegments[0];
     if (currentSlug) setCartRestaurantId(currentSlug);
 
     setCart((prev) => {
@@ -104,12 +106,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('snappy_cart');
   };
 
-  // 🚀 Función para Plan Plus: Limpia carrito y seguimiento de pedido
+  // 🚀 Cambio 3: Nueva función para limpiar seguimiento y carrito
   const clearAll = () => {
     setCart([]);
     setCartRestaurantId(null);
     setActiveOrderIdState(null);
-    localStorage.clear(); // Opcional: limpia todo para reiniciar al cliente
+    localStorage.removeItem('snappy_cart');
+    localStorage.removeItem('snappy_rest_id');
+    localStorage.removeItem('snappy_active_order_id');
   };
 
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
