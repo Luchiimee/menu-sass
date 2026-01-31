@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
 
 export default function ClearCartLogic({ currentRestaurantId }: { currentRestaurantId: string }) {
   const { cartRestaurantId, clearCart, activeOrderId, setActiveOrderId } = useCart();
   
+  // Referencia para guardar el último ID procesado y evitar bucles
+  const lastProcessedId = useRef<string | null>(null);
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Helper para fechas UTC
   const parseDateUTC = (dateString: string) => {
       if (!dateString.endsWith('Z') && !dateString.includes('+')) {
           return new Date(dateString + 'Z').getTime();
@@ -20,11 +22,13 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
       return new Date(dateString).getTime();
   };
 
-  // 1. Limpieza por cambio de Restaurante
+  // 1. Limpieza por cambio de Restaurante (CORREGIDO)
   useEffect(() => {
-    if (cartRestaurantId && cartRestaurantId !== currentRestaurantId) {
-        clearCart(); 
+    // Si el ID del carrito existe y es distinto al actual Y no lo procesamos ya...
+    if (cartRestaurantId && cartRestaurantId !== currentRestaurantId && lastProcessedId.current !== currentRestaurantId) {
+        lastProcessedId.current = currentRestaurantId;
         setActiveOrderId(null); 
+        clearCart();
     }
   }, [cartRestaurantId, currentRestaurantId, clearCart, setActiveOrderId]);
 
@@ -39,7 +43,7 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
               .eq('id', activeOrderId)
               .single();
 
-          if (order && (order.status === 'completado' || order.status === 'cancelado' || order.status === 'entregado')) { 
+          if (order && ['completado', 'cancelado', 'entregado'].includes(order.status)) { 
               const lastUpdate = parseDateUTC(order.updated_at);
               const now = new Date().getTime();
               const minutesPassed = (now - lastUpdate) / (1000 * 60);
@@ -47,13 +51,13 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
               if (minutesPassed > 5) {
                   setActiveOrderId(null);
                   clearCart();
-                  window.location.reload(); // Recarga suave para limpiar la UI
+                  // No hacemos reload, dejamos que el estado fluya
               }
           }
       };
 
       checkOrderStatus();
-      const interval = setInterval(checkOrderStatus, 30000); // Revisar cada 30 segs
+      const interval = setInterval(checkOrderStatus, 30000); 
       return () => clearInterval(interval);
 
   }, [activeOrderId, supabase, setActiveOrderId, clearCart]);

@@ -111,16 +111,26 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
 
           setTimeout(() => {
               const textEncoded = encodeURIComponent(msg);
-              const isDesktopScreen = window.innerWidth > 768; 
+              // Limpiamos el teléfono de cualquier caracter que no sea número
+              const cleanPhone = restaurantPhone.replace(/\D/g, '');
+              
+              // Usamos whatsapp://send que es el protocolo nativo para forzar la apertura de la app
+              // Si falla (como en PC), wa.me sirve de respaldo
+              const nativeUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
+              const webUrl = `https://wa.me/${cleanPhone}?text=${textEncoded}`;
 
-              if (isDesktopScreen) {
-                  window.location.href = `whatsapp://send?phone=${restaurantPhone}&text=${textEncoded}`;
-              } else {
-                  window.location.href = `https://wa.me/${restaurantPhone}?text=${textEncoded}`;
-              }
+              // Intentamos abrir la app directamente
+              window.location.href = nativeUrl;
+
+              // Fallback: si en 500ms no pasó nada, intentamos el enlace wa.me
+              setTimeout(() => {
+                if (document.hasFocus()) {
+                  window.location.href = webUrl;
+                }
+              }, 500);
               
               setIsSending(false);
-          }, 500);
+          }, 300);
 
       } catch (err) {
           console.error(err);
@@ -178,7 +188,6 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
 
                     <div className="space-y-3">
                         <h3 className="font-bold text-sm text-gray-500 uppercase">Tus Datos</h3>
-                        {/* INPUTS CORREGIDOS: bg-gray-50 y text-gray-900 forzado */}
                         <input 
                           placeholder="Tu Nombre *" 
                           value={customerName} 
