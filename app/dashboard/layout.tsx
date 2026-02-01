@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
-  LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3 
+  LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
+  LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight 
 } from 'lucide-react';
-import MobileNav from '@/components/MobileNav'; // La barra de abajo
+import MobileNav from '@/components/MobileNav'; 
 import TrialBanner from '@/components/TrialBanner';
-// CORRECCIÓN AQUÍ: Usamos '@' en lugar de './' porque la carpeta está en la raíz
 import OrderListener from '@/components/OrderListener'; 
 
 function GoogleAuthHandler() {
@@ -32,6 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPhone, setHasPhone] = useState(true); // Guardián del teléfono
   const [restaurant, setRestaurant] = useState<{
     name: string,
     plan: string | null,
@@ -56,19 +57,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
       try {
+        // 1. Verificar Restaurante
         const { data: rest } = await supabase
           .from('restaurants')
           .select('name, subscription_plan, subscription_status') 
           .eq('user_id', session.user.id)
           .maybeSingle();
         
+        // 2. Verificar Perfil (Aquí chequeamos el teléfono)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name, last_name')
+          .select('first_name, last_name, phone')
           .eq('id', session.user.id)
           .maybeSingle();
         
         if (mounted) {
+            // Lógica del Banner: Si no hay teléfono, mostramos alerta
+            if (!profile?.phone || profile.phone.trim() === "") {
+              setHasPhone(false);
+            } else {
+              setHasPhone(true);
+            }
+
             let displayName = "Bienvenido";
 
             if (profile?.first_name) {
@@ -155,7 +165,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
-      {/* 2. AGREGADO: Aquí vive el escucha invisible */}
       <OrderListener />
 
       <Suspense fallback={null}>
@@ -216,6 +225,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-red-600 px-4 py-1 rounded-full text-xs font-bold uppercase hover:bg-gray-100 transition whitespace-nowrap">
               Solucionar
             </button>
+          </div>
+        )}
+
+        {/* --- BANNER DE TELÉFONO PERSONAL (GLOBAL) --- */}
+        {!isLoading && !hasPhone && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-20 animate-in slide-in-from-top-full">
+            <div className="flex items-center gap-3 text-amber-800">
+              <div className="bg-amber-100 p-2 rounded-lg hidden sm:block">
+                <AlertTriangle size={18} className="text-amber-600" />
+              </div>
+              <div>
+                <p className="font-bold text-xs sm:text-sm">Falta tu teléfono de contacto</p>
+                <p className="text-[10px] sm:text-xs text-amber-700 opacity-80">Completa tu perfil en configuración para una mejor asistencia.</p>
+              </div>
+            </div>
+            <Link 
+              href="/dashboard/settings" 
+              className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-amber-700 transition flex items-center gap-1 whitespace-nowrap"
+            >
+              Completar <ArrowRight size={14} />
+            </Link>
           </div>
         )}
 
