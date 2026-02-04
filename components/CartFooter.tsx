@@ -84,6 +84,18 @@ export default function CartFooter({ phone: restaurantPhone, deliveryCost, resta
               if (!error && newOrder) {
                   orderIdCreated = newOrder.id;
                   setActiveOrderId(newOrder.id);
+
+                  // Push notification al dueño (fire-and-forget)
+                  fetch('/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      restaurantId,
+                      customerName,
+                      total: finalTotal,
+                      orderType: deliveryType,
+                    }),
+                  }).catch(() => {});
               }
           }
 

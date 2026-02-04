@@ -2,16 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  UtensilsCrossed, 
-  BarChart3, 
-  Palette, 
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  UtensilsCrossed,
+  BarChart3,
+  Palette,
   User,
   Store,
   Zap
 } from 'lucide-react';
+import PushNotificationManager from '@/components/PushNotificationManager';
 
 interface MobileNavProps {
   displayName: string;
@@ -50,10 +51,12 @@ export default function MobileNav({ displayName, displaySubtext }: MobileNavProp
             </div>
          </div>
 
-         {/* AQUÍ ESTÁ LA PERSONITA (Settings) */}
-         <Link href="/dashboard/settings" className="p-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition active:scale-95 border border-gray-200">
-            <User size={20} />
-         </Link>
+         <div className="flex items-center gap-2">
+            <PushNotificationManager mobile />
+            <Link href="/dashboard/settings" className="p-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition active:scale-95 border border-gray-200">
+               <User size={20} />
+            </Link>
+         </div>
       </div>
 
       {/* --- BARRA INFERIOR (FIXED) --- */}

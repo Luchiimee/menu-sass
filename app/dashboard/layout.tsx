@@ -8,9 +8,10 @@ import {
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight 
 } from 'lucide-react';
-import MobileNav from '@/components/MobileNav'; 
+import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
-import OrderListener from '@/components/OrderListener'; 
+import OrderListener from '@/components/OrderListener';
+import PushNotificationManager from '@/components/PushNotificationManager'; 
 
 function GoogleAuthHandler() {
   const searchParams = useSearchParams();
@@ -205,7 +206,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
         
-        <div className="p-4 border-t mt-auto">
+        <div className="p-4 border-t mt-auto space-y-2">
+          <PushNotificationManager />
           <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition cursor-pointer">
               <LogOut size={18} /> Cerrar Sesión
           </button>
