@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Bell, BellOff, Loader2, Download } from 'lucide-react';
+import { Bell, BellOff, Loader2, Download, X, Share, PlusSquare } from 'lucide-react';
 
 export default function PushNotificationManager({ mobile = false }: { mobile?: boolean }) {
   const [status, setStatus] = useState<'loading' | 'ios-install' | 'not-supported' | 'ready'>('loading');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showIOSModal, setShowIOSModal] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -129,12 +130,53 @@ export default function PushNotificationManager({ mobile = false }: { mobile?: b
 
     if (status === 'ios-install') {
       return (
-        <div
-          className="p-2 bg-orange-50 rounded-full border border-orange-200"
-          title="Abre en Safari e instala la app para notificaciones"
-        >
-          <Download size={20} className="text-orange-500" />
-        </div>
+        <>
+          <button
+            onClick={() => setShowIOSModal(true)}
+            className="p-2 bg-orange-50 rounded-full border border-orange-200 active:scale-95 transition"
+          >
+            <Download size={20} className="text-orange-500" />
+          </button>
+          {showIOSModal && (
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center animate-in fade-in">
+              <div className="bg-white w-full rounded-t-3xl p-6 pb-10 animate-in slide-in-from-bottom-4 max-w-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Instalar App</h3>
+                  <button onClick={() => setShowIOSModal(false)} className="p-2 bg-gray-100 rounded-full">
+                    <X size={20} className="text-gray-600" />
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600 mb-6">Para recibir notificaciones en iPhone, instalá la app siguiendo estos pasos:</p>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="bg-blue-100 p-2 rounded-lg"><Share size={20} className="text-blue-600" /></div>
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">1. Tocá el botón Compartir</p>
+                      <p className="text-xs text-gray-500">El ícono de cuadrado con flecha hacia arriba</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="bg-green-100 p-2 rounded-lg"><PlusSquare size={20} className="text-green-600" /></div>
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">2. Agregar a Inicio</p>
+                      <p className="text-xs text-gray-500">Buscá "Agregar a pantalla de inicio"</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="bg-orange-100 p-2 rounded-lg"><Bell size={20} className="text-orange-600" /></div>
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">3. Abrí desde el ícono</p>
+                      <p className="text-xs text-gray-500">Luego podrás activar las notificaciones</p>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setShowIOSModal(false)} className="w-full mt-6 bg-black text-white py-3 rounded-xl font-bold">
+                  Entendido
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       );
     }
 
@@ -164,10 +206,54 @@ export default function PushNotificationManager({ mobile = false }: { mobile?: b
 
   if (status === 'ios-install') {
     return (
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium bg-orange-50 text-orange-700 w-full">
-        <Download size={16} />
-        <span>Instala la app para notificaciones</span>
-      </div>
+      <>
+        <button
+          onClick={() => setShowIOSModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium bg-orange-50 text-orange-700 w-full hover:bg-orange-100 transition"
+        >
+          <Download size={16} />
+          <span>Instala la app para notificaciones</span>
+        </button>
+        {showIOSModal && (
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white w-full rounded-2xl p-6 animate-in zoom-in-95 max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Instalar App</h3>
+                <button onClick={() => setShowIOSModal(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                  <X size={20} className="text-gray-600" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-6">Para recibir notificaciones en iPhone/iPad, instalá la app siguiendo estos pasos:</p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                  <div className="bg-blue-100 p-2 rounded-lg"><Share size={20} className="text-blue-600" /></div>
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">1. Tocá el botón Compartir</p>
+                    <p className="text-xs text-gray-500">El ícono de cuadrado con flecha hacia arriba</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                  <div className="bg-green-100 p-2 rounded-lg"><PlusSquare size={20} className="text-green-600" /></div>
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">2. Agregar a Inicio</p>
+                    <p className="text-xs text-gray-500">Buscá "Agregar a pantalla de inicio"</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                  <div className="bg-orange-100 p-2 rounded-lg"><Bell size={20} className="text-orange-600" /></div>
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">3. Abrí desde el ícono</p>
+                    <p className="text-xs text-gray-500">Luego podrás activar las notificaciones</p>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setShowIOSModal(false)} className="w-full mt-6 bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition">
+                Entendido
+              </button>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
