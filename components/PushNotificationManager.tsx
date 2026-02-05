@@ -138,39 +138,39 @@ export default function PushNotificationManager({ mobile = false }: { mobile?: b
             <Download size={20} className="text-orange-500" />
           </button>
           {showIOSModal && (
-            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center animate-in fade-in">
-              <div className="bg-white w-full rounded-t-3xl p-6 pb-10 animate-in slide-in-from-bottom-4 max-w-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-gray-900">Instalar App</h3>
-                  <button onClick={() => setShowIOSModal(false)} className="p-2 bg-gray-100 rounded-full">
-                    <X size={20} className="text-gray-600" />
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-2xl p-5 animate-in zoom-in-95 max-w-xs w-full">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-base font-bold text-gray-900">Instalar App</h3>
+                  <button onClick={() => setShowIOSModal(false)} className="p-1.5 bg-gray-100 rounded-full">
+                    <X size={18} className="text-gray-600" />
                   </button>
                 </div>
-                <p className="text-sm text-gray-600 mb-6">Para recibir notificaciones en iPhone, instalá la app siguiendo estos pasos:</p>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                    <div className="bg-blue-100 p-2 rounded-lg"><Share size={20} className="text-blue-600" /></div>
+                <p className="text-xs text-gray-600 mb-4">Para recibir notificaciones, instalá la app:</p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                    <div className="bg-blue-100 p-1.5 rounded-lg"><Share size={16} className="text-blue-600" /></div>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">1. Tocá el botón Compartir</p>
-                      <p className="text-xs text-gray-500">El ícono de cuadrado con flecha hacia arriba</p>
+                      <p className="font-bold text-xs text-gray-900">1. Tocá Compartir</p>
+                      <p className="text-[10px] text-gray-500">Ícono de cuadrado con flecha</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                    <div className="bg-green-100 p-2 rounded-lg"><PlusSquare size={20} className="text-green-600" /></div>
+                  <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                    <div className="bg-green-100 p-1.5 rounded-lg"><PlusSquare size={16} className="text-green-600" /></div>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">2. Agregar a Inicio</p>
-                      <p className="text-xs text-gray-500">Buscá "Agregar a pantalla de inicio"</p>
+                      <p className="font-bold text-xs text-gray-900">2. Agregar a Inicio</p>
+                      <p className="text-[10px] text-gray-500">"Agregar a pantalla de inicio"</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                    <div className="bg-orange-100 p-2 rounded-lg"><Bell size={20} className="text-orange-600" /></div>
+                  <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                    <div className="bg-orange-100 p-1.5 rounded-lg"><Bell size={16} className="text-orange-600" /></div>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">3. Abrí desde el ícono</p>
-                      <p className="text-xs text-gray-500">Luego podrás activar las notificaciones</p>
+                      <p className="font-bold text-xs text-gray-900">3. Abrí desde el ícono</p>
+                      <p className="text-[10px] text-gray-500">Activá las notificaciones</p>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setShowIOSModal(false)} className="w-full mt-6 bg-black text-white py-3 rounded-xl font-bold">
+                <button onClick={() => setShowIOSModal(false)} className="w-full mt-4 bg-black text-white py-2.5 rounded-xl font-bold text-sm">
                   Entendido
                 </button>
               </div>
@@ -216,38 +216,38 @@ export default function PushNotificationManager({ mobile = false }: { mobile?: b
         </button>
         {showIOSModal && (
           <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white w-full rounded-2xl p-6 animate-in zoom-in-95 max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Instalar App</h3>
-                <button onClick={() => setShowIOSModal(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
-                  <X size={20} className="text-gray-600" />
+            <div className="bg-white rounded-2xl p-5 animate-in zoom-in-95 max-w-xs w-full">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-gray-900">Instalar App</h3>
+                <button onClick={() => setShowIOSModal(false)} className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200">
+                  <X size={18} className="text-gray-600" />
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mb-6">Para recibir notificaciones en iPhone/iPad, instalá la app siguiendo estos pasos:</p>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                  <div className="bg-blue-100 p-2 rounded-lg"><Share size={20} className="text-blue-600" /></div>
+              <p className="text-xs text-gray-600 mb-4">Para recibir notificaciones, instalá la app:</p>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                  <div className="bg-blue-100 p-1.5 rounded-lg"><Share size={16} className="text-blue-600" /></div>
                   <div>
-                    <p className="font-bold text-sm text-gray-900">1. Tocá el botón Compartir</p>
-                    <p className="text-xs text-gray-500">El ícono de cuadrado con flecha hacia arriba</p>
+                    <p className="font-bold text-xs text-gray-900">1. Tocá Compartir</p>
+                    <p className="text-[10px] text-gray-500">Ícono de cuadrado con flecha</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                  <div className="bg-green-100 p-2 rounded-lg"><PlusSquare size={20} className="text-green-600" /></div>
+                <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                  <div className="bg-green-100 p-1.5 rounded-lg"><PlusSquare size={16} className="text-green-600" /></div>
                   <div>
-                    <p className="font-bold text-sm text-gray-900">2. Agregar a Inicio</p>
-                    <p className="text-xs text-gray-500">Buscá "Agregar a pantalla de inicio"</p>
+                    <p className="font-bold text-xs text-gray-900">2. Agregar a Inicio</p>
+                    <p className="text-[10px] text-gray-500">"Agregar a pantalla de inicio"</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                  <div className="bg-orange-100 p-2 rounded-lg"><Bell size={20} className="text-orange-600" /></div>
+                <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
+                  <div className="bg-orange-100 p-1.5 rounded-lg"><Bell size={16} className="text-orange-600" /></div>
                   <div>
-                    <p className="font-bold text-sm text-gray-900">3. Abrí desde el ícono</p>
-                    <p className="text-xs text-gray-500">Luego podrás activar las notificaciones</p>
+                    <p className="font-bold text-xs text-gray-900">3. Abrí desde el ícono</p>
+                    <p className="text-[10px] text-gray-500">Activá las notificaciones</p>
                   </div>
                 </div>
               </div>
-              <button onClick={() => setShowIOSModal(false)} className="w-full mt-6 bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition">
+              <button onClick={() => setShowIOSModal(false)} className="w-full mt-4 bg-black text-white py-2.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition">
                 Entendido
               </button>
             </div>
