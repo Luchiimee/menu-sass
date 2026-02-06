@@ -34,7 +34,7 @@ export default function MobileNav({ displayName, displaySubtext }: MobileNavProp
     <>
       {/* --- HEADER SUPERIOR (FIXED) --- */}
       {/* CAMBIO CLAVE: Usamos 'fixed top-0' para que se pegue al techo sí o sí */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm">
          
          <div className="flex items-center gap-3">
             <div className="bg-black text-white p-2 rounded-lg">
@@ -60,7 +60,7 @@ export default function MobileNav({ displayName, displaySubtext }: MobileNavProp
       </div>
 
       {/* --- BARRA INFERIOR (FIXED) --- */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-16 z-50 flex items-center justify-around pb-1 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] safe-area-bottom">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-16 z-50 flex items-center justify-around pb-1 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] safe-area-bottom">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;

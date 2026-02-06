@@ -164,7 +164,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
       <OrderListener />
 
@@ -173,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </Suspense>
 
       {/* --- SIDEBAR (SOLO PC) --- */}
-      <aside className="hidden md:flex w-64 bg-white border-r flex-col h-full z-20 flex-shrink-0">
+      <aside className="hidden lg:flex w-64 bg-white border-r flex-col h-full z-20 flex-shrink-0">
         <div className="p-6 border-b flex items-center gap-3">
           <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
           <div className="overflow-hidden">
@@ -253,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {restaurant.plan && <TrialBanner />}
 
-        <div className="p-4 md:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 md:pb-10">
+        <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10">
             {children}
         </div>
       </main>
