@@ -1,7 +1,7 @@
 'use client';
 
 import { useCart } from '@/context/CartContext';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Settings2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Product {
@@ -12,27 +12,42 @@ interface Product {
   image_url?: string;
 }
 
-// 1. DEFINIMOS LA INTERFAZ CORRECTAMENTE
 interface AddToCartBtnProps {
   product: Product;
   variant?: 'icon' | 'full'; 
   isDark?: boolean;
-  disabled?: boolean; // <--- ESTA ES LA CLAVE
+  disabled?: boolean;
+  hasExtras?: boolean; // Nueva prop
+  onOpenExtras?: () => void; // Nueva prop
 }
 
-export default function AddToCartBtn({ product, variant = 'icon', isDark = false, disabled = false }: AddToCartBtnProps) {
-  const { cart, addToCart, removeFromCart } = useCart();
+export default function AddToCartBtn({ 
+  product, 
+  variant = 'icon', 
+  isDark = false, 
+  disabled = false,
+  hasExtras = false,
+  onOpenExtras 
+}: AddToCartBtnProps) {
+  const { cart, addItem: addToCart, removeItem: removeFromCart } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const itemInCart = cart.find((item) => item.id === product.id);
-  const quantity = itemInCart ? itemInCart.quantity : 0;
+  // Cantidad total de este producto en el carrito
+  const quantity = cart
+    .filter((item) => item.id === product.id)
+    .reduce((acc, item) => acc + item.quantity, 0);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    if (disabled) return; // SI ESTÁ DESHABILITADO, NO HACE NADA
+    if (disabled) return; 
+
+    // Si tiene extras y es la primera vez que se agrega, o si se pide abrir el menu
+    if (hasExtras && onOpenExtras) {
+        onOpenExtras();
+        return;
+    }
 
     addToCart(product);
-    if (navigator.vibrate) navigator.vibrate(50);
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 200);
   };
@@ -41,54 +56,42 @@ export default function AddToCartBtn({ product, variant = 'icon', isDark = false
     e.stopPropagation();
     if (disabled) return;
     
-    removeFromCart(product.id);
-    if (navigator.vibrate) navigator.vibrate(50);
+    // Si tiene extras, lo mejor es que el usuario gestione desde el carrito 
+    // o removemos el último agregado sin extras específicos
+    const itemToRemove = cart.find(item => item.id === product.id && !item.selectedExtrasName) 
+                       || cart.find(item => item.id === product.id);
+    
+    if (itemToRemove) removeFromCart(itemToRemove.uniqueId);
   };
 
-  const disabledStyle = disabled ? 'opacity-40 grayscale cursor-not-allowed pointer-events-none' : '';
-
+  // Botón con cantidad 0
   if (quantity === 0) {
-    if (variant === 'full') {
-      return (
-        <button 
-          onClick={handleAdd}
-          disabled={disabled}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs shadow-sm transition-transform active:scale-95
-            ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}
-            ${disabledStyle}
-          `}
-        >
-          <Plus size={14} /> {disabled ? 'Cerrado' : 'Agregar'}
-        </button>
-      );
-    }
-
     return (
       <button 
         onClick={handleAdd}
         disabled={disabled}
-        className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-transform active:scale-95
-            ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}
-            ${disabledStyle}
-        `}
+        className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md bg-white text-black border border-gray-100 active:scale-95 transition-all ${disabled ? 'opacity-40 grayscale' : ''}`}
       >
-        <Plus size={16} />
+        {hasExtras ? <Settings2 size={14} className="text-[#f0b001]" /> : <Plus size={16} />}
       </button>
     );
   }
 
+  // Botón con cantidad > 0
   return (
     <div 
-      className={`flex items-center gap-3 rounded-full px-2 py-1 shadow-md font-bold text-sm animate-in zoom-in duration-200
-        ${isDark ? 'bg-white text-black' : 'bg-black text-white'}
-        ${isAnimating ? 'scale-105' : 'scale-100'}
-        ${disabledStyle}
-      `}
+      className={`flex items-center gap-3 rounded-full px-2 py-1 shadow-md font-bold text-sm bg-white text-black border border-gray-100 ${isAnimating ? 'scale-105' : 'scale-100'} ${disabled ? 'opacity-40 grayscale' : ''}`}
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={handleRemove} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-500/20"><Minus size={14} /></button>
-      <span className="min-w-[10px] text-center tabular-nums">{quantity}</span>
-      <button onClick={handleAdd} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-500/20"><Plus size={14} /></button>
+      <button onClick={handleRemove} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100">
+        <Minus size={14} />
+      </button>
+      
+      <span className="min-w-[12px] text-center tabular-nums text-[#f0b001]">{quantity}</span>
+      
+      <button onClick={handleAdd} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100">
+        {hasExtras ? <Settings2 size={14} className="text-[#f0b001]" /> : <Plus size={14} />}
+      </button>
     </div>
   );
 }

@@ -1,248 +1,493 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import { Clock, Star } from 'lucide-react'; 
+import { Plus, Check, Coffee, Loader2, X, Utensils, Star, Clock } from 'lucide-react'; 
 import AddToCartBtn from '@/components/AddToCartBtn'; 
 import CartFooter from '@/components/CartFooter'; 
 import ClearCartLogic from '@/components/ClearCartLogic'; 
-import { CartProvider } from '@/context/CartContext'; 
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { CartProvider, useCart } from '@/context/CartContext';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- 1. DATOS (CORREGIDO PARA USAR TABLA product_extras) ---
 async function getRestaurant(slug: string) {
+  // 1. Traemos el restaurante y productos
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select(`*, categories (id, name, products (id, name, description, price, image_url))`)
+    .select(`
+      *, 
+      categories (
+        id, 
+        name, 
+        products (id, name, description, price, image_url)
+      )
+    `)
     .eq('slug', slug)
     .single();
-  return restaurant;
+
+  if (!restaurant) return null;
+
+  // 2. Traemos los extras y sus relaciones desde la tabla intermedia
+  // Esto coincide con lo que hace tu dashboard
+  const { data: allExtras } = await supabase
+    .from('extras')
+    .select(`
+      *,
+      product_extras (product_id)
+    `)
+    .eq('restaurant_id', restaurant.id);
+
+  return { ...restaurant, fetched_extras: allExtras || [] };
 }
 
-// --- FUNCIÓN DE HORARIOS CORREGIDA (Soporte para 00:00) ---
+// --- 2. HORARIOS ---
 function checkIsOpen(businessHours: any) {
-  if (!businessHours) return true; 
-
-  const now = new Date();
-
-  // 1. Obtener DÍA (Argentina)
-  const dayFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    weekday: 'long',
-  });
-  const dayName = dayFormatter.format(now).toLowerCase(); 
-
-  // 2. Obtener HORA ACTUAL (Argentina)
-  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  const currentTime = timeFormatter.format(now); // Ej: "23:45"
-
-  // 3. Buscar configuración
-  const todayConfig = businessHours[dayName];
-  if (!todayConfig || !todayConfig.isOpen) return false;
-
-  // 4. Definir horarios CON "TRUCO" PARA 00:00
-  // Si la hora de cierre es "00:00", la convertimos a "24:00" para que la matemática funcione (23:45 < 24:00)
-  const fixTime = (time: string) => time === '00:00' ? '24:00' : time;
-
-  const open1 = todayConfig.open || '09:00';
-  const close1 = fixTime(todayConfig.close || '13:00');
-  
-  const open2 = todayConfig.open2 || '17:00';
-  const close2 = fixTime(todayConfig.close2 || '23:00');
-
-  // 5. Comparar horarios
-  const isOpenTurn1 = currentTime >= open1 && currentTime <= close1;
-  
-  let isOpenTurn2 = false;
-  if (todayConfig.isSplit) {
-      isOpenTurn2 = currentTime >= open2 && currentTime <= close2;
-  }
-
-  return isOpenTurn1 || isOpenTurn2;
+    if (!businessHours) return true; 
+    const now = new Date();
+    const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'long' });
+    const dayName = dayFormatter.format(now).toLowerCase(); 
+    const timeFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false });
+    const currentTime = timeFormatter.format(now);
+    const todayConfig = businessHours[dayName];
+    if (!todayConfig || !todayConfig.isOpen) return false;
+    const fixTime = (time: string) => time === '00:00' ? '24:00' : time;
+    const open1 = todayConfig.open || '09:00';
+    const close1 = fixTime(todayConfig.close || '13:00');
+    return (currentTime >= open1 && currentTime <= close1) || (todayConfig.isSplit && currentTime >= (todayConfig.open2 || '17:00') && currentTime <= fixTime(todayConfig.close2 || '23:00'));
 }
 
-export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const restaurant = await getRestaurant(slug);
+// --- 3. COMPONENTE DE CONTENIDO ---
+function MenuContent({ restaurant, isOpen }: { restaurant: any, isOpen: boolean }) {
+    const { cart, addItem, updateQuantity } = useCart();
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [currentExtras, setCurrentExtras] = useState<any[]>([]);
 
-  if (!restaurant) return notFound();
+    const formatPrice = (price: number) => 
+        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
-  const isOpen = checkIsOpen(restaurant.business_hours);
+  // --- LÓGICA DE FILTRADO CORREGIDA ---
+  const getExtrasForProduct = (productId: string) => {
+    if (!restaurant?.fetched_extras) return [];
+    
+    // Filtramos los extras que tengan una relación con este productId en product_extras
+    return restaurant.fetched_extras.filter((extra: any) => 
+        extra.product_extras?.some((rel: any) => String(rel.product_id) === String(productId))
+    );
+  };
 
-  const TEMPLATE = restaurant.template_id || 'classic';
-  const IS_DARK = TEMPLATE === 'urban';
-  const PRIMARY_COLOR = restaurant.theme_color || '#000000';
-  const OPACITY = restaurant.banner_opacity !== undefined ? restaurant.banner_opacity / 100 : 0.5;
-  
-  const BG_PAGE = IS_DARK ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900';
-  const CARD_BG = IS_DARK ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200';
-  const TEXT_TITLE = IS_DARK ? 'text-white' : 'text-gray-900';
-  const TEXT_DESC = IS_DARK ? 'text-gray-400' : 'text-gray-500';
+    const toggleExtra = (extra: any) => {
+        setCurrentExtras(prev => 
+            prev.find(e => e.id === extra.id) ? prev.filter(e => e.id !== extra.id) : [...prev, extra]
+        );
+    };
 
-  return (
-    <CartProvider>
-        <div className={`min-h-screen pb-24 font-sans ${BG_PAGE}`}>
+    const TEMPLATE = restaurant.template_id || 'classic';
+    const THEME = restaurant.theme_color || '#d32f2f';
+    const BG = restaurant.bg_color || '#ffffff';
+    const CARD_BG = restaurant.card_color || '#ffffff';
+    const TEXT = restaurant.text_color || '#000000';
+    const DESC = restaurant.description_color || '#666666';
+    const PROMO_BG = restaurant.promo_bg_color || '#ffebee';
+    const LOGO = restaurant.logo_url;
+    const BANNER = restaurant.banner_url;
+    const SHOW_BANNER = restaurant.show_banner;
+
+    const getStyles = () => {
+        const common = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');`;
         
-        <ClearCartLogic currentRestaurantId={restaurant.id} />
+        switch(TEMPLATE) {
+            case 'classic': return `
+                ${common}
+                body { background: ${BG}; margin: 0; }
+                .layout-container { background: ${BG}; font-family: Arial, sans-serif; min-height: 100vh; padding-bottom: 120px; }
+                .header-sec { background: ${THEME}; padding: 20px; color: white; text-align: center; position: relative; }
+                .header-logo { width: 80px; height: 80px; background: white; border-radius: 50%; margin: 0 auto 10px; overflow: hidden; display: grid; place-items: center; }
+                .header-logo img { width: 100%; height: 100%; object-fit: cover; }
+                .status-badge { position: absolute; top: 15px; right: 15px; background: white; color: ${THEME}; font-size: 10px; font-weight: bold; padding: 4px 10px; border-radius: 4px; }
+                .header-title { font-weight: bold; font-size: 22px; margin: 0; }
+                .header-desc { font-size: 13px; opacity: 0.8; }
+                .classic-item { display: flex; flex-direction: column; background: ${CARD_BG}; padding: 15px 20px; }
+                .classic-prod { font-weight: bold; font-size: 18px; color: ${TEXT}; }
+                .classic-p-desc { font-size: 13px; color: ${DESC}; margin-bottom: 5px; }
+                .classic-price { font-weight: bold; font-size: 16px; color: ${THEME}; }
+                .classic-line { height: 1px; background-color: #eee; width: 90%; margin: 0 auto; }
+                .promo-box { background: ${PROMO_BG}; color: ${THEME}; text-align: center; font-size: 12px; padding: 10px; margin-bottom: 10px; font-weight: 600; }
+                .cat-title { font-size: 16px; font-weight: bold; margin: 20px 20px 10px; color: ${TEXT}; border-left: 4px solid ${THEME}; padding-left: 10px; }
+            `;
+            case 'urban': return `${common} body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; } .header-sec { padding: 25px 20px; display: flex; justify-content: space-between; align-items: flex-start; } .header-logo { width: 50px; height: 50px; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid ${TEXT}; } .prod-card { background: ${CARD_BG}; padding: 15px; border-radius: 16px; display: flex; gap: 15px; margin: 0 15px 15px; align-items: center; position: relative; } .prod-img { width: 100px; height: 100px; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; background-color: #eee; } .cat-title { font-size: 18px; font-weight: 800; margin: 30px 15px 15px; text-transform: uppercase; }`;
+            case 'minimal': return `${common} body { background: ${BG}; margin: 0; font-family: 'Lato', sans-serif; } .app-wrapper { min-height: 100vh; padding: 20px 15px 120px; text-align: center; color: ${TEXT}; } .header-logo { width: 60px; height: 60px; background: ${THEME}; border-radius: 50%; margin: 0 auto 10px; background-size: cover; } .prod-card { padding: 15px 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; text-align: left; }`;
+            case 'pop': return `${common} body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } .header-sec { display: flex; align-items: center; gap: 10px; background: ${CARD_BG}; border: 3px solid ${TEXT}; padding: 10px; border-radius: 12px; box-shadow: 4px 4px 0 ${TEXT}; margin: 15px; } .prod-card { background: ${CARD_BG}; border: 3px solid ${TEXT}; border-radius: 10px; padding: 10px; margin: 15px; box-shadow: 4px 4px 0 ${THEME}; }`;
+            case 'spotlight': return `${common} body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } .spot-banner { height: 200px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; } .prod-card { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); background: ${CARD_BG}; }`;
+            case 'fresh': return `${common} body { background: ${BG}; } .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; } .grid-card { background: ${CARD_BG}; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; } .grid-img { width: 100%; aspect-ratio: 1/1; background-size: cover; background-position: center; } .grid-info { padding: 10px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; } .grid-name { font-weight: 700; font-size: 14px; color: ${TEXT}; line-height: 1.2; }`;
+            case 'elegant': return `${common} body { background: ${BG}; font-family: 'Playfair Display', serif; } .elegant-header { text-align: center; padding: 40px 20px; border-bottom: 1px double ${THEME}; margin-bottom: 30px; } .elegant-card { text-align: center; margin-bottom: 40px; padding: 0 20px; } .elegant-name { font-family: 'Playfair Display', serif; font-size: 20px; color: ${TEXT}; text-transform: capitalize; } .elegant-divider { width: 40px; height: 1px; background: ${THEME}; margin: 10px auto; }`;
+            case 'bistro': return `${common} body { background: #1a1a1a; color: white; font-family: 'Patrick Hand', cursive; } .chalk-board { border: 8px solid #4e342e; margin: 15px; padding: 20px; min-height: 80vh; background: #222; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); } .chalk-title { font-family: 'Patrick Hand', cursive; font-size: 28px; text-align: center; color: #fff; border-bottom: 2px dashed #555; margin-bottom: 20px; } .chalk-item { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: baseline; } .chalk-line { flex: 1; border-bottom: 1px dotted #444; margin: 0 10px; }`;
+            default: return `${common} body { background: ${BG}; }`;
+        }
+    };
 
-        {/* HEADER */}
-        {TEMPLATE === 'fresh' ? (
-            <div className="mb-8">
-                <div className="relative w-full h-48 overflow-hidden shadow-sm z-0">
-                    {restaurant.banner_url ? (
-                        <Image src={restaurant.banner_url} alt="Portada" fill className="object-cover" priority />
-                    ) : (
-                        <div className="absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-400">Sin Portada</div>
-                    )}
-                    <div className="absolute inset-0 z-10" style={{ backgroundColor: PRIMARY_COLOR, opacity: OPACITY }} />
-                </div>
-
-                {restaurant.logo_url && (
-                    <div className="relative z-20 mx-auto -mt-12 w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-white">
-                        <Image src={restaurant.logo_url} alt="Logo" fill className="object-cover" />
-                    </div>
-                )}
-
-                <div className="text-center px-6 mt-4">
-                    <h1 className={`text-2xl font-extrabold ${TEXT_TITLE}`}>{restaurant.name}</h1>
-                    <p className={`text-sm mt-1 font-medium ${TEXT_DESC} max-w-md mx-auto leading-relaxed`}>
-                        {restaurant.description}
-                    </p>
-                </div>
-            </div>
-        ) : (
-            <div className="relative w-full h-64 overflow-hidden mb-6">
-                {restaurant.banner_url ? (
-                    <Image src={restaurant.banner_url} alt="Portada" fill className="object-cover" priority />
-                ) : (
-                    <div className="absolute inset-0 bg-gray-300 flex items-center justify-center text-gray-500">Sin Portada</div>
-                )}
-                <div className="absolute inset-0 z-10" style={{ backgroundColor: PRIMARY_COLOR, opacity: OPACITY }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-20" />
-
-                <div className={`absolute bottom-0 left-0 right-0 p-6 z-30 flex gap-4 
-                    ${restaurant.logo_position === 'center' ? 'flex-col items-center justify-end text-center pb-8' : 'flex-row items-end text-left'} 
-                    ${restaurant.logo_position === 'right' ? 'flex-row-reverse text-right' : ''}
-                `}>
-                    {restaurant.logo_url && (
-                        <div className={`relative flex-shrink-0 rounded-full border-4 border-white/20 shadow-xl overflow-hidden w-24 h-24`}>
-                            <Image src={restaurant.logo_url} alt="Logo" fill className="object-cover" />
+    const renderTemplate = () => {
+        switch(TEMPLATE) {
+            case 'urban': return (
+                <div className="app-wrapper">
+                    <div className="header-sec">
+                        <div className="flex gap-3 items-center">
+                            <div className="header-logo" style={{ backgroundImage: `url('${LOGO || ''}')` }}></div>
+                            <div><h1 className="text-xl font-black">{restaurant.name}</h1><p className="text-xs opacity-60">{restaurant.description}</p></div>
                         </div>
-                    )}
-                    <div className={`flex-1 min-w-0 flex flex-col justify-end mb-1 ${restaurant.logo_position === 'center' ? 'w-full' : ''}`}>
-                        <h1 className="text-3xl font-extrabold text-white leading-tight drop-shadow-md">{restaurant.name}</h1>
-                        <p className={`text-white/90 text-sm mt-1 font-medium leading-relaxed max-w-lg
-                            ${restaurant.logo_position === 'center' ? 'mx-auto' : ''}
-                            ${restaurant.logo_position === 'right' ? 'ml-auto' : ''}
-                        `}>
-                            {restaurant.description}
-                        </p>
+                        <div className="status-badge bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-bold">{isOpen ? 'ABIERTO' : 'CERRADO'}</div>
                     </div>
-                </div>
-            </div>
-        )}
-
-        {/* BARRA INFO */}
-        <div className={`sticky top-0 z-40 backdrop-blur-md border-b shadow-sm px-4 py-3 flex items-center justify-between ${IS_DARK ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'}`}>
-            <div className="flex items-center gap-3 text-xs font-bold">
-                {isOpen ? (
-                    <span className={`flex items-center gap-1 px-3 py-1 rounded-full ${IS_DARK ? 'bg-gray-800 text-green-400' : 'bg-green-100 text-green-700'}`}>
-                        <Clock size={14}/> Abierto
-                    </span>
-                ) : (
-                    <span className={`flex items-center gap-1 px-3 py-1 rounded-full ${IS_DARK ? 'bg-gray-800 text-red-400' : 'bg-red-100 text-red-700'}`}>
-                        <Clock size={14}/> Cerrado
-                    </span>
-                )}
-                <span className={`flex items-center gap-1 px-3 py-1 rounded-full ${IS_DARK ? 'bg-gray-800 text-yellow-400' : 'bg-yellow-50 text-yellow-700'}`}><Star size={14}/> 4.8</span>
-            </div>
-        </div>
-
-        <main className="max-w-2xl mx-auto p-4 space-y-8 pt-6">
-            {restaurant.categories?.map((category: any) => (
-            <div key={category.id}>
-                <h2 className={`text-xl font-bold mb-4 flex items-center gap-3 ${TEXT_TITLE}`}>
-                    {category.name}
-                    <div className={`h-px flex-1 ${IS_DARK ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
-                </h2>
-                
-                <div className={`${TEMPLATE === 'fresh' ? 'grid grid-cols-2 gap-3' : 'space-y-4'}`}>
-                {category.products?.map((product: any) => (
-                    <div key={product.id} className={`relative overflow-hidden group transition-all 
-                        ${TEMPLATE === 'fresh' ? 'rounded-2xl aspect-square shadow-sm bg-gray-200' : ''}
-                        ${TEMPLATE === 'classic' ? `rounded-xl border shadow-sm p-3 flex gap-3 items-center ${CARD_BG}` : ''}
-                        ${TEMPLATE === 'urban' ? `rounded-xl border shadow-sm p-3 flex gap-3 items-center ${CARD_BG}` : ''}
-                    `}>
-                    
-                    {TEMPLATE === 'fresh' && (
-                        <>
-                            {product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" /> : <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">Sin Foto</div>}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-3 text-white">
-                                <h3 className="font-bold leading-tight text-sm mb-0.5 line-clamp-2">{product.name}</h3>
-                                <div className="flex justify-between items-center mt-1">
-                                    <span className="font-bold text-sm">${product.price}</span>
-                                    <AddToCartBtn product={product} variant="full" disabled={!isOpen} />
+                    {restaurant.show_promo && <div className="mx-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs mb-4">{restaurant.promo_message}</div>}
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id}><h2 className="cat-title">{cat.name}</h2>
+                            {cat.products?.map((prod: any) => (
+                                <div key={prod.id} className="prod-card">
+                                    <div className="prod-img" style={{ backgroundImage: `url('${prod.image_url || ''}')` }}></div>
+                                    <div className="flex-1">
+                                        <div className="font-bold">{prod.name}</div><div className="text-xs opacity-60 line-clamp-2">{prod.description}</div>
+                                        <div className="font-black mt-1" style={{ color: THEME }}>{formatPrice(prod.price)}</div>
+                                    </div>
+                                    <AddToCartBtn 
+                                        product={prod} 
+                                        variant="icon" 
+                                        isDark={true} 
+                                        disabled={!isOpen} 
+                                        hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                        onOpenExtras={() => setSelectedProduct(prod)}
+                                    />
                                 </div>
-                            </div>
-                        </>
-                    )}
-                    
-                    {TEMPLATE === 'classic' && (
-                        <>
-                            <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                {product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Sin Foto</div>}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className={`font-bold leading-tight mb-1 ${TEXT_TITLE}`}>{product.name}</h3>
-                                <p className={`text-xs line-clamp-2 ${TEXT_DESC}`}>{product.description}</p>
-                                <div className={`font-bold mt-2 ${TEXT_TITLE}`}>${product.price}</div>
-                            </div>
-                            <div className="flex-shrink-0">
-                                <AddToCartBtn product={product} variant="icon" isDark={false} disabled={!isOpen} />
-                            </div>
-                        </>
-                    )}
-
-                    {TEMPLATE === 'urban' && (
-                        <>
-                            <div className="flex-1 min-w-0">
-                                <h3 className={`font-bold leading-tight mb-1 ${TEXT_TITLE}`}>{product.name}</h3>
-                                <p className={`text-xs line-clamp-2 ${TEXT_DESC}`}>{product.description}</p>
-                                <div className={`font-bold mt-2 ${TEXT_TITLE}`}>${product.price}</div>
-                            </div>
-                            <div className="flex-shrink-0">
-                                <AddToCartBtn product={product} variant="icon" isDark={true} disabled={!isOpen} />
-                            </div>
-                            <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800 ml-2">
-                                {product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">Sin Foto</div>}
-                            </div>
-                        </>
-                    )}
-
-                    </div>
-                ))}
+                            ))}
+                        </div>
+                    ))}
                 </div>
-            </div>
-            ))}
-        </main>
+            );
 
-        <CartFooter 
-            phone={restaurant.phone} 
-            deliveryCost={Number(restaurant.delivery_cost)} 
-            restaurantId={restaurant.id}
-            aliasMp={restaurant.alias_mp}
-            planType={restaurant.subscription_plan}
-        />
-        </div>
-    </CartProvider>
-  );
+            case 'classic': return (
+                <div className="layout-container">
+                    <div className="header-sec">
+                        <div className="status-badge">{isOpen ? 'ABIERTO' : 'CERRADO'}</div>
+                        <div className="header-logo">
+                            {LOGO ? <img src={LOGO} alt="Logo"/> : <Utensils size={30} color={THEME} />}
+                        </div>
+                        <h1 className="header-title">{restaurant.name}</h1>
+                        <p className="header-desc">{restaurant.description}</p>
+                    </div>
+                    {restaurant.show_promo && restaurant.promo_message && (
+                        <div className="promo-box">{restaurant.promo_message}</div>
+                    )}
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id}>
+                            <h3 className="cat-title">{cat.name}</h3>
+                            {cat.products?.map((prod: any) => {
+                                const extras = getExtrasForProduct(prod.id);
+                                return (
+                                    <div key={prod.id}>
+                                        <div className="classic-item">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 pr-4 text-left">
+                                                    <div className="classic-prod">{prod.name}</div>
+                                                    <div className="classic-p-desc">{prod.description}</div>
+                                                    <div className="classic-price">{formatPrice(prod.price)}</div>
+
+                                                    {/* --- SECCIÓN DE EXTRAS CORREGIDA PARA CLASSIC --- */}
+                                                    {extras && extras.length > 0 && (
+                                                        <div className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
+                                                            {extras.map((ex: any) => {
+                                                                const exUniqueId = `${prod.id}-${ex.id}`;
+                                                                const exInCart = cart.find(i => String(i.uniqueId) === String(exUniqueId));
+                                                                const exQty = exInCart ? exInCart.quantity : 0;
+                                                                
+                                                                return (
+                                                                    <div key={ex.id} className="flex justify-between items-center text-[11px] py-1">
+                                                                        <span className="text-gray-600 font-medium">
+                                                                            {ex.name} <span className="text-[#f0b001] font-bold">(+{formatPrice(ex.price)})</span>
+                                                                        </span>
+                                                                        
+                                                                        <div className="flex items-center gap-2">
+                                                                            {exQty === 0 ? (
+                                                                                <button 
+                                                                                    onClick={() => addItem({...prod, price: prod.price + Number(ex.price), uniqueId: exUniqueId, selectedExtrasName: ex.name})}
+                                                                                    className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-white hover:bg-gray-50 text-gray-400 transition-colors"
+                                                                                >
+                                                                                    <Plus size={12} strokeWidth={3}/>
+                                                                                </button>
+                                                                            ) : (
+                                                                                <div className="flex items-center gap-2 bg-gray-100 px-2 py-0.5 rounded-full shadow-sm">
+                                                                                    <button onClick={() => updateQuantity(exUniqueId, exQty - 1)} className="text-red-500 font-black">-</button>
+                                                                                    <span className="font-bold text-black min-w-[10px] text-center">{exQty}</span>
+                                                                                    <button onClick={() => updateQuantity(exUniqueId, exQty + 1)} className="text-green-600 font-black">+</button>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="add-btn-wrapper pt-1">
+                                                    <AddToCartBtn 
+                                                        product={prod} 
+                                                        disabled={!isOpen}
+                                                        hasExtras={false} 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="classic-line"></div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            case 'minimal': return (
+                <div className="app-wrapper">
+                    <div className="header-sec border-b pb-4 mb-4 text-center">
+                        <div className="header-logo mx-auto" style={{backgroundImage: `url('${LOGO || ''}')`}}></div>
+                        <h1 className="text-xl font-black uppercase tracking-widest">{restaurant.name}</h1>
+                    </div>
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id} className="mb-6 px-4 text-left">
+                            <h2 className="text-xs font-bold opacity-40 uppercase mb-3">{cat.name}</h2>
+                            {cat.products?.map((prod: any) => (
+                                <div key={prod.id} className="prod-card flex justify-between items-center border-b pb-2 mb-2">
+                                    <div className="flex-1">
+                                        <div className="font-bold text-sm">{prod.name}</div>
+                                        <div className="text-xs font-black" style={{color: THEME}}>{formatPrice(prod.price)}</div>
+                                    </div>
+                                    <AddToCartBtn 
+                                        product={prod} 
+                                        variant="icon" 
+                                        disabled={!isOpen}
+                                        hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                        onOpenExtras={() => setSelectedProduct(prod)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            case 'pop': return (
+                <div className="app-wrapper">
+                    <div className="header-sec flex items-center gap-3 m-4 text-left">
+                        <div className="w-12 h-12 rounded-full border-2 border-black bg-white flex items-center justify-center font-bold">!</div>
+                        <div><h1 className="font-black text-lg">{restaurant.name}</h1><p className="text-xs">{restaurant.description}</p></div>
+                    </div>
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id} className="text-left">
+                            <h2 className="mx-4 font-black text-xl italic">{cat.name}</h2>
+                            {cat.products?.map((prod: any) => (
+                                <div key={prod.id} className="prod-card m-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="font-black uppercase">{prod.name}</div>
+                                        <div className="bg-black text-white px-2 py-1 text-xs rounded">{formatPrice(prod.price)}</div>
+                                    </div>
+                                    <div className="text-xs mb-3 opacity-70">{prod.description}</div>
+                                    <AddToCartBtn 
+                                        product={prod} 
+                                        variant="full" 
+                                        disabled={!isOpen}
+                                        hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                        onOpenExtras={() => setSelectedProduct(prod)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            case 'spotlight': return (
+                <div className="app-wrapper">
+                    {SHOW_BANNER && <div className="spot-banner" style={{backgroundImage: `url('${BANNER || ''}')`}}>
+                        <div className="absolute inset-0 bg-black/40"></div>
+                        <div className="relative z-10 text-white p-6"><h1 className="text-2xl font-black">{restaurant.name}</h1></div>
+                    </div>}
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id} className="p-4 text-left">
+                            <h2 className="font-black text-sm opacity-40 uppercase mb-4 tracking-tighter">{cat.name}</h2>
+                            {cat.products?.map((prod: any) => (
+                                <div key={prod.id} className="prod-card mb-4 border-b pb-4 flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <div className="font-bold">{prod.name}</div><div className="text-xs opacity-60 mb-2">{prod.description}</div>
+                                        <div className="font-black" style={{color: THEME}}>{formatPrice(prod.price)}</div>
+                                    </div>
+                                    <AddToCartBtn 
+                                        product={prod} 
+                                        variant="icon" 
+                                        disabled={!isOpen}
+                                        hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                        onOpenExtras={() => setSelectedProduct(prod)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            case 'fresh': return (
+                <div className="pb-24">
+                    <div className="p-6 text-center">
+                        <h1 className="text-2xl font-black">{restaurant.name}</h1>
+                        <p className="text-sm opacity-60">{restaurant.description}</p>
+                    </div>
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id}>
+                            <h2 className="px-4 font-black text-xs uppercase opacity-40 mb-3 tracking-tighter text-left">{cat.name}</h2>
+                            <div className="grid-container">
+                                {cat.products?.map((prod: any) => (
+                                    <div key={prod.id} className="grid-card text-left">
+                                        <div className="grid-img" style={{backgroundImage: `url('${prod.image_url || ''}')`}}></div>
+                                        <div className="grid-info">
+                                            <div className="grid-name">{prod.name}</div>
+                                            <div className="flex justify-between items-center mt-2">
+                                                <span className="font-black text-sm" style={{color: THEME}}>{formatPrice(prod.price)}</span>
+                                                <AddToCartBtn 
+                                                    product={prod} 
+                                                    variant="icon" 
+                                                    disabled={!isOpen}
+                                                    hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                                    onOpenExtras={() => setSelectedProduct(prod)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            case 'elegant': return (
+                <div className="pb-24 max-w-2xl mx-auto">
+                    <div className="elegant-header">
+                        <h1 className="text-4xl mb-2">{restaurant.name}</h1>
+                        <p className="italic opacity-70 text-sm">{restaurant.description}</p>
+                    </div>
+                    {restaurant.categories?.map((cat: any) => (
+                        <div key={cat.id} className="mb-12">
+                            <h2 className="text-center text-xl font-bold mb-8 tracking-widest uppercase" style={{color: THEME}}>{cat.name}</h2>
+                            {cat.products?.map((prod: any) => (
+                                <div key={prod.id} className="elegant-card">
+                                    <div className="elegant-name">{prod.name}</div>
+                                    <div className="elegant-divider"></div>
+                                    <p className="text-xs italic opacity-60 mb-2">{prod.description}</p>
+                                    <div className="flex items-center justify-center gap-4">
+                                        <span className="text-lg font-bold">{formatPrice(prod.price)}</span>
+                                        <AddToCartBtn 
+                                            product={prod} 
+                                            variant="icon" 
+                                            disabled={!isOpen}
+                                            hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                            onOpenExtras={() => setSelectedProduct(prod)}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            case 'bistro': return (
+                <div className="pb-24">
+                    <div className="chalk-board text-left">
+                        <h1 className="chalk-title uppercase tracking-tighter">{restaurant.name}</h1>
+                        {restaurant.categories?.map((cat: any) => (
+                            <div key={cat.id} className="mb-8">
+                                <h2 className="text-[#f0b001] text-xl mb-4 border-b border-[#333] inline-block">{cat.name}</h2>
+                                {cat.products?.map((prod: any) => (
+                                    <div key={prod.id} className="mb-4">
+                                        <div className="chalk-item flex justify-between items-baseline">
+                                            <span className="text-lg">{prod.name}</span>
+                                            <div className="bistro-dots"></div>
+                                            <span className="text-lg text-[#f0b001]">{formatPrice(prod.price)}</span>
+                                            <div className="ml-3">
+                                                <AddToCartBtn 
+                                                    product={prod} 
+                                                    variant="icon" 
+                                                    isDark={true}
+                                                    disabled={!isOpen}
+                                                    hasExtras={getExtrasForProduct(prod.id).length > 0}
+                                                    onOpenExtras={() => setSelectedProduct(prod)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs opacity-50 italic -mt-2">{prod.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+            default: return <div className="p-10 text-center">Menú no encontrado</div>;
+        }
+    };
+
+    return (
+        <>
+            <style>{getStyles()}</style>
+            <ClearCartLogic currentRestaurantId={restaurant.id} />
+            {renderTemplate()}
+            {selectedProduct && (
+                <div className="fixed inset-0 z-[100] bg-black/70 flex items-end justify-center p-0" onClick={() => setSelectedProduct(null)}>
+                    <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-in slide-in-from-bottom" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6 text-black">
+                            <h2 className="text-xl font-black">{selectedProduct.name}</h2>
+                            <X onClick={() => setSelectedProduct(null)} className="cursor-pointer" />
+                        </div>
+                        <div className="space-y-3 mb-8">
+                            {getExtrasForProduct(selectedProduct.id).map((ex: any) => (
+                                <div key={ex.id} onClick={() => toggleExtra(ex)} className={`p-4 border-2 rounded-xl flex justify-between cursor-pointer ${currentExtras.some(e => e.id === ex.id) ? 'border-[#f0b001] bg-[#f0b001]/10 text-black' : 'border-gray-100 text-gray-500'}`}>
+                                    <span className="font-bold">{ex.name}</span><span className="font-bold">+${ex.price}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <button onClick={() => {
+                            const totalExtra = currentExtras.reduce((acc, e) => acc + Number(e.price), 0);
+                            addItem({...selectedProduct, price: selectedProduct.price + totalExtra, uniqueId: `${selectedProduct.id}-${Date.now()}`, selectedExtrasName: currentExtras.map(e => e.name).join(', ')});
+                            setSelectedProduct(null); setCurrentExtras([]);
+                        }} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-lg">AGREGAR AL PEDIDO</button>
+                    </div>
+                </div>
+            )}
+            <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} />
+        </>
+    );
+}
+
+// --- 4. EXPORT PRINCIPAL (PADRE) ---
+export default function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
+    const [restaurant, setRestaurant] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function load() {
+            const resolvedParams = await params;
+            const data = await getRestaurant(resolvedParams.slug);
+            setRestaurant(data);
+            setLoading(false);
+        }
+        load();
+    }, [params]);
+
+    if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-black" size={40} /></div>;
+    if (!restaurant) return notFound();
+
+    return (
+        <CartProvider>
+            <MenuContent restaurant={restaurant} isOpen={checkIsOpen(restaurant.business_hours)} />
+        </CartProvider>
+    );
 }

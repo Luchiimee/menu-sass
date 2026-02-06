@@ -2,25 +2,27 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type Product = {
+type CartItem = {
   id: string;
+  uniqueId: string;
   name: string;
   price: number;
+  quantity: number;
   description?: string;
   image_url?: string;
+  selectedExtrasName?: string;
 };
-
-type CartItem = Product & { quantity: number };
 
 type CartContextType = {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
+  addItem: (product: any) => void;
+  removeItem: (uniqueId: string) => void;
+  updateQuantity: (uniqueId: string, quantity: number) => void; // <--- AGREGADO
   clearCart: () => void;
   total: number;
   cartRestaurantId: string | null;
-  activeOrderId: string | null; // <--- NUEVO: ID del pedido actual para seguimiento
-  setActiveOrderId: (id: string | null) => void; // <--- Para guardarlo
+  activeOrderId: string | null;
+  setActiveOrderId: (id: string | null) => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,29 +33,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // 1. Cargar datos al inicio
   useEffect(() => {
     const savedCart = localStorage.getItem('snappy_cart');
     const savedRestId = localStorage.getItem('snappy_rest_id');
-    const savedOrderId = localStorage.getItem('snappy_active_order_id'); // <--- RECUPERAR PEDIDO
+    const savedOrderId = localStorage.getItem('snappy_active_order_id');
     
-    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedCart) {
+        try {
+            setCart(JSON.parse(savedCart));
+        } catch (e) {
+            console.error("Error cargando carrito", e);
+        }
+    }
     if (savedRestId) setCartRestaurantId(savedRestId);
     if (savedOrderId) setActiveOrderIdState(savedOrderId);
     
     setMounted(true);
   }, []);
 
-  // 2. Guardar datos al cambiar
   useEffect(() => {
     if (mounted) {
       localStorage.setItem('snappy_cart', JSON.stringify(cart));
-      
       if (cartRestaurantId) localStorage.setItem('snappy_rest_id', cartRestaurantId);
-      else localStorage.removeItem('snappy_rest_id');
-
       if (activeOrderId) localStorage.setItem('snappy_active_order_id', activeOrderId);
-      else localStorage.removeItem('snappy_active_order_id');
     }
   }, [cart, cartRestaurantId, activeOrderId, mounted]);
 
@@ -61,39 +63,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setActiveOrderIdState(id);
   };
 
-  const addToCart = (product: Product) => {
+  const addItem = (product: any) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      const productUniqueId = product.uniqueId || product.id;
+      const existing = prev.find((item) => item.uniqueId === productUniqueId);
+
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.uniqueId === productUniqueId ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, uniqueId: productUniqueId, quantity: 1 }];
     });
   };
 
-  const removeFromCart = (productId: string) => {
+  // --- NUEVA FUNCIÓN updateQuantity ---
+  const updateQuantity = (uniqueId: string, newQuantity: number) => {
     setCart((prev) => {
-        const existing = prev.find((item) => item.id === productId);
-        if (existing && existing.quantity > 1) {
-            return prev.map((item) => item.id === productId ? { ...item, quantity: item.quantity - 1 } : item);
-        }
-        return prev.filter((item) => item.id !== productId);
+      if (newQuantity <= 0) {
+        return prev.filter((item) => item.uniqueId !== uniqueId);
+      }
+      return prev.map((item) =>
+        item.uniqueId === uniqueId ? { ...item, quantity: newQuantity } : item
+      );
     });
+  };
+
+  const removeItem = (uniqueId: string) => {
+    setCart((prev) => prev.filter((item) => item.uniqueId !== uniqueId));
   };
 
   const clearCart = () => {
     setCart([]);
-    // NO borramos activeOrderId aquí, porque el usuario puede querer ver el estado aunque el carrito esté vacío
-    // Tampoco borramos el RestaurantID para no perder el contexto
     localStorage.removeItem('snappy_cart');
   };
 
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total, cartRestaurantId, activeOrderId, setActiveOrderId }}>
+    <CartContext.Provider value={{ 
+        cart, 
+        addItem, 
+        removeItem, 
+        updateQuantity, // <--- AGREGADO
+        clearCart, 
+        total, 
+        cartRestaurantId, 
+        activeOrderId, 
+        setActiveOrderId 
+    }}>
       {children}
     </CartContext.Provider>
   );

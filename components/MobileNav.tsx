@@ -26,7 +26,7 @@ export default function MobileNav({ displayName, displaySubtext }: MobileNavProp
     { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Productos', href: '/dashboard/products', icon: UtensilsCrossed },
-    { name: 'Diseño', href: '/dashboard/design', icon: Palette }, 
+    { name: 'Diseño', href: '/dashboard/personalizar', icon: Palette }, 
     { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
   ];
 

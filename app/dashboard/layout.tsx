@@ -141,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const menuItems = [
     { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Personalizar', href: '/dashboard/design', icon: Palette },
+    { name: 'Personalizar', href: '/dashboard/personalizar', icon: Palette },
     { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
     { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
     { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
