@@ -69,20 +69,23 @@ function MenuContent({ restaurant, isOpen }: { restaurant: any, isOpen: boolean 
     const formatPrice = (price: number) => 
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
-  // --- LÓGICA DE FILTRADO CORREGIDA ---
-  const getExtrasForProduct = (productId: string) => {
-    if (!restaurant?.fetched_extras) return [];
-    
-    // Filtramos los extras que tengan una relación con este productId en product_extras
-    return restaurant.fetched_extras.filter((extra: any) => 
-        extra.product_extras?.some((rel: any) => String(rel.product_id) === String(productId))
-    );
-  };
+    // --- LÓGICA DE FILTRADO DE EXTRAS ---
+    const getExtrasForProduct = (productId: string) => {
+        if (!restaurant?.fetched_extras) return [];
+        return restaurant.fetched_extras.filter((extra: any) => 
+            extra.product_extras?.some((rel: any) => String(rel.product_id) === String(productId))
+        );
+    };
 
     const toggleExtra = (extra: any) => {
         setCurrentExtras(prev => 
             prev.find(e => e.id === extra.id) ? prev.filter(e => e.id !== extra.id) : [...prev, extra]
         );
+    };
+
+    // --- FUNCIÓN DE AVISO ---
+    const avisarSeleccionPrimero = () => {
+        alert("¡Elegí primero el menú para poder sumarle extras!");
     };
 
     const TEMPLATE = restaurant.template_id || 'classic';
@@ -165,86 +168,99 @@ function MenuContent({ restaurant, isOpen }: { restaurant: any, isOpen: boolean 
                 </div>
             );
 
-            case 'classic': return (
-                <div className="layout-container">
-                    <div className="header-sec">
-                        <div className="status-badge">{isOpen ? 'ABIERTO' : 'CERRADO'}</div>
-                        <div className="header-logo">
-                            {LOGO ? <img src={LOGO} alt="Logo"/> : <Utensils size={30} color={THEME} />}
-                        </div>
-                        <h1 className="header-title">{restaurant.name}</h1>
-                        <p className="header-desc">{restaurant.description}</p>
+      case 'classic': return (
+            <div className="layout-container">
+                <div className="header-sec">
+                    <div className="status-badge">{isOpen ? 'ABIERTO' : 'CERRADO'}</div>
+                    <div className="header-logo">
+                        {LOGO ? <img src={LOGO} alt="Logo"/> : <Utensils size={30} color={THEME} />}
                     </div>
-                    {restaurant.show_promo && restaurant.promo_message && (
-                        <div className="promo-box">{restaurant.promo_message}</div>
-                    )}
-                    {restaurant.categories?.map((cat: any) => (
-                        <div key={cat.id}>
-                            <h3 className="cat-title">{cat.name}</h3>
-                            {cat.products?.map((prod: any) => {
-                                const extras = getExtrasForProduct(prod.id);
-                                return (
-                                    <div key={prod.id}>
-                                        <div className="classic-item">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1 pr-4 text-left">
-                                                    <div className="classic-prod">{prod.name}</div>
-                                                    <div className="classic-p-desc">{prod.description}</div>
-                                                    <div className="classic-price">{formatPrice(prod.price)}</div>
+                    <h1 className="header-title">{restaurant.name}</h1>
+                    <p className="header-desc">{restaurant.description}</p>
+                </div>
 
-                                                    {/* --- SECCIÓN DE EXTRAS CORREGIDA PARA CLASSIC --- */}
-                                                    {extras && extras.length > 0 && (
-                                                        <div className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
-                                                            {extras.map((ex: any) => {
-                                                                const exUniqueId = `${prod.id}-${ex.id}`;
-                                                                const exInCart = cart.find(i => String(i.uniqueId) === String(exUniqueId));
-                                                                const exQty = exInCart ? exInCart.quantity : 0;
-                                                                
-                                                                return (
-                                                                    <div key={ex.id} className="flex justify-between items-center text-[11px] py-1">
-                                                                        <span className="text-gray-600 font-medium">
-                                                                            {ex.name} <span className="text-[#f0b001] font-bold">(+{formatPrice(ex.price)})</span>
-                                                                        </span>
-                                                                        
-                                                                        <div className="flex items-center gap-2">
-                                                                            {exQty === 0 ? (
-                                                                                <button 
-                                                                                    onClick={() => addItem({...prod, price: prod.price + Number(ex.price), uniqueId: exUniqueId, selectedExtrasName: ex.name})}
-                                                                                    className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-white hover:bg-gray-50 text-gray-400 transition-colors"
-                                                                                >
-                                                                                    <Plus size={12} strokeWidth={3}/>
-                                                                                </button>
-                                                                            ) : (
-                                                                                <div className="flex items-center gap-2 bg-gray-100 px-2 py-0.5 rounded-full shadow-sm">
-                                                                                    <button onClick={() => updateQuantity(exUniqueId, exQty - 1)} className="text-red-500 font-black">-</button>
-                                                                                    <span className="font-bold text-black min-w-[10px] text-center">{exQty}</span>
-                                                                                    <button onClick={() => updateQuantity(exUniqueId, exQty + 1)} className="text-green-600 font-black">+</button>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
+                {restaurant.show_promo && restaurant.promo_message && (
+                    <div className="promo-box">{restaurant.promo_message}</div>
+                )}
+
+                {restaurant.categories?.map((cat: any) => (
+                    <div key={cat.id}>
+                        <h3 className="cat-title">{cat.name}</h3>
+                        {cat.products?.map((prod: any) => {
+                            const extras = getExtrasForProduct(prod.id);
+                            
+                            // CHEQUEO: ¿El producto base está en el carrito?
+                            // Buscamos un item que tenga el mismo ID pero que NO tenga extras seleccionados (el base)
+                            const principalEnCarrito = cart.some(item => item.id === prod.id && !item.selectedExtrasName);
+
+                            return (
+                                <div key={prod.id}>
+                                    <div className="classic-item">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 pr-4 text-left">
+                                                <div className="classic-prod">{prod.name}</div>
+                                                <div className="classic-p-desc">{prod.description}</div>
+                                                <div className="classic-price">{formatPrice(prod.price)}</div>
+
+                                                {/* --- SECCIÓN DE EXTRAS CORREGIDA --- */}
+                                                {extras && extras.length > 0 && (
+                                                    <div className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
+                                                        {extras.map((ex: any) => {
+                                                            const exUniqueId = `${prod.id}-${ex.id}`;
+                                                            const exInCart = cart.find(i => String(i.uniqueId) === String(exUniqueId));
+                                                            const exQty = exInCart ? exInCart.quantity : 0;
+                                                            
+                                                            return (
+                                                                <div key={ex.id} className="flex justify-between items-center text-[11px] py-1">
+                                                                    <span className={`font-medium ${principalEnCarrito ? 'text-gray-600' : 'text-gray-400'}`}>
+                                                                        {ex.name} <span className={`${principalEnCarrito ? 'text-[#f0b001]' : 'text-gray-300'} font-bold`}>(+{formatPrice(ex.price)})</span>
+                                                                    </span>
+                                                                    
+                                                                    <div className="flex items-center gap-2">
+                                                                        {exQty === 0 ? (
+                                                                            <button 
+                                                                                onClick={() => {
+                                                                                    if (!principalEnCarrito) {
+                                                                                        avisarSeleccionPrimero();
+                                                                                    } else {
+                                                                                        addItem({...prod, price: prod.price + Number(ex.price), uniqueId: exUniqueId, selectedExtrasName: ex.name});
+                                                                                    }
+                                                                                }}
+                                                                                className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-colors ${principalEnCarrito ? 'border-gray-200 text-gray-400 hover:bg-gray-50' : 'border-gray-100 text-gray-200'}`}
+                                                                            >
+                                                                                <Plus size={12} strokeWidth={3}/>
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-2 bg-gray-100 px-2 py-0.5 rounded-full shadow-sm">
+                                                                                <button onClick={() => updateQuantity(exUniqueId, exQty - 1)} className="text-red-500 font-black">-</button>
+                                                                                <span className="font-bold text-black min-w-[10px] text-center">{exQty}</span>
+                                                                                <button onClick={() => updateQuantity(exUniqueId, exQty + 1)} className="text-green-600 font-black">+</button>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="add-btn-wrapper pt-1">
-                                                    <AddToCartBtn 
-                                                        product={prod} 
-                                                        disabled={!isOpen}
-                                                        hasExtras={false} 
-                                                    />
-                                                </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="add-btn-wrapper pt-1">
+                                                <AddToCartBtn 
+                                                    product={prod} 
+                                                    disabled={!isOpen}
+                                                    hasExtras={false} 
+                                                />
                                             </div>
                                         </div>
-                                        <div className="classic-line"></div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ))}
-                </div>
-            );
+                                    <div className="classic-line"></div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ))}
+            </div>
+        );
 
             case 'minimal': return (
                 <div className="app-wrapper">

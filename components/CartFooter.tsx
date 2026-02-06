@@ -6,7 +6,7 @@ import { Copy, Check, Send, MapPin, ShoppingBag, Utensils, Wallet, Landmark, X, 
 export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
     const { cart, updateQuantity } = useCart();
     const [copied, setCopied] = useState(false);
-    const [isVisible, setIsVisible] = useState(true); 
+    const [isVisible, setIsVisible] = useState(false); 
     
     const [nombre, setNombre] = useState('');
     const [telCliente, setTelCliente] = useState('');
