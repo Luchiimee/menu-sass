@@ -214,7 +214,33 @@ function MenuContent({
       }
   `;
       case "minimal":
-        return `${common} body { background: ${BG}; margin: 0; font-family: 'Lato', sans-serif; } .app-wrapper { min-height: 100vh; padding: 20px 15px 120px; text-align: center; color: ${TEXT}; } .header-logo { width: 60px; height: 60px; background: ${THEME}; border-radius: 50%; margin: 0 auto 10px; background-size: cover; } .prod-card { padding: 15px 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; text-align: left; }`;
+  return `
+      ${common} 
+      body { background: ${BG}; margin: 0; font-family: 'Lato', sans-serif; } 
+      .app-wrapper { min-height: 100vh; padding: 0 0 120px; color: ${TEXT}; } 
+      .header-sec { padding: 40px 20px 20px; text-align: center; } 
+      .header-logo { width: 60px; height: 60px; background-size: cover; margin: 0 auto 15px; border-radius: 50%; } 
+      
+      /* PROMO ESTILO CAFE CENTRAL */
+      .promo-minimal {
+          margin: 0 20px 30px;
+          padding: 15px;
+          background-color: #f4f4f5;
+          border: 1px solid #eee;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: ${TEXT};
+      }
+
+      .prod-card { 
+          padding: 20px; 
+          border-bottom: 1px solid #f5f5f5; 
+          display: block; 
+      }
+  `;
       case "pop":
         return `${common} body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } .header-sec { display: flex; align-items: center; gap: 10px; background: ${CARD_BG}; border: 3px solid ${TEXT}; padding: 10px; border-radius: 12px; box-shadow: 4px 4px 0 ${TEXT}; margin: 15px; } .prod-card { background: ${CARD_BG}; border: 3px solid ${TEXT}; border-radius: 10px; padding: 10px; margin: 15px; box-shadow: 4px 4px 0 ${THEME}; }`;
       case "spotlight":
@@ -426,53 +452,73 @@ function MenuContent({
           </div>
         );
 
-      case "minimal":
-        return (
-          <div className="app-wrapper">
-            <div className="header-sec border-b pb-4 mb-4 text-center">
-              <div
-                className="header-logo mx-auto"
-                style={{ backgroundImage: `url('${LOGO || ""}')` }}
-              ></div>
-              <h1 className="text-xl font-black uppercase tracking-widest">
-                {restaurant.name}
-              </h1>
-            </div>
-            {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id} className="mb-6 px-4 text-left">
-                <h2 className="text-xs font-bold opacity-40 uppercase mb-3">
-                  {cat.name}
-                </h2>
-                {cat.products?.map((prod: any) => (
-                  <div
-                    key={prod.id}
-                    className="prod-card flex justify-between items-center border-b pb-2 mb-2"
-                  >
-                    <div className="flex-1">
-                      <div className="font-bold text-sm">{prod.name}</div>
-                      <div
-                        className="text-xs font-black"
-                        style={{ color: THEME }}
-                      >
-                        {formatPrice(prod.price)}
-                      </div>
-                    </div>
-                    <div onClick={() => mostrarAviso("✅ Producto agregado")}>
-                        <AddToCartBtn
-                        product={prod}
-                        variant="icon"
-                        disabled={!isOpen}
-                        hasExtras={getExtrasForProduct(prod.id).length > 0}
-                        onOpenExtras={() => setSelectedProduct(prod)}
-                        />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        );
+    case "minimal":
+  return (
+    <div className="app-wrapper">
+      {/* ESPACIO SUPERIOR Y HEADER */}
+      <div className="header-sec">
+        <div 
+          className="header-logo" 
+          style={{ backgroundImage: `url('${LOGO || ""}')` }}
+        ></div>
+        <h1 className="text-2xl font-black tracking-widest uppercase mb-1">{restaurant.name}</h1>
+        <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{restaurant.description}</p>
+      </div>
 
+      {/* PROMO ESTILO REFERENCIA */}
+      {restaurant.show_promo && restaurant.promo_message && (
+        <div className="promo-minimal">
+          {restaurant.promo_message}
+        </div>
+      )}
+
+      {restaurant.categories?.map((cat: any) => (
+        <div key={cat.id}>
+          {cat.products?.map((prod: any) => {
+            const extras = getExtrasForProduct(prod.id);
+            const principalEnCarrito = cart.some(item => item.id === prod.id);
+
+            return (
+              <div key={prod.id} className="prod-card">
+                <div className="flex justify-between items-center">
+                  <div className="text-left flex-1 pr-4">
+                    <div className="font-bold text-base mb-1" style={{ color: TEXT }}>{prod.name}</div>
+                    <div className="text-[11px] opacity-40 mb-2 leading-relaxed">{prod.description}</div>
+                    <div className="font-black text-sm" style={{ color: TEXT }}>{formatPrice(prod.price)}</div>
+                  </div>
+                  <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
+                    <AddToCartBtn product={prod} variant="icon" disabled={!isOpen} />
+                  </div>
+                </div>
+
+                {/* EXTRAS MINIMALISTAS */}
+                {principalEnCarrito && extras && extras.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+                    {extras.map((ex: any) => (
+                      <div key={ex.id} className="flex justify-between items-center">
+                        <div className="text-left text-[11px] font-medium opacity-60 uppercase tracking-wider">
+                          + {ex.name} <span className="ml-1 font-black" style={{ color: THEME }}>{formatPrice(ex.price)}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
+                            mostrarAviso("✅ Extra sumado");
+                          }}
+                          className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center bg-white active:scale-90"
+                        >
+                          <Plus size={14} strokeWidth={3} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
       case "pop":
         return (
           <div className="app-wrapper">
@@ -708,10 +754,17 @@ function MenuContent({
    
 {/* NOTIFICACION FLOTANTE CENTRADA */}
 {notificacion && (
-  <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[999] w-auto max-w-[90vw]">
-    <div className="bg-blue-600 shadow-2xl shadow-blue-900/20 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-3 animate-bounce border border-blue-400 backdrop-blur-sm">
-      {notificacion.includes('✅') ? <Check size={18} className="text-white" /> : null}
-      <span className="font-bold text-sm whitespace-nowrap">{notificacion}</span>
+  <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[1000] w-auto">
+    <div className={`
+      ${TEMPLATE === 'minimal' 
+        ? 'bg-white text-black border-gray-200' 
+        : 'bg-blue-600 text-white border-blue-400'} 
+      px-8 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-bounce border backdrop-blur-md min-w-[200px]
+    `}>
+      <Check size={20} className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} />
+      <span className="font-black text-sm uppercase tracking-tight whitespace-nowrap">
+        {notificacion.replace('✅', '')}
+      </span>
     </div>
   </div>
 )}
