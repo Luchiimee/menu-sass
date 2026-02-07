@@ -17,8 +17,8 @@ interface AddToCartBtnProps {
   variant?: 'icon' | 'full'; 
   isDark?: boolean;
   disabled?: boolean;
-  hasExtras?: boolean; // Nueva prop
-  onOpenExtras?: () => void; // Nueva prop
+  hasExtras?: boolean;
+  onOpenExtras?: () => void;
 }
 
 export default function AddToCartBtn({ 
@@ -32,7 +32,7 @@ export default function AddToCartBtn({
   const { cart, addItem: addToCart, removeItem: removeFromCart } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Cantidad total de este producto en el carrito
+  // Cantidad total de este producto físico en el carrito
   const quantity = cart
     .filter((item) => item.id === product.id)
     .reduce((acc, item) => acc + item.quantity, 0);
@@ -41,7 +41,6 @@ export default function AddToCartBtn({
     e.stopPropagation(); 
     if (disabled) return; 
 
-    // Si tiene extras y es la primera vez que se agrega, o si se pide abrir el menu
     if (hasExtras && onOpenExtras) {
         onOpenExtras();
         return;
@@ -56,9 +55,8 @@ export default function AddToCartBtn({
     e.stopPropagation();
     if (disabled) return;
     
-    // Si tiene extras, lo mejor es que el usuario gestione desde el carrito 
-    // o removemos el último agregado sin extras específicos
-    const itemToRemove = cart.find(item => item.id === product.id && !item.selectedExtrasName) 
+    // Nueva lógica: buscamos el último producto base (sin extras) para restar
+    const itemToRemove = cart.find(item => item.id === product.id && (!item.extrasList || item.extrasList.length === 0)) 
                        || cart.find(item => item.id === product.id);
     
     if (itemToRemove) removeFromCart(itemToRemove.uniqueId);

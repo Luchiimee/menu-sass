@@ -1,6 +1,12 @@
 'use client';
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+type ExtraItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+};
 
 type CartItem = {
   id: string;
@@ -10,14 +16,15 @@ type CartItem = {
   quantity: number;
   description?: string;
   image_url?: string;
-  selectedExtrasName?: string;
+  extrasList: ExtraItem[]; // Lista de extras vinculados
 };
 
 type CartContextType = {
   cart: CartItem[];
-  addItem: (product: any) => void;
+  addItem: (product: any, isExtra?: boolean) => void;
   removeItem: (uniqueId: string) => void;
-  updateQuantity: (uniqueId: string, quantity: number) => void; // <--- AGREGADO
+  updateQuantity: (uniqueId: string, quantity: number) => void;
+  updateExtraQuantity: (productUniqueId: string, extraId: string, newQty: number) => void;
   clearCart: () => void;
   total: number;
   cartRestaurantId: string | null;
@@ -35,82 +42,87 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const savedCart = localStorage.getItem('snappy_cart');
-    const savedRestId = localStorage.getItem('snappy_rest_id');
-    const savedOrderId = localStorage.getItem('snappy_active_order_id');
-    
     if (savedCart) {
-        try {
-            setCart(JSON.parse(savedCart));
-        } catch (e) {
-            console.error("Error cargando carrito", e);
-        }
+        try { setCart(JSON.parse(savedCart)); } catch (e) { console.error(e); }
     }
-    if (savedRestId) setCartRestaurantId(savedRestId);
-    if (savedOrderId) setActiveOrderIdState(savedOrderId);
-    
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem('snappy_cart', JSON.stringify(cart));
-      if (cartRestaurantId) localStorage.setItem('snappy_rest_id', cartRestaurantId);
-      if (activeOrderId) localStorage.setItem('snappy_active_order_id', activeOrderId);
-    }
-  }, [cart, cartRestaurantId, activeOrderId, mounted]);
+    if (mounted) localStorage.setItem('snappy_cart', JSON.stringify(cart));
+  }, [cart, mounted]);
 
-  const setActiveOrderId = (id: string | null) => {
-      setActiveOrderIdState(id);
-  };
-
-  const addItem = (product: any) => {
+  const addItem = (product: any, isExtra: boolean = false) => {
     setCart((prev) => {
-      const productUniqueId = product.uniqueId || product.id;
-      const existing = prev.find((item) => item.uniqueId === productUniqueId);
+      if (isExtra) {
+        // Buscamos el último producto base agregado
+        const lastIndex = [...prev].reverse().findIndex(item => item.id === product.id);
+        if (lastIndex === -1) return prev;
 
-      if (existing) {
-        return prev.map((item) =>
-          item.uniqueId === productUniqueId ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        const actualIndex = prev.length - 1 - lastIndex;
+        return prev.map((item, idx) => {
+          if (idx === actualIndex) {
+            const currentExtras = item.extrasList || [];
+            const existingExtra = currentExtras.find(e => e.id === product.extraId);
+
+            let newExtras;
+            if (existingExtra) {
+              newExtras = currentExtras.map(e =>
+                e.id === product.extraId ? { ...e, quantity: e.quantity + 1 } : e
+              );
+            } else {
+              newExtras = [...currentExtras, { id: product.extraId, name: product.name, price: product.price, quantity: 1 }];
+            }
+            return { ...item, extrasList: newExtras };
+          }
+          return item;
+        });
+      } else {
+        // Producto base: Siempre crea una línea nueva con ID único temporal
+        const newUniqueId = `${product.id}-${Date.now()}`;
+        return [...prev, { ...product, uniqueId: newUniqueId, quantity: 1, extrasList: [] }];
       }
-      return [...prev, { ...product, uniqueId: productUniqueId, quantity: 1 }];
     });
   };
 
-  // --- NUEVA FUNCIÓN updateQuantity ---
   const updateQuantity = (uniqueId: string, newQuantity: number) => {
     setCart((prev) => {
-      if (newQuantity <= 0) {
-        return prev.filter((item) => item.uniqueId !== uniqueId);
-      }
-      return prev.map((item) =>
-        item.uniqueId === uniqueId ? { ...item, quantity: newQuantity } : item
-      );
+      if (newQuantity <= 0) return prev.filter((item) => item.uniqueId !== uniqueId);
+      return prev.map((item) => item.uniqueId === uniqueId ? { ...item, quantity: newQuantity } : item);
     });
+  };
+
+  const updateExtraQuantity = (productUniqueId: string, extraId: string, newQty: number) => {
+    setCart((prev) => prev.map(item => {
+      if (item.uniqueId === productUniqueId) {
+        const newExtras = item.extrasList.map(e => 
+          e.id === extraId ? { ...e, quantity: newQty } : e
+        ).filter(e => e.quantity > 0);
+        return { ...item, extrasList: newExtras };
+      }
+      return item;
+    }));
   };
 
   const removeItem = (uniqueId: string) => {
     setCart((prev) => prev.filter((item) => item.uniqueId !== uniqueId));
   };
 
-  const clearCart = () => {
-    setCart([]);
-    localStorage.removeItem('snappy_cart');
-  };
+  const clearCart = () => setCart([]);
 
-  const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+const calculateTotal = () => {
+    return cart.reduce((acc, item) => {
+      // Agregamos el "?" y el "|| []" por seguridad
+      const extrasTotal = (item.extrasList || []).reduce((a, b) => a + (b.price * b.quantity), 0);
+      return acc + (item.price + extrasTotal) * item.quantity;
+    }, 0);
+  };
 
   return (
     <CartContext.Provider value={{ 
-        cart, 
-        addItem, 
-        removeItem, 
-        updateQuantity, // <--- AGREGADO
-        clearCart, 
-        total, 
-        cartRestaurantId, 
-        activeOrderId, 
-        setActiveOrderId 
+        cart, addItem, removeItem, updateQuantity, updateExtraQuantity, 
+        clearCart, total: calculateTotal(), cartRestaurantId, activeOrderId, 
+        setActiveOrderId: setActiveOrderIdState 
     }}>
       {children}
     </CartContext.Provider>
