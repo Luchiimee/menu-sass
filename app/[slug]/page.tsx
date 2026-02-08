@@ -22,6 +22,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
 // --- 1. DATOS (CORREGIDO PARA USAR TABLA product_extras) ---
 async function getRestaurant(slug: string) {
   // 1. Traemos el restaurante y productos
@@ -93,6 +94,7 @@ function MenuContent({
   restaurant: any;
   isOpen: boolean;
 }) {
+  const [activeCardId, setActiveCardId] = useState<any>(null);
   const { cart, addItem, updateQuantity } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
@@ -122,6 +124,7 @@ function MenuContent({
     );
   };
 
+  
   const toggleExtra = (extra: any) => {
     setCurrentExtras((prev) =>
       prev.find((e) => e.id === extra.id)
@@ -239,14 +242,35 @@ function MenuContent({
           padding: 20px; 
           border-bottom: 1px solid #f5f5f5; 
           display: block; 
-      }
-  `;
+      }`
+      ;
       case "pop":
         return `${common} body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } .header-sec { display: flex; align-items: center; gap: 10px; background: ${CARD_BG}; border: 3px solid ${TEXT}; padding: 10px; border-radius: 12px; box-shadow: 4px 4px 0 ${TEXT}; margin: 15px; } .prod-card { background: ${CARD_BG}; border: 3px solid ${TEXT}; border-radius: 10px; padding: 10px; margin: 15px; box-shadow: 4px 4px 0 ${THEME}; }`;
       case "spotlight":
         return `${common} body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } .spot-banner { height: 200px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; } .prod-card { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); background: ${CARD_BG}; }`;
-      case "fresh":
-        return `${common} body { background: ${BG}; } .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; } .grid-card { background: ${CARD_BG}; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; } .grid-img { width: 100%; aspect-ratio: 1/1; background-size: cover; background-position: center; } .grid-info { padding: 10px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; } .grid-name { font-weight: 700; font-size: 14px; color: ${TEXT}; line-height: 1.2; }`;
+
+      case "visualgrid":
+        return `.notificacion-glass {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}`;
       case "elegant":
         return `${common} body { background: ${BG}; font-family: 'Playfair Display', serif; } .elegant-header { text-align: center; padding: 40px 20px; border-bottom: 1px double ${THEME}; margin-bottom: 30px; } .elegant-card { text-align: center; margin-bottom: 40px; padding: 0 20px; } .elegant-name { font-family: 'Playfair Display', serif; font-size: 20px; color: ${TEXT}; text-transform: capitalize; } .elegant-divider { width: 40px; height: 1px; background: ${THEME}; margin: 10px auto; }`;
       case "bistro":
@@ -452,73 +476,241 @@ function MenuContent({
           </div>
         );
 
-    case "minimal":
-  return (
-    <div className="app-wrapper">
-      {/* ESPACIO SUPERIOR Y HEADER */}
-      <div className="header-sec">
-        <div 
-          className="header-logo" 
-          style={{ backgroundImage: `url('${LOGO || ""}')` }}
-        ></div>
-        <h1 className="text-2xl font-black tracking-widest uppercase mb-1">{restaurant.name}</h1>
-        <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{restaurant.description}</p>
-      </div>
-
-      {/* PROMO ESTILO REFERENCIA */}
-      {restaurant.show_promo && restaurant.promo_message && (
-        <div className="promo-minimal">
-          {restaurant.promo_message}
-        </div>
-      )}
-
-      {restaurant.categories?.map((cat: any) => (
-        <div key={cat.id}>
-          {cat.products?.map((prod: any) => {
-            const extras = getExtrasForProduct(prod.id);
-            const principalEnCarrito = cart.some(item => item.id === prod.id);
-
-            return (
-              <div key={prod.id} className="prod-card">
-                <div className="flex justify-between items-center">
-                  <div className="text-left flex-1 pr-4">
-                    <div className="font-bold text-base mb-1" style={{ color: TEXT }}>{prod.name}</div>
-                    <div className="text-[11px] opacity-40 mb-2 leading-relaxed">{prod.description}</div>
-                    <div className="font-black text-sm" style={{ color: TEXT }}>{formatPrice(prod.price)}</div>
-                  </div>
-                  <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
-                    <AddToCartBtn product={prod} variant="icon" disabled={!isOpen} />
-                  </div>
-                </div>
-
-                {/* EXTRAS MINIMALISTAS */}
-                {principalEnCarrito && extras && extras.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
-                    {extras.map((ex: any) => (
-                      <div key={ex.id} className="flex justify-between items-center">
-                        <div className="text-left text-[11px] font-medium opacity-60 uppercase tracking-wider">
-                          + {ex.name} <span className="ml-1 font-black" style={{ color: THEME }}>{formatPrice(ex.price)}</span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
-                            mostrarAviso("✅ Extra sumado");
-                          }}
-                          className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center bg-white active:scale-90"
-                        >
-                          <Plus size={14} strokeWidth={3} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+case "minimal":
+        return (
+          <div className="app-wrapper" style={{ backgroundColor: BG, minHeight: '100vh', paddingBottom: '120px' }}>
+            
+            {/* HEADER CON POSICIÓN RELATIVA */}
+            <div className="header-sec relative" style={{ padding: '60px 20px 20px', textAlign: 'center' }}>
+              
+              {/* CARTEL ABIERTO: ARRIBA A LA DERECHA, BORDE NEGRO, TEXTO NEGRO */}
+              <div className="absolute top-6 right-5">
+                <span className={`text-[10px] font-bold px-2 py-0.5 border uppercase tracking-widest bg-white ${isOpen ? 'border-black text-black' : 'border-red-500 text-red-600'}`}>
+                  {isOpen ? "ABIERTO" : "CERRADO"}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
+
+              {/* LOGO Y TÍTULO CENTRADOS */}
+              <div
+                className="header-logo"
+                style={{ 
+                  backgroundImage: `url('${LOGO || ""}')`,
+                  width: '60px', height: '60px', borderRadius: '50%', backgroundSize: 'cover',
+                  margin: '0 auto 15px', border: `1px solid ${TEXT}` 
+                }}
+              ></div>
+              
+              <h1 className="text-xl font-black uppercase tracking-widest mb-1" style={{ color: TEXT }}>
+                {restaurant.name}
+              </h1>
+              <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{restaurant.description}</p>
+            </div>
+
+            {/* TU PROMO (Mantenemos tu estilo) */}
+            {restaurant.show_promo && restaurant.promo_message && (
+              <div className="promo-minimal">
+                {restaurant.promo_message}
+              </div>
+            )}
+
+            {restaurant.categories?.map((cat: any) => (
+              <div key={cat.id} className="mb-6 px-4">
+                {cat.products?.map((prod: any) => {
+                  const extras = getExtrasForProduct(prod.id);
+                  const principalEnCarrito = cart.some(item => item.id === prod.id);
+
+                  return (
+                    <div key={prod.id} className="prod-card" style={{ padding: '20px', borderBottom: '1px solid #f5f5f5' }}>
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 text-left pr-4">
+                          <div className="font-bold text-sm mb-1" style={{ color: TEXT }}>{prod.name}</div>
+                          <div className="text-[10px] opacity-50 mb-1" style={{ color: TEXT }}>{prod.description}</div>
+                          <div className="text-xs font-black" style={{ color: THEME }}>
+                            {formatPrice(prod.price)}
+                          </div>
+                        </div>
+                        <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
+                          <AddToCartBtn
+                            product={prod}
+                            variant="icon"
+                            disabled={!isOpen}
+                          />
+                        </div>
+                      </div>
+
+                      {/* EXTRAS DESPLEGABLES */}
+                      {principalEnCarrito && extras && extras.length > 0 && (
+                        <div className="mt-3 pl-2 space-y-2 border-l-2 border-gray-100 ml-1">
+                          {extras.map((ex: any) => (
+                            <div key={ex.id} className="flex justify-between items-center py-1">
+                              <span className="text-[11px] font-medium opacity-70">
+                                + {ex.name} <span style={{ color: THEME }}>({formatPrice(ex.price)})</span>
+                              </span>
+                              <button
+                                onClick={() => {
+                                  addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
+                                  mostrarAviso("✅ Extra sumado");
+                                }}
+                                className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-white active:bg-gray-50"
+                              >
+                                <Plus size={12} strokeWidth={3} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        );
+case "visualgrid":
+        return (
+          <div className="app-wrapper" style={{ backgroundColor: '#121212', minHeight: '100vh', paddingBottom: '120px' }}>
+            
+            {/* --- BOTÓN ABIERTO FIJO ARRIBA A LA DERECHA --- */}
+            <div className="fixed top-4 right-4 z-[100]">
+              <span className={`text-[10px] font-black px-2 py-1 rounded border uppercase tracking-widest shadow-2xl ${isOpen ? 'bg-white text-black border-white' : 'border-red-500 text-red-500 bg-black/80'}`}>
+                {isOpen ? "ABIERTO" : "CERRADO"}
+              </span>
+            </div>
+
+            {/* --- HEADER --- */}
+            <div className="relative pt-10 px-6 pb-4">
+              <div className="flex items-center gap-4 text-left">
+                {/* LOGO */}
+                <div 
+                  className="w-14 h-14 rounded-full border-2 border-white/10 bg-cover bg-center shadow-lg shrink-0"
+                  style={{ backgroundImage: `url('${LOGO || ""}')` }}
+                ></div>
+                <div>
+                  <h1 className="text-3xl font-black uppercase italic leading-none text-white tracking-tighter">
+                    {restaurant.name}
+                  </h1>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                    {restaurant.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* --- DISEÑO DE PROMO CORREGIDO (Rayita Naranja) --- */}
+           {restaurant.show_promo && restaurant.promo_message && (
+  <div className="mt-6 flex items-center gap-3 px-1"> {/* Agregado: items-center */}
+    <div className="w-[3px] h-5 bg-orange-600 rounded-full shrink-0" /> {/* Sacado: mt-0.5 */}
+    <p className="text-[12px] text-gray-300 font-medium leading-none"> {/* Cambiado: leading-none para centrar mejor */}
+      {restaurant.promo_message}
+    </p>
+  </div>
+)}
+            </div>
+
+            {/* --- GRILLA DE PRODUCTOS --- */}
+            {restaurant.categories?.map((cat: any) => (
+              <div key={cat.id} className="mb-4">
+                <div className="grid grid-cols-2 gap-3 px-4">
+                  {cat.products?.map((prod: any) => {
+                    const extras = getExtrasForProduct(prod.id);
+                    const principalEnCarrito = cart.some(item => item.id === prod.id);
+                    const isActive = activeCardId === prod.id; 
+
+                    // --- LÓGICA DE AUTO-SCROLL AUTOMÁTICO ---
+                    if (isActive && principalEnCarrito && extras.length > 0) {
+                      setTimeout(() => {
+                        const panel = document.getElementById(`scroll-panel-${prod.id}`);
+                        if (panel && panel.scrollTop === 0) {
+                          panel.scrollTo({ top: 180, behavior: 'smooth' });
+                        }
+                      }, 150);
+                    }
+
+                    return (
+                      <div 
+                        key={prod.id} 
+                        className={`relative rounded-[2rem] overflow-hidden aspect-[3/4] transition-all duration-300 ${isActive ? 'z-20 ring-2 ring-white/20 scale-[1.02]' : 'z-0'}`}
+                        onClick={() => setActiveCardId(prod.id)}
+                      >
+                        {/* FOTO DE FONDO */}
+                        <div 
+                          className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+                          style={{ 
+                            backgroundImage: `url('${prod.image_url || ""}')`,
+                            filter: isActive ? 'brightness(0.15) blur(2px)' : 'brightness(0.8)', 
+                          }}
+                        />
+                        
+                        {/* NOMBRE Y PRECIO VISIBLES */}
+                        {!isActive && (
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col justify-end p-4 text-left">
+                             <div className="text-white font-bold text-sm leading-tight drop-shadow-md">{prod.name}</div>
+                             <div className="text-white/60 font-black text-xs mt-1">{formatPrice(prod.price)}</div>
+                          </div>
+                        )}
+
+                        {/* PANEL EXPANDIDO */}
+                        {isActive && (
+                           <div 
+                            id={`scroll-panel-${prod.id}`}
+                            className="absolute inset-0 p-4 flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-y-auto no-scrollbar scroll-smooth"
+                           >
+                              <div className="flex justify-end mb-2">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setActiveCardId(null); }}
+                                  className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/10 active:scale-90"
+                                >
+                                  <X size={18} />
+                                </button>
+                              </div>
+
+                              <div className="text-left">
+                                <div className="text-white font-black text-xl leading-none mb-1">{prod.name}</div>
+                                <div className="text-white/50 text-[11px] leading-snug mb-3">{prod.description}</div>
+                                <div className="text-orange-400 font-black text-sm mb-4">{formatPrice(prod.price)}</div>
+
+                                {/* CONTADOR */}
+                                <div className="mb-4">
+                                  <div className="inline-block" onClick={(e) => e.stopPropagation()}>
+                                    <AddToCartBtn product={prod} variant="full" disabled={!isOpen} />
+                                  </div>
+                                </div>
+
+                                {principalEnCarrito && extras && extras.length > 0 && (
+                                  <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300 pb-4">
+                                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest border-b border-white/10 pb-1 mb-2">
+                                      Opcionales
+                                    </p>
+                                    {extras.map((ex: any) => (
+                                      <div key={ex.id} className="flex justify-between items-center bg-black/40 p-2 rounded-xl border border-white/5">
+                                        <div className="text-left leading-none">
+                                          <div className="text-[10px] font-bold text-white">{ex.name}</div>
+                                          <div className="text-[9px] text-orange-400 mt-1">+{formatPrice(ex.price)}</div>
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
+                                            mostrarAviso("Extra sumado");
+                                          }}
+                                          className="w-8 h-8 bg-white text-black rounded-xl flex items-center justify-center active:scale-90 shadow-lg"
+                                        >
+                                          <Plus size={16} strokeWidth={3} />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                           </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
       case "pop":
         return (
           <div className="app-wrapper">
@@ -608,53 +800,7 @@ function MenuContent({
           </div>
         );
 
-      case "fresh":
-        return (
-          <div className="pb-24">
-            <div className="p-6 text-center">
-              <h1 className="text-2xl font-black">{restaurant.name}</h1>
-              <p className="text-sm opacity-60">{restaurant.description}</p>
-            </div>
-            {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id}>
-                <h2 className="px-4 font-black text-xs uppercase opacity-40 mb-3 tracking-tighter text-left">
-                  {cat.name}
-                </h2>
-                <div className="grid-container">
-                  {cat.products?.map((prod: any) => (
-                    <div key={prod.id} className="grid-card text-left" onClick={() => mostrarAviso("✅ Producto agregado")}>
-                      <div
-                        className="grid-img"
-                        style={{
-                          backgroundImage: `url('${prod.image_url || ""}')`,
-                        }}
-                      ></div>
-                      <div className="grid-info">
-                        <div className="grid-name">{prod.name}</div>
-                        <div className="flex justify-between items-center mt-2">
-                          <span
-                            className="font-black text-sm"
-                            style={{ color: THEME }}
-                          >
-                            {formatPrice(prod.price)}
-                          </span>
-                          <AddToCartBtn
-                            product={prod}
-                            variant="icon"
-                            disabled={!isOpen}
-                            hasExtras={getExtrasForProduct(prod.id).length > 0}
-                            onOpenExtras={() => setSelectedProduct(prod)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-
+  
       case "elegant":
         return (
           <div className="pb-24 max-w-2xl mx-auto">
@@ -753,15 +899,21 @@ function MenuContent({
       
    
 {/* NOTIFICACION FLOTANTE CENTRADA */}
+{/* NOTIFICACION FLOTANTE CENTRADA */}
 {notificacion && (
   <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[1000] w-auto">
     <div className={`
-      ${TEMPLATE === 'minimal' 
-        ? 'bg-white text-black border-gray-200' 
-        : 'bg-blue-600 text-white border-blue-400'} 
-      px-8 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-bounce border backdrop-blur-md min-w-[200px]
+      ${TEMPLATE === 'visualgrid' 
+        ? 'bg-white/10 backdrop-blur-xl border-white/20 text-white shadow-[0_8px_32px_0_rgba(0,0,0,0.8)]' // Estilo Glass para VisualGrid
+        : TEMPLATE === 'minimal' 
+          ? 'bg-white text-black border-gray-200' 
+          : 'bg-blue-600 text-white border-blue-400'} 
+      px-8 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-300 border min-w-[200px]
     `}>
-      <Check size={20} className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} />
+      <Check 
+        size={20} 
+        className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} 
+      />
       <span className="font-black text-sm uppercase tracking-tight whitespace-nowrap">
         {notificacion.replace('✅', '')}
       </span>
@@ -769,6 +921,25 @@ function MenuContent({
   </div>
 )}
       {renderTemplate()}
+      {/* --- FOOTER DE MARCA SNAPPY --- */}
+   <div className="w-full py-8 pb-0 flex flex-col items-center justify-center gap-2">
+        <p className="text-[9px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+          Potenciado por
+        </p>
+        <a 
+          href="https://snappy.uno" // <--- ACÁ VA TU LINK A LA LANDING
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="hover:opacity-80 transition-opacity"
+        >
+          {/* --- ACÁ PONES LA URL DE TU IMAGEN --- */}
+          <img 
+            src="/logo.svg" // <--- CAMBIA ESTO
+            alt="Snappy"
+            className="h-7 w-auto" // Ajustá la altura (h-7, h-8, etc.) según necesites
+          />
+        </a>
+      </div>
       {selectedProduct && (
         <div
           className="fixed inset-0 z-[100] bg-black/70 flex items-end justify-center p-0"
