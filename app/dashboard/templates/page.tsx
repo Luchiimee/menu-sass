@@ -10,7 +10,7 @@ const TEMPLATE_DEFAULTS: any = {
   classic: { theme: '#d32f2f', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#ffebee', banner: false },
   urban:   { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', promo: '#1E1E1E', banner: false },
   minimal: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#222222', desc: '#999999', promo: '#fafafa', banner: false },
-  fresh:   { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false },
+  visualgrid: { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false }, // Limpio
   pop:     { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', promo: '#FFD700', banner: false },
   spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
@@ -244,7 +244,7 @@ const TEMPLATES = [
   { id: 'classic', name: 'Classic Delivery', desc: 'Simple y efectivo.', premium: false, type: 'classic' },
   { id: 'urban', name: 'Urbano Dark', desc: 'Impacto visual oscuro.', premium: false, type: 'urban' },
   { id: 'minimal', name: 'Minimalista', desc: 'Limpio y moderno.', premium: false, type: 'minimal' },
-  { id: 'fresh', name: 'Visual Grid', desc: 'Grilla de fotos grande.', premium: true, type: 'fresh' },
+  { id: 'visualgrid', name: 'Visual Grid', desc: 'Grilla de fotos grande.', premium: true, type: 'visualgrid' },
   { id: 'pop', name: 'Pop Vibrante', desc: 'Estilo cómic colorido.', premium: true, type: 'pop' },
   { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante.', premium: true, type: 'spotlight' },
   { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant' },
@@ -315,7 +315,7 @@ export default function GalleryPage() {
           </div>
         </div>
       );
-      case 'fresh': return (
+      case 'visualgrid': return (
         <div className="sushi-visual">
           <div className="sushi-header"><div className="sushi-brand"><div className="sushi-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=OS')"}}></div><div><div className="sushi-name">OSAKA SUSHI</div><div className="sushi-desc-local">Cocina Nikkei</div></div></div><div className="sushi-status">ABIERTO</div></div>
           <div className="sushi-msg">🍣 Happy Hour: 2x1 en Rolls.</div>

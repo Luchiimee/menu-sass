@@ -26,7 +26,7 @@ const TEMPLATE_DEFAULTS: any = {
   classic: { theme: '#d32f2f', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#ffebee', banner: false },
   urban:   { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', promo: '#1E1E1E', banner: false },
   minimal: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#222222', desc: '#999999', promo: '#fafafa', banner: false },
-  fresh:   { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false },
+  visualgrid: { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false },
   pop:     { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', promo: '#FFD700', banner: false },
   spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
@@ -91,7 +91,7 @@ export default function EditorPage() {
           let bg = rest.bg_color;
           let theme = rest.theme_color;
           
-          if ((tId === 'urban' || tId === 'fresh' || tId === 'bistro') && bg === '#ffffff') {
+          if ((tId === 'urban' || tId === 'visualgrid' || tId === 'bistro') && bg === '#ffffff') {
              bg = defaults.bg;
              rest.card_color = defaults.card;
              rest.text_color = defaults.text;
@@ -139,7 +139,7 @@ export default function EditorPage() {
     if (id === 'classic' || id === 'minimal') {
        config.labels.theme = id === 'classic' ? 'Banner Header' : 'Acento / Íconos';
     } 
-    else if (id === 'urban' || id === 'fresh') {
+    else if (id === 'urban' || id === 'visualgrid') {
        config.showCard = true;
        config.labels.theme = 'Acento / Precio';
        config.labels.bg = 'Fondo Pantalla';
@@ -278,7 +278,7 @@ export default function EditorPage() {
                   switch (activeId) {
                       case 'urban': return <UrbanoDark {...props} />;
                       case 'pop': return <PopVibrant {...props} />;
-                      case 'fresh': return <VisualGrid {...props} />; 
+                      case 'visualgrid': return <VisualGrid {...props} />; 
                       case 'classic': return <ClassicDelivery {...props} />;
                       case 'minimal': return <MinimalWhite {...props} />;
                       case 'spotlight': return <SpotlightHero {...props} />;

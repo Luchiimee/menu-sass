@@ -10,7 +10,8 @@ import {
   Palette,
   User,
   Store,
-  Zap
+  Zap,
+  Layout // <--- AGREGÁ EST
 } from 'lucide-react';
 import PushNotificationManager from '@/components/PushNotificationManager';
 

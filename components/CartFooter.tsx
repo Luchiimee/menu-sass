@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, MapPin, User, Phone } from 'lucide-react';
 
 export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
     const { cart, updateQuantity, updateExtraQuantity } = useCart();
@@ -24,7 +24,7 @@ export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
     if (!cart || cart.length === 0 || !isVisible) {
         if (cart.length > 0) {
             return (
-                <button onClick={() => setIsVisible(true)} className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl z-[110] active:scale-90 transition-transform">
+                <button onClick={() => setIsVisible(true)} className="fixed bottom-6 right-6 bg-green-600 text-white p-4 rounded-full shadow-2xl z-[110] active:scale-90 transition-transform">
                     <ShoppingBag size={28} />
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white">
                         {cart.length}
@@ -123,23 +123,43 @@ export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
                     ))}
                 </div>
 
-                {/* DATOS DE ENTREGA */}
-                <div className="space-y-3 bg-gray-50 p-4 rounded-3xl border border-gray-100">
-                    <div className="grid grid-cols-2 gap-2">
-                        <input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                        <input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                {/* DATOS DE ENTREGA CON TÍTULOS */}
+                <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label>
+                            <input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono</label>
+                            <input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                        </div>
                     </div>
 
-                    <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
-                        {['delivery', 'retiro', 'mesa'].map((m) => (
-                            <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>
-                                {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
-                            </button>
-                        ))}
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
+                        <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
+                            {['delivery', 'retiro', 'mesa'].map((m) => (
+                                <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>
+                                    {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
+
+                    {/* PRECIO DE ENVIO JUSTO DEBAJO DE LOS BOTONES */}
+                    {metodoEnvio === 'delivery' && (
+                        <div className="flex justify-between items-center px-4 py-2 bg-green-50 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-1">
+                            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
+                            <span className="font-black text-green-700">{formatPrice(envio)}</span>
+                        </div>
+                    )}
 
                     {metodoEnvio === 'delivery' && (
-                        <input type="text" placeholder="Dirección completa" value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                        <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
+                            <input type="text" placeholder="Calle, número y localidad" value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                        </div>
                     )}
                 </div>
 
@@ -147,7 +167,7 @@ export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
                 <div className="space-y-3">
                     <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Medio de Pago</label>
                     <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
+                        <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
                             <Wallet size={18} /> Efectivo
                         </button>
                         <button onClick={() => setMetodoPago('transferencia')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}>
@@ -157,7 +177,7 @@ export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
 
                     {metodoPago === 'transferencia' && aliasMp && (
                         <div className="space-y-2">
-                            <div onClick={handleCopyAlias} className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-green-500 border-green-500 shadow-lg scale-[1.02]' : 'bg-blue-600 border-blue-600 shadow-blue-200 shadow-lg active:scale-95'}`}>
+                            <div onClick={handleCopyAlias} className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-green-600 border-green-600 shadow-lg scale-[1.02]' : 'bg-blue-600 border-blue-600 shadow-blue-200 shadow-lg active:scale-95'}`}>
                                 <div className="text-white">
                                     <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">{copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}</p>
                                     <p className="text-sm font-black">{aliasMp}</p>
@@ -165,7 +185,6 @@ export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
                                 {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-white opacity-80" />}
                             </div>
                             
-                            {/* MENSAJE FLOTANTE AZUL CLARO */}
                             {copied && (
                                 <div className="bg-sky-100 text-sky-700 px-4 py-2 rounded-xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-300 border border-sky-200 shadow-sm">
                                     <MessageSquare size={14} />
@@ -193,7 +212,8 @@ export default function CartFooter({ phone, deliveryCost, aliasMp }: any) {
                         <span className="text-gray-400 text-xs font-black uppercase tracking-tighter">Total Pedido</span>
                         <span className="text-3xl font-black text-gray-900 tracking-tighter">{formatPrice(totalFinal)}</span>
                     </div>
-                    <button onClick={enviarWhatsApp} className="w-full bg-green-500 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 shadow-xl shadow-green-100 text-xl active:scale-95 transition-all">
+                    {/* BOTON VERDE OSCURO */}
+                    <button onClick={enviarWhatsApp} className="w-full bg-green-700 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all">
                         <Send size={24} /> Enviar Pedido
                     </button>
                 </div>
