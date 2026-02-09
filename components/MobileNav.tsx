@@ -23,14 +23,13 @@ interface MobileNavProps {
 export default function MobileNav({ displayName, displaySubtext }: MobileNavProps) {
   const pathname = usePathname();
 
-  const navItems = [
+const navItems = [
     { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Productos', href: '/dashboard/products', icon: UtensilsCrossed },
     { name: 'Diseño', href: '/dashboard/personalizar', icon: Palette }, 
-    { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
+    { name: 'Plantillas', href: '/dashboard/templates', icon: Layout }, // <--- AGREGADO AQUÍ
   ];
-
   return (
     <>
       {/* --- HEADER SUPERIOR (FIXED) --- */}

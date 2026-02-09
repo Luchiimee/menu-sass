@@ -252,6 +252,7 @@ const TEMPLATES = [
 ];
 
 export default function GalleryPage() {
+  const [showUpcomingModal, setShowUpcomingModal] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState('classic');
   const [userPlan, setUserPlan] = useState('free');
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -277,6 +278,11 @@ export default function GalleryPage() {
 
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
   const handleSelect = async (id: string, premium: boolean) => {
+    const proximamente = ['pop', 'spotlight', 'elegant', 'bistro'];
+   if (['pop', 'spotlight', 'elegant', 'bistro'].includes(id)) {
+    setShowUpcomingModal(true);
+    return;
+  }
     if(premium && userPlan === 'free') return alert("Plantilla Premium");
     setSavingId(id);
     
@@ -397,7 +403,7 @@ export default function GalleryPage() {
   };
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto">
+    <div className="relative pt-20 min-h-[85vh] bg-gray-50/50">
       <style>{GALLERY_STYLES}</style>
       
       <header className="mb-8">
@@ -438,18 +444,58 @@ export default function GalleryPage() {
                 </h3>
                 <p className="card-desc">{t.desc}</p>
                 <button 
-                  onClick={() => handleSelect(t.id, t.premium)}
-                  disabled={isSelected || savingId === t.id}
-                  className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
-                >
-                  {savingId === t.id ? <Loader2 className="animate-spin" size={14}/> : isSelected ? 'En uso' : isLocked ? <><Lock size={12}/> Usar Plantilla</> : 'Usar Plantilla'}
-                </button>
+  onClick={() => handleSelect(t.id, t.premium)}
+  // Se deshabilita solo si se está guardando o si ya está seleccionada (pero no para las "Próximamente")
+  disabled={savingId === t.id || (isSelected && !['pop', 'spotlight', 'elegant', 'bistro'].includes(t.id))}
+  className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
+>
+  {['pop', 'spotlight', 'elegant', 'bistro'].includes(t.id) 
+    ? 'Próximamente' 
+    : savingId === t.id 
+      ? <Loader2 className="animate-spin" size={14}/> 
+      : isSelected 
+        ? 'En uso' 
+        : isLocked 
+          ? <><Lock size={12}/> Usar Plantilla</> 
+          : 'Usar Plantilla'}
+</button>
                 {isSelected && <Link href="/dashboard/personalizar" className="btn-personalize">Ir a Personalizar →</Link>}
               </div>
             </article>
           );
         })}
       </div>
+      {/* --- MODAL PRÓXIMAMENTE --- */}
+{showUpcomingModal && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
+      
+      {/* Decoración de fondo sutil */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-100 rounded-full opacity-50 blur-3xl"></div>
+      
+      <div className="relative z-10">
+        <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
+          <span className="text-4xl">🚀</span>
+        </div>
+        
+        <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight">
+          ¡Casi listo!
+        </h3>
+        
+        <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+          Estamos puliendo los últimos detalles de este diseño para que tu menú se vea increíble. <b>¡Estará disponible muy pronto!</b>
+        </p>
+        
+        <button 
+          onClick={() => setShowUpcomingModal(false)}
+          className="w-full bg-black text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-gray-200 hover:scale-[1.02] active:scale-95 transition-all"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

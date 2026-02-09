@@ -297,7 +297,7 @@ export default function EditorPage() {
   return (
     <>
     <style>{CUSTOM_STYLES}</style>
-    <div className="relative min-h-[85vh] bg-gray-50/50">
+    <div className="relative pt-20 min-h-[85vh] bg-gray-50/50">
       
       {showRestoreModal && <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in"><div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"><h3 className="font-bold text-lg text-gray-900 mb-2">¿Restaurar colores?</h3><p className="text-sm text-gray-600 mb-6">Volverás a los colores originales del diseño.</p><div className="flex gap-3"><button onClick={() => setShowRestoreModal(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200">Cancelar</button><button onClick={confirmReset} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-700">Sí, Restaurar</button></div></div></div>}
       {showSuccessModal && <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-pop-in"><div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3"><CheckCircle size={20} className="text-green-400"/><span className="font-bold text-sm">¡Guardado!</span></div></div>}
