@@ -403,7 +403,7 @@ export default function GalleryPage() {
   };
 
   return (
-    <div className="relative pt-20 min-h-[85vh] bg-gray-50/50">
+    <div className="relative px-4 pt-20 lg:px-8 min-h-[85vh] bg-gray-50/50">
       <style>{GALLERY_STYLES}</style>
       
       <header className="mb-8">
