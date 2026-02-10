@@ -170,46 +170,49 @@ export default function SettingsPage() {
   };
 
   // --- ACTIVAR TRIAL 14 DÍAS ---
-  const handleActivateTrial = async (planType: 'light' | 'plus') => {
-    // 1. Verificación de seguridad: si no hay ID, no disparamos la petición
-    if (!restaurant?.id) {
-      toast.error("Cargando datos del restaurante... Por favor, intenta de nuevo en un segundo.");
-      return;
+ const handleActivateTrial = async (planType: 'light' | 'plus') => {
+  // 1. Ahora validamos por userId, que SIEMPRE lo tenemos si el usuario está logueado
+  if (!userId) {
+    toast.error("No se encontró la sesión de usuario. Intenta reingresar.");
+    return;
+  }
+
+  setProcessingPlan(planType);
+  
+  try {
+    // 2. Usamos UPSERT: Si el restaurante no existe, lo crea. Si existe, lo actualiza.
+    const { data, error } = await supabase
+      .from('restaurants')
+      .upsert({ 
+        // Si ya tenemos un ID lo enviamos, si no, Supabase crea uno nuevo
+        ...(restaurant?.id ? { id: restaurant.id } : {}),
+        user_id: userId, 
+        subscription_plan: planType,
+        subscription_status: 'trialing',
+        trial_start_date: new Date().toISOString(),
+        name: restaurant?.name || 'Mi Restaurante' // Nombre temporal si es nuevo
+      }, {
+        onConflict: 'user_id' // Esto evita que se creen dos restaurantes para el mismo usuario
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 3. Actualizamos el estado con los datos reales que devolvió la base de datos
+    if (data) {
+      setRestaurant(data);
     }
 
-    setProcessingPlan(planType);
+    toast.success(`¡Plan ${planType.toUpperCase()} activado! Tenés 14 días gratis.`);
     
-    try {
-      const { error } = await supabase
-        .from('restaurants')
-        .update({ 
-          subscription_plan: planType,
-          subscription_status: 'trialing', // Marcamos que está en período de prueba
-          trial_start_date: new Date().toISOString() // Registramos cuándo empezó
-        })
-        .eq('id', restaurant.id);
-
-      if (error) throw error;
-
-      toast.success(`¡Plan ${planType.toUpperCase()} activado! Tenés 14 días gratis.`);
-      
-      // 2. Actualizamos el estado local para que la UI cambie sin necesidad de recargar toda la página
-    setRestaurant({ 
-      ...restaurant, 
-      subscription_plan: planType,
-      subscription_status: 'trialing' 
-    });
-
-      // Opcional: si prefieres forzar la recarga, puedes mantener window.location.reload()
-      // pero con setRestaurant arriba ya debería funcionar perfecto.
-      
-    } catch (error: any) { 
-      console.error("Error al activar:", error.message);
-      toast.error("Error al activar el plan"); 
-    } finally { 
-      setProcessingPlan(null); 
-    }
-  };
+  } catch (error: any) { 
+    console.error("Error al activar:", error.message);
+    toast.error("Error al activar el plan"); 
+  } finally { 
+    setProcessingPlan(null); 
+  }
+};
   // --- MERCADO PAGO ---
   const handleGoToPayment = async (planType: 'light' | 'plus') => {
       setProcessingPlan(planType);
