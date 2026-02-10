@@ -171,15 +171,45 @@ export default function SettingsPage() {
 
   // --- ACTIVAR TRIAL 14 DÍAS ---
   const handleActivateTrial = async (planType: 'light' | 'plus') => {
-    setProcessingPlan(planType);
-    try {
-        const { error } = await supabase.from('restaurants').update({ subscription_plan: planType }).eq('id', restaurant.id);
-        if (error) throw error;
-        toast.success(`¡Plan ${planType.toUpperCase()} activado! Tenés 14 días gratis.`);
-        window.location.reload();
-    } catch (error) { toast.error("Error al activar"); } finally { setProcessingPlan(null); }
-  };
+    // 1. Verificación de seguridad: si no hay ID, no disparamos la petición
+    if (!restaurant?.id) {
+      toast.error("Cargando datos del restaurante... Por favor, intenta de nuevo en un segundo.");
+      return;
+    }
 
+    setProcessingPlan(planType);
+    
+    try {
+      const { error } = await supabase
+        .from('restaurants')
+        .update({ 
+          subscription_plan: planType,
+          subscription_status: 'trialing', // Marcamos que está en período de prueba
+          trial_start_date: new Date().toISOString() // Registramos cuándo empezó
+        })
+        .eq('id', restaurant.id);
+
+      if (error) throw error;
+
+      toast.success(`¡Plan ${planType.toUpperCase()} activado! Tenés 14 días gratis.`);
+      
+      // 2. Actualizamos el estado local para que la UI cambie sin necesidad de recargar toda la página
+    setRestaurant({ 
+      ...restaurant, 
+      subscription_plan: planType,
+      subscription_status: 'trialing' 
+    });
+
+      // Opcional: si prefieres forzar la recarga, puedes mantener window.location.reload()
+      // pero con setRestaurant arriba ya debería funcionar perfecto.
+      
+    } catch (error: any) { 
+      console.error("Error al activar:", error.message);
+      toast.error("Error al activar el plan"); 
+    } finally { 
+      setProcessingPlan(null); 
+    }
+  };
   // --- MERCADO PAGO ---
   const handleGoToPayment = async (planType: 'light' | 'plus') => {
       setProcessingPlan(planType);
