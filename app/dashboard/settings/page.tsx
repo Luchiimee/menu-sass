@@ -171,40 +171,33 @@ export default function SettingsPage() {
 
   // --- ACTIVAR TRIAL 14 DÍAS ---
  const handleActivateTrial = async (planType: 'light' | 'plus') => {
-  // 1. Ahora validamos por userId, que SIEMPRE lo tenemos si el usuario está logueado
   if (!userId) {
-    toast.error("No se encontró la sesión de usuario. Intenta reingresar.");
+    toast.error("No se encontró la sesión de usuario.");
     return;
   }
 
   setProcessingPlan(planType);
   
   try {
-    // 2. Usamos UPSERT: Si el restaurante no existe, lo crea. Si existe, lo actualiza.
     const { data, error } = await supabase
       .from('restaurants')
       .upsert({ 
-        // Si ya tenemos un ID lo enviamos, si no, Supabase crea uno nuevo
         ...(restaurant?.id ? { id: restaurant.id } : {}),
         user_id: userId, 
         subscription_plan: planType,
         subscription_status: 'trialing',
         trial_start_date: new Date().toISOString(),
-        name: restaurant?.name || 'Mi Restaurante' // Nombre temporal si es nuevo
+        name: restaurant?.name || 'Mi Restaurante' 
       }, {
-        onConflict: 'user_id' // Esto evita que se creen dos restaurantes para el mismo usuario
+        onConflict: 'user_id' 
       })
       .select()
       .single();
 
     if (error) throw error;
+    if (data) setRestaurant(data);
 
-    // 3. Actualizamos el estado con los datos reales que devolvió la base de datos
-    if (data) {
-      setRestaurant(data);
-    }
-
-    toast.success(`¡Plan ${planType.toUpperCase()} activado! Tenés 14 días gratis.`);
+    toast.success(`¡Plan ${planType.toUpperCase()} activado! 14 días gratis.`);
     
   } catch (error: any) { 
     console.error("Error al activar:", error.message);
