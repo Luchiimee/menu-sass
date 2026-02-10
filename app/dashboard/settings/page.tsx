@@ -37,21 +37,80 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState({ first_name: '', last_name: '', phone: '', email: '' });
   const [restaurant, setRestaurant] = useState<any>({ id: null, business_hours: {}, subscription_plan: null, created_at: null });
 
-  useEffect(() => {
+ useEffect(() => {
     const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
-        setUserId(session.user.id);
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+        
+        const user = session.user;
+        setUserId(user.id);
+
+        // 1. Intentamos traer datos de la tabla 'profiles'
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
         if (profileData) {
-            setProfile({ first_name: profileData.first_name || '', last_name: profileData.last_name || '', phone: profileData.phone || '', email: session.user.email || '' });
+            // Si ya existe en la DB, usamos eso
+            setProfile({ 
+                first_name: profileData.first_name || '', 
+                last_name: profileData.last_name || '', 
+                phone: profileData.phone || '',
+                email: user.email || '' 
+            });
+        } else {
+            // 2. Si NO existe en la DB (primer ingreso), rescatamos de Metadata (Gmail o Registro Manual)
+            const meta = user.user_metadata || {};
+            let firstName = meta.first_name || '';
+            let lastName = meta.last_name || '';
+            let phone = meta.phone || '';
+
+            // Si se registró con Google, el nombre viene en 'full_name'
+            if (meta.full_name && !firstName) {
+                const parts = meta.full_name.split(' ');
+                firstName = parts[0];
+                lastName = parts.slice(1).join(' ');
+            } else if (meta.name && !firstName) {
+                firstName = meta.name;
+            }
+
+            const newProfile = { 
+                first_name: firstName, 
+                last_name: lastName, 
+                email: user.email || '',
+                phone: phone 
+            };
+
+            setProfile(newProfile);
+            
+            // 3. Guardado automático inicial para que ya quede creado en la DB
+            await supabase.from('profiles').upsert({
+                id: user.id,
+                first_name: firstName,
+                last_name: lastName,
+                phone: phone
+            });
         }
-        const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle();
+
+        // 4. Cargar datos del restaurante
+        const { data: restData } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+        
         if (restData) {
             setRestaurant({ ...restData, business_hours: restData.business_hours || {} });
         }
-      } catch (error) { console.error(error); } finally { setTimeout(() => setLoading(false), 300); }
+
+      } catch (error) { 
+          console.error("Error cargando datos:", error); 
+      } finally { 
+          setTimeout(() => setLoading(false), 300); 
+      }
     };
     loadData();
   }, []);

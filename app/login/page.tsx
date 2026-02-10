@@ -55,41 +55,42 @@ export default function LoginPage() {
 
     try {
       if (isRegistering) {
-        // 1. Registro en Auth
+        // 1. Registro en Auth (Guardamos todo en la metadata de Supabase)
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${origin}/auth/callback`,
             data: {
-                full_name: `${firstName} ${lastName}`.trim(),
+              first_name: firstName,
+              last_name: lastName,
+              phone: phone,
+              full_name: `${firstName} ${lastName}`.trim(),
             }
           },
         })
 
         if (authError) throw authError
 
-        // 2. Si el usuario se creó, guardamos sus datos en la tabla 'profiles'
+        // 2. Guardamos también en la tabla 'profiles' para tener la base de datos limpia
         if (authData.user) {
-            // Usamos upsert para evitar duplicados y asegurar la escritura
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: authData.user.id,
-                    first_name: firstName,
-                    last_name: lastName,
-                    phone: phone, // Aquí se guarda el teléfono que pediste
-                    email: email,
-                    updated_at: new Date().toISOString(),
-                })
-            
-            if (profileError) {
-                console.error("Error guardando perfil detallado:", profileError.message)
-                // No lanzamos error para no trabar el registro, pero lo avisamos en consola
-            }
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: authData.user.id,
+              first_name: firstName,
+              last_name: lastName,
+              phone: phone,
+              email: email,
+              updated_at: new Date().toISOString(),
+            })
+          
+          if (profileError) {
+            console.error("Error en tabla profiles:", profileError.message)
+          }
         }
 
-        setMessage('¡Cuenta creada! Revisa tu email para confirmar o intenta iniciar sesión.')
+        setMessage('¡Cuenta creada! Revisa tu email para confirmar.')
 
       } else {
         // --- LÓGICA DE LOGIN ---
