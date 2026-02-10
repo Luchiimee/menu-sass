@@ -179,6 +179,10 @@ export default function SettingsPage() {
   setProcessingPlan(planType);
   
   try {
+    // 1. Creamos un slug automático (ej: snappy-a1b2c) por si el restaurante es nuevo
+    // Esto evita el error de "null value in column slug"
+    const autoSlug = `snappy-${Math.random().toString(36).substring(2, 7)}`;
+
     const { data, error } = await supabase
       .from('restaurants')
       .upsert({ 
@@ -187,7 +191,8 @@ export default function SettingsPage() {
         subscription_plan: planType,
         subscription_status: 'trialing',
         trial_start_date: new Date().toISOString(),
-        name: restaurant?.name || 'Mi Restaurante' 
+        name: restaurant?.name || 'Mi Restaurante',
+        slug: restaurant?.slug || autoSlug // <--- AGREGAMOS ESTA LÍNEA CLAVE
       }, {
         onConflict: 'user_id' 
       })
