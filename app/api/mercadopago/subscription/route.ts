@@ -1,16 +1,14 @@
-// app/api/mercadopago/subscription/route.ts
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
-import { createClient } from '@supabase/supabase-js'; // Asegurate de tener instalada la lib
+import { createClient } from '@supabase/supabase-js';
 
 const client = new MercadoPagoConfig({ 
-    accessToken: 'APP_USR-7993102997429224-012119-bfa50f1ec737617062e24089c3bbd985-191097426'
+    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! 
 });
 
-// Inicializamos Supabase para consultar la fecha de registro
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // Usá la Service Role para saltar el RLS
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: Request) {
@@ -18,7 +16,7 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { planType, userId, email } = body;
 
-        // 1. Buscamos al restaurante para saber cuándo se creó
+        // 1. Buscamos al restaurante para calcular el trial
         const { data: restaurant, error: dbError } = await supabase
             .from('restaurants')
             .select('created_at')
@@ -27,35 +25,38 @@ export async function POST(request: Request) {
 
         if (dbError || !restaurant) throw new Error("Restaurante no encontrado");
 
-        // 2. LÓGICA DE FECHAS (Trial de 14 días)
+        // 2. Lógica de 14 días de prueba
         const fechaRegistro = new Date(restaurant.created_at);
         const fechaFinTrial = new Date(fechaRegistro);
-        fechaFinTrial.setDate(fechaRegistro.getDate() + 14); // Sumamos 14 días al registro
+        fechaFinTrial.setDate(fechaRegistro.getDate() + 14);
 
         const hoy = new Date();
         
-        // Si la fecha de fin de trial es mayor a hoy, esa será la fecha de inicio de cobro.
-        // Si ya pasaron los 14 días, el cobro empieza hoy mismo.
-        const fechaInicioCobro = fechaFinTrial > hoy ? fechaFinTrial : hoy;
+        // Si el trial no venció, empieza al vencer. Si ya venció, empieza en 5 min.
+        let fechaInicioCobro = fechaFinTrial > hoy ? fechaFinTrial : hoy;
+        fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
 
-        // 3. Definimos precio y nombre
-        let amount = planType === 'light' ? 7400 : planType === 'plus' ? 15900 : 28600;
-        let reason = `Plan ${planType.toUpperCase()} - Snappy`;
+        // 3. Precios actualizados
+        const prices: Record<string, number> = {
+            light: 7400,
+            plus: 15900,
+            max: 28600
+        };
 
+        const amount = prices[planType] || 7400;
         const preapproval = new PreApproval(client);
 
-        // 4. Creamos la suscripción con start_date
+        // 4. Crear suscripción en Mercado Pago
         const response = await preapproval.create({
             body: {
-                reason: reason,
-                external_reference: userId,
+                reason: `Plan ${planType.toUpperCase()} - Snappy`,
+                external_reference: userId, // CLAVE para el webhook
                 payer_email: email,
                 auto_recurring: {
                     frequency: 1,
                     frequency_type: 'months',
                     transaction_amount: amount,
                     currency_id: 'ARS',
-                    // ESTA ES LA CLAVE: Mercado Pago cobrará recién en esta fecha
                     start_date: fechaInicioCobro.toISOString(), 
                 },
                 back_url: 'https://snappy.uno/dashboard/settings',
@@ -65,8 +66,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ url: response.init_point });
 
-    } catch (error) {
-        console.error("Error creando suscripción:", error);
-        return NextResponse.json({ error: 'Error al crear la suscripción' }, { status: 500 });
+    } catch (error: any) {
+        console.error("Error MP Subscription:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

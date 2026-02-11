@@ -1,73 +1,50 @@
-// api/webhooks/mercadopago/route.ts
-import { NextResponse } from "next/server";
-import { MercadoPagoConfig, PreApproval } from "mercadopago";
-import { supabase } from "@/lib/supabase";
+import { NextResponse } from 'next/server';
+import { MercadoPagoConfig, PreApproval } from 'mercadopago';
+import { createClient } from '@supabase/supabase-js';
 
-const client = new MercadoPagoConfig({
-  accessToken:
-    "APP_USR-7993102997429224-012119-bfa50f1ec737617062e24089c3bbd985-191097426",
+const client = new MercadoPagoConfig({ 
+    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! 
 });
 
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(request: Request) {
-  try {
-    const url = new URL(request.url);
-    // MP manda a veces topic y a veces type, capturamos ambos
-    const topic = url.searchParams.get("topic") || url.searchParams.get("type");
-    const id = url.searchParams.get("id") || url.searchParams.get("data.id");
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id'); // ID de la notificación
+        const topic = searchParams.get('topic'); // Tipo de notificación
 
-    // Escuchamos suscripciones (preapproval)
-    if (topic === "preapproval" && id) {
-      const preapproval = new PreApproval(client);
-      const subscription = await preapproval.get({ id: id });
+        // Solo procesamos si es una suscripción (preapproval)
+        if (topic === 'preapproval' && id) {
+            const preapproval = new PreApproval(client);
+            const subData = await preapproval.get({ id });
 
-      const userId = subscription.external_reference;
-      const status = subscription.status; // 'authorized', 'paused', 'cancelled'
+            const userId = subData.external_reference;
+            const status = subData.status; // 'authorized' = pagado/activo
 
-      if (userId && status === "authorized") {
-        const amount = subscription.auto_recurring?.transaction_amount || 0;
+            if (status === 'authorized') {
+                // ACTIVAMOS EL PLAN EN LA BASE DE DATOS
+                const { error } = await supabase
+                    .from('restaurants')
+                    .update({ 
+                        subscription_status: 'active',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', userId);
 
-        // --- AJUSTE DE DETECCIÓN DE PLAN ---
-        let newPlan = "light";
-        if (amount >= 28600) {
-          newPlan = "max";
-        } else if (amount >= 15900) {
-          newPlan = "plus";
-        } else if (amount >= 7400) {
-          newPlan = "light";
+                if (error) throw error;
+                console.log(`✅ Suscripción activada para el usuario: ${userId}`);
+            }
         }
 
-        console.log(
-          `✅ Suscripción exitosa: Usuario ${userId} activó Plan ${newPlan.toUpperCase()}`,
-        );
+        // MP espera un 200 o 201 para dejar de mandar la notificación
+        return NextResponse.json({ received: true }, { status: 200 });
 
-        // Actualizamos el plan y podemos guardar el ID de suscripción por si cancela después
-        await supabase
-          .from("restaurants")
-          .update({
-            subscription_plan: newPlan,
-            // Es buena idea guardar esto para poder cancelar la suscripción desde tu app luego
-            // mp_subscription_id: id
-          })
-          .eq("user_id", userId);
-      }
-
-      // Si el usuario cancela la suscripción desde Mercado Pago
-      if (userId && (status === "cancelled" || status === "paused")) {
-        console.log(
-          `⚠️ Suscripción pausada o cancelada para el usuario ${userId}`,
-        );
-        await supabase
-          .from("restaurants")
-          .update({
-            subscription_plan: "free", // O el plan base que tengas
-          })
-          .eq("user_id", userId);
-      }
+    } catch (error: any) {
+        console.error("Webhook Error:", error.message);
+        return NextResponse.json({ error: 'Webhook fail' }, { status: 500 });
     }
-
-    return NextResponse.json({ status: "ok" });
-  } catch (error) {
-    console.error("❌ Webhook Error:", error);
-    return NextResponse.json({ status: "error" }, { status: 500 });
-  }
 }

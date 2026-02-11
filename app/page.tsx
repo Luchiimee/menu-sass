@@ -356,7 +356,7 @@ export default function LandingPage() {
               <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
               <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
               <div className="mb-6">
-                <span className="text-3xl font-black">$7.000</span>
+                <span className="text-3xl font-black">$7.400</span>
                 <span className="text-gray-400 text-sm">/mes</span>
               </div>
               <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
