@@ -12,6 +12,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   
   // --- ESTADOS ---
+// Cambiá esta línea por los nombres reales:
+const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
   const [products, setProducts] = useState<any[]>([]);
   const [availableExtras, setAvailableExtras] = useState<any[]>([]); 
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]); 
@@ -21,6 +23,7 @@ export default function ProductsPage() {
   const [isLocked, setIsLocked] = useState(true); 
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false); 
   const [showExtraModal, setShowExtraModal] = useState(false); 
@@ -48,26 +51,52 @@ export default function ProductsPage() {
   };
 
   // --- CARGA DE DATOS ---
+// --- CARGA DE DATOS (VERSIÓN CORREGIDA) ---
   useEffect(() => {
     const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const { data: rest } = await supabase.from('restaurants').select('id, subscription_plan').eq('user_id', session.user.id).maybeSingle();
+        // 1. Pedimos ID, Plan Y Status (importante!)
+        const { data: rest, error: restError } = await supabase
+            .from('restaurants')
+            .select('id, subscription_plan, subscription_status, template_id')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+        if (restError) throw restError;
 
         if (rest) {
             setRestaurantId(rest.id);
             setCurrentPlan(rest.subscription_plan);
-            if (rest.subscription_plan) {
+            // Si tenés el estado de la plantilla, guardalo también
+           if (rest.template_id) setSelectedTemplate(rest.template_id);
+
+            // 2. LÓGICA DE DESBLOQUEO (Más flexible)
+            // Se desbloquea si hay un plan escrito O si el status dice 'active'
+            const hasActivePlan = rest.subscription_plan !== null || rest.subscription_status === 'active';
+
+            if (hasActivePlan) {
                 setIsLocked(false);
+                
+                // 3. CARGAMOS LOS PRODUCTOS Y EXTRAS
                 const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: false });
                 if (prods) setProducts(prods);
+                
                 const { data: extras } = await supabase.from('extras').select('*').eq('restaurant_id', rest.id).order('name', { ascending: true });
                 if (extras) setAvailableExtras(extras);
-            } else { setIsLocked(true); }
-        } else { setIsLocked(true); }
-      } catch (error) { console.error(error); } finally { setLoading(false); }
+            } else { 
+                setIsLocked(true); 
+            }
+        } else { 
+            setIsLocked(true); 
+        }
+      } catch (error) { 
+          console.error("Error cargando productos:", error); 
+      } finally { 
+          setLoading(false); 
+      }
     };
     loadData();
   }, []);
@@ -414,76 +443,54 @@ export default function ProductsPage() {
                     </div>
 
                     <div className="p-6 overflow-y-auto space-y-6 bg-white">
-                        
-                        {/* FOTO */}
-                        <div className="flex justify-center">
-                            <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition group overflow-hidden">
-                                {formData.image_url ? (
-                                    <>
-                                        <img src={formData.image_url} className="w-full h-full object-cover"/>
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                            <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Foto</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center p-4">
-                                        <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3 group-hover:scale-110 transition">
-                                            <ImageIcon className="text-violet-400" size={24}/>
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-600 group-hover:text-violet-600 transition">Sube una foto atractiva</p>
-                                        <p className="text-xs text-gray-400 mt-1">PNG, JPG hasta 2MB</p>
-                                    </div>
-                                )}
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                            </label>
-                        </div>
-
-                        {/* INPUTS CON DISEÑO SOLID */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1">Nombre del Plato</label>
-                                <div className="relative">
-                                    <input 
-                                        value={formData.name} 
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all placeholder:text-gray-400" 
-                                        placeholder="Ej: Burger Doble Cheddar"
-                                    />
-                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1">Precio</label>
-                                    <div className="relative">
-                                        <input 
-                                            type="number" 
-                                            value={formData.price} 
-                                            onChange={(e) => setFormData({...formData, price: e.target.value})} 
-                                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all placeholder:text-gray-400" 
-                                            placeholder="0"
-                                        />
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1">Descripción</label>
-                                <div className="relative">
-                                    <textarea 
-                                        value={formData.description} 
-                                        onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                                        rows={3} 
-                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all resize-none placeholder:text-gray-400" 
-                                        placeholder="Ingredientes principales, detalles..."
-                                    />
-                                    <AlignLeft className="absolute left-3 top-4 text-gray-400" size={18}/>
-                                </div>
-                            </div>
-                        </div>
-
+{/* SECCIÓN DE FOTO O MENSAJE - COMPLETO Y CORREGIDO */}
+{selectedTemplate && ['minimal', 'classic', 'elegant', 'pop', 'bistro'].some(t => selectedTemplate.toLowerCase().includes(t)) ? (
+    // 1. VISTA PARA DISEÑOS SIN FOTOS (minimal, classic, elegant, pop, bistro)
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center mb-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+            <ImageIcon className="text-amber-500" size={24} />
+        </div>
+        <h4 className="text-amber-800 font-bold text-sm">Diseño sin imágenes</h4>
+        <p className="text-amber-700/80 text-xs mt-1 leading-relaxed">
+            La plantilla <b>{selectedTemplate.toUpperCase()}</b> es de estilo minimalista y no utiliza fotos de productos. 
+            Si querés mostrar imágenes, elegí una plantilla visual en la galería.
+        </p>
+        <Link href="/dashboard/personalizar" className="inline-block mt-3 text-amber-900 text-xs font-bold underline hover:text-amber-700 transition-colors">
+            Cambiar diseño en Galería →
+        </Link>
+    </div>
+) : (
+    // 2. VISTA PARA DISEÑOS CON FOTOS (Todos los demás)
+    <div className="flex justify-center mb-4 animate-in fade-in zoom-in-95 duration-200">
+        <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden">
+            {formData.image_url ? (
+                <>
+                    <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-sm flex items-center gap-2">
+                            <UploadCloud size={18}/> Cambiar Foto
+                        </p>
+                    </div>
+                </>
+            ) : (
+                <div className="text-center p-4">
+                    <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3 group-hover:scale-110 transition-transform">
+                        <ImageIcon className="text-violet-400" size={24}/>
+                    </div>
+                    <p className="text-sm font-bold text-gray-600 group-hover:text-violet-600 transition-colors">Sube una foto atractiva</p>
+                    <p className="text-xs text-gray-400 mt-1">PNG, JPG hasta 2MB</p>
+                </div>
+            )}
+            <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+                disabled={uploading}
+            />
+        </label>
+    </div>
+)}
                         {/* SECCIÓN EXTRAS MEJORADA */}
                         <div className="pt-2">
                             <label className="text-xs font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">

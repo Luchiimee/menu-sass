@@ -2,12 +2,12 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock
+  CheckCircle, Utensils, X, Lock, UploadCloud
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -53,6 +53,8 @@ export default function EditorPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -70,6 +72,16 @@ export default function EditorPage() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
+
+  // --- LÓGICA DE AUTOGUARDADO ---
+  useEffect(() => {
+    if (unsavedChanges && data.id) {
+      const timeout = setTimeout(() => {
+        handleSave();
+      }, 2000); // Guarda después de 2 segundos de inactividad
+      return () => clearTimeout(timeout);
+    }
+  }, [data]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => { if (unsavedChanges) { e.preventDefault(); e.returnValue = ''; return ''; } };
@@ -202,13 +214,14 @@ export default function EditorPage() {
   };
 
   const handleSave = async () => {
-    if (isLocked) return alert("Debes elegir un plan.");
-    setLoading(true);
     const { id, created_at, ...updates } = data; 
     const { error } = await supabase.from('restaurants').update(updates).eq('id', data.id);
-    setLoading(false);
-    if (error) alert("Error al guardar: " + error.message);
-    else { setUnsavedChanges(false); setShowSuccessModal(true); setTimeout(() => setShowSuccessModal(false), 3000); }
+    if (error) console.error("Error al guardar: " + error.message);
+    else { 
+      setUnsavedChanges(false); 
+      setShowSuccessModal(true); 
+      setTimeout(() => setShowSuccessModal(false), 2000); 
+    }
   };
 
   const handleAddProduct = async () => {
@@ -297,7 +310,7 @@ export default function EditorPage() {
   return (
     <>
     <style>{CUSTOM_STYLES}</style>
-    <div className="relative pt-20 min-h-[85vh] bg-gray-50/50">
+    <div className="relative pt-06 min-h-[85vh] bg-gray-50/50">
       
       {showRestoreModal && <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in"><div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"><h3 className="font-bold text-lg text-gray-900 mb-2">¿Restaurar colores?</h3><p className="text-sm text-gray-600 mb-6">Volverás a los colores originales del diseño.</p><div className="flex gap-3"><button onClick={() => setShowRestoreModal(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200">Cancelar</button><button onClick={confirmReset} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-700">Sí, Restaurar</button></div></div></div>}
       {showSuccessModal && <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-pop-in"><div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3"><CheckCircle size={20} className="text-green-400"/><span className="font-bold text-sm">¡Guardado!</span></div></div>}
@@ -308,13 +321,13 @@ export default function EditorPage() {
             {/* PANEL IZQUIERDO */}
             <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
-                  <div><h1 className="text-xl font-bold whitespace-nowrap text-gray-900">Personalizar Tienda</h1><div className="flex items-center gap-2 mt-1"><p className="text-xs text-gray-500">Diseña la apariencia de tu menú digital.</p>{unsavedChanges && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">Sin guardar</span>}</div></div>
+                  <div><h1 className="text-xl font-bold whitespace-nowrap text-gray-900">Personalizar Tienda</h1><div className="flex items-center gap-2 mt-1"><p className="text-xs text-gray-500">Diseña la apariencia de tu menú digital.</p>{unsavedChanges && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">Autoguardando...</span>}</div></div>
                   <div className="flex gap-2">
                     <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors">
                       <Palette size={14}/> Estilos
                     </button>
                     <button onClick={handleSave} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-colors">
-                      {loading ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>} Guardar
+                      <Save size={14}/> Guardado
                     </button>
                   </div>
               </div>
@@ -346,7 +359,6 @@ export default function EditorPage() {
                         <div className="bg-gray-100 px-2 py-2 border-r text-gray-500 text-xs flex items-center select-none">snappy.uno/</div>
                         <input value={data.slug} onChange={(e) => { setData({...data, slug: e.target.value}); setUnsavedChanges(true); }} className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" placeholder="tu-marca"/>
                         
-                        {/* Botones de Link con Hover Color */}
                         <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors" title="Copiar enlace">
                           {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14}/> <span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14}/>}
                         </button>
@@ -392,7 +404,7 @@ export default function EditorPage() {
                   <div className="grid grid-cols-2 gap-4">
                       <div>
                           <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">WhatsApp</label>
-                          <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-green-50 text-green-600 border-r"><Phone size={14}/></div><input value={data.phone} onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="11..."/></div>
+                          <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-green-50 text-green-600 border-r"><Phone size={14}/></div><input value={data.phone || ''} onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="11..."/></div>
                           <p className="text-[10px] text-gray-400 mt-1 leading-tight">Este número recibirá los pedidos.</p>
                       </div>
                       <div>
@@ -403,20 +415,59 @@ export default function EditorPage() {
                   </div>
                   <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias (Mercado Pago)</label>
-                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-purple-50 text-purple-500 border-r"><CreditCard size={14}/></div><input value={data.alias_mp} onChange={(e) => { setData({...data, alias_mp: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp"/></div>
+                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-purple-50 text-purple-500 border-r"><CreditCard size={14}/></div><input value={data.alias_mp || ''} onChange={(e) => { setData({...data, alias_mp: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp"/></div>
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
                   </div>
               </section>
 
               <section className="pt-4 border-t">
                   <h3 className="font-bold flex items-center gap-2 text-sm mb-3"><Utensils size={16}/> Carga Rápida de Platos</h3>
-                  {products.length < 2 ? (<div className="bg-gray-50 border p-3 rounded-xl space-y-2"><div className="flex gap-2"><div className="w-12 h-12 bg-white border border-dashed border-gray-300 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0"><input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />{newProd.image_url ? <img src={newProd.image_url} className="w-full h-full object-cover rounded-lg"/> : <Plus size={16} className="text-gray-400"/>}</div><div className="flex-1 min-w-0 space-y-1"><input value={newProd.name} onChange={(e) => setNewProd({...newProd, name: e.target.value})} placeholder="Nombre del plato" className="w-full p-1.5 border rounded text-xs font-bold"/><input type="number" value={newProd.price} onChange={(e) => setNewProd({...newProd, price: e.target.value})} placeholder="$ Precio" className="w-full p-1.5 border rounded text-xs"/></div></div><textarea value={newProd.description} onChange={(e) => setNewProd({...newProd, description: e.target.value})} placeholder="Ingredientes..." className="w-full p-2 border rounded text-xs outline-none resize-none" rows={1}/><button onClick={handleAddProduct} disabled={loading || !newProd.name} className="w-full bg-gray-900 text-white py-2 rounded-lg text-xs font-bold flex justify-center gap-2 items-center hover:bg-black transition-colors">Agregar al Menú</button></div>) : (<div className="bg-green-50 border border-green-200 p-3 rounded-xl flex items-center justify-between"><div className="flex items-center gap-2 text-green-800 text-xs font-bold"><Check size={16}/> {products.length} productos cargados</div><Link href="/dashboard/products" className="text-xs bg-white border border-green-200 px-3 py-1.5 rounded-lg font-bold text-green-700 hover:bg-green-50">Gestionar Todos</Link></div>)}
+                  {products.length < 2 ? (
+                    <div className="bg-gray-50 border p-3 rounded-xl space-y-2">
+                        <div className="flex gap-2">
+                            {/* --- CARGA RÁPIDA DE PLATOS CON EXPLICACIÓN --- */}
+{!templatesSinFoto.some(t => data.template_id?.toLowerCase().includes(t)) ? (
+    // Si la plantilla permite fotos, mostramos el cargador de siempre
+    <div className="w-12 h-12 bg-white border border-dashed border-gray-200 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0 group">
+        <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
+        {newProd.image_url ? (
+            <img src={newProd.image_url} className="w-full h-full object-cover rounded-lg"/>
+        ) : (
+            <Plus size={16} className="text-gray-400 group-hover:text-violet-500 transition-colors"/>
+        )}
+    </div>
+) : (
+    // Si NO permite fotos (Bistro, Minimal, etc.), mostramos el aviso al hacer click
+    <button 
+        type="button"
+        onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" es un estilo minimalista enfocado en la velocidad y el texto. Por eso, no utiliza imágenes de productos. Si prefieres mostrar fotos, elige una plantilla de tipo 'Visual' o 'Urbano' en la galería.`)}
+        className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-amber-100 transition-colors shadow-sm"
+        title="¿Por qué no puedo subir fotos?"
+    >
+        <ImageIcon size={16} className="text-amber-500"/>
+    </button>
+)}
+                           
+                            
+                            <div className="flex-1 min-w-0 space-y-1">
+                                <input value={newProd.name} onChange={(e) => setNewProd({...newProd, name: e.target.value})} placeholder="Nombre del plato" className="w-full p-1.5 border rounded text-xs font-bold"/>
+                                <input type="number" value={newProd.price} onChange={(e) => setNewProd({...newProd, price: e.target.value})} placeholder="$ Precio" className="w-full p-1.5 border rounded text-xs"/>
+                            </div>
+                        </div>
+                        <textarea value={newProd.description} onChange={(e) => setNewProd({...newProd, description: e.target.value})} placeholder="Ingredientes..." className="w-full p-2 border rounded text-xs outline-none resize-none" rows={1}/>
+                        <button onClick={handleAddProduct} disabled={loading || !newProd.name} className="w-full bg-gray-900 text-white py-2 rounded-lg text-xs font-bold flex justify-center gap-2 items-center hover:bg-black transition-colors">Agregar al Menú</button>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 p-3 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-green-800 text-xs font-bold"><Check size={16}/> {products.length} productos cargados</div>
+                        <Link href="/dashboard/products" className="text-xs bg-white border border-green-200 px-3 py-1.5 rounded-lg font-bold text-green-700 hover:bg-green-50">Gestionar Todos</Link>
+                    </div>
+                  )}
                   <div className="mt-3 space-y-2">{products.slice(0, 3).map(p => (<div key={p.id} className="flex items-center gap-3 p-2 border rounded-lg bg-white"><div className="w-8 h-8 bg-gray-100 rounded overflow-hidden flex-shrink-0">{p.image_url && <img src={p.image_url} className="w-full h-full object-cover"/>}</div><div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{p.name}</div></div><div className="text-xs text-gray-500">${p.price}</div><button onClick={() => handleDeleteQuick(p.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></div>))}</div>
               </section>
             </div>
 
             <div className="hidden xl:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
-              {/* TEXTO DE VISTA PREVIA (MOVIDO ARRIBA) */}
               <div className="absolute top-4 text-gray-400 text-xs font-medium flex items-center gap-2 z-20">
                 <MonitorSmartphone size={14}/> Vista Previa en Vivo
               </div>
