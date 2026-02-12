@@ -11,9 +11,7 @@ export default function ProductsPage() {
   const router = useRouter(); 
   const [loading, setLoading] = useState(true);
   
-  // --- ESTADOS ---
-// Cambiá esta línea por los nombres reales:
-const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
+  const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
   const [products, setProducts] = useState<any[]>([]);
   const [availableExtras, setAvailableExtras] = useState<any[]>([]); 
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]); 
@@ -50,15 +48,12 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
       localStorage.setItem('productsView', newView);
   };
 
-  // --- CARGA DE DATOS ---
-// --- CARGA DE DATOS (VERSIÓN CORREGIDA) ---
   useEffect(() => {
     const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // 1. Pedimos ID, Plan Y Status (importante!)
         const { data: rest, error: restError } = await supabase
             .from('restaurants')
             .select('id, subscription_plan, subscription_status, template_id')
@@ -70,17 +65,12 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
         if (rest) {
             setRestaurantId(rest.id);
             setCurrentPlan(rest.subscription_plan);
-            // Si tenés el estado de la plantilla, guardalo también
-           if (rest.template_id) setSelectedTemplate(rest.template_id);
+            if (rest.template_id) setSelectedTemplate(rest.template_id);
 
-            // 2. LÓGICA DE DESBLOQUEO (Más flexible)
-            // Se desbloquea si hay un plan escrito O si el status dice 'active'
             const hasActivePlan = rest.subscription_plan !== null || rest.subscription_status === 'active';
 
             if (hasActivePlan) {
                 setIsLocked(false);
-                
-                // 3. CARGAMOS LOS PRODUCTOS Y EXTRAS
                 const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: false });
                 if (prods) setProducts(prods);
                 
@@ -89,19 +79,16 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
             } else { 
                 setIsLocked(true); 
             }
-        } else { 
-            setIsLocked(true); 
         }
       } catch (error) { 
-          console.error("Error cargando productos:", error); 
+          console.error("Error:", error); 
       } finally { 
           setLoading(false); 
       }
     };
     loadData();
-  }, []);
+  }, [supabase]);
 
-  // --- LOGICA PRODUCTOS ---
   const openCreateModal = () => {
       if (!isLocked && currentPlan === 'light' && products.length >= 15) {
            if (confirm("🚀 Límite alcanzado. ¿Pasar al plan Plus?")) router.push('/dashboard/settings'); 
@@ -188,7 +175,6 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
       setProducts(products.filter(p => p.id !== id));
   };
 
-  // --- LOGICA EXTRAS ---
   const openCreateExtra = () => { setEditingId(null); setExtraFormData({ name: '', price: '' }); setShowExtraModal(true); };
   const openEditExtra = (extra: any) => { setEditingId(extra.id); setExtraFormData({ name: extra.name, price: extra.price }); setShowExtraModal(true); };
   
@@ -206,6 +192,7 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
           setShowExtraModal(false);
       } catch (error: any) { alert("Error: " + error.message); } finally { setSaving(false); }
   };
+
   const handleDeleteExtra = async (id: string) => {
       if(!confirm("¿Eliminar este adicional?")) return;
       await supabase.from('extras').delete().eq('id', id);
@@ -217,7 +204,6 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
   return (
     <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-24 md:pt-0 font-sans">
         
-        {/* BLOQUEO */}
         {isLocked && (
             <div className="absolute inset-0 z-50 backdrop-blur-md bg-white/60 flex items-center justify-center rounded-3xl overflow-hidden p-4">
                 <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-violet-100">
@@ -233,8 +219,6 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
         )}
 
         <div className={`space-y-8 ${isLocked ? 'blur-sm pointer-events-none opacity-60' : ''}`}>
-            
-            {/* --- HEADER SUPERIOR --- */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 tracking-tight">
@@ -244,255 +228,205 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
                     <p className="text-gray-500 mt-1 ml-1">Administra tus productos y opciones extra.</p>
                 </div>
 
-                {/* --- PESTAÑAS TIPO CAPSULA (Nuevo Diseño) --- */}
                 <div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto">
-                    <button 
-                        onClick={() => setActiveTab('products')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md transform scale-[1.02]' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <UtensilsCrossed size={16}/> Mis Productos
+                    <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+                        <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('extras')}
-                        className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md transform scale-[1.02]' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <Layers size={16}/> Adicionales
+                    <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+                        <Layers size={16} className="inline mr-2"/> Adicionales
                     </button>
                 </div>
             </div>
 
-            {/* --- CONTROLES Y BOTÓN PRINCIPAL --- */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                {activeTab === 'products' ? (
                    <>
-                        {/* Buscador */}
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-                            <input 
-                                placeholder="Buscar producto..." 
-                                className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition shadow-sm"
-                            />
+                            <input placeholder="Buscar producto..." className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-violet-500 transition shadow-sm"/>
                         </div>
 
                         <div className="flex items-center gap-3">
                              <div className="bg-white border border-gray-200 rounded-xl p-1 flex items-center shadow-sm">
-                                <button onClick={() => changeView('list')} className={`p-2 rounded-lg transition ${view === 'list' ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'}`}><List size={20}/></button>
-                                <button onClick={() => changeView('grid')} className={`p-2 rounded-lg transition ${view === 'grid' ? 'bg-violet-50 text-violet-700' : 'text-gray-400 hover:text-gray-600'}`}><LayoutGrid size={20}/></button>
+                                <button onClick={() => changeView('list')} className={`p-2 rounded-lg ${view === 'list' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><List size={20}/></button>
+                                <button onClick={() => changeView('grid')} className={`p-2 rounded-lg ${view === 'grid' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><LayoutGrid size={20}/></button>
                             </div>
-                            <button onClick={openCreateModal} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg shadow-violet-200 active:scale-95">
+                            <button onClick={openCreateModal} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
                                 <Plus size={20}/> Nuevo Producto
                             </button>
                         </div>
                    </>
                ) : (
                    <div className="flex justify-end w-full">
-                       <button onClick={openCreateExtra} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg shadow-violet-200 active:scale-95">
+                       <button onClick={openCreateExtra} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
                             <Plus size={20}/> Crear Adicional
                         </button>
                    </div>
                )}
             </div>
 
-            {/* --- CONTENIDO PESTAÑA PRODUCTOS --- */}
             {activeTab === 'products' && (
-                <>
+                <div className="mt-6">
                     {products.length === 0 ? (
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center">
-                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <UtensilsCrossed size={32} className="text-gray-300"/>
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-900">Tu menú está vacío</h3>
-                            <p className="text-gray-500 mb-6">Agrega tu primer plato para empezar a vender.</p>
-                            <button onClick={openCreateModal} className="text-violet-600 font-bold hover:underline">Crear Producto</button>
+                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center text-gray-500">
+                             No hay productos aún.
                         </div>
                     ) : (
-                        <>
-                            {view === 'list' ? (
-                                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-gray-50/50 border-b text-gray-500 uppercase text-xs tracking-wider">
-                                            <tr>
-                                                <th className="px-6 py-4 font-bold">Detalle</th>
-                                                <th className="px-6 py-4 font-bold">Precio</th>
-                                                <th className="px-6 py-4 font-bold text-right">Acciones</th>
+                        view === 'list' ? (
+                            <div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 border-b text-gray-400 uppercase text-[10px] font-bold tracking-widest">
+                                        <tr>
+                                            <th className="px-6 py-4">Producto</th>
+                                            <th className="px-6 py-4">Precio</th>
+                                            <th className="px-6 py-4 text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {products.map((p) => (
+                                            <tr key={p.id} className="hover:bg-gray-50 group transition">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden">
+                                                            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="p-2 text-gray-300 w-full h-full"/>}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-gray-900">{p.name}</p>
+                                                            <p className="text-[10px] text-gray-400 line-clamp-1">{p.description}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 font-bold text-violet-600">${p.price}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={() => openEditModal(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={14}/></button>
+                                                        <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14}/></button>
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {products.map((product) => (
-                                                <tr key={product.id} className="hover:bg-violet-50/30 transition group">
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden border shadow-sm flex-shrink-0">
-                                                                {product.image_url ? <img src={product.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="w-full h-full p-3 text-gray-300"/>}
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-bold text-gray-900 text-base">{product.name}</p>
-                                                                <p className="text-gray-400 text-xs line-clamp-1 mt-0.5">{product.description || "Sin descripción"}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 font-bold text-violet-700 text-base">
-                                                        ${product.price}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={() => openEditModal(product)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 border border-transparent hover:border-blue-100 transition"><Edit2 size={16}/></button>
-                                                            <button onClick={() => handleDeleteProduct(product.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 border border-transparent hover:border-red-100 transition"><Trash2 size={16}/></button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                    {products.map((product) => (
-                                        <div key={product.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl hover:border-violet-200 transition-all duration-300 group flex flex-col">
-                                            <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                                                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition z-10">
-                                                    <button onClick={() => openEditModal(product)} className="bg-white/90 backdrop-blur p-2 rounded-full shadow text-blue-600 hover:scale-110 transition"><Edit2 size={14}/></button>
-                                                    <button onClick={() => handleDeleteProduct(product.id)} className="bg-white/90 backdrop-blur p-2 rounded-full shadow text-red-500 hover:scale-110 transition"><Trash2 size={14}/></button>
-                                                </div>
-                                                {product.image_url ? (
-                                                    <img src={product.image_url} className="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={40}/></div>
-                                                )}
-                                                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
-                                                <div className="absolute bottom-3 left-3 text-white font-bold text-lg drop-shadow-md">
-                                                    ${product.price}
-                                                </div>
-                                            </div>
-                                            <div className="p-4 flex-1 flex flex-col justify-center">
-                                                <h3 className="font-bold text-gray-900 leading-tight">{product.name}</h3>
-                                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {products.map((p) => (
+                                    <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
+                                        <div className="aspect-square bg-gray-100 relative">
+                                            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="p-10 text-gray-200 w-full h-full"/>}
+                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                                <button onClick={() => openEditModal(p)} className="bg-white p-2 rounded-full shadow text-blue-500"><Edit2 size={12}/></button>
+                                                <button onClick={() => handleDeleteProduct(p.id)} className="bg-white p-2 rounded-full shadow text-red-500"><Trash2 size={12}/></button>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </>
+                                        <div className="p-3">
+                                            <p className="font-bold text-sm truncate">{p.name}</p>
+                                            <p className="text-violet-600 font-bold text-xs mt-1">${p.price}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
                     )}
-                </>
+                </div>
             )}
 
-            {/* --- CONTENIDO PESTAÑA EXTRAS --- */}
             {activeTab === 'extras' && (
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="p-8 text-center bg-violet-50/50 border-b border-violet-100">
-                        <Layers className="mx-auto text-violet-400 mb-2" size={32}/>
-                        <h3 className="font-bold text-gray-900 text-lg">Biblioteca de Adicionales</h3>
-                        <p className="text-sm text-gray-500 mt-1 max-w-lg mx-auto">
-                            Crea opciones como "Papas Fritas", "Salsa Extra" o "Bebida Grande". 
-                            Luego, podrás asignarlas a tus productos individuales.
-                        </p>
+                    <div className="p-6 border-b bg-gray-50">
+                        <h3 className="font-bold text-gray-900">Mis Adicionales</h3>
+                        <p className="text-xs text-gray-400">Opciones que los clientes pueden sumar a sus platos.</p>
                     </div>
-
-                    {availableExtras.length === 0 ? (
-                        <div className="p-12 text-center">
-                            <button onClick={openCreateExtra} className="inline-flex items-center gap-2 text-violet-600 font-bold hover:underline bg-violet-50 px-6 py-3 rounded-xl transition">
-                                <Plus size={18}/> Crear mi primer Extra
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 border-b text-gray-500 uppercase text-xs">
-                                    <tr>
-                                        <th className="px-8 py-4 font-bold">Nombre del Extra</th>
-                                        <th className="px-8 py-4 font-bold">Precio</th>
-                                        <th className="px-8 py-4 font-bold text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {availableExtras.map((extra) => (
-                                        <tr key={extra.id} className="hover:bg-gray-50 transition">
-                                            <td className="px-8 py-4 font-medium text-gray-900">{extra.name}</td>
-                                            <td className="px-8 py-4 font-bold text-green-600 bg-green-50 inline-block my-3 ml-8 rounded-lg px-3 py-1 border border-green-100">+ ${extra.price}</td>
-                                            <td className="px-8 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => openEditExtra(extra)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><Edit2 size={16}/></button>
-                                                    <button onClick={() => handleDeleteExtra(extra.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500"><Trash2 size={16}/></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                    <table className="w-full text-left text-sm">
+                        <tbody className="divide-y">
+                            {availableExtras.map((e) => (
+                                <tr key={e.id} className="hover:bg-gray-50 transition">
+                                    <td className="px-6 py-4 font-medium">{e.name}</td>
+                                    <td className="px-6 py-4 text-green-600 font-bold">+${e.price}</td>
+                                    <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                        <button onClick={() => openEditExtra(e)} className="p-2 text-gray-400 hover:text-blue-500"><Edit2 size={14}/></button>
+                                        <button onClick={() => handleDeleteExtra(e.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>
 
-        {/* --- MODAL PRODUCTO (DISEÑO MEJORADO) --- */}
+        {/* MODAL PRODUCTO */}
         {showModal && (
-            <div className="fixed inset-0 z-50 bg-[#f0b001]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-                <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-gray-900/5">
-                    
-                    {/* Header Modal */}
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Editar Producto' : 'Crear Nuevo Producto'}</h2>
-                            <p className="text-gray-500 text-sm mt-1">Completa los detalles de tu plato.</p>
-                        </div>
-                        <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-2 bg-white rounded-full shadow-sm border border-gray-200 transition">
-                            <X size={20}/>
-                        </button>
+            <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+                    <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                        <h2 className="font-bold text-lg text-gray-900">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h2>
+                        <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-200 rounded-full"><X size={20}/></button>
                     </div>
 
-                    <div className="p-6 overflow-y-auto space-y-6 bg-white">
-{/* SECCIÓN DE FOTO O MENSAJE - COMPLETO Y CORREGIDO */}
-{selectedTemplate && ['minimal', 'classic', 'elegant', 'pop', 'bistro'].some(t => selectedTemplate.toLowerCase().includes(t)) ? (
-    // 1. VISTA PARA DISEÑOS SIN FOTOS (minimal, classic, elegant, pop, bistro)
-    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center mb-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
-            <ImageIcon className="text-amber-500" size={24} />
-        </div>
-        <h4 className="text-amber-800 font-bold text-sm">Diseño sin imágenes</h4>
-        <p className="text-amber-700/80 text-xs mt-1 leading-relaxed">
-            La plantilla <b>{selectedTemplate.toUpperCase()}</b> es de estilo minimalista y no utiliza fotos de productos. 
-            Si querés mostrar imágenes, elegí una plantilla visual en la galería.
-        </p>
-        <Link href="/dashboard/personalizar" className="inline-block mt-3 text-amber-900 text-xs font-bold underline hover:text-amber-700 transition-colors">
-            Cambiar diseño en Galería →
-        </Link>
-    </div>
-) : (
-    // 2. VISTA PARA DISEÑOS CON FOTOS (Todos los demás)
-    <div className="flex justify-center mb-4 animate-in fade-in zoom-in-95 duration-200">
-        <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden">
-            {formData.image_url ? (
-                <>
-                    <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <p className="text-white font-bold text-sm flex items-center gap-2">
-                            <UploadCloud size={18}/> Cambiar Foto
-                        </p>
-                    </div>
-                </>
-            ) : (
-                <div className="text-center p-4">
-                    <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3 group-hover:scale-110 transition-transform">
-                        <ImageIcon className="text-violet-400" size={24}/>
-                    </div>
-                    <p className="text-sm font-bold text-gray-600 group-hover:text-violet-600 transition-colors">Sube una foto atractiva</p>
-                    <p className="text-xs text-gray-400 mt-1">PNG, JPG hasta 2MB</p>
-                </div>
-            )}
-            <input 
-                type="file" 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleImageUpload} 
-                disabled={uploading}
-            />
-        </label>
-    </div>
-)}
-                        {/* SECCIÓN EXTRAS MEJORADA */}
-                        <div className="pt-2">
+                  <div className="p-6 overflow-y-auto space-y-6 bg-white">
+                        
+                        {/* 1. SECCIÓN DE FOTO O MENSAJE SEGÚN PLANTILLA */}
+                        {selectedTemplate && ['minimal', 'classic', 'elegant', 'pop', 'bistro'].some(t => selectedTemplate.toLowerCase().includes(t)) ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+                                <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                                    <ImageIcon className="text-amber-500" size={24} />
+                                </div>
+                                <h4 className="text-amber-800 font-bold text-sm">Diseño sin imágenes</h4>
+                                <p className="text-amber-700/80 text-xs mt-1 leading-relaxed">
+                                    La plantilla <b>{selectedTemplate.toUpperCase()}</b> no utiliza fotos. Si querés usarlas, elegí una plantilla visual en la galería.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="flex justify-center animate-in fade-in zoom-in-95 duration-200">
+                                <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden">
+                                    {formData.image_url ? (
+                                        <>
+                                            <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Foto</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center p-4">
+                                            <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3"><ImageIcon className="text-violet-400" size={24}/></div>
+                                            <p className="text-sm font-bold text-gray-600">Sube una foto atractiva</p>
+                                        </div>
+                                    )}
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+                                </label>
+                            </div>
+                        )}
+
+                        {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Nombre del Producto</label>
+                                <div className="relative">
+                                    <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="Ej: Pizza Napolitana"/>
+                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Precio</label>
+                                <div className="relative">
+                                    <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Descripción</label>
+                                <div className="relative">
+                                    <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all min-h-[80px] resize-none" placeholder="Ingredientes, tamaño..."/>
+                                    <AlignLeft className="absolute left-3 top-4 text-gray-400" size={18}/>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. SECCIÓN DE ADICIONALES (EXTRAS) */}
+                        <div className="pt-2 border-t border-gray-50">
                             <label className="text-xs font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">
                                 <span className="bg-violet-100 p-1 rounded text-violet-600"><Layers size={14}/></span> 
                                 Adicionales Disponibles
@@ -506,18 +440,13 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
                                             <div 
                                                 key={extra.id} 
                                                 onClick={() => toggleExtra(extra.id)} 
-                                                className={`
-                                                    p-3 rounded-xl border cursor-pointer transition-all duration-200 flex items-center justify-between group
-                                                    ${isSelected 
-                                                        ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-200' 
-                                                        : 'bg-white border-gray-200 text-gray-600 hover:border-violet-300 hover:bg-violet-50'}
-                                                `}
+                                                className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 flex items-center justify-between group ${isSelected ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white border-gray-200 text-gray-600 hover:border-violet-300 hover:bg-violet-50'}`}
                                             >
                                                 <div className="flex flex-col overflow-hidden">
                                                     <span className="font-bold text-sm truncate">{extra.name}</span>
-                                                    <span className={`text-xs ${isSelected ? 'text-violet-200' : 'text-gray-400 group-hover:text-violet-500'}`}>+${extra.price}</span>
+                                                    <span className={`text-xs ${isSelected ? 'text-violet-200' : 'text-gray-400'}`}>+${extra.price}</span>
                                                 </div>
-                                                {isSelected ? <div className="bg-white/20 p-1 rounded-full"><Check size={14} strokeWidth={3}/></div> : <div className="w-5 h-5 rounded-full border-2 border-gray-200 group-hover:border-violet-300"></div>}
+                                                {isSelected ? <Check size={14} strokeWidth={3}/> : <div className="w-4 h-4 rounded-full border-2 border-gray-200"></div>}
                                             </div>
                                         );
                                     })}
@@ -529,53 +458,32 @@ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
                                 </div>
                             )}
                         </div>
-
                     </div>
-                    {/* Footer Modal */}
-                    <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end">
-                        <button onClick={handleSaveProduct} disabled={saving} className="btn-primary w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 transition shadow-lg shadow-violet-200 active:scale-95 disabled:opacity-50">
-                            {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20}/> Guardar Producto</>}
+
+                    <div className="p-6 border-t bg-gray-50">
+                        <button onClick={handleSaveProduct} disabled={saving} className="w-full bg-violet-600 text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 transition active:scale-[0.98] disabled:opacity-50 shadow-xl">
+                            {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20}/> Guardar Cambios</>}
                         </button>
                     </div>
                 </div>
             </div>
         )}
 
-        {/* --- MODAL EXTRA (DISEÑO MEJORADO) --- */}
+        {/* MODAL EXTRA */}
         {showExtraModal && (
-          <div className="fixed inset-0 z-50 bg-[#f0b001]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-                <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden ring-1 ring-gray-900/5">
-                    
-                     <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900">{editingId ? 'Editar Adicional' : 'Nuevo Adicional'}</h2>
-                            <p className="text-gray-500 text-xs">Ej: Bacon, Queso Extra...</p>
-                        </div>
-                        <button onClick={() => setShowExtraModal(false)} className="text-gray-400 hover:text-black p-2 bg-white rounded-full shadow-sm border transition">
-                            <X size={18}/>
-                        </button>
+            <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
+                    <div className="p-6 border-b flex justify-between items-center">
+                        <h2 className="font-bold text-gray-900">{editingId ? 'Editar Extra' : 'Nuevo Extra'}</h2>
+                        <button onClick={() => setShowExtraModal(false)}><X size={20} className="text-gray-400"/></button>
                     </div>
-                    
-                    <div className="p-6 space-y-5 bg-white">
-                        <div>
-                            <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1">Nombre</label>
-                            <div className="relative">
-                                <input value={extraFormData.name} onChange={(e) => setExtraFormData({...extraFormData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all placeholder:text-gray-400" placeholder="Ej: Bacon Crocante"/>
-                                <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1">Precio Extra</label>
-                            <div className="relative">
-                                <input type="number" value={extraFormData.price} onChange={(e) => setExtraFormData({...extraFormData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all placeholder:text-gray-400" placeholder="0"/>
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                            </div>
-                        </div>
+                    <div className="p-6 space-y-4">
+                        <input value={extraFormData.name} onChange={(e) => setExtraFormData({...extraFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition" placeholder="Nombre (Ej: Queso Extra)"/>
+                        <input type="number" value={extraFormData.price} onChange={(e) => setExtraFormData({...extraFormData, price: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition" placeholder="Precio adicional"/>
                     </div>
-
-                    <div className="p-5 border-t border-gray-100 bg-gray-50">
-                        <button onClick={handleSaveExtra} disabled={saving} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 transition shadow-lg shadow-violet-200 active:scale-95 disabled:opacity-50">
-                            {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20}/> Guardar Extra</>}
+                    <div className="p-6 border-t bg-gray-50">
+                        <button onClick={handleSaveExtra} disabled={saving} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-violet-700 shadow-lg">
+                            {saving ? <Loader2 className="animate-spin" size={20}/> : <Save size={18}/>} Guardar Extra
                         </button>
                     </div>
                 </div>

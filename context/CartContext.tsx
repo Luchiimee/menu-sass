@@ -21,7 +21,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<any[]>([]);
   const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
 
-  // 1. RECUPERAR ID DEL PEDIDO
+  // 1. RECUPERAR ID DEL PEDIDO (Solo en el cliente)
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const savedOrderId = localStorage.getItem('snappy_active_order');
@@ -32,40 +32,35 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // 2. GUARDAR ID EN LOCALSTORAGE
   const setActiveOrderId = (id: string | null) => {
       setActiveOrderIdState(id);
-      if (id) localStorage.setItem('snappy_active_order', id);
-      else localStorage.removeItem('snappy_active_order');
+      if (typeof window !== 'undefined') {
+          if (id) localStorage.setItem('snappy_active_order', id);
+          else localStorage.removeItem('snappy_active_order');
+      }
   };
 
   const cartRestaurantId = cart.length > 0 ? cart[0].restaurant_id : null;
 
-  // --- FUNCIÓN CLAVE CORREGIDA ---
   const addToCart = (product: any) => {
     setCart((prev) => {
-      
-      // CASO 1: ES UN EXTRA (Tiene extraId)
-      // Buscamos el último producto agregado que coincida con el ID del padre (product.id)
+      // CASO 1: ES UN EXTRA
       if (product.extraId) {
-        // Hacemos una copia del carrito
         const newCart = [...prev];
-        
-        // Buscamos de atrás para adelante el padre (para sumarselo al último que agregaste)
+        // Buscamos el último item que coincida con el ID padre
         const parentIndex = [...newCart].reverse().findIndex((item) => item.id === product.id);
         
-        // Si encontramos al padre
         if (parentIndex !== -1) {
+            // Ajustamos índice porque usamos reverse()
             const actualIndex = newCart.length - 1 - parentIndex;
             const parentItem = { ...newCart[actualIndex] };
             
-            // Verificamos si ya tiene este extra
-            const existingExtraIndex = parentItem.extrasList.findIndex((ex: any) => ex.id === product.extraId);
-
-            const updatedExtras = [...parentItem.extrasList];
+            // Inicializamos extrasList si no existe (seguridad)
+            const currentExtras = parentItem.extrasList || [];
+            const existingExtraIndex = currentExtras.findIndex((ex: any) => ex.id === product.extraId);
+            const updatedExtras = [...currentExtras];
 
             if (existingExtraIndex >= 0) {
-                // Si ya existe, sumamos 1
                 updatedExtras[existingExtraIndex].quantity += 1;
             } else {
-                // Si no existe, lo creamos
                 updatedExtras.push({
                     id: product.extraId,
                     name: product.name,
@@ -78,13 +73,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
             newCart[actualIndex] = parentItem;
             return newCart;
         }
-        // Si no encuentra padre (raro), no hace nada o lo agrega aparte (mejor no hacer nada para evitar errores)
         return prev;
       }
 
-      // CASO 2: ES UN PRODUCTO PRINCIPAL (Pizza, Burger, etc.)
+      // CASO 2: PRODUCTO PRINCIPAL
       const uniqueId = `${product.id}-${Date.now()}`;
-      // IMPORTANTE: Inicializamos extrasList vacío
       const newItem = { ...product, uniqueId, quantity: 1, extrasList: [] };
       return [...prev, newItem];
     });
@@ -105,10 +98,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCart((prev) => 
       prev.map((item) => {
         if (item.uniqueId !== itemUniqueId) return item;
-        // Si la cantidad es 0, filtramos el extra (lo borramos), si no, actualizamos
+        const currentExtras = item.extrasList || [];
+        
         const extrasList = quantity <= 0 
-            ? item.extrasList.filter((ex: any) => ex.id !== extraId)
-            : item.extrasList.map((ex: any) => ex.id === extraId ? { ...ex, quantity } : ex);
+            ? currentExtras.filter((ex: any) => ex.id !== extraId)
+            : currentExtras.map((ex: any) => ex.id === extraId ? { ...ex, quantity } : ex);
             
         return { ...item, extrasList };
       })

@@ -30,13 +30,13 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         if (cart.length === 0 && isVisible) setIsVisible(false);
     }, [cart.length, isVisible]);
 
-    // LIMPIEZA AUTOMÁTICA
+    // LIMPIEZA AUTOMÁTICA - CORREGIDO: Eliminado window.location.reload()
     useEffect(() => {
         if (activeOrderId && (planType !== 'plus' && planType !== 'max')) {
             const timer = setTimeout(() => {
                 clearCart();
                 setActiveOrderId(null);
-                window.location.reload(); 
+                // window.location.reload(); <-- ELIMINADO PARA EVITAR REFRESCO EN MÓVIL
             }, 15 * 60 * 1000); 
             return () => clearTimeout(timer);
         }
@@ -44,7 +44,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             const timer = setTimeout(() => {
                 clearCart();
                 setActiveOrderId(null);
-                window.location.reload();
+                // window.location.reload(); <-- ELIMINADO PARA EVITAR REFRESCO EN MÓVIL
             }, 5 * 60 * 1000);
             return () => clearTimeout(timer);
         }
@@ -52,8 +52,6 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
 
     // --- VISTAS POST-PEDIDO ---
     if (activeOrderId) {
-        
-        // VISTA PLUS (TRACKER FULL SCREEN EN MOBILE)
         if (planType === 'plus' || planType === 'max') {
             return (
                 <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
@@ -68,15 +66,11 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             );
         }
 
-        // VISTA LIGHT (CARTEL)
-       // --- VISTA LIGHT (CARTEL ESTÁTICO) ---
         return (
             <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
                 <div className="w-full bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-green-100 relative animate-in slide-in-from-bottom-10 md:max-w-md overflow-hidden flex flex-col">
-                    
-                    {/* BOTÓN X */}
                     <button 
-                        onClick={() => { clearCart(); setActiveOrderId(null); window.location.reload(); }} 
+                        onClick={() => { clearCart(); setActiveOrderId(null); }} // <-- CORREGIDO: Eliminado reload()
                         className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-10"
                     >
                         <X size={24} className="text-gray-400" />
@@ -92,7 +86,6 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
                                 Seguimos por WhatsApp. No te olvides de enviarnos el comprobante si pagaste con transferencia.
                             </p>
                         </div>
-                        
                         <div className="pt-2">
                             <a 
                                 href={`https://wa.me/${phone}`} 
@@ -104,7 +97,6 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
                         </div>
                     </div>
                     
-                    {/* FOOTER BRANDING (IGUAL AL TRACKER) */}
                     <a 
                         href="https://snappy.uno" 
                         target="_blank" 
@@ -137,7 +129,6 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         return null;
     }
 
-    // Cálculos
     const subtotal = cart.reduce((acc: number, item: any) => {
         const extrasTotal = (item.extrasList || []).reduce((a: number, b: any) => a + (b.price * b.quantity), 0);
         return acc + (item.price + extrasTotal) * item.quantity;
@@ -148,11 +139,34 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const formatPrice = (price: number) => 
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
-    const handleCopyAlias = () => {
+    const handleCopyAlias = async () => {
         if (!aliasMp) return;
-        navigator.clipboard.writeText(aliasMp);
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(aliasMp);
+            } else {
+                throw new Error('Fallback');
+            }
+        } catch (err) {
+            const textArea = document.createElement("textarea");
+            textArea.value = aliasMp;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (copyErr) {
+                console.error('Error al copiar:', copyErr);
+            }
+            document.body.removeChild(textArea);
+        }
+
         setCopied(true);
-        setTimeout(() => setCopied(false), 5000); 
+        setTimeout(() => setCopied(false), 3000); 
     };
 
     const handleSendOrder = async () => {
@@ -198,7 +212,6 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             
             mensaje += `*Pedido:*\n`;
             cart.forEach((item: any) => {
-                const itemTotal = (item.price + (item.extrasList || []).reduce((a:any, b:any) => a + (b.price * b.quantity), 0)) * item.quantity;
                 mensaje += `✅ ${item.quantity}x ${item.name}`;
                 if (item.extrasList?.length > 0) item.extrasList.forEach((ex: any) => mensaje += ` (+ ${ex.name})`);
                 mensaje += `\n`;
@@ -209,11 +222,9 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             mensaje += `\n💰 *TOTAL: ${formatPrice(totalFinal)}*`;
 
             setIsVisible(false);
-
             const textEncoded = encodeURIComponent(mensaje);
             const cleanPhone = phone.toString().replace(/\D/g, ''); 
             window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
-            
             setIsSending(false);
 
         } catch (err) {
@@ -323,7 +334,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
                             {copied && (
                                 <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-300 border border-blue-100 shadow-sm">
                                     <MessageSquare size={16} className="text-blue-500" />
-                                    <span>¡Alias copiado! Enviame el comprobante luego de confirmar.</span>
+                                    <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
                                 </div>
                             )}
                         </div>

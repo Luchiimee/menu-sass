@@ -94,20 +94,20 @@ export default function LandingPage() {
         <div className="relative flex justify-center lg:justify-end h-[300px] md:h-[500px] mt-10 lg:mt-0">
     
     {/* --- Captura Tablet / Dashboard (Sin borde negro) --- */}
-    <div className="absolute top-0 right-5 md:right-10 w-[95%] md:w-[600px] aspect-video bg-gray-100 rounded-2xl shadow-2xl overflow-hidden z-0 border border-gray-200">
-        <Image 
-            src="/tablet-header.png" 
-            alt="Dashboard View" 
-            fill 
-            priority
-            className="object-cover" 
-        />
-    </div>
+<div className="absolute top-0 right-5 md:right-10 w-[85%] md:w-[500px] aspect-[3/2] bg-gray-100 rounded-2xl shadow-2xl overflow-hidden z-0 border-4 border-black">
+    <Image 
+        src="/tablet-headerr.gif" 
+        alt="Dashboard View" 
+        fill 
+        priority
+        className="object-fill"
+    />
+</div>
 
     {/* --- Captura Celular (Más chico y sin borde negro) --- */}
     <div className="absolute -bottom-4 right-10 md:right-15 w-[130px] md:w-[160px] aspect-[9/19] bg-white rounded-2xl shadow-2xl overflow-hidden z-20 border border-gray-100">
         <Image 
-            src="/hero-phone.png" 
+            src="/mobile-headerr.gif" 
             alt="Phone View" 
             fill 
             className="object-cover" 

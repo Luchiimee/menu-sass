@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +8,7 @@
 body {
   background-color: #f3f4f6; /* Gris muy suave de fondo */
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none; /* Evita el efecto de rebote elástico en móviles */
 }
 
 /* Ocultar barra de scroll pero permitir deslizar */
