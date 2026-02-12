@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { CheckCircle2, ChefHat, Bike, Clock, MapPin, XCircle } from 'lucide-react';
+import { Check, ChefHat, Bike, Clock, MapPin, XCircle, Zap, MessageCircle } from 'lucide-react';
 
-export default function OrderTracker({ orderId }: { orderId: string }) {
+interface OrderTrackerProps {
+    orderId: string;
+    restaurantPhone: string; // <--- NUEVA PROP PARA EL WHATSAPP
+    onStatusChange?: (status: string) => void;
+}
+
+export default function OrderTracker({ orderId, restaurantPhone, onStatusChange }: OrderTrackerProps) {
     const [status, setStatus] = useState('pendiente');
     
     const supabase = createBrowserClient(
@@ -13,80 +19,131 @@ export default function OrderTracker({ orderId }: { orderId: string }) {
     );
 
     useEffect(() => {
-        // 1. Carga inicial
         const fetchStatus = async () => {
             const { data } = await supabase.from('orders').select('status').eq('id', orderId).single();
-            if (data) setStatus(data.status);
+            if (data) {
+                setStatus(data.status);
+                if(onStatusChange) onStatusChange(data.status);
+            }
         };
         fetchStatus();
 
-        // 2. Suscripción Realtime
         const channel = supabase
             .channel(`order_${orderId}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, 
             (payload) => {
-                setStatus(payload.new.status);
+                const newStatus = payload.new.status;
+                setStatus(newStatus);
+                if(onStatusChange) onStatusChange(newStatus);
             })
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [orderId]);
+    }, [orderId, supabase, onStatusChange]);
 
-    // UI del Tracker
     const steps = [
-        { id: 'pendiente', label: 'Recibido', icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-100' },
-        { id: 'en_proceso', label: 'Cocinando', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-100' },
-        { id: 'en_camino', label: 'En Camino', icon: Bike, color: 'text-blue-500', bg: 'bg-blue-100' },
-        { id: 'completado', label: 'Entregado', icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-100' },
+        { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
+        { id: 'en_proceso', label: 'Cocinando 🔥', subLabel: '¡El fuego está prendido!', icon: ChefHat, color: 'bg-orange-500', lightColor: 'bg-orange-50/50', textColor: 'text-orange-600' },
+        { id: 'en_camino', label: 'En Camino 🛵', subLabel: 'Tu pedido está llegando', icon: Bike, color: 'bg-blue-600', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
+        { id: 'completado', label: '¡Disfrutalo! 🎉', subLabel: 'Pedido entregado con éxito', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
     ];
 
-    // Encontrar índice actual
-    const currentIndex = steps.findIndex(s => s.id === status);
-    // Si está cancelado, mostramos algo especial
+    const normalizedStatus = status === 'entregado' ? 'completado' : status;
+    const currentIndex = steps.findIndex(s => s.id === normalizedStatus);
+    const currentStep = steps[currentIndex] || steps[0];
+
+    // --- VISTA DE CANCELADO ---
     if (status === 'cancelado') {
         return (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center animate-in zoom-in">
-                <XCircle size={48} className="mx-auto text-red-500 mb-2"/>
-                <h3 className="text-xl font-bold text-red-700">Pedido Cancelado</h3>
-                <p className="text-sm text-red-500">Contacta al local si crees que es un error.</p>
+            <div className="bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] overflow-hidden animate-in zoom-in border border-red-100 flex flex-col h-full justify-between">
+                
+                <div className="flex-1 flex flex-col justify-center items-center p-8 text-center bg-red-50/30">
+                    <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6 shadow-sm border-4 border-white">
+                        <XCircle size={48} className="text-red-500"/>
+                    </div>
+                    
+                    <h3 className="text-3xl font-black text-red-600 uppercase tracking-tighter mb-2">
+                        Pedido Cancelado
+                    </h3>
+                    
+                    <p className="text-gray-500 font-medium px-4 mb-8 leading-relaxed">
+                        Si crees que hubo un problema o fue un error, por favor envianos un mensaje.
+                    </p>
+
+                    <a 
+                        href={`https://wa.me/${restaurantPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-red-500 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-red-600 transition-all shadow-lg shadow-red-200 active:scale-95"
+                    >
+                        <MessageCircle size={24} /> 
+                        Contactar al Local
+                    </a>
+                </div>
+
+                {/* FOOTER BRANDING */}
+                <a 
+    href="https://snappy.uno" 
+    target="_blank" 
+    rel="noreferrer"
+    className="block p-4 text-center bg-gray-900 hover:bg-black transition-colors cursor-pointer border-t border-gray-800 no-underline"
+>
+    <p className="text-[10px] font-black text-white flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
+        Potenciado por 
+        <Zap size={12} className="text-yellow-400 fill-yellow-400"/> 
+        Snappy
+    </p>
+</a>
             </div>
         );
     }
 
+    const Icon = currentStep.icon;
+
+    // --- VISTA NORMAL (TRACKER) ---
     return (
-        <div className="bg-white border rounded-2xl shadow-lg p-6 animate-in slide-in-from-bottom-10">
-            <h3 className="text-center font-bold text-lg mb-6">Seguimiento de tu Pedido</h3>
+        <div className="bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] overflow-hidden animate-in slide-in-from-bottom-10 border border-gray-50 relative h-full flex flex-col justify-between">
             
-            <div className="relative flex justify-between items-start">
-                {/* Línea de progreso de fondo */}
-                <div className="absolute top-5 left-0 w-full h-1 bg-gray-100 -z-10"></div>
+            <div className={`absolute top-0 left-0 w-full h-[40%] ${currentStep.lightColor} transition-colors duration-700 -z-0`}></div>
+
+            <div className="relative p-8 text-center z-10 flex-1 flex flex-col justify-center">
                 
-                {/* Barra de progreso activa */}
-                <div 
-                    className="absolute top-5 left-0 h-1 bg-green-500 transition-all duration-1000 -z-0"
-                    style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
-                ></div>
+                <div className="relative mx-auto w-28 h-28 mb-6">
+                    <div className={`absolute inset-0 rounded-full ${currentStep.color} opacity-20 animate-ping`}></div>
+                    <div className={`absolute inset-0 rounded-full ${currentStep.color} opacity-10 animate-pulse delay-75`}></div>
+                    <div className={`relative w-full h-full bg-white rounded-full flex items-center justify-center shadow-2xl border-[6px] border-white`}>
+                        <Icon size={48} className={`${currentStep.textColor} transition-colors duration-500`} strokeWidth={2.5} />
+                    </div>
+                </div>
 
-                {steps.map((step, i) => {
-                    const isActive = i <= currentIndex;
-                    const isCurrent = i === currentIndex;
-                    
-                    return (
-                        <div key={step.id} className="flex flex-col items-center gap-2">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-4 ${isActive ? 'bg-green-500 text-white border-green-100' : 'bg-white text-gray-300 border-gray-100'} ${isCurrent ? 'scale-110 shadow-lg' : ''}`}>
-                                <step.icon size={18} />
-                            </div>
-                            <span className={`text-[10px] font-bold uppercase transition-colors ${isActive ? 'text-green-600' : 'text-gray-300'}`}>
-                                {step.label}
-                            </span>
-                        </div>
-                    );
-                })}
+                <h3 className="text-4xl font-black text-gray-900 tracking-tighter mb-2 transition-all duration-300">
+                    {currentStep.label}
+                </h3>
+                <p className="text-base font-medium text-gray-400 mb-8 uppercase tracking-wide">
+                    {currentStep.subLabel}
+                </p>
+
+                <div className="flex gap-2 h-2 mb-2 px-4">
+                    {steps.map((step, i) => (
+                        <div key={step.id} className={`flex-1 rounded-full transition-all duration-700 ${i <= currentIndex ? step.color : 'bg-gray-100'}`}></div>
+                    ))}
+                </div>
             </div>
 
-            <div className="mt-6 text-center p-3 bg-gray-50 rounded-xl border border-dashed text-xs text-gray-500">
-                Tu pedido #{orderId.slice(0,4)} se actualiza en tiempo real.
-            </div>
+            {/* BRANDING */}
+       
+<a 
+    href="https://snappy.uno" 
+    target="_blank" 
+    rel="noreferrer"
+    className="block p-4 text-center bg-gray-900 hover:bg-black transition-colors cursor-pointer border-t border-gray-800 no-underline"
+>
+    <p className="text-[10px] font-black text-white flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
+        Potenciado por 
+        <Zap size={12} className="text-yellow-400 fill-yellow-400"/> 
+        Snappy
+    </p>
+</a>
         </div>
     );
 }

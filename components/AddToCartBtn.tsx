@@ -29,7 +29,7 @@ export default function AddToCartBtn({
   hasExtras = false,
   onOpenExtras 
 }: AddToCartBtnProps) {
-  const { cart, addItem: addToCart, removeItem: removeFromCart } = useCart();
+ const { cart, addToCart, removeFromCart } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Cantidad total de este producto físico en el carrito

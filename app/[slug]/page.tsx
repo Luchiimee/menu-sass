@@ -12,6 +12,7 @@ import {
   Utensils,
   Star,
   Clock,
+  Zap
 } from "lucide-react";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
@@ -95,7 +96,7 @@ function MenuContent({
   isOpen: boolean;
 }) {
   const [activeCardId, setActiveCardId] = useState<any>(null);
-  const { cart, addItem, updateQuantity } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
 
@@ -346,7 +347,7 @@ function MenuContent({
                           </div>
                           <button
                             onClick={() => {
-                              addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
+                           addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
                               mostrarAviso("✅ Extra sumado");
                             }}
                             className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center active:scale-90"
@@ -432,15 +433,7 @@ function MenuContent({
                                           if (!principalEnCarrito) {
                                             avisarSeleccionPrimero();
                                           } else {
-                                            addItem(
-                                              {
-                                                id: prod.id,
-                                                extraId: ex.id,
-                                                name: ex.name,
-                                                price: Number(ex.price),
-                                              },
-                                              true,
-                                            );
+                                           addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
                                             mostrarAviso("✅ Extra sumado");
                                           }
                                         }}
@@ -548,7 +541,7 @@ case "minimal":
                               </span>
                               <button
                                 onClick={() => {
-                                  addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
+                                 addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
                                   mostrarAviso("✅ Extra sumado");
                                 }}
                                 className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-white active:bg-gray-50"
@@ -689,7 +682,7 @@ case "visualgrid":
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            addItem({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, true);
+                                            addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
                                             mostrarAviso("Extra sumado");
                                           }}
                                           className="w-8 h-8 bg-white text-black rounded-xl flex items-center justify-center active:scale-90 shadow-lg"
@@ -922,24 +915,19 @@ case "visualgrid":
 )}
       {renderTemplate()}
       {/* --- FOOTER DE MARCA SNAPPY --- */}
-   <div className="w-full py-8 pb-0 flex flex-col items-center justify-center gap-2">
-        <p className="text-[9px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-          Potenciado por
+  <a 
+        href="https://snappy.uno" 
+        target="_blank" 
+        rel="noreferrer"
+        className="block w-full py-8 text-center bg-gray-900 hover:bg-black transition-colors cursor-pointer no-underline"
+        style={{ paddingBottom: '50px' }} // Padding extra para que no lo tape el botón del carrito
+      >
+        <p className="text-[10px] font-black text-white flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
+          Potenciado por 
+          <Zap size={12} className="text-yellow-400 fill-yellow-400"/> 
+          Snappy
         </p>
-        <a 
-          href="https://snappy.uno" // <--- ACÁ VA TU LINK A LA LANDING
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="hover:opacity-80 transition-opacity"
-        >
-          {/* --- ACÁ PONES LA URL DE TU IMAGEN --- */}
-          <img 
-            src="/logo.svg" // <--- CAMBIA ESTO
-            alt="Snappy"
-            className="h-7 w-auto" // Ajustá la altura (h-7, h-8, etc.) según necesites
-          />
-        </a>
-      </div>
+      </a>
       {selectedProduct && (
         <div
           className="fixed inset-0 z-[100] bg-black/70 flex items-end justify-center p-0"
@@ -974,7 +962,7 @@ case "visualgrid":
                   (acc, e) => acc + Number(e.price),
                   0,
                 );
-                addItem({
+                addToCart({
                   ...selectedProduct,
                   price: selectedProduct.price + totalExtra,
                   uniqueId: `${selectedProduct.id}-${Date.now()}`,

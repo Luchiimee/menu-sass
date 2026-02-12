@@ -91,16 +91,29 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative flex justify-center lg:justify-end h-[450px] md:h-[550px]">
-            {/* Tablet Mockup (1024x768 aprox) */}
-            <div className="absolute top-0 right-10 md:right-20 w-[85%] md:w-[480px] aspect-[4/3] bg-gray-100 rounded-[30px] border-[10px] border-gray-900 shadow-2xl overflow-hidden z-0">
-               <Image src="/hero-tablet.png" alt="Tablet View" fill className="object-cover" />
-            </div>
-            {/* Celular Mockup (390x844 aprox) */}
-            <div className="absolute bottom-0 right-0 md:right-10 w-[160px] md:w-[240px] aspect-[9/19] bg-white rounded-[35px] border-[6px] border-gray-900 shadow-2xl overflow-hidden z-20">
-               <Image src="/hero-phone.png" alt="Phone View" fill className="object-cover" />
-            </div>
-          </div>
+        <div className="relative flex justify-center lg:justify-end h-[300px] md:h-[500px] mt-10 lg:mt-0">
+    
+    {/* --- Captura Tablet / Dashboard (Sin borde negro) --- */}
+    <div className="absolute top-0 right-5 md:right-10 w-[95%] md:w-[600px] aspect-video bg-gray-100 rounded-2xl shadow-2xl overflow-hidden z-0 border border-gray-200">
+        <Image 
+            src="/tablet-header.png" 
+            alt="Dashboard View" 
+            fill 
+            priority
+            className="object-cover" 
+        />
+    </div>
+
+    {/* --- Captura Celular (Más chico y sin borde negro) --- */}
+    <div className="absolute -bottom-4 right-10 md:right-15 w-[130px] md:w-[160px] aspect-[9/19] bg-white rounded-2xl shadow-2xl overflow-hidden z-20 border border-gray-100">
+        <Image 
+            src="/hero-phone.png" 
+            alt="Phone View" 
+            fill 
+            className="object-cover" 
+        />
+    </div>
+</div>
         </div>
       </section>
 

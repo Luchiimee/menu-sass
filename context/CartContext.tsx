@@ -1,133 +1,138 @@
 'use client';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type ExtraItem = {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-};
+import { createContext, useContext, useState, useEffect } from 'react';
 
-type CartItem = {
-  id: string;
-  uniqueId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  description?: string;
-  image_url?: string;
-  extrasList: ExtraItem[]; // Lista de extras vinculados
-};
-
-type CartContextType = {
-  cart: CartItem[];
-  addItem: (product: any, isExtra?: boolean) => void;
-  removeItem: (uniqueId: string) => void;
+interface CartContextType {
+  cart: any[];
+  addToCart: (product: any) => void;
+  removeFromCart: (id: string) => void;
   updateQuantity: (uniqueId: string, quantity: number) => void;
-  updateExtraQuantity: (productUniqueId: string, extraId: string, newQty: number) => void;
+  updateExtraQuantity: (itemUniqueId: string, extraId: string, quantity: number) => void;
   clearCart: () => void;
   total: number;
   cartRestaurantId: string | null;
   activeOrderId: string | null;
   setActiveOrderId: (id: string | null) => void;
-};
+}
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartRestaurantId, setCartRestaurantId] = useState<string | null>(null);
+export const CartProvider = ({ children }: { children: React.ReactNode }) => {
+  const [cart, setCart] = useState<any[]>([]);
   const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
 
+  // 1. RECUPERAR ID DEL PEDIDO
   useEffect(() => {
-    const savedCart = localStorage.getItem('snappy_cart');
-    if (savedCart) {
-        try { setCart(JSON.parse(savedCart)); } catch (e) { console.error(e); }
+    if (typeof window !== 'undefined') {
+        const savedOrderId = localStorage.getItem('snappy_active_order');
+        if (savedOrderId) setActiveOrderIdState(savedOrderId);
     }
-    setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (mounted) localStorage.setItem('snappy_cart', JSON.stringify(cart));
-  }, [cart, mounted]);
+  // 2. GUARDAR ID EN LOCALSTORAGE
+  const setActiveOrderId = (id: string | null) => {
+      setActiveOrderIdState(id);
+      if (id) localStorage.setItem('snappy_active_order', id);
+      else localStorage.removeItem('snappy_active_order');
+  };
 
-  const addItem = (product: any, isExtra: boolean = false) => {
+  const cartRestaurantId = cart.length > 0 ? cart[0].restaurant_id : null;
+
+  // --- FUNCIÓN CLAVE CORREGIDA ---
+  const addToCart = (product: any) => {
     setCart((prev) => {
-      if (isExtra) {
-        // Buscamos el último producto base agregado
-        const lastIndex = [...prev].reverse().findIndex(item => item.id === product.id);
-        if (lastIndex === -1) return prev;
+      
+      // CASO 1: ES UN EXTRA (Tiene extraId)
+      // Buscamos el último producto agregado que coincida con el ID del padre (product.id)
+      if (product.extraId) {
+        // Hacemos una copia del carrito
+        const newCart = [...prev];
+        
+        // Buscamos de atrás para adelante el padre (para sumarselo al último que agregaste)
+        const parentIndex = [...newCart].reverse().findIndex((item) => item.id === product.id);
+        
+        // Si encontramos al padre
+        if (parentIndex !== -1) {
+            const actualIndex = newCart.length - 1 - parentIndex;
+            const parentItem = { ...newCart[actualIndex] };
+            
+            // Verificamos si ya tiene este extra
+            const existingExtraIndex = parentItem.extrasList.findIndex((ex: any) => ex.id === product.extraId);
 
-        const actualIndex = prev.length - 1 - lastIndex;
-        return prev.map((item, idx) => {
-          if (idx === actualIndex) {
-            const currentExtras = item.extrasList || [];
-            const existingExtra = currentExtras.find(e => e.id === product.extraId);
+            const updatedExtras = [...parentItem.extrasList];
 
-            let newExtras;
-            if (existingExtra) {
-              newExtras = currentExtras.map(e =>
-                e.id === product.extraId ? { ...e, quantity: e.quantity + 1 } : e
-              );
+            if (existingExtraIndex >= 0) {
+                // Si ya existe, sumamos 1
+                updatedExtras[existingExtraIndex].quantity += 1;
             } else {
-              newExtras = [...currentExtras, { id: product.extraId, name: product.name, price: product.price, quantity: 1 }];
+                // Si no existe, lo creamos
+                updatedExtras.push({
+                    id: product.extraId,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1
+                });
             }
-            return { ...item, extrasList: newExtras };
-          }
-          return item;
-        });
-      } else {
-        // Producto base: Siempre crea una línea nueva con ID único temporal
-        const newUniqueId = `${product.id}-${Date.now()}`;
-        return [...prev, { ...product, uniqueId: newUniqueId, quantity: 1, extrasList: [] }];
+
+            parentItem.extrasList = updatedExtras;
+            newCart[actualIndex] = parentItem;
+            return newCart;
+        }
+        // Si no encuentra padre (raro), no hace nada o lo agrega aparte (mejor no hacer nada para evitar errores)
+        return prev;
       }
+
+      // CASO 2: ES UN PRODUCTO PRINCIPAL (Pizza, Burger, etc.)
+      const uniqueId = `${product.id}-${Date.now()}`;
+      // IMPORTANTE: Inicializamos extrasList vacío
+      const newItem = { ...product, uniqueId, quantity: 1, extrasList: [] };
+      return [...prev, newItem];
     });
   };
 
-  const updateQuantity = (uniqueId: string, newQuantity: number) => {
-    setCart((prev) => {
-      if (newQuantity <= 0) return prev.filter((item) => item.uniqueId !== uniqueId);
-      return prev.map((item) => item.uniqueId === uniqueId ? { ...item, quantity: newQuantity } : item);
-    });
-  };
-
-  const updateExtraQuantity = (productUniqueId: string, extraId: string, newQty: number) => {
-    setCart((prev) => prev.map(item => {
-      if (item.uniqueId === productUniqueId) {
-        const newExtras = item.extrasList.map(e => 
-          e.id === extraId ? { ...e, quantity: newQty } : e
-        ).filter(e => e.quantity > 0);
-        return { ...item, extrasList: newExtras };
-      }
-      return item;
-    }));
-  };
-
-  const removeItem = (uniqueId: string) => {
+  const removeFromCart = (uniqueId: string) => {
     setCart((prev) => prev.filter((item) => item.uniqueId !== uniqueId));
   };
 
-  const clearCart = () => setCart([]);
-
-const calculateTotal = () => {
-    return cart.reduce((acc, item) => {
-      // Agregamos el "?" y el "|| []" por seguridad
-      const extrasTotal = (item.extrasList || []).reduce((a, b) => a + (b.price * b.quantity), 0);
-      return acc + (item.price + extrasTotal) * item.quantity;
-    }, 0);
+  const updateQuantity = (uniqueId: string, quantity: number) => {
+    setCart((prev) => {
+      if (quantity < 1) return prev.filter((item) => item.uniqueId !== uniqueId);
+      return prev.map((item) => item.uniqueId === uniqueId ? { ...item, quantity } : item);
+    });
   };
+
+  const updateExtraQuantity = (itemUniqueId: string, extraId: string, quantity: number) => {
+    setCart((prev) => 
+      prev.map((item) => {
+        if (item.uniqueId !== itemUniqueId) return item;
+        // Si la cantidad es 0, filtramos el extra (lo borramos), si no, actualizamos
+        const extrasList = quantity <= 0 
+            ? item.extrasList.filter((ex: any) => ex.id !== extraId)
+            : item.extrasList.map((ex: any) => ex.id === extraId ? { ...ex, quantity } : ex);
+            
+        return { ...item, extrasList };
+      })
+    );
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const total = cart.reduce((acc, item) => {
+    const extrasTotal = (item.extrasList || []).reduce((a: number, b: any) => a + (b.price * b.quantity), 0);
+    return acc + (item.price + extrasTotal) * item.quantity;
+  }, 0);
 
   return (
     <CartContext.Provider value={{ 
-        cart, addItem, removeItem, updateQuantity, updateExtraQuantity, 
-        clearCart, total: calculateTotal(), cartRestaurantId, activeOrderId, 
-        setActiveOrderId: setActiveOrderIdState 
+        cart, addToCart, removeFromCart, updateQuantity, updateExtraQuantity, clearCart, total, cartRestaurantId,
+        activeOrderId, setActiveOrderId 
     }}>
       {children}
     </CartContext.Provider>
   );
-}
+};
 
 export const useCart = () => {
   const context = useContext(CartContext);

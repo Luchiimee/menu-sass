@@ -37,7 +37,7 @@ export default function OrdersPage() {
   useEffect(() => {
     let mounted = true;
 
-    const loadOrders = async () => {
+  const loadOrders = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -52,6 +52,7 @@ export default function OrdersPage() {
                 setRestaurantName(rest.name || 'nuestro local');
                 setRestaurantId(rest.id); 
 
+                // Si es PLUS o MAX, cargamos los pedidos (FILTRADOS)
                 if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
                     setIsLocked(false);
                     
@@ -61,10 +62,12 @@ export default function OrdersPage() {
                         .eq('restaurant_id', rest.id)
                         .neq('order_type', 'apertura') // Oculta Inicios de Caja
                         .neq('customer_name', 'Venta Detectada (Cierre)') // Oculta Ajustes de Cierre
+                        .neq('origin_plan', 'light') // <--- ESTA ES LA LÍNEA NUEVA QUE FILTRA
                         .order('created_at', { ascending: false });
 
                     setOrders(ords || []);
                 } else {
+                    // Si es LIGHT, bloqueamos el panel
                     setIsLocked(true);
                 }
             }
