@@ -6,7 +6,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
-  LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight 
+  LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -33,15 +34,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   const [isLoading, setIsLoading] = useState(true);
-  const [hasPhone, setHasPhone] = useState(true); // Guardián del teléfono
+  const [hasPhone, setHasPhone] = useState(true); 
+  const [isCollapsed, setIsCollapsed] = useState(false); // Estado colapsable
+  const [isAdmin, setIsAdmin] = useState(false); // Estado Admin
   const [restaurant, setRestaurant] = useState<{
     name: string,
     plan: string | null,
-    status: string
+    status: string,
+    logo_url: string | null
   }>({
     name: '',      
     plan: null,    
-    status: 'active'
+    status: 'active',
+    logo_url: null
   });
     
   useEffect(() => {
@@ -58,58 +63,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
       try {
-        // 1. Verificar Restaurante
         const { data: rest } = await supabase
           .from('restaurants')
-          .select('name, subscription_plan, subscription_status') 
+          .select('name, subscription_plan, subscription_status, logo_url') 
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        // 2. Verificar Perfil (Aquí chequeamos el teléfono)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name, last_name, phone')
+          .select('first_name, last_name, phone, is_admin')
           .eq('id', session.user.id)
           .maybeSingle();
         
         if (mounted) {
-            // Lógica del Banner: Si no hay teléfono, mostramos alerta
+            /* --- LÓGICA DE BANNER COMENTADA ---
             if (!profile?.phone || profile.phone.trim() === "") {
               setHasPhone(false);
             } else {
               setHasPhone(true);
             }
+            ------------------------------------ */
+
+            setIsAdmin(profile?.is_admin || false);
 
             let displayName = "Bienvenido";
-
             if (profile?.first_name) {
                 const initial = profile.last_name ? ` ${profile.last_name[0]}.` : '';
                 displayName = `${profile.first_name}${initial}`;
-            } else if (session.user.user_metadata?.full_name || session.user.user_metadata?.name) {
-                const fullName = session.user.user_metadata.full_name || session.user.user_metadata.name;
-                const parts = fullName.split(' ');
-                const firstName = parts[0];
-                const initial = parts.length > 1 ? ` ${parts[1][0]}.` : '';
-                displayName = `${firstName}${initial}`;
             } else if (rest?.name) {
                 displayName = rest.name;
-            } else {
-                displayName = session.user.email?.split('@')[0] || "Usuario";
             }
 
-            if (rest) {
-                setRestaurant({
-                    name: displayName, 
-                    plan: rest.subscription_plan,
-                    status: rest.subscription_status || 'active'
-                });
-            } else {
-                setRestaurant({
-                    name: displayName,
-                    plan: null,
-                    status: 'active'
-                });
-            }
+            setRestaurant({
+                name: displayName, 
+                plan: rest?.subscription_plan || null,
+                status: rest?.subscription_status || 'active',
+                logo_url: rest?.logo_url || null
+            });
         }
       } catch (error) {
         console.error("Error layout:", error);
@@ -144,10 +134,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Personalizar', href: '/dashboard/personalizar', icon: Palette },
     { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
     { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
-    { name: 'Métricas', href: '/dashboard/analytics', icon: BarChart3 },
+    { name: 'Caja', href: '/dashboard/analytics', icon: BarChart3 }, 
     { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
+
+  if (isAdmin) {
+    menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });
+  }
 
   const getPlanLabel = () => {
       if (restaurant.plan === 'plus') return 'Plan Plus';
@@ -163,8 +157,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return 'text-gray-400';
   };
 
+  const supportMessage = encodeURIComponent(`Hola! Soy de ${restaurant.name}, necesito ayuda con mi panel.`);
+
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
       
       <OrderListener />
 
@@ -172,45 +172,106 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
          <GoogleAuthHandler />
       </Suspense>
 
-      {/* --- SIDEBAR (SOLO PC) --- */}
-      <aside className="hidden lg:flex w-64 bg-white border-r flex-col h-full z-20 flex-shrink-0">
-        <div className="p-6 border-b flex items-center gap-3">
-          <div className="bg-black text-white p-2 rounded-lg"><Store size={20} /></div>
-          <div className="overflow-hidden">
-            {isLoading ? (
-                <div className="space-y-2 animate-pulse">
-                    <div className="h-4 w-24 bg-gray-200 rounded"></div>
-                    <div className="h-3 w-16 bg-gray-100 rounded"></div>
-                </div>
+      {/* --- SIDEBAR (PC) --- */}
+      <aside className={`hidden lg:flex ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r flex-col h-full z-20 flex-shrink-0 transition-all duration-300 relative`}>
+        
+        {/* BOTÓN COLAPSAR */}
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-10 bg-white border shadow-md rounded-full p-1 z-30 hover:bg-gray-50 transition"
+        >
+          {isCollapsed ? <ChevronRight size={14}/> : <ChevronLeft size={14}/>}
+        </button>
+
+        <div className={`p-6 border-b flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+            {restaurant.logo_url ? (
+              <img src={restaurant.logo_url} alt="logo" className="w-full h-full object-cover" />
             ) : (
-                <>
-                    <h2 className="font-bold text-sm leading-tight truncate w-32 capitalize">
-                        {restaurant.name}
-                    </h2>
-                    <p className={`text-[10px] font-bold uppercase mt-0.5 ${getPlanColor()}`}>
-                        {getPlanLabel()} {restaurant.plan === 'plus' && '⚡'}
-                    </p>
-                </>
+              <Store size={20} />
             )}
           </div>
+          
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+                <h2 className="font-bold text-sm leading-tight truncate w-32 capitalize">
+                    {restaurant.name}
+                </h2>
+                <p className={`text-[10px] font-bold uppercase mt-0.5 ${getPlanColor()}`}>
+                    {getPlanLabel()} {restaurant.plan === 'plus' && '⚡'}
+                </p>
+            </div>
+          )}
         </div>
         
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-hide">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
-              <Link key={item.href} href={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50 hover:text-black'}`}>
-                <item.icon size={18} /> {item.name}
+              <Link 
+                key={item.href} 
+                href={item.href} 
+                className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2 rounded-lg text-xs font-bold transition-all ${isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50 hover:text-black'}`}
+                title={isCollapsed ? item.name : ''}
+              >
+                <item.icon size={18} /> 
+                {!isCollapsed && <span>{item.name}</span>}
               </Link>
             );
           })}
         </nav>
         
         <div className="p-4 border-t mt-auto space-y-2">
-          <PushNotificationManager />
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition cursor-pointer">
-              <LogOut size={18} /> Cerrar Sesión
+          {/* CARD DE AYUDA */}
+          {!isCollapsed && (
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-2">
+                <div className="flex items-center gap-2 text-blue-600 mb-1">
+                    <Headset size={16} />
+                    <span className="text-[11px] font-black uppercase tracking-tighter">¿Necesitas ayuda?</span>
+                </div>
+                <p className="text-[10px] text-blue-700 font-medium mb-3">Comunicate con nosotros para asistencia rápida.</p>
+                <a 
+                    href={`https://wa.me/TU_NUMERO_AQUI?text=${supportMessage}`} 
+                    target="_blank"
+                    className="flex items-center justify-center gap-2 w-full py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold hover:bg-blue-700 transition shadow-sm no-underline"
+                >
+                    Contactar soporte
+                </a>
+            </div>
+          )}
+<div className="p-2 border-t mt-auto space-y-1">
+          {/* CONTENEDOR DE NOTIFICACIONES */}
+          <div className={`relative flex items-center justify-center ${isCollapsed ? 'h-10 w-full' : 'px-3 py-1'}`}>
+            
+            {isCollapsed ? (
+              /* MODO COLAPSADO: Dibujamos la UI y ocultamos la lógica encima */
+              <div className="relative w-10 h-10 flex items-center justify-center">
+                {/* 1. La cara visible (La campanita que sí se ve) */}
+                <div className="absolute inset-0 bg-green-50 rounded-lg flex items-center justify-center text-green-600 shadow-sm border border-green-100">
+                  <Bell size={20} />
+                </div>
+                
+                {/* 2. El componente real (Invisible pero clickeable) */}
+                <div className="absolute inset-0 opacity-0 z-10 cursor-pointer [&_*]:w-full [&_*]:h-full">
+                  <PushNotificationManager />
+                </div>
+              </div>
+            ) : (
+              /* MODO EXPANDIDO: Tu componente normal */
+              <PushNotificationManager />
+            )}
+          </div>
+
+          {/* BOTÓN CERRAR SESIÓN */}
+          <button 
+            onClick={handleLogout} 
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2 w-full text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold transition cursor-pointer`}
+          >
+              <LogOut size={18} /> 
+              {!isCollapsed && <span>Cerrar Sesión</span>}
           </button>
+        </div>
+       
         </div>
       </aside>
 
@@ -261,4 +322,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <MobileNav displayName={restaurant.name} displaySubtext={getPlanLabel()} />
     </div>
   );
+  
 }
