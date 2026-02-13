@@ -479,7 +479,7 @@ function MenuContent({
       <a href="https://snappy.uno" target="_blank" rel="noreferrer" className="block w-full py-8 text-center bg-gray-900 hover:bg-black transition-colors cursor-pointer no-underline" style={{ paddingBottom: '50px' }}>
         <p className="text-[10px] font-black text-white flex items-center justify-center gap-1 uppercase tracking-[0.2em]">Potenciado por <Zap size={12} className="text-yellow-400 fill-yellow-400"/> Snappy</p>
       </a>
-      <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} />
+      <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} receiveWhatsapp={restaurant.receive_whatsapp} />
     </>
   );
 }

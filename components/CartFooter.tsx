@@ -6,7 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 
-export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType }: any) {
+export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
@@ -40,31 +40,40 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             }, 15 * 60 * 1000); 
             return () => clearTimeout(timer);
         }
-        if (activeOrderId && (planType === 'plus' || planType === 'max') && (orderStatus === 'entregado' || orderStatus === 'completado')) {
-            const timer = setTimeout(() => {
-                clearCart();
-                setActiveOrderId(null);
-                // window.location.reload(); <-- ELIMINADO PARA EVITAR REFRESCO EN MÓVIL
-            }, 5 * 60 * 1000);
-            return () => clearTimeout(timer);
-        }
+      // Lógica para PLUS/MAX: 5 min si terminó o se canceló
+if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado', 'completado', 'cancelado'].includes(orderStatus))) {
+    const timer = setTimeout(() => {
+        clearCart();
+        setActiveOrderId(null);
+    }, 5 * 60 * 1000); // 5 minutos
+    return () => clearTimeout(timer);
+}
     }, [activeOrderId, planType, orderStatus, clearCart, setActiveOrderId]);
 
     // --- VISTAS POST-PEDIDO ---
     if (activeOrderId) {
-        if (planType === 'plus' || planType === 'max') {
-            return (
-                <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
-                    <div className="w-full h-[85vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col">
-                        <OrderTracker 
-                            orderId={activeOrderId} 
-                            restaurantPhone={phone}
-                            onStatusChange={(status: string) => setOrderStatus(status)}
-                        />
-                    </div>
-                </div>
-            );
-        }
+      if (planType === 'plus' || planType === 'max') {
+    return (
+        <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
+            <div className="w-full h-[85vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col">
+                
+                {/* BOTÓN CERRAR DENTRO DEL CUADRO */}
+                <button 
+                    onClick={() => { clearCart(); setActiveOrderId(null); }}
+                    className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-[130] shadow-sm"
+                >
+                    <X size={20} className="text-gray-400" />
+                </button>
+
+                <OrderTracker 
+                    orderId={activeOrderId} 
+                    restaurantPhone={phone}
+                    onStatusChange={(status: string) => setOrderStatus(status)}
+                />
+            </div>
+        </div>
+    );
+}
 
         return (
             <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
@@ -187,7 +196,8 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
                 status: 'pendiente',
                 delivery_cost: envio,
                 origin_plan: planType,
-                items: cart
+                items: cart,
+                description: aclaraciones
             }).select().single();
 
             if (error) throw error;
@@ -222,9 +232,17 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             mensaje += `\n💰 *TOTAL: ${formatPrice(totalFinal)}*`;
 
             setIsVisible(false);
-            const textEncoded = encodeURIComponent(mensaje);
-            const cleanPhone = phone.toString().replace(/\D/g, ''); 
-            window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
+
+            // SOLO ABRIMOS WHATSAPP SI ESTÁ ENCENDIDO
+            if (receiveWhatsapp) {
+                const textEncoded = encodeURIComponent(mensaje);
+                const cleanPhone = phone.toString().replace(/\D/g, ''); 
+                window.onbeforeunload = null; // Para evitar el cartel de seguridad
+                window.open(`whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`, '_blank');
+            } else {
+                console.log("WhatsApp desactivado: Pedido enviado solo al panel.");
+            }
+
             setIsSending(false);
 
         } catch (err) {
