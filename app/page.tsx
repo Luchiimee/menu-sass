@@ -96,7 +96,7 @@ export default function LandingPage() {
     {/* --- Captura Tablet / Dashboard (Sin borde negro) --- */}
 <div className="absolute top-0 right-5 md:right-10 w-[85%] md:w-[500px] aspect-[3/2] bg-gray-100 rounded-2xl shadow-2xl overflow-hidden z-0 border-4 border-black">
     <Image 
-        src="/tablet-headerr.gif" 
+        src="/tablett-header.gif" 
         alt="Dashboard View" 
         fill 
         priority

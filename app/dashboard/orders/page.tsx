@@ -2,31 +2,15 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import {
-  Loader2,
-  ShoppingBag,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Bike,
-  Store,
-  MapPin,
-  CreditCard,
-  Banknote,
-  Trash2,
-  ChefHat,
-  Check,
-  User,
-  MessageCircle,
-  LayoutGrid,
-  List,
-  Zap,
-  Send,
-  Phone,
-  Printer,
-  FileText,
+  Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
+  CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
+  LayoutGrid, List, Zap, Send, Phone, Printer, FileText,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -40,6 +24,15 @@ export default function OrdersPage() {
   const [receiveWhatsapp, setReceiveWhatsapp] = useState(true);
   const [restaurantPhone, setRestaurantPhone] = useState<string | null>(null);
   const [showPhoneAlert, setShowPhoneAlert] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const formatDateDisplay = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
+  };
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,62 +49,64 @@ export default function OrdersPage() {
     localStorage.setItem("ordersView", newView);
   };
 
-useEffect(() => {
-    let mounted = true;
-    const loadOrders = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
+  useEffect(() => {
+    let mounted = true;
+    const loadOrders = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
 
         // --- VALIDACIÓN SUPER ADMIN ---
-        const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
+        const isSuperAdmin = user.email === "luchiimee2@gmail.com";
 
-        const { data: rest } = await supabase
-          .from("restaurants")
-          .select("id, subscription_plan, name, receive_whatsapp, phone")
-          .eq("user_id", user.id)
-          .single();
+        const { data: rest } = await supabase
+          .from("restaurants")
+          .select("id, subscription_plan, name, receive_whatsapp, phone")
+          .eq("user_id", user.id)
+          .single();
 
-        if (mounted && rest) {
-          setRestaurantName(rest.name || "nuestro local");
-          setRestaurantId(rest.id);
-          setRestaurantPhone(rest.phone);
-          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+        if (mounted && rest) {
+          setRestaurantName(rest.name || "nuestro local");
+          setRestaurantId(rest.id);
+          setRestaurantPhone(rest.phone);
+          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
 
           // Si sos Super Admin o tenés el plan correcto, se desbloquea
-          if (
-            isSuperAdmin || 
-            rest.subscription_plan === "plus" ||
-            rest.subscription_plan === "max"
-          ) {
-            setIsLocked(false);
-            const { data: ords } = await supabase
-              .from("orders")
-              .select("*")
-              .eq("restaurant_id", rest.id)
-              .neq("order_type", "apertura")
-              .neq("customer_name", "Venta Detectada (Cierre)")
-              .neq("origin_plan", "light")
-              .order("created_at", { ascending: false });
+          if (
+            isSuperAdmin ||
+            rest.subscription_plan === "plus" ||
+            rest.subscription_plan === "max"
+          ) {
+            setIsLocked(false);
+            const { data: ords } = await supabase
+              .from("orders")
+              .select("*")
+              .eq("restaurant_id", rest.id)
+              .gte("created_at", `${selectedDate}T00:00:00`) // Filtra desde el inicio del día
+.lte("created_at", `${selectedDate}T23:59:59`)
+              .neq("order_type", "apertura")
+              .neq("customer_name", "Venta Detectada (Cierre)")
+              .neq("origin_plan", "light")
+              .order("created_at", { ascending: false });
 
-            setOrders(ords || []);
-          } else {
-            setIsLocked(true);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    loadOrders();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+            setOrders(ords || []);
+          } else {
+            setIsLocked(true);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    loadOrders();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedDate]);
 
   useEffect(() => {
     if (!restaurantId || isLocked) return;
@@ -125,27 +120,39 @@ useEffect(() => {
           table: "orders",
           filter: `restaurant_id=eq.${restaurantId}`,
         },
-        (payload) => {
-          if (payload.new && "order_type" in payload.new) {
-            if (payload.new.order_type === "apertura") return;
-            if (payload.new.customer_name === "Venta Detectada (Cierre)")
-              return;
-          }
-          if (payload.eventType === "INSERT")
-            setOrders((prev) => [payload.new, ...prev]);
-          else if (payload.eventType === "UPDATE")
-            setOrders((prev) =>
-              prev.map((o) => (o.id === payload.new.id ? payload.new : o)),
-            );
-          else if (payload.eventType === "DELETE")
-            setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
-        },
+    (payload: any) => { // Agregamos : any aquí para silenciar los errores
+  
+  // 1. VALIDACIÓN DE FECHA: Usamos el campo created_at del pedido
+  if (payload.new && payload.new.created_at) {
+    const orderDate = new Date(payload.new.created_at).toISOString().split('T')[0];
+    
+    // Si selectedDate sigue en rojo, asegúrate de tener el useState arriba
+    if (orderDate !== selectedDate) return; 
+  }
+
+  // 2. FILTROS DE SEGURIDAD
+  if (payload.new && payload.new.order_type === "apertura") return;
+  if (payload.new && payload.new.customer_name === "Venta Detectada (Cierre)") return;
+
+  // 3. GESTIÓN DE ESTADOS
+  if (payload.eventType === "INSERT") {
+    setOrders((prev) => [payload.new, ...prev]);
+  } 
+  else if (payload.eventType === "UPDATE") {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === payload.new.id ? payload.new : o))
+    );
+  } 
+  else if (payload.eventType === "DELETE") {
+    setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
+  }
+},
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, isLocked]);
+  },[restaurantId, isLocked, selectedDate]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     setOrders(
@@ -205,23 +212,33 @@ useEffect(() => {
     }
   };
   const handlePrint = (order: any) => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const itemsHtml = order.items.map((item: any) => `
+    const itemsHtml = order.items
+      .map(
+        (item: any) => `
         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span>${item.quantity}x ${item.name}</span>
             <span>$${item.price * item.quantity}</span>
         </div>
-        ${item.extrasList?.map((ex: any) => `
+        ${
+          item.extrasList
+            ?.map(
+              (ex: any) => `
             <div style="font-size: 12px; margin-left: 10px; color: #666;">+ ${ex.name} ($${ex.price})</div>
-        `).join('') || ''}
-    `).join('');
+        `,
+            )
+            .join("") || ""
+        }
+    `,
+      )
+      .join("");
 
     printWindow.document.write(`
         <html>
             <head>
-                <title>Ticket #${order.id.slice(0,5)}</title>
+                <title>Ticket #${order.id.slice(0, 5)}</title>
                 <style>
                     body { font-family: monospace; padding: 20px; width: 300px; }
                     .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
@@ -232,7 +249,7 @@ useEffect(() => {
             <body>
                 <div class="header">
                     <h2 style="margin:0">${restaurantName}</h2>
-                    <p>Pedido #${order.id.slice(0,5)}</p>
+                    <p>Pedido #${order.id.slice(0, 5)}</p>
                     <p>${new Date(order.created_at).toLocaleString()}</p>
                 </div>
                 <div>
@@ -241,7 +258,7 @@ useEffect(() => {
                     <strong>Tipo:</strong> ${order.order_type?.toUpperCase()}
                 </div>
                 <div style="margin-top:15px;">${itemsHtml}</div>
-                ${order.description ? `<div class="notes"><strong>Nota:</strong> ${order.description}</div>` : ''}
+                ${order.description ? `<div class="notes"><strong>Nota:</strong> ${order.description}</div>` : ""}
                 <div class="footer">
                     <h3>TOTAL: $${order.total}</h3>
                     <p>¡Gracias por su compra!</p>
@@ -251,11 +268,14 @@ useEffect(() => {
     `);
     printWindow.document.close();
     printWindow.print();
-};
-// --- FUNCIÓN PARA GUARDAR EL ESTADO DEL INTERRUPTOR ---
+  };
+  // --- FUNCIÓN PARA GUARDAR EL ESTADO DEL INTERRUPTOR ---
   const toggleWhatsapp = async () => {
     // Si intenta activar y no hay teléfono, disparamos el Pop-up lindo
-    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) {
+    if (
+      !receiveWhatsapp &&
+      (!restaurantPhone || restaurantPhone.trim() === "")
+    ) {
       setShowPhoneAlert(true); // <--- CAMBIADO: Ahora abre el modal
       return;
     }
@@ -263,7 +283,10 @@ useEffect(() => {
     const newValue = !receiveWhatsapp;
     setReceiveWhatsapp(newValue);
     // Guardamos en la columna de Supabase
-    await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
+    await supabase
+      .from("restaurants")
+      .update({ receive_whatsapp: newValue })
+      .eq("id", restaurantId);
   };
 
   // --- ESTADO DE CARGA ---
@@ -275,7 +298,7 @@ useEffect(() => {
     );
   }
   return (
-    <div className="max-w-6xl mx-auto h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar p-2 relative">
+ <div className="max-w-6xl mx-auto h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar p-2 pt-16 md:pt-28 lg:pt-8 relative">
       {isLocked && (
         <div className="absolute inset-0 z-50 backdrop-blur-sm bg-white/60 flex items-center justify-center rounded-3xl overflow-hidden p-4 h-full">
           <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-gray-100 animate-in zoom-in-95 duration-300">
@@ -302,71 +325,107 @@ useEffect(() => {
       <div
         className={`${isLocked ? "blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-full" : ""}`}
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            Pedidos{" "}
-            <span className="bg-black text-white text-sm px-2 py-0.5 rounded-full">
-              {orders.length}
+{/* --- SECCIÓN 1: TÍTULO, WHATSAPP Y VISTA (Responsivo) --- */}
+{/* --- SECCIÓN 1: TÍTULO, WHATSAPP Y VISTA (Optimizado para 887px y más) --- */}
+<div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center mb-6 px-2 gap-4">
+    
+    {/* Título: Ajustamos el tamaño para que no choque en medidas medianas */}
+    <div className="flex-1">
+        <h1 className="text-2xl lg:text-4xl font-black flex items-center gap-3 text-gray-900 tracking-tighter">
+            Pedidos 
+            <span className="bg-blue-600 text-white text-[10px] lg:text-sm px-3 lg:px-4 py-0.5 lg:py-1 rounded-full shadow-lg shadow-blue-200">
+                {orders.length}
             </span>
-          </h1>
-          <div className="flex items-center gap-3">
-    {/* INTERRUPTOR INTELIGENTE DE WHATSAPP - DISEÑO DESTACADO */}
-<div className="flex items-center gap-4 bg-blue-600 p-3 px-4 rounded-2xl shadow-lg border border-blue-700 transition-all hover:bg-blue-700">
-  <div className="flex flex-col">
-    <span className="text-[10px] font-black text-blue-100 uppercase leading-none mb-1">
-      Entrada de Pedidos
-    </span>
-    <p className="text-[11px] font-bold text-white leading-none">
-      {receiveWhatsapp ? "Panel + WhatsApp" : "Solo Panel"}
-    </p>
-  </div>
-  
-  <button 
-    onClick={toggleWhatsapp}
-    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ring-2 ring-blue-400/30 ${
-      receiveWhatsapp ? 'bg-green-400' : 'bg-blue-400'
-    }`}
-  >
-    <span className="sr-only">Toggle WhatsApp</span>
-    <span
-      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-        receiveWhatsapp ? 'translate-x-6' : 'translate-x-1'
-      }`}
-    />
-  </button>
+        </h1>
+        <p className="text-[10px] lg:text-sm text-gray-400 font-bold uppercase tracking-widest mt-1">
+            {selectedDate === new Date().toISOString().split('T')[0] ? "Monitor en tiempo real" : "Historial de ventas"}
+        </p>
+    </div>
+
+    {/* Configuración de WhatsApp: Ahora es más compacto en tablets */}
+    <div className="flex items-center justify-between lg:justify-start gap-3 bg-gray-900 p-2 px-4 rounded-2xl border border-gray-800 shadow-md">
+        <div className="flex items-center gap-3">
+            <div className={`p-1.5 rounded-xl ${receiveWhatsapp ? 'bg-green-500/10 text-green-500' : 'bg-gray-700 text-gray-400'}`}>
+                <MessageCircle size={18} fill={receiveWhatsapp ? "currentColor" : "none"} />
+            </div>
+            <div className="flex flex-col">
+                <p className="text-white font-bold text-[11px] lg:text-xs leading-none mb-0.5">
+                    {receiveWhatsapp ? "PEDIDOS" : "PEDIDOS"}
+                </p>
+                <p className="hidden sm:block text-[9px] text-gray-400 font-medium leading-tight">
+                    {receiveWhatsapp ? "Recibes en móvil." : "Solo en este panel."}
+                </p>
+            </div>
+        </div>
+        <button 
+            onClick={toggleWhatsapp} 
+            className={`relative inline-flex h-6 w-10 items-center rounded-full transition-all duration-300 focus:outline-none ring-2 ring-white/5 ${receiveWhatsapp ? 'bg-green-500' : 'bg-gray-700'}`}
+        >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${receiveWhatsapp ? 'translate-x-5' : 'translate-x-1'}`} />
+        </button>
+    </div>
+
+    {/* Selector de Vista: Centrado en mobile, en línea desde lg */}
+    <div className="bg-gray-100 p-1.5 rounded-2xl flex items-center justify-center lg:justify-start shadow-inner">
+        <button onClick={() => changeView("list")} className={`flex-1 lg:flex-none p-2 lg:p-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 font-bold text-xs ${view === "list" ? "bg-white shadow-sm text-black" : "text-gray-400 hover:text-gray-600"}`}>
+            <List size={18} /> <span className="hidden sm:inline">Lista</span>
+        </button>
+        <button onClick={() => changeView("grid")} className={`flex-1 lg:flex-none p-2 lg:p-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 font-bold text-xs ${view === "grid" ? "bg-white shadow-sm text-black" : "text-gray-400 hover:text-gray-600"}`}>
+            <LayoutGrid size={18} /> <span className="hidden sm:inline">Cuadrícula</span>
+        </button>
+    </div>
 </div>
-            <div className="bg-gray-100 p-1 rounded-lg flex items-center">
-              <button
-                onClick={() => changeView("list")}
-                className={`p-2 rounded-md transition ${view === "list" ? "bg-white shadow-sm text-black" : "text-gray-400 hover:text-gray-600"}`}
-              >
-                <List size={20} />
-              </button>
-              <button
-                onClick={() => changeView("grid")}
-                className={`p-2 rounded-md transition ${view === "grid" ? "bg-white shadow-sm text-black" : "text-gray-400 hover:text-gray-600"}`}
-              >
-                <LayoutGrid size={20} />
-              </button>
+
+{/* --- SECCIÓN 2: BARRA DE CONTROL (Calendario y Ventas) --- */}
+<div className="grid grid-cols-1 lg:grid-cols-2 bg-white p-2 rounded-[1.5rem] md:rounded-[2.5rem] border border-gray-100 shadow-xl mb-10 gap-2">
+    
+    {/* Calendario: Reducimos paddings en mobile */}
+    <div className="flex items-center justify-between bg-gray-50/50 p-3 md:p-4 rounded-[1.2rem] md:rounded-[2rem] border border-gray-50">
+        <button onClick={() => {
+            const d = new Date(selectedDate);
+            d.setDate(d.getDate() - 1);
+            setSelectedDate(d.toISOString().split('T')[0]);
+        }} className="p-2 md:p-3 bg-white hover:bg-gray-100 rounded-xl md:rounded-2xl shadow-sm transition-all text-gray-600 border border-gray-100">
+            <ChevronLeft className="w-[18px] h-[18px] md:w-[20px] md:h-[20px]" />
+        </button>
+        
+        <div 
+            className="flex flex-col items-center cursor-pointer group"
+            onClick={() => dateInputRef.current?.showPicker()}
+        >
+            <span className="text-[8px] md:text-[10px] font-black text-blue-600 uppercase tracking-tighter mb-0.5">Fecha Seleccionada</span>
+            <div className="flex items-center gap-2">
+                <CalendarIcon className="w-[14px] h-[14px] md:w-[16px] md:h-[16px] text-gray-400 group-hover:text-blue-600 transition-colors" />
+                <span className="text-sm md:text-lg font-black text-gray-800">{formatDateDisplay(selectedDate)}</span>
             </div>
-           
-            <div className="bg-green-50 border border-green-200 px-4 py-2 rounded-xl text-right">
-              <p className="text-[10px] text-green-600 font-bold uppercase">
-                Ventas Hoy
-              </p>
-              <p className="text-lg font-bold text-green-900">
-                $
-                {orders
-                  .filter(
-                    (o) =>
-                      o.status === "completado" || o.status === "entregado",
-                  )
-                  .reduce((acc, curr) => acc + Number(curr.total), 0)}
-              </p>
-            </div>
-          </div>
+            <input ref={dateInputRef} type="date" className="absolute opacity-0 pointer-events-none" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
         </div>
 
+        <button onClick={() => {
+            const d = new Date(selectedDate);
+            d.setDate(d.getDate() + 1);
+            setSelectedDate(d.toISOString().split('T')[0]);
+        }} className="p-2 md:p-3 bg-white hover:bg-gray-100 rounded-xl md:rounded-2xl shadow-sm transition-all text-gray-600 border border-gray-100">
+            <ChevronRight className="w-[18px] h-[18px] md:w-[20px] md:h-[20px]" />
+        </button>
+    </div>
+
+    {/* Contador de Ventas */}
+    <div className="flex flex-col items-center justify-center bg-green-50/50 p-3 md:p-4 rounded-[1.2rem] md:rounded-[2rem] border border-green-100/50">
+        <p className="text-[8px] md:text-[10px] text-green-600 font-black uppercase tracking-widest mb-0.5 md:mb-1">
+            {selectedDate === new Date().toISOString().split('T')[0] ? "Ingresos de Hoy" : "Total del Día"}
+        </p>
+        <div className="flex items-baseline gap-1">
+            <span className="text-xs md:text-sm font-black text-green-600">$</span>
+            <span className="text-xl md:text-3xl font-black text-green-900 tracking-tighter">
+                {orders
+                    .filter(o => o.status === "completado" || o.status === "entregado")
+                    .reduce((acc, curr) => acc + Number(curr.total), 0)
+                    .toLocaleString()}
+            </span>
+        </div>
+    </div>
+</div>
         <div
           className={
             view === "list"
@@ -382,10 +441,10 @@ useEffect(() => {
           )}
 
           {orders.map((order) => (
-          <div
-  key={order.id}
-  className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm transition-all flex flex-col justify-between"
->
+            <div
+              key={order.id}
+              className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm transition-all flex flex-col justify-between"
+            >
               <div>
                 <div className="flex justify-between items-start mb-4 border-b pb-4">
                   <div>
@@ -483,33 +542,30 @@ useEffect(() => {
                     <div className="flex justify-between text-xs text-blue-600 font-bold pt-1 uppercase tracking-tighter">
                       <span>Costo de Envío</span>
                       <span>+${order.delivery_cost}</span>
-                      
                     </div>
-                    
                   )}
                 </div>
                 {order.description && (
-    <div className="mt-3 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-md">
-        <p className="text-[10px] font-bold text-yellow-700 uppercase flex items-center gap-1">
-            <FileText size={12}/> Aclaraciones:
-        </p>
-        <p className="text-sm text-yellow-900 italic">"{order.description}"</p>
-    </div>
-)}
-             
+                  <div className="mt-3 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-md">
+                    <p className="text-[10px] font-bold text-yellow-700 uppercase flex items-center gap-1">
+                      <FileText size={12} /> Aclaraciones:
+                    </p>
+                    <p className="text-sm text-yellow-900 italic">
+                      "{order.description}"
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className={`flex flex-col gap-2 pt-2 border-t mt-auto`}>
-                <button 
-                            onClick={() => handlePrint(order)} 
-                            className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition"
-                        >
-                            <Printer size={16}/> Imprimir Ticket
-                        </button>
+                <button
+                  onClick={() => handlePrint(order)}
+                  className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition"
+                >
+                  <Printer size={16} /> Imprimir Ticket
+                </button>
                 {order.status === "pendiente" && (
-                    
                   <div className="flex gap-2">
-                    
                     <button
                       onClick={() => updateStatus(order.id, "cancelado")}
                       className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold transition flex-1"
@@ -575,7 +631,6 @@ useEffect(() => {
                   </div>
                 )}
               </div>
-              
             </div>
           ))}
         </div>
@@ -587,18 +642,21 @@ useEffect(() => {
             <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4 text-amber-600">
               <Phone size={32} />
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2">Falta el número</h3>
+            <h3 className="text-xl font-black text-gray-900 mb-2">
+              Falta el número
+            </h3>
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-              Para recibir pedidos por WhatsApp, primero tenés que ingresar tu número en el editor de <b>Personalizar</b>.
+              Para recibir pedidos por WhatsApp, primero tenés que ingresar tu
+              número en el editor de <b>Personalizar</b>.
             </p>
             <div className="flex flex-col gap-3">
-              <Link 
+              <Link
                 href="/dashboard/personalizar"
                 className="w-full py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all text-center no-underline"
               >
                 Ir a Personalizar
               </Link>
-              <button 
+              <button
                 onClick={() => setShowPhoneAlert(false)}
                 className="w-full py-3 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors"
               >

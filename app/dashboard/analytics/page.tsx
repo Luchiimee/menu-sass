@@ -164,16 +164,27 @@ export default function AnalyticsPage() {
                 }} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ChevronRight/></button>
             </div>
 
-            <div className="flex gap-2 w-full md:w-auto">
-                {!totals.isBoxOpen && selectedDate === new Date().toISOString().split('T')[0] && (
-                    <button onClick={() => setShowAperturaModal(true)} className="flex-1 bg-orange-500 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95">
-                        <Calculator size={18}/> Iniciar Caja
-                    </button>
-                )}
-                <button onClick={() => setShowSaleModal(true)} className="flex-1 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95">
-                    <Plus size={18}/> Venta Mostrador
-                </button>
-            </div>
+           <div className="flex gap-2 w-full md:w-auto">
+    {/* El botón ahora siempre se muestra para la fecha de hoy */}
+    {selectedDate === new Date().toISOString().split('T')[0] && (
+        <button 
+            onClick={() => setShowAperturaModal(true)} 
+            className={`flex-1 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 ${
+                totals.isBoxOpen 
+                ? 'bg-green-600 text-white shadow-green-100 hover:bg-green-700' 
+                : 'bg-orange-500 text-white shadow-orange-100 hover:bg-orange-600'
+            }`}
+        >
+            <Calculator size={18}/> 
+            {/* Cambiamos el texto dinámicamente según el estado */}
+            {totals.isBoxOpen ? 'Caja Abierta' : 'Iniciar Caja'}
+        </button>
+    )}
+
+    <button onClick={() => setShowSaleModal(true)} className="flex-1 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95">
+        <Plus size={18}/> Venta Mostrador
+    </button>
+</div>
         </div>
 
         {/* TARJETAS DE DINERO */}
@@ -220,35 +231,50 @@ export default function AnalyticsPage() {
                             <th className="px-6 py-4 text-right">Monto</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {orders.length > 0 ? (
-                            orders.sort((a,b) => b.created_at.localeCompare(a.created_at)).map(o => (
-                                <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-4 text-xs font-bold text-gray-400">
-                                        {new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${o.order_type === 'apertura' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                {o.order_type === 'apertura' ? <Calculator size={16}/> : <ShoppingBag size={16}/>}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-sm text-gray-900 leading-none">{o.customer_name}</p>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">{o.order_type}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${o.payment_method === 'efectivo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            {o.payment_method}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-black text-gray-900">
-                                        ${Number(o.total).toLocaleString()}
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
+                   <tbody className="divide-y divide-gray-50">
+    {orders.length > 0 ? (
+        orders.sort((a,b) => b.created_at.localeCompare(a.created_at)).map(o => (
+            <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
+                <td className="px-6 py-4 text-xs font-bold text-gray-400">
+                    {new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                </td>
+                <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${o.order_type === 'apertura' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'}`}>
+                            {o.order_type === 'apertura' ? <Calculator size={16}/> : <ShoppingBag size={16}/>}
+                        </div>
+                        <div>
+                            <p className="font-bold text-sm text-gray-900 leading-none">{o.customer_name}</p>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">{o.order_type}</span>
+                        </div>
+                    </div>
+                </td>
+                <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${o.payment_method === 'efectivo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {o.payment_method}
+                    </span>
+                </td>
+                <td className="px-6 py-4 text-right font-black text-gray-900">
+                    ${Number(o.total).toLocaleString()}
+                    
+                    {/* BOTÓN PARA BORRAR (Solo si es apertura y querés resetear) */}
+                    {o.order_type === 'apertura' && (
+                        <button 
+                            onClick={async () => {
+                                if(confirm("¿Eliminar apertura y reiniciar caja?")) {
+                                    await supabase.from('orders').delete().eq('id', o.id);
+                                    loadData(selectedDate); // Recarga la lista
+                                }
+                            }}
+                            className="ml-2 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <X size={14}/>
+                        </button>
+                    )}
+                </td>
+            </tr>
+        ))
+    ) : (
                             <tr>
                                 <td colSpan={4} className="px-6 py-12 text-center">
                                     <div className="flex flex-col items-center gap-2 opacity-20">
