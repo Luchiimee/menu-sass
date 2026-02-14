@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     let mounted = true;
 
-    const loadData = async () => {
+ const loadData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
@@ -61,30 +61,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         return;
       }
-
-      try {
+try {
+        // 1. Verificar Restaurante
         const { data: rest } = await supabase
           .from('restaurants')
           .select('name, subscription_plan, subscription_status, logo_url') 
           .eq('user_id', session.user.id)
           .maybeSingle();
         
+        // 2. Verificar Perfil (Quitamos is_admin que es lo que rompe todo)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name, last_name, phone, is_admin')
+          .select('first_name, last_name, phone') // <--- Solo lo que existe
           .eq('id', session.user.id)
           .maybeSingle();
         
         if (mounted) {
-            /* --- LÓGICA DE BANNER COMENTADA ---
+            // TU ACCESO SUPER ADMIN POR CORREO
+            const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+
+            /* --- LÓGICA DE BANNER --- */
+            // Ahora 'profile' no será null, por lo que leerá bien el teléfono
             if (!profile?.phone || profile.phone.trim() === "") {
               setHasPhone(false);
             } else {
               setHasPhone(true);
             }
-            ------------------------------------ */
 
-            setIsAdmin(profile?.is_admin || false);
+            // Mantenés el botón de Admin porque sos vos, sin depender de la base de datos
+            setIsAdmin(isSuperAdmin);
 
             let displayName = "Bienvenido";
             if (profile?.first_name) {
@@ -96,18 +101,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             setRestaurant({
                 name: displayName, 
-                plan: rest?.subscription_plan || null,
-                status: rest?.subscription_status || 'active',
+                plan: isSuperAdmin ? 'max' : (rest?.subscription_plan || null),
+                status: isSuperAdmin ? 'active' : (rest?.subscription_status || 'active'),
                 logo_url: rest?.logo_url || null
             });
         }
       } catch (error) {
         console.error("Error layout:", error);
-      } finally {
-        if (mounted) setIsLoading(false);
       }
     };
-
     loadData();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {

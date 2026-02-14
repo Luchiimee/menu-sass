@@ -56,57 +56,62 @@ export default function OrdersPage() {
     localStorage.setItem("ordersView", newView);
   };
 
-  useEffect(() => {
-    let mounted = true;
-    const loadOrders = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
+useEffect(() => {
+    let mounted = true;
+    const loadOrders = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
 
-        const { data: rest } = await supabase
-          .from("restaurants")
-          .select("id, subscription_plan, name, receive_whatsapp, phone")
-          .eq("user_id", user.id)
-          .single();
+        // --- VALIDACIÓN SUPER ADMIN ---
+        const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
 
-        if (mounted && rest) {
-          setRestaurantName(rest.name || "nuestro local");
-          setRestaurantId(rest.id);
-          setRestaurantPhone(rest.phone);
-          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+        const { data: rest } = await supabase
+          .from("restaurants")
+          .select("id, subscription_plan, name, receive_whatsapp, phone")
+          .eq("user_id", user.id)
+          .single();
 
-          if (
-            rest.subscription_plan === "plus" ||
-            rest.subscription_plan === "max"
-          ) {
-            setIsLocked(false);
-            const { data: ords } = await supabase
-              .from("orders")
-              .select("*")
-              .eq("restaurant_id", rest.id)
-              .neq("order_type", "apertura")
-              .neq("customer_name", "Venta Detectada (Cierre)")
-              .neq("origin_plan", "light")
-              .order("created_at", { ascending: false });
+        if (mounted && rest) {
+          setRestaurantName(rest.name || "nuestro local");
+          setRestaurantId(rest.id);
+          setRestaurantPhone(rest.phone);
+          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
 
-            setOrders(ords || []);
-          } else {
-            setIsLocked(true);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    loadOrders();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+          // Si sos Super Admin o tenés el plan correcto, se desbloquea
+          if (
+            isSuperAdmin || 
+            rest.subscription_plan === "plus" ||
+            rest.subscription_plan === "max"
+          ) {
+            setIsLocked(false);
+            const { data: ords } = await supabase
+              .from("orders")
+              .select("*")
+              .eq("restaurant_id", rest.id)
+              .neq("order_type", "apertura")
+              .neq("customer_name", "Venta Detectada (Cierre)")
+              .neq("origin_plan", "light")
+              .order("created_at", { ascending: false });
+
+            setOrders(ords || []);
+          } else {
+            setIsLocked(true);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    loadOrders();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!restaurantId || isLocked) return;
