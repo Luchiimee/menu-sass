@@ -94,7 +94,7 @@ export default function LandingPage() {
         <div className="relative flex justify-center lg:justify-end h-[300px] md:h-[500px] mt-10 lg:mt-0">
     
     {/* --- Captura Tablet / Dashboard (Sin borde negro) --- */}
-<div className="absolute top-0 right-5 md:right-10 w-[85%] md:w-[500px] aspect-[3/2] bg-gray-100 rounded-2xl shadow-2xl overflow-hidden z-0 border-4 border-black">
+<div className="absolute top-0 right-0 md:right-10 w-[95%] md:w-[520px] aspect-[16/10] bg-white rounded-[30px] shadow-2xl overflow-hidden z-0 border border-gray-100">
     <Image 
         src="/tablett-header.gif" 
         alt="Dashboard View" 
@@ -105,7 +105,7 @@ export default function LandingPage() {
 </div>
 
     {/* --- Captura Celular (Más chico y sin borde negro) --- */}
-    <div className="absolute -bottom-4 right-10 md:right-15 w-[130px] md:w-[160px] aspect-[9/19] bg-white rounded-2xl shadow-2xl overflow-hidden z-20 border border-gray-100">
+    <div className="absolute -bottom-4 right-10 md:right-15 w-[130px] md:w-[160px] aspect-[9/19] bg-white rounded-2xl shadow-2xl overflow-hidden z-20 border"> 
         <Image 
             src="/mobile-headerr.gif" 
             alt="Phone View" 
@@ -231,27 +231,23 @@ export default function LandingPage() {
       {/* Tablet (Más ancha y larga) */}
       <div className="absolute top-0 right-0 md:right-10 w-[95%] md:w-[580px] aspect-[16/10] bg-white rounded-[30px] shadow-2xl overflow-hidden z-0 border border-gray-100">
           <Image 
-            src="/cliente-tablet-full.png" 
+            src="/tablet-cliente.png" 
             alt="Tablet Cliente Vista Larga" 
             fill 
-            className="object-cover" 
+            className="object-full" 
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/20">
-             <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest">Vista Tablet</p>
-          </div>
+          
       </div>
       
       {/* Celular (Más pequeño y superpuesto al frente) */}
       <div className="absolute -bottom-4 right-4 md:right-4 w-[140px] md:w-[190px] aspect-[9/19] bg-white rounded-[35px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-10 border border-gray-100 transition-transform hover:scale-110 duration-500">
           <Image 
-            src="/cliente-celular-mini.png" 
+            src="/celular-cliente.png" 
             alt="Celular Cliente Vista Chica" 
             fill 
             className="object-cover" 
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/20">
-             <p className="text-[8px] font-black uppercase text-gray-300 tracking-widest text-center px-4">Vista <br/> Móvil</p>
-          </div>
+          
       </div>
     </div>
   </div>
@@ -280,7 +276,7 @@ export default function LandingPage() {
     <div className="relative w-full h-[450px] flex items-center group">
       
       {/* MASCARA DE DESVANECIMIENTO IZQUIERDA (Fade para no pisar el texto) */}
-      <div className="absolute inset-y-0 left-0 z-10 pointer-events-none bg-gradient-to-r from-white via-white/80 to-transparent w-40"></div>
+    <div className="absolute inset-y-0 -left-5 z-10 pointer-events-none bg-gradient-to-r from-white via-white/20 to-transparent w-20"></div>
 
       <div className="flex w-full overflow-hidden">
         {/* Contenedor que se mueve solo (Marquee) */}
