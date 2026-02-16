@@ -5,6 +5,12 @@ import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap } from 'lucide-react';
 import OrderTracker from './OrderTracker';
+interface Table {
+    id: string;
+    name: string;
+    status: string;
+    restaurant_id: string;
+}
 
 export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
@@ -20,6 +26,10 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const [metodoPago, setMetodoPago] = useState('efectivo');
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
+    
+    // --- ACÁ ESTÁ EL CAMBIO CLAVE ---
+    const [nroMesa, setNroMesa] = useState(''); 
+    const [availableTables, setAvailableTables] = useState<Table[]>([]); // Agregamos <Table[]>
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,6 +59,20 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
     return () => clearTimeout(timer);
 }
     }, [activeOrderId, planType, orderStatus, clearCart, setActiveOrderId]);
+
+    useEffect(() => {
+        if (metodoEnvio === 'mesa') {
+            const getTables = async () => {
+                const { data } = await supabase
+                    .from('tables')
+                    .select('*')
+                    .eq('restaurant_id', restaurantId)
+                    .order('name', { ascending: true });
+                setAvailableTables(data || []);
+            };
+            getTables();
+        }
+    }, [metodoEnvio, restaurantId, supabase]);
 
     // --- VISTAS POST-PEDIDO ---
     if (activeOrderId) {
@@ -178,9 +202,14 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
         setTimeout(() => setCopied(false), 3000); 
     };
 
-    const handleSendOrder = async () => {
-        if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
-        if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
+ const handleSendOrder = async () => {
+    if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
+    if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
+    
+    // Nueva validación para Mesas
+    if (metodoEnvio === 'mesa' && !nroMesa) {
+        return alert("Por favor, seleccioná una mesa antes de enviar.");
+    }
 
         setIsSending(true);
 
@@ -197,6 +226,7 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
                 delivery_cost: envio,
                 origin_plan: planType,
                 items: cart,
+                table_number: metodoEnvio === 'mesa' ? nroMesa : null,
                 description: aclaraciones
             }).select().single();
 
@@ -326,6 +356,38 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
                             <input type="text" placeholder="Calle, número y localidad" value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
                         </div>
                     )}
+                    {metodoEnvio === 'mesa' && (
+        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">
+                Seleccioná tu mesa
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+                {availableTables.map((mesa: any) => (
+                    <button
+                        key={mesa.id}
+                        type="button"
+                        disabled={mesa.status === 'reservada'}
+                        onClick={() => setNroMesa(mesa.name)}
+                        className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1
+                            ${mesa.status === 'reservada' 
+                                ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' 
+                                : nroMesa === mesa.name 
+                                    ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' 
+                                    : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
+                            }`}
+                    >
+                        <span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span>
+                        <span className="truncate w-full text-center">{mesa.name}</span>
+                    </button>
+                ))}
+            </div>
+            {availableTables.length === 0 && (
+                <p className="text-[10px] text-orange-500 font-bold text-center py-2">
+                    No hay mesas configuradas.
+                </p>
+            )}
+        </div>
+    )}
                 </div>
 
                 <div className="space-y-3">
