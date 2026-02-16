@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 
 export default function LandingPage() {
+  const [activeTab, setActiveTab] = useState('visualgrid');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [aliasCopied, setAliasCopied] = useState(false);
 
@@ -101,12 +102,12 @@ export default function LandingPage() {
               >
                 Empezar Ahora <Zap size={20} fill="currentColor" />
               </Link>
-             <Link
-    href="/demo"
-    className="bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-50 transition flex items-center justify-center gap-2"
-  >
-    Ver Demo
-  </Link>
+              <Link
+                href="/demo"
+                className="bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-50 transition flex items-center justify-center gap-2"
+              >
+                Ver Demo
+              </Link>
             </div>
           </div>
 
@@ -132,65 +133,59 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- SECCIÓN RUBROS (DISEÑO IMG 1) --- */}
-      <section
-        id="negocios"
-        className="py-24 bg-white border-y border-gray-100"
-      >
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-extrabold tracking-tight mb-4 uppercase">
-            PARA TODO TIPO DE COMERCIO
-          </h2>
-          <p className="text-gray-500 text-lg mb-16">
-            Una solución adaptable que crece con tu negocio, sin importar el
-            rubro.
-          </p>
+   {/* --- SECCIÓN RUBROS (DISEÑO IMG 1) --- */}
+<section
+  id="negocios"
+  className="py-24 bg-white border-y border-gray-100"
+>
+  <div className="max-w-7xl mx-auto px-6 text-center">
+    <h2 className="text-4xl font-extrabold tracking-tight mb-4 uppercase">
+      PARA TODO TIPO DE COMERCIO
+    </h2>
+    <p className="text-gray-500 text-lg mb-16">
+      Una solución adaptable que crece con tu negocio, sin importar el rubro.
+    </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                title: "GASTRONOMÍA",
-                desc: "Restaurantes, bares, cafeterías y food trucks.",
-                icon: <Utensils className="text-orange-500" />,
-                bg: "bg-orange-50",
-              },
-              {
-                title: "KIOSCOS",
-                desc: "Almacenes, despensas y tiendas de conveniencia.",
-                icon: <Store className="text-blue-500" />,
-                bg: "bg-blue-50",
-              },
-              {
-                title: "VERDULERÍAS",
-                desc: "Fruterías, dietéticas y productos orgánicos.",
-                icon: <Carrot className="text-green-500" />,
-                bg: "bg-green-50",
-              },
-              {
-                title: "SHOWROOMS",
-                desc: "Catálogos de productos y tiendas online.",
-                icon: <ShoppingBag className="text-purple-500" />,
-                bg: "bg-purple-50",
-              },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="bg-white p-8 rounded-3xl text-left border border-gray-100 shadow-sm hover:shadow-xl transition-all"
-              >
-                <div
-                  className={`${item.bg} w-12 h-12 rounded-2xl flex items-center justify-center mb-6`}
-                >
-                  {item.icon}
-                </div>
-                <h3 className="font-bold text-lg mb-4">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
+    {/* Centrado: Cambiamos a grid-cols-3 y limitamos el ancho máximo */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      {[
+        {
+          title: "GASTRONOMÍA",
+          desc: "Restaurantes, bares, cafeterías y food trucks.",
+          icon: <Utensils className="text-orange-500" />,
+          bg: "bg-orange-50",
+        },
+        {
+          title: "KIOSCOS",
+          desc: "Almacenes, despensas y tiendas de conveniencia.",
+          icon: <Store className="text-blue-500" />,
+          bg: "bg-blue-50",
+        },
+        {
+          title: "VERDULERÍAS",
+          desc: "Fruterías, dietéticas y productos orgánicos.",
+          icon: <Carrot className="text-green-500" />,
+          bg: "bg-green-50",
+        },
+      ].map((item, i) => (
+        <div
+          key={i}
+          className="bg-white p-8 rounded-3xl text-left border border-gray-100 shadow-sm hover:shadow-xl transition-all"
+        >
+          <div
+            className={`${item.bg} w-12 h-12 rounded-2xl flex items-center justify-center mb-6`}
+          >
+            {item.icon}
           </div>
+          <h3 className="font-bold text-lg mb-4">{item.title}</h3>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            {item.desc}
+          </p>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* --- GESTIÓN TOTAL: RESTAURADA + QR/TICKETS --- */}
       <section className="py-24 bg-gray-50">
@@ -350,10 +345,11 @@ export default function LandingPage() {
                   <Smartphone size={18} /> EN TU MÓVIL
                 </div>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  <b>Android Chrome:</b> 3 puntitos  {`>`} "Agregar a inicio". <br />{" "}
-                  <b>iOS Chrome:</b> Compartir {`>`} Mas {`>`}"Agregar al inicio".<br />{" "}
-                  <b>iOS Safari:</b> 3 puntitos {`>`} Compartir {`>`} Mas {`>`} "Agregar a inicio".
-
+                  <b>Android Chrome:</b> 3 puntitos {`>`} "Agregar a inicio".{" "}
+                  <br /> <b>iOS Chrome:</b> Compartir {`>`} Mas {`>`}"Agregar al
+                  inicio".
+                  <br /> <b>iOS Safari:</b> 3 puntitos {`>`} Compartir {`>`} Mas{" "}
+                  {`>`} "Agregar a inicio".
                 </p>
               </div>
             </div>
@@ -361,8 +357,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- GALERÍA: DISEÑOS QUE ENAMORAN (TAMAÑO UNIFORME) --- */}
-      <section id="galeria" className="py-24 bg-white">
+    {/* --- SECCIÓN: DISEÑOS QUE ENAMORAN (CON ESPACIOS PARA GIFS) --- */}
+      <section id="disenos" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-extrabold tracking-tight uppercase mb-4">
@@ -372,27 +368,156 @@ export default function LandingPage() {
               Menús que reflejan la personalidad de cada negocio.
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+
+          {/* SELECTOR DE PLANTILLA */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
             {[
-              { label: "HAMBURGUESERÍA", img: "/galeria-1.png" },
-              { label: "SUSHI BAR", img: "/galeria-2.png" },
-              { label: "PIZZERÍA", img: "/galeria-3.png" },
-              { label: "KIOSCO 24HS", img: "/galeria-4.png" },
-            ].map((item, i) => (
-              <div key={i} className="space-y-4">
-                <div className="relative aspect-[9/16] rounded-3xl overflow-hidden shadow-lg border border-gray-100 bg-gray-50">
-                  <Image
-                    src={item.img}
-                    alt={item.label}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <p className="text-center text-[10px] font-black text-gray-400 tracking-widest uppercase">
-                  {item.label}
-                </p>
-              </div>
+              { id: 'visualgrid', label: 'Sushi Bar', color: 'bg-orange-500' },
+              { id: 'classic', label: 'Pizzería', color: 'bg-red-600' },
+              { id: 'minimal', label: 'Cafetería', color: 'bg-black' },
+              { id: 'urban', label: 'Burger Dark', color: 'bg-[#121212]' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border-2 
+                  ${activeTab === tab.id 
+                    ? `${tab.color} text-white border-transparent shadow-md scale-105` 
+                    : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200'}`}
+              >
+                {tab.label}
+              </button>
             ))}
+          </div>
+
+          {/* CONTENEDOR CENTRAL: CELULAR + BOTÓN FLOTANTE */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 relative">
+            
+            {/* MOCKUP DE CELULAR (Borde fino 6px) */}
+            <div className="relative border-gray-900 bg-black border-[6px] rounded-[2.8rem] h-[600px] w-[300px] shadow-2xl overflow-hidden">
+              
+              {/* Dynamic Island */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[70px] h-[18px] bg-black rounded-full z-30"></div>
+
+              {/* Pantalla interior con scroll */}
+              <div className="w-full h-full bg-white rounded-[2.4rem] overflow-hidden relative z-20">
+                <div className="h-full overflow-y-auto scrollbar-hide">
+                  
+                  {/* --- TEMPLATE: SUSHI BAR (Visual Grid) --- */}
+                  {activeTab === 'visualgrid' && (
+                    <div className="bg-[#121212] min-h-full text-white p-4 animate-in fade-in duration-500">
+                      <div className="flex justify-between items-center mb-6 pt-4">
+                        <div className="flex items-center gap-2">
+                          {/* ESPACIO PARA LOGO GIF */}
+                          <div className="w-8 h-8 rounded-full bg-gray-800 bg-cover border border-orange-500 overflow-hidden">
+                            {/* <Image src="/tu-logo-gif.gif" fill /> */}
+                          </div>
+                          <h4 className="font-black italic text-sm uppercase">SUSHI BAR</h4>
+                        </div>
+                        <div className="bg-white text-black text-[8px] font-black px-2 py-1 rounded">ABIERTO</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[1,2,3,4].map(i => (
+                          <div key={i} className="aspect-square rounded-xl relative overflow-hidden bg-gray-800">
+                            {/* ESPACIO PARA PRODUCTO GIF */}
+                            {/* <Image src="/tu-producto-gif.gif" fill className="object-cover" /> */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 p-2 flex flex-col justify-end">
+                              <span className="text-[8px] font-black uppercase italic">Nombre Producto</span>
+                              <span className="text-orange-500 text-[9px] font-black italic">$0.000</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- TEMPLATE: PIZZERÍA (Classic) --- */}
+                  {activeTab === 'classic' && (
+                    <div className="bg-white min-h-full text-black animate-in fade-in duration-500">
+                      <div className="bg-red-600 p-6 text-center text-white">
+                        {/* ESPACIO PARA LOGO O GIF */}
+                        <div className="w-10 h-10 bg-white rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs overflow-hidden">
+                           {/* <Image src="/tu-pizza-gif.gif" fill /> */}
+                        </div>
+                        <h4 className="font-bold text-sm">Pizzería Los Tíos</h4>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        {[1,2,3,4].map(i => (
+                          <div key={i} className="flex justify-between items-center border-b border-gray-100 pb-3">
+                            <div>
+                              <div className="font-bold text-xs">Muzzarella Familiar</div>
+                              <div className="text-[10px] text-gray-400 leading-tight">Salsa de tomate y muzzarella.</div>
+                            </div>
+                            <span className="font-bold text-red-600 text-xs">$0.000</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                 {/* --- TEMPLATE: CAFETERÍA (Minimal) --- */}
+{activeTab === 'minimal' && (
+  <div className="w-full h-full relative animate-in fade-in duration-500">
+    {/* REEMPLAZÁ EL SRC CON TU GIF DE PANTALLA COMPLETA */}
+    <img 
+      src="/minimal-mockup.gif" 
+      alt="Minimal Cafe Demo"
+      className="w-full h-full object-cover"
+    />
+    
+    {/* Si el GIF no tiene el botón de "atrás" o "cerrar", podés dejar este overlay arriba */}
+    <div className="absolute top-0 w-full h-16 bg-gradient-to-b from-black/20 to-transparent pointer-events-none"></div>
+  </div>
+)}
+
+                  {/* --- TEMPLATE: BURGER DARK (Urban) --- */}
+                  {activeTab === 'urban' && (
+                    <div className="bg-[#121212] min-h-full text-white p-4 animate-in fade-in duration-500">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-black italic text-lg uppercase leading-none">Burger<br/><span className="text-orange-600">Dark</span></h4>
+                        <div className="bg-white text-black text-[8px] font-black px-2 py-1 rounded">ABIERTO</div>
+                      </div>
+                      <div className="space-y-3">
+                        {[1,2,3].map(i => (
+                          <div key={i} className="bg-[#1e1e1e] p-2 rounded-xl flex gap-3 items-center border border-white/5">
+                            {/* ESPACIO PARA GIF DE HAMBURGUESA */}
+                            <div className="w-14 h-14 rounded-lg bg-gray-800 overflow-hidden relative">
+                               {/* <Image src="/tu-burger-gif.gif" fill /> */}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-black text-[10px] uppercase italic">Doble Bacon King</div>
+                              <div className="text-orange-600 font-black text-[11px] italic">$0.000</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            </div>
+
+            {/* BOTÓN FLOTANTE "VER EN VIVO" */}
+            <Link 
+              href="/demo" 
+              className="md:absolute md:left-[calc(50%+170px)] bg-white text-black border-2 border-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-black hover:text-white transition-all flex items-center gap-2 group"
+            >
+              Ver en vivo <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+          </div>
+
+          {/* MENSAJE DE MÁS PLANTILLAS */}
+          <div className="mt-16 text-center">
+            <div className="inline-block bg-gray-50 border border-gray-100 px-6 py-4 rounded-3xl">
+              <p className="text-gray-500 text-sm font-medium">
+                ¿Buscás un estilo diferente? Tenemos <span className="text-black font-extrabold">+10 plantillas exclusivas</span>.
+              </p>
+              <Link href="/login" className="text-orange-600 font-black text-xs uppercase tracking-wider mt-2 inline-block hover:underline">
+                Creá tu cuenta gratis para verlas todas →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -654,25 +779,45 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-{/* --- PREGUNTAS FRECUENTES --- */}
+      {/* --- PREGUNTAS FRECUENTES --- */}
       <section className="py-24 px-6 bg-white border-t border-gray-100">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <HelpCircle size={48} className="mx-auto text-green-600 mb-4" />
-            <h2 className="text-4xl font-extrabold mb-4 uppercase tracking-tighter italic">Preguntas Frecuentes</h2>
+            <h2 className="text-4xl font-extrabold mb-4 uppercase tracking-tighter italic">
+              Preguntas Frecuentes
+            </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              { q: "¿Cobran comisión?", a: "No. Solo pagas la suscripción mensual fija. El 100% de tus ventas es para vos." },
-              { q: "¿Necesito una App?", a: "No. Snappy es una Webapp que se abre en cualquier navegador y se instala en el inicio." },
-              { q: "¿Cómo recibo pedidos?", a: "Directo a tu panel de gestión y un mensaje detallado a tu WhatsApp." },
-              { q: "¿Puedo cancelar?", a: "Sí, en cualquier momento desde tu panel de ajustes sin complicaciones." }
+              {
+                q: "¿Cobran comisión?",
+                a: "No. Solo pagas la suscripción mensual fija. El 100% de tus ventas es para vos.",
+              },
+              {
+                q: "¿Necesito una App?",
+                a: "No. Snappy es una Webapp que se abre en cualquier navegador y se instala en el inicio.",
+              },
+              {
+                q: "¿Cómo recibo pedidos?",
+                a: "Directo a tu panel de gestión y un mensaje detallado a tu WhatsApp.",
+              },
+              {
+                q: "¿Puedo cancelar?",
+                a: "Sí, en cualquier momento desde tu panel de ajustes sin complicaciones.",
+              },
             ].map((faq, i) => (
-              <div key={i} className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-green-200 transition-all">
+              <div
+                key={i}
+                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-green-200 transition-all"
+              >
                 <h3 className="font-bold text-lg mb-3 flex items-center gap-3">
-                  <span className="text-green-600 font-black">0{i+1}.</span> {faq.q}
+                  <span className="text-green-600 font-black">0{i + 1}.</span>{" "}
+                  {faq.q}
                 </h3>
-                <p className="text-gray-500 leading-relaxed text-sm font-medium">{faq.a}</p>
+                <p className="text-gray-500 leading-relaxed text-sm font-medium">
+                  {faq.a}
+                </p>
               </div>
             ))}
           </div>
