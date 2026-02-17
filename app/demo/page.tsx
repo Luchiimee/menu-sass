@@ -171,6 +171,8 @@ const REAL_TEMPLATES_CSS = `
   .minimal-qty-btn { color: #000; font-weight: 900; }
 `;
 export default function DemoPage() {
+  const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
+const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [view, setView] = useState<'selector' | 'menu' | 'tracking'>('selector');
   const [template, setTemplate] = useState<string>('');
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -232,19 +234,26 @@ export default function DemoPage() {
   const cartCount = useMemo(() => Object.values(cart).reduce((acc: number, val: number) => acc + val, 0), [cart]);
   const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(p);
 
-  const startSimulation = () => {
-    if (!nombre.trim()) return alert("Ingresá tu nombre.");
-    setIsSending(true);
-    setTimeout(() => {
+ const startSimulation = () => {
+  if (!nombre.trim()) return alert("Ingresá tu nombre.");
+  setIsSending(true);
+
+  setTimeout(() => {
+    setIsSending(false);
+    if (selectedPlan === 'light') {
+      // SI ES LIGHT: Mostramos la burbuja de WhatsApp
+      setShowWhatsAppSim(true);
+    } else {
+      // SI ES PLUS: Seguimiento en vivo
       setIsCartOpen(false);
-      setIsSending(false);
       setView('tracking');
       setStatus('pendiente');
       setTimeout(() => setStatus('en_proceso'), 3000);
       setTimeout(() => setStatus('en_camino'), 7000);
       setTimeout(() => setStatus('completado'), 10000);
-    }, 1500);
-  };
+    }
+  }, 1500);
+};
   // ... Aquí sigue el return de tu componente
 
   return (
@@ -256,7 +265,29 @@ export default function DemoPage() {
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold mb-8 hover:text-blue-600 transition-colors">
             <ArrowLeft size={16}/> Volver al inicio
           </Link>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-4 leading-none italic">PRUEBA LA DEMO</h1>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-4 leading-none italic">
+  PRUEBA LA DEMO
+</h1>
+<p className="text-gray-500 font-medium mb-8 max-w-2xl mx-auto">
+  Elegí un plan para ver la experiencia: el <b>Plan Light</b> simula el pedido por WhatsApp, 
+  mientras que el <b>Plan Plus</b> activa el seguimiento en tiempo real.
+</p>
+          {/* SELECTOR DE PLANES - AGREGAR DEBAJO DEL TÍTULO */}
+<div className="flex justify-center gap-4 mb-12">
+  <button 
+    onClick={() => setSelectedPlan('light')}
+    className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${selectedPlan === 'light' ? 'bg-white border-black text-black shadow-lg scale-105' : 'bg-transparent border-gray-200 text-gray-400'}`}
+  >
+    <MessageSquare size={16}/> Plan Light
+  </button>
+  <button 
+    onClick={() => setSelectedPlan('plus')}
+    className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${selectedPlan === 'plus' ? 'bg-black border-black text-white shadow-lg scale-105' : 'bg-transparent border-gray-200 text-gray-400'}`}
+  >
+    <Zap size={16} fill="currentColor"/> Plan Plus
+  </button>
+</div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { id: 'classic', label: 'Ideal Pizzería', icon: <Pizza/>, template: 'classic', color: 'text-red-600' },
@@ -509,15 +540,26 @@ export default function DemoPage() {
 )}
               </div>
 
-              {/* BARRA CARRITO FLOTANTE (COMO EN APP REAL) */}
-              {cartCount > 0 && (
-                <div className="p-4 bg-white border-t sticky bottom-0 z-50">
-                  <button onClick={()=>setIsCartOpen(true)} className="w-full bg-blue-600 text-white p-4 rounded-2xl flex justify-between items-center font-bold text-sm shadow-xl active:scale-95 transition-all">
-                    <div className="flex items-center gap-3"><div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center">{cartCount}</div><span>VER MI PEDIDO</span></div>
-                    <span>${subtotal}</span>
-                  </button>
-                </div>
-              )}
+            {/* BARRA CARRITO FLOTANTE (MODO FLOATING ISLAND) */}
+{cartCount > 0 && (
+  <div className="absolute bottom-6 left-0 right-0 px-4 z-50 animate-in slide-in-from-bottom-10">
+    <button 
+      onClick={() => setIsCartOpen(true)} 
+      className={`w-full ${selectedPlan === 'plus' ? 'bg-black' : 'bg-blue-600'} text-white p-4 rounded-2xl flex justify-between items-center font-bold text-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-all hover:scale-[1.02]`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center">
+          {cartCount}
+        </div>
+        <span className="tracking-tight uppercase">Ver mi pedido</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="opacity-60 font-medium text-xs">Total:</span>
+        <span className="text-base">${subtotal}</span>
+      </div>
+    </button>
+  </div>
+)}
 
               {/* CHECKOUT FORM (CARTFOOTER) */}
               {isCartOpen && (
@@ -527,31 +569,90 @@ export default function DemoPage() {
                       <button onClick={()=>setIsCartOpen(false)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1"><ChevronDown size={18}/> Seguir pidiendo</button>
                       <button onClick={()=>setIsCartOpen(false)} className="bg-gray-100 p-2 rounded-full"><X size={18}/></button>
                     </div>
-
+<div className="mb-8">
+  <h2 className="text-xl font-black italic uppercase mb-4">Tu Pedido</h2>
+  <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 scrollbar-hide">
+    {DEMO_PRODUCTS[template]?.filter(p => cart[p.id] > 0).map(item => (
+      <div key={item.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex justify-between items-center">
+        <div className="flex-1">
+          <span className="text-sm font-black block leading-none">{item.n}</span>
+          <span className="text-blue-600 font-bold text-xs">${item.p}</span>
+        </div>
+        <div className="flex items-center gap-3 bg-white p-1 rounded-xl border">
+          <button onClick={() => removeFromCart(item.id)} className="w-7 h-7 flex items-center justify-center text-red-500"><Minus size={14} strokeWidth={3}/></button>
+          <span className="font-black text-sm w-4 text-center">{cart[item.id]}</span>
+          <button onClick={() => addToCart(item.id)} className="w-7 h-7 flex items-center justify-center text-green-600"><Plus size={14} strokeWidth={3}/></button>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
                     <div className="space-y-4 mb-8">
                       <h2 className="text-xl font-black italic uppercase">Tus Datos</h2>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="text" placeholder="Tu Nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none" />
                         <input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none" />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[8px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
-                        <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
-                          {['delivery', 'retiro', 'mesa'].map(m => (
-                            <button key={m} onClick={()=>setMetodoEnvio(m)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>{m}</button>
-                          ))}
-                        </div>
-                      </div>
+                     <div className="space-y-1">
+  <label className="text-[8px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
+  <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+    {['delivery', 'retiro', 'mesa'].map(m => {
+      // LÓGICA: Desactivar "mesa" si el plan es Light
+      const isMesaDisabled = m === 'mesa' && selectedPlan === 'light';
+      
+      return (
+        <button 
+          key={m} 
+          disabled={isMesaDisabled}
+          onClick={() => setMetodoEnvio(m)} 
+          className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all relative
+            ${metodoEnvio === m ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}
+            ${isMesaDisabled ? 'opacity-30 grayscale cursor-not-allowed' : 'hover:bg-white/50'}
+          `}
+        >
+          {m}
+          {/* Badge de "Plus" chiquito para tentar al cliente */}
+          {isMesaDisabled && (
+            <span className="absolute -top-1 -right-1 bg-black text-white text-[6px] px-1 rounded-full">
+              PLUS
+            </span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+  
+ 
+</div>
                       {metodoEnvio === 'delivery' && (
                         <input type="text" placeholder="Dirección de envío" value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs" />
                       )}
-                      {metodoEnvio === 'mesa' && (
-                        <div className="grid grid-cols-4 gap-2">
-                          {['Mesa 1','Mesa 2','Mesa 3','Mesa 4'].map(t => (
-                            <button key={t} onClick={()=>setNroMesa(t)} className={`p-2 border-2 rounded-xl text-[8px] font-black ${nroMesa === t ? 'border-green-600 bg-green-50 text-green-600' : 'border-gray-100'}`}>{t}</button>
-                          ))}
-                        </div>
-                      )}
+                     {metodoEnvio === 'mesa' && (
+  <div className="grid grid-cols-4 gap-2">
+    {[
+      { n: 'Mesa 1', s: 'libre' },
+      { n: 'Mesa 2', s: 'reservada' }, // Esta aparecerá bloqueada
+      { n: 'Mesa 3', s: 'libre' },
+      { n: 'Mesa 4', s: 'libre' }
+    ].map(m => (
+      <button 
+        key={m.n} 
+        disabled={m.s === 'reservada'}
+        onClick={()=>setNroMesa(m.n)} 
+        className={`p-2 border-2 rounded-xl text-[8px] font-black flex flex-col items-center gap-1 transition-all ${
+          m.s === 'reservada' 
+            ? 'bg-gray-50 border-gray-50 text-gray-300 opacity-60 cursor-not-allowed' 
+            : nroMesa === m.n 
+              ? 'border-green-600 bg-green-50 text-green-600 shadow-sm' 
+              : 'border-gray-100 bg-white'
+        }`}
+      >
+        <span>{m.s === 'reservada' ? '🔒' : '🍽️'}</span>
+        {m.n}
+      </button>
+    ))}
+  </div>
+)}
                     </div>
 
                     <div className="space-y-3 mb-8">
@@ -561,6 +662,27 @@ export default function DemoPage() {
                         <button onClick={()=>setMetodoPago('transferencia')} className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-[10px] ${metodoPago === 'transferencia' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100'}`}><Landmark size={16}/> TRANSFERENCIA</button>
                       </div>
                     </div>
+                    {metodoPago === 'transferencia' && (
+  <div className="space-y-2 mt-2">
+    <div 
+      onClick={handleCopyAlias} 
+      className={`p-4 rounded-xl border-2 flex justify-between items-center cursor-pointer transition-all ${copied ? 'border-blue-600 bg-blue-50' : 'border-gray-100 bg-white'}`}
+    >
+      <div className="text-left">
+        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">snappy.demo.mp</p>
+        <p className="text-[9px] font-bold text-gray-400">Toca para copiar alias</p>
+      </div>
+      {copied ? <CheckCircle2 size={18} className="text-blue-600" /> : <Copy size={18} className="text-gray-400" />}
+    </div>
+
+    {/* EL MENSAJE QUE FALTABA */}
+    {copied && (
+      <div className="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold animate-in fade-in slide-in-from-top-1 duration-300">
+        ¡Alias copiado! No olvides enviarme el comprobante.
+      </div>
+    )}
+  </div>
+)}
 
                     <div className="pt-6 border-t border-gray-100">
                       <div className="flex justify-between items-center mb-4"><span className="text-[10px] font-black text-gray-400 uppercase">Total</span><span className="text-3xl font-black">${subtotal}</span></div>
@@ -590,6 +712,61 @@ export default function DemoPage() {
           )}
         </div>
       )}
+      {/* SIMULACIÓN WHATSAPP (PLAN LIGHT) */}
+{showWhatsAppSim && (
+  <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 text-left">
+    <div className="bg-[#e5ddd5] w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+      <div className="bg-[#075e54] p-4 text-white flex items-center gap-3">
+        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><Utensils size={20}/></div>
+        <div>
+          <p className="font-bold text-sm">Tu Local (WhatsApp)</p>
+          <p className="text-[10px] opacity-70">en línea</p>
+        </div>
+      </div>
+      <div className="p-4 space-y-4 min-h-[300px]">
+        <div className="bg-white p-3 rounded-xl rounded-tl-none shadow-sm relative max-w-[85%]">
+          <p className="text-[11px] leading-relaxed whitespace-pre-wrap text-black">
+            *¡Hola! Nuevo Pedido* 🍔{"\n"}
+            ------------------{"\n"}
+            👤 *Nombre:* {nombre}{"\n"}
+            🛵 *Entrega:* {metodoEnvio.toUpperCase()}{"\n"}
+            💳 *Pago:* {metodoPago.toUpperCase()}{"\n\n"}
+            *Pedido:*{"\n"}
+            {Object.entries(cart).map(([id, qty]) => {
+                const p = DEMO_PRODUCTS[template]?.find(x => x.id === id);
+                return `✅ ${qty}x ${p?.n}\n`;
+            })}
+            {"\n"}💰 *TOTAL: ${subtotal}*
+          </p>
+          <span className="text-[9px] text-gray-400 block text-right mt-1">12:45</span>
+        </div>
+        <div className="bg-blue-100 border border-blue-200 p-4 rounded-2xl mt-10">
+          <p className="text-blue-800 text-xs font-bold flex items-center gap-2">
+            <HelpCircle size={14}/> ESTO TE LLEGARÁ A VOS
+          </p>
+          <p className="text-blue-700 text-[10px] mt-1 leading-tight">
+            En el <b>Plan Light</b>, el cliente te envía este mensaje detallado para que vos lo gestiones manualmente.
+          </p>
+        </div>
+      </div>
+      <button onClick={() => { setShowWhatsAppSim(false); setIsCartOpen(false); setView('selector'); }} className="w-full bg-white p-4 font-black text-xs uppercase tracking-widest border-t border-gray-200">Entendido, volver</button>
+    </div>
+  </div>
+)}
+
+{/* AVISO PLAN PLUS (DENTRO DEL TRACKING) */}
+{view === 'tracking' && (
+  <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-[80%] max-w-xs">
+    <div className="bg-black text-white p-4 rounded-2xl shadow-2xl border border-white/10">
+      <p className="text-[10px] font-black text-green-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+        <Zap size={12} fill="currentColor"/> Esto verá tu cliente
+      </p>
+      <p className="text-[10px] leading-tight opacity-70">
+        Mientras tanto, vos manejás los estados (Cocinando, En camino) desde tu panel de gestión Snappy.
+      </p>
+    </div>
+  </div>
+)}
     </div>
   );
 }

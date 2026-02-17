@@ -114,7 +114,7 @@ export default function LandingPage() {
           <div className="relative flex justify-center lg:justify-end h-[300px] md:h-[500px] mt-10 lg:mt-0">
             <div className="absolute top-0 right-0 md:right-10 w-[95%] md:w-[520px] aspect-[16/10] bg-white rounded-[30px] shadow-2xl overflow-hidden z-0 border border-gray-100">
               <Image
-                src="/tablett-header.gif"
+                src="/header-tablet.gif"
                 alt="Dashboard View"
                 fill
                 priority
@@ -779,6 +779,93 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+
+  {/* --- SECCIÓN GALERÍA: ANIMACIÓN INFINITA AUTOMÁTICA --- */}
+      <section className="py-16 bg-white overflow-hidden border-b border-gray-50">
+        <style dangerouslySetInnerHTML={{ __html: `
+          .mordisco-screen-small {
+            clip-path: url(#mordisco-clip-modern);
+          }
+          
+          /* Animación del carrusel infinito */
+          @keyframes infiniteScroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          
+          .animate-infinite-scroll {
+            display: flex;
+            width: max-content;
+            animation: infiniteScroll 30s linear infinite;
+          }
+
+          /* Pausar al pasar el mouse (opcional, da buen toque) */
+          .animate-infinite-scroll:hover {
+            animation-play-state: paused;
+          }
+        `}} />
+
+        {/* SVG del notch (Mantenemos tu diseño ancho y cortito) */}
+        <svg width="0" height="0" className="absolute">
+          <defs>
+            <clipPath id="mordisco-clip-modern" clipPathUnits="objectBoundingBox">
+              <path d="M 0,0.06 
+                       C 0,0.02 0.04,0 0.08,0 
+                       L 0.25,0 
+                       C 0.28,0 0.3,0 0.3,0.01 
+                       L 0.3,0.02 
+                       C 0.3,0.035 0.35,0.04 0.5,0.04 
+                       C 0.65,0.04 0.7,0.035 0.7,0.02 
+                       L 0.7,0.01 
+                       C 0.7,0 0.72,0 0.75,0 
+                       L 0.92,0 
+                       C 0.96,0 1,0.02 1,0.06 
+                       L 1,0.94 
+                       C 1,0.98 0.96,1 0.92,1 
+                       L 0.08,1 
+                       C 0.04,1 0,0.98 0,0.94 
+                       Z" />
+            </clipPath>
+          </defs>
+        </svg>
+
+        {/* CONTENEDOR DE LA ANIMACIÓN */}
+        <div className="relative w-full overflow-hidden flex">
+          <div className="animate-infinite-scroll gap-6">
+            {/* Renderizamos la lista de imágenes DOS VECES para que el scroll sea infinito y fluido */}
+            {[...Array(2)].map((_, listIndex) => (
+              <div key={listIndex} className="flex gap-6">
+                {[
+                  "/01.png",
+                  "/02.png",
+                  "/03.png",
+                  "/galeria-4.png",
+                  "/01.png",
+                  "/02.png"
+                ].map((imgSrc, i) => (
+                  <div key={`${listIndex}-${i}`} className="relative flex-shrink-0">
+                    {/* PANELES MÁS CHICOS: 180px x 360px */}
+                    <div className="mordisco-screen-small relative h-[360px] w-[180px] bg-gray-900 shadow-xl">
+                      <Image
+                        src={imgSrc}
+                        alt={`Demo ${i}`}
+                        fill
+                        className="object-cover"
+                      />
+                      {/* Borde sutil del notch */}
+                      <div className="mordisco-screen-small absolute inset-0 border-[1px] border-black/5 pointer-events-none z-20"></div>
+                      {/* Brillo de pantalla */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none z-10"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* --- PREGUNTAS FRECUENTES --- */}
       <section className="py-24 px-6 bg-white border-t border-gray-100">
         <div className="max-w-4xl mx-auto">
