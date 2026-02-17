@@ -180,15 +180,24 @@ function MenuContent({
     return getStyles(TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG);
   }, [TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG]);
 
-  useEffect(() => {
-    if (activeCardId) {
-      const timer = setTimeout(() => {
-        const panel = document.getElementById(`scroll-panel-${activeCardId}`);
-        if (panel) panel.scrollTo({ top: 180, behavior: 'smooth' });
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [activeCardId]);
+ useEffect(() => {
+  if (activeCardId) {
+    // Verificamos si el producto activo ya está en el carrito
+    const isProductInCart = cart.some(item => item.id === activeCardId);
+    
+    const timer = setTimeout(() => {
+      const panel = document.getElementById(`scroll-panel-${activeCardId}`);
+      if (panel) {
+        // Si ya está en el carrito (mostrando extras), bajamos más el scroll
+        // para que los adicionales queden a la vista.
+        const scrollAmount = isProductInCart ? 350 : 180; 
+        panel.scrollTo({ top: scrollAmount, behavior: 'smooth' });
+      }
+    }, 150); // Un delay corto para esperar a que el DOM de los extras se renderice
+    
+    return () => clearTimeout(timer);
+  }
+}, [activeCardId, cart.length]);
 
   const mostrarAviso = useCallback((msg: string) => {
     setNotificacion(msg);
@@ -384,7 +393,7 @@ function MenuContent({
       case "visualgrid":
         return (
           <div className="app-wrapper" style={{ backgroundColor: '#121212', minHeight: '100vh', paddingBottom: '120px' }}>
-            <div className="fixed top-4 right-4 z-[100]">
+           <div className="absolute top-4 right-4 z-[100]">
               <span className={`text-[10px] font-black px-2 py-1 rounded border uppercase tracking-widest shadow-2xl ${isOpen ? 'bg-white text-black border-white' : 'border-red-500 text-red-500 bg-black/80'}`}>
                 {isOpen ? "ABIERTO" : "CERRADO"}
               </span>
@@ -459,29 +468,38 @@ function MenuContent({
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
   };
-
-  return (
-    <>
+return (
+  <main className="min-h-screen bg-[#0a0a0a]"> {/* Fondo neutro para el resto de la pantalla en PC */}
+    <div className="max-w-[500px] mx-auto min-h-screen relative shadow-[0_0_100px_rgba(0,0,0,0.8)] border-x border-white/5 overflow-x-hidden" style={{ backgroundColor: BG }}>
       <style dangerouslySetInnerHTML={{ __html: memoizedStyles }} />
       <ClearCartLogic currentRestaurantId={restaurant.id} />
+      
+      {/* Notificación ajustada al ancho del contenedor */}
       {notificacion && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[1000] w-auto">
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[1000] w-[90%]">
           <div className={`
-            ${TEMPLATE === 'visualgrid' ? 'bg-white/10 backdrop-blur-xl border-white/20 text-white shadow-[0_8px_32px_0_rgba(0,0,0,0.8)]' : TEMPLATE === 'minimal' ? 'bg-white text-black border-gray-200' : 'bg-blue-600 text-white border-blue-400'} 
-            px-8 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-300 border min-w-[200px]
+            ${TEMPLATE === 'visualgrid' ? 'bg-white/10 backdrop-blur-xl border-white/20 text-white' : TEMPLATE === 'minimal' ? 'bg-white text-black border-gray-200' : 'bg-blue-600 text-white border-blue-400'} 
+            px-6 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-300 border
           `}>
             <Check size={20} className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} />
             <span className="font-black text-sm uppercase tracking-tight">{notificacion.replace('✅', '')}</span>
           </div>
         </div>
       )}
+
       {renderTemplate()}
-      <a href="https://snappy.uno" target="_blank" rel="noreferrer" className="block w-full py-8 text-center bg-gray-900 hover:bg-black transition-colors cursor-pointer no-underline" style={{ paddingBottom: '50px' }}>
-        <p className="text-[10px] font-black text-white flex items-center justify-center gap-1 uppercase tracking-[0.2em]">Potenciado por <Zap size={12} className="text-yellow-400 fill-yellow-400"/> Snappy</p>
+
+      <a href="https://snappy.uno" target="_blank" rel="noreferrer" className="block w-full py-8 text-center bg-gray-900/50 hover:bg-black transition-colors cursor-pointer no-underline" style={{ paddingBottom: '100px' }}>
+        <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy</p>
       </a>
-      <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} receiveWhatsapp={restaurant.receive_whatsapp} />
-    </>
-  );
+
+      {/* El Footer ahora quedará anclado al contenedor de 500px si es fixed/absolute */}
+      <div className="sticky bottom-0 left-0 w-full z-[50]">
+        <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} receiveWhatsapp={restaurant.receive_whatsapp} />
+      </div>
+    </div>
+  </main>
+);
 }
 
 // --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y EVITAR REFRESH) ---

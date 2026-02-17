@@ -444,7 +444,7 @@ const handlePrint = (order: any) => {
                 
                 {/* CABECERA: Toggle y Botón Crear en un solo nivel */}
              {/* CABECERA: Toggle y Botón Crear en un solo nivel */}
-<div className="p-4 flex items-center justify-between border-b border-gray-50 bg-slate-50/30">
+<div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 bg-slate-50/30">
     <button 
         onClick={() => setShowTables(!showTables)}
         className="flex items-center gap-3 hover:opacity-80 transition-all group"
@@ -475,7 +475,7 @@ const handlePrint = (order: any) => {
             e.stopPropagation(); 
             setIsModalOpen(true);
         }}
-        className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md active:scale-95"
+        className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
     >
         <Plus size={14} /> Crear Mesa
     </button>

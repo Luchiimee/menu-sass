@@ -78,8 +78,7 @@ export default function AddToCartBtn({
   // Botón con cantidad > 0
   return (
     <div 
-      className={`flex items-center gap-3 rounded-full px-2 py-1 shadow-md font-bold text-sm bg-white text-black border border-gray-100 ${isAnimating ? 'scale-105' : 'scale-100'} ${disabled ? 'opacity-40 grayscale' : ''}`}
-      onClick={(e) => e.stopPropagation()}
+  className={`grid grid-cols-3 items-center justify-items-center w-full max-w-[110px] mx-auto rounded-full px-1 py-1 shadow-md font-bold text-sm bg-white text-black border border-gray-100 ${isAnimating ? 'scale-105' : 'scale-100'} ${disabled ? 'opacity-40 grayscale' : ''}`}
     >
       <button onClick={handleRemove} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100">
         <Minus size={14} />

@@ -37,9 +37,55 @@ import {
   SmartphoneNfc,
   Store,
   Monitor,
+  Wallet,
 } from "lucide-react";
 
+
+// 1. Tipamos el objeto de las galerías
+interface GalleryItem {
+  title: string;
+  image: string;
+  offset: string;
+}
+
+const galleries: GalleryItem[] = [
+  { title: 'Hamburguesería', image: '/01.png', offset: 'lg:mt-0' },
+  { title: 'Sushi Bar', image: '/02.png', offset: 'lg:mt-16' },
+  { title: 'Pizzería', image: '/03.png', offset: 'lg:mt-8' },
+  { title: 'Kiosco 24hs', image: '/galeria-4.png', offset: 'lg:mt-24' }
+];
+
+// 2. Tipamos las Props del componente PhoneFrame
+interface PhoneFrameProps {
+  image: string;
+  title: string;
+  className?: string;
+}
+
+const PhoneFrame = ({ image, title, className = '' }: PhoneFrameProps) => (
+  <div className={`group flex flex-col items-center ${className}`}>
+    <div className="relative w-[220px] lg:w-[260px] transition-all duration-500 hover:-translate-y-3">
+      <div className="mordisco-screen-modern relative aspect-[9/18.5] bg-gray-900 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden">
+        <img 
+          src={image} 
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none z-10" />
+        <div className="mordisco-screen-modern absolute inset-0 border-[1px] border-white/10 pointer-events-none z-20" />
+      </div>
+      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[80%] h-6 bg-gray-200 blur-2xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    </div>
+    <div className="mt-8">
+      <span className="px-5 py-2 bg-white border border-gray-100 rounded-full text-[10px] font-black tracking-[0.2em] text-gray-800 shadow-sm uppercase italic">
+        {title}
+      </span>
+    </div>
+  </div>
+);
+
 export default function LandingPage() {
+  const [tutorialToast, setTutorialToast] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('visualgrid');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [aliasCopied, setAliasCopied] = useState(false);
@@ -52,20 +98,19 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f2e8] font-sans text-gray-900 selection:bg-green-100 overflow-x-hidden">
-      {/* --- NAVBAR --- */}
-      <nav className="fixed top-0 w-full z-50 bg-[#f5f2e8]/80 backdrop-blur-xl border-b border-gray-100">
+     {/* --- NAVBAR RESPONSIVE CON LINKS --- */}
+      <nav className="fixed top-0 w-full z-[100] bg-[#f5f2e8]/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Image src="/logo.svg" alt="Snappy" width={32} height={32} />
             <span className="font-bold text-2xl tracking-tight">Snappy.</span>
-          </div>
+          </Link>
+
+          {/* Menú Escritorio */}
           <div className="hidden md:flex items-center gap-8">
-            <Link
-              href="/login"
-              className="text-sm font-semibold text-gray-600 hover:text-black transition"
-            >
-              Iniciar Sesión
-            </Link>
+            <Link href="#negocios" className="text-sm font-bold text-gray-500 hover:text-black transition uppercase tracking-widest">Funcionalidades</Link>
+            <Link href="#planes" className="text-sm font-bold text-gray-500 hover:text-black transition uppercase tracking-widest">Precios</Link>
+            <Link href="/login" className="text-sm font-bold text-gray-600 hover:text-black transition uppercase tracking-widest">Iniciar Sesión</Link>
             <Link
               href="/login"
               className="bg-black text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-gray-800 transition shadow-lg flex items-center gap-2"
@@ -73,10 +118,41 @@ export default function LandingPage() {
               Prueba Gratis <ArrowRight size={16} />
             </Link>
           </div>
+
+          {/* Botón Hamburguesa (Móvil) */}
+          <button 
+            className="md:hidden p-2 text-gray-900"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
         </div>
+
+        {/* Menú Desplegable Móvil (Centrado) */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-[#f5f2e8] border-b border-gray-100 p-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-top-5">
+            <Link href="#negocios" className="text-sm font-black uppercase tracking-[0.2em] text-gray-500" onClick={() => setIsMenuOpen(false)}>
+              Funcionalidades
+            </Link>
+            <Link href="#planes" className="text-sm font-black uppercase tracking-[0.2em] text-gray-500" onClick={() => setIsMenuOpen(false)}>
+              Precios
+            </Link>
+            <hr className="w-full border-gray-200" />
+            <Link href="/login" className="text-lg font-black uppercase tracking-widest text-gray-900 text-center" onClick={() => setIsMenuOpen(false)}>
+              Iniciar Sesión
+            </Link>
+            <Link 
+              href="/login" 
+              className="w-full bg-black text-white text-center py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Empezar Ahora
+            </Link>
+          </div>
+        )}
       </nav>
 
-      {/* --- HERO SECTION: TIPOGRAFÍA ORIGINAL --- */}
+      {/* --- HERO SECTION --- */}
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left z-10">
@@ -357,7 +433,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-    {/* --- SECCIÓN: DISEÑOS QUE ENAMORAN (CON ESPACIOS PARA GIFS) --- */}
+  {/* --- SECCIÓN: DISEÑOS QUE ENAMORAN (ESPACIO PARA GIFS COMPLETOS) --- */}
       <section id="disenos" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -365,17 +441,17 @@ export default function LandingPage() {
               DISEÑOS QUE ENAMORAN
             </h2>
             <p className="text-gray-500 text-lg">
-              Menús que reflejan la personalidad de cada negocio.
+              Menús interactivos que reflejan la identidad de tu marca.
             </p>
           </div>
 
           {/* SELECTOR DE PLANTILLA */}
           <div className="flex flex-wrap justify-center gap-3 mb-12">
             {[
-              { id: 'visualgrid', label: 'Sushi Bar', color: 'bg-orange-500' },
-              { id: 'classic', label: 'Pizzería', color: 'bg-red-600' },
-              { id: 'minimal', label: 'Cafetería', color: 'bg-black' },
-              { id: 'urban', label: 'Burger Dark', color: 'bg-[#121212]' }
+              { id: 'visualgrid', label: 'Visual Grid', color: 'bg-orange-500' },
+              { id: 'classic', label: 'Classic List', color: 'bg-red-600' },
+              { id: 'minimal', label: 'Minimal', color: 'bg-black' },
+              { id: 'urban', label: 'Urban Dark', color: 'bg-[#121212]' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -390,125 +466,64 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* CONTENEDOR CENTRAL: CELULAR + BOTÓN FLOTANTE */}
           <div className="flex flex-col md:flex-row items-center justify-center gap-8 relative">
-            
             {/* MOCKUP DE CELULAR (Borde fino 6px) */}
             <div className="relative border-gray-900 bg-black border-[6px] rounded-[2.8rem] h-[600px] w-[300px] shadow-2xl overflow-hidden">
               
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[70px] h-[18px] bg-black rounded-full z-30"></div>
 
-              {/* Pantalla interior con scroll */}
+              {/* Pantalla interior */}
               <div className="w-full h-full bg-white rounded-[2.4rem] overflow-hidden relative z-20">
-                <div className="h-full overflow-y-auto scrollbar-hide">
-                  
-                  {/* --- TEMPLATE: SUSHI BAR (Visual Grid) --- */}
+                
+                {/* --- ESPACIO PARA TUS GIFS --- */}
+                <div className="h-full w-full">
                   {activeTab === 'visualgrid' && (
-                    <div className="bg-[#121212] min-h-full text-white p-4 animate-in fade-in duration-500">
-                      <div className="flex justify-between items-center mb-6 pt-4">
-                        <div className="flex items-center gap-2">
-                          {/* ESPACIO PARA LOGO GIF */}
-                          <div className="w-8 h-8 rounded-full bg-gray-800 bg-cover border border-orange-500 overflow-hidden">
-                            {/* <Image src="/tu-logo-gif.gif" fill /> */}
-                          </div>
-                          <h4 className="font-black italic text-sm uppercase">SUSHI BAR</h4>
-                        </div>
-                        <div className="bg-white text-black text-[8px] font-black px-2 py-1 rounded">ABIERTO</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[1,2,3,4].map(i => (
-                          <div key={i} className="aspect-square rounded-xl relative overflow-hidden bg-gray-800">
-                            {/* ESPACIO PARA PRODUCTO GIF */}
-                            {/* <Image src="/tu-producto-gif.gif" fill className="object-cover" /> */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 p-2 flex flex-col justify-end">
-                              <span className="text-[8px] font-black uppercase italic">Nombre Producto</span>
-                              <span className="text-orange-500 text-[9px] font-black italic">$0.000</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <img 
+                      src="/visual-grid.png" 
+                      alt="Visual Grid Demo" 
+                      className="w-full h-full object-cover animate-in fade-in duration-500"
+                    />
                   )}
 
-                  {/* --- TEMPLATE: PIZZERÍA (Classic) --- */}
                   {activeTab === 'classic' && (
-                    <div className="bg-white min-h-full text-black animate-in fade-in duration-500">
-                      <div className="bg-red-600 p-6 text-center text-white">
-                        {/* ESPACIO PARA LOGO O GIF */}
-                        <div className="w-10 h-10 bg-white rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs overflow-hidden">
-                           {/* <Image src="/tu-pizza-gif.gif" fill /> */}
-                        </div>
-                        <h4 className="font-bold text-sm">Pizzería Los Tíos</h4>
-                      </div>
-                      <div className="p-4 space-y-4">
-                        {[1,2,3,4].map(i => (
-                          <div key={i} className="flex justify-between items-center border-b border-gray-100 pb-3">
-                            <div>
-                              <div className="font-bold text-xs">Muzzarella Familiar</div>
-                              <div className="text-[10px] text-gray-400 leading-tight">Salsa de tomate y muzzarella.</div>
-                            </div>
-                            <span className="font-bold text-red-600 text-xs">$0.000</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <img 
+                      src="/classic.png" 
+                      alt="Classic List Demo" 
+                      className="w-full h-full object-cover animate-in fade-in duration-500"
+                    />
                   )}
 
-                 {/* --- TEMPLATE: CAFETERÍA (Minimal) --- */}
-{activeTab === 'minimal' && (
-  <div className="w-full h-full relative animate-in fade-in duration-500">
-    {/* REEMPLAZÁ EL SRC CON TU GIF DE PANTALLA COMPLETA */}
-    <img 
-      src="/minimal-mockup.gif" 
-      alt="Minimal Cafe Demo"
-      className="w-full h-full object-cover"
-    />
-    
-    {/* Si el GIF no tiene el botón de "atrás" o "cerrar", podés dejar este overlay arriba */}
-    <div className="absolute top-0 w-full h-16 bg-gradient-to-b from-black/20 to-transparent pointer-events-none"></div>
-  </div>
-)}
+                  {activeTab === 'minimal' && (
+                    <img 
+                      src="/minimal.png" 
+                      alt="Minimal Demo" 
+                      className="w-full h-full object-cover animate-in fade-in duration-500"
+                    />
+                  )}
 
-                  {/* --- TEMPLATE: BURGER DARK (Urban) --- */}
                   {activeTab === 'urban' && (
-                    <div className="bg-[#121212] min-h-full text-white p-4 animate-in fade-in duration-500">
-                      <div className="flex justify-between items-center mb-6">
-                        <h4 className="font-black italic text-lg uppercase leading-none">Burger<br/><span className="text-orange-600">Dark</span></h4>
-                        <div className="bg-white text-black text-[8px] font-black px-2 py-1 rounded">ABIERTO</div>
-                      </div>
-                      <div className="space-y-3">
-                        {[1,2,3].map(i => (
-                          <div key={i} className="bg-[#1e1e1e] p-2 rounded-xl flex gap-3 items-center border border-white/5">
-                            {/* ESPACIO PARA GIF DE HAMBURGUESA */}
-                            <div className="w-14 h-14 rounded-lg bg-gray-800 overflow-hidden relative">
-                               {/* <Image src="/tu-burger-gif.gif" fill /> */}
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-black text-[10px] uppercase italic">Doble Bacon King</div>
-                              <div className="text-orange-600 font-black text-[11px] italic">$0.000</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <img 
+                      src="/urbandark.png" 
+                      alt="Urban Dark Demo" 
+                      className="w-full h-full object-cover animate-in fade-in duration-500"
+                    />
                   )}
-
                 </div>
+
               </div>
             </div>
 
-            {/* BOTÓN FLOTANTE "VER EN VIVO" */}
+            {/* BOTÓN FLOTANTE */}
             <Link 
               href="/demo" 
               className="md:absolute md:left-[calc(50%+170px)] bg-white text-black border-2 border-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-black hover:text-white transition-all flex items-center gap-2 group"
             >
-              Ver en vivo <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              Probar Demo <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-
           </div>
 
-          {/* MENSAJE DE MÁS PLANTILLAS */}
+          {/* MAS PLANTILLAS */}
           <div className="mt-16 text-center">
             <div className="inline-block bg-gray-50 border border-gray-100 px-6 py-4 rounded-3xl">
               <p className="text-gray-500 text-sm font-medium">
@@ -522,46 +537,68 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- TUTORIALES --- */}
+     {/* --- SECCIÓN TUTORIALES (CON AVISO DE GRABACIÓN) --- */}
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
-              <h2 className="text-4xl font-extrabold tracking-tight uppercase">
-                Aprende en 60 segundos
+              <h2 className="text-4xl font-extrabold tracking-tight uppercase italic leading-none">
+                Aprende en <span className="text-green-600">60 segundos</span>
               </h2>
-              <p className="text-gray-500 font-medium">
+              <p className="text-gray-500 font-medium mt-2">
                 Tutoriales rápidos para configurar tu Snappy hoy mismo.
               </p>
             </div>
             <a
               href="https://youtube.com/@snappy"
               target="_blank"
-              className="text-green-600 font-bold flex items-center gap-2 hover:underline"
+              className="text-gray-400 font-bold flex items-center gap-2 hover:text-black transition-colors"
             >
               Ver todos en YouTube <ArrowRight size={18} />
             </a>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { title: "Crea tu primer menú", duration: "1:20" },
               { title: "Configura tus Extras", duration: "0:55" },
               { title: "Panel de Comandas", duration: "1:45" },
             ].map((v, i) => (
-              <div key={i} className="group cursor-pointer">
-                <div className="relative aspect-video bg-gray-800 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg">
-                  <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition duration-500">
-                    <PlayCircle
-                      size={50}
-                      className="text-white drop-shadow-2xl"
-                      fill="rgba(0,0,0,0.3)"
-                    />
-                  </div>
+              <div 
+                key={i} 
+                className="group cursor-pointer relative"
+                onClick={() => {
+                  setTutorialToast(i);
+                  setTimeout(() => setTutorialToast(null), 2500);
+                }}
+              >
+                <div className="relative aspect-video bg-gray-800 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg transition-all duration-500 group-hover:shadow-2xl">
+                  {/* Overlay de "Grabando" */}
+                  {tutorialToast === i ? (
+                    <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 animate-in fade-in zoom-in duration-300">
+                      <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-3">
+                        <PlayCircle size={30} className="text-green-500 animate-pulse" />
+                      </div>
+                      <p className="text-white font-black uppercase italic text-xs tracking-widest">
+                        ¡Lo estamos grabando!
+                      </p>
+                      <p className="text-gray-400 text-[10px] mt-1 font-bold">DISPONIBLE MUY PRONTO</p>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition duration-500">
+                      <PlayCircle
+                        size={50}
+                        className="text-white drop-shadow-2xl opacity-80"
+                        fill="currentColor"
+                      />
+                    </div>
+                  )}
+                  
                   <span className="absolute bottom-4 right-4 bg-black/70 text-white text-[10px] px-2 py-1 rounded font-bold">
                     {v.duration}
                   </span>
                 </div>
-                <h4 className="font-bold text-gray-900 group-hover:text-green-600 transition ml-2">
+                <h4 className={`font-black uppercase italic transition-colors ml-2 ${tutorialToast === i ? 'text-green-600' : 'text-gray-900 group-hover:text-green-600'}`}>
                   {v.title}
                 </h4>
               </div>
@@ -646,11 +683,11 @@ export default function LandingPage() {
               </ul>
 
               <Link
-                href="/login"
-                className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm"
-              >
-                Empezar ahora
-              </Link>
+  href="/login"
+  className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm"
+>
+  Prueba 14 días gratis
+</Link>
             </div>
 
             {/* Plus */}
@@ -780,87 +817,83 @@ export default function LandingPage() {
         </div>
       </section>
 
-
-  {/* --- SECCIÓN GALERÍA: ANIMACIÓN INFINITA AUTOMÁTICA --- */}
-      <section className="py-16 bg-white overflow-hidden border-b border-gray-50">
+{/* --- SECCIÓN GALERÍA: ANIMACIÓN AUTOMÁTICA ASIMÉTRICA --- */}
+      <section className="py-24 bg-white overflow-hidden border-b border-gray-50">
         <style dangerouslySetInnerHTML={{ __html: `
-          .mordisco-screen-small {
-            clip-path: url(#mordisco-clip-modern);
-          }
+          .mordisco-screen-modern { clip-path: url(#mordisco-clip-modern); }
           
-          /* Animación del carrusel infinito */
-          @keyframes infiniteScroll {
+          /* Animación de desplazamiento infinito */
+          @keyframes infiniteScrollGallery {
             from { transform: translateX(0); }
             to { transform: translateX(-50%); }
           }
           
-          .animate-infinite-scroll {
+          .animate-gallery {
             display: flex;
             width: max-content;
-            animation: infiniteScroll 30s linear infinite;
+            animation: infiniteScrollGallery 40s linear infinite;
           }
 
-          /* Pausar al pasar el mouse (opcional, da buen toque) */
-          .animate-infinite-scroll:hover {
+          .animate-gallery:hover {
             animation-play-state: paused;
           }
         `}} />
 
-        {/* SVG del notch (Mantenemos tu diseño ancho y cortito) */}
+        {/* SVG del Notch */}
         <svg width="0" height="0" className="absolute">
           <defs>
             <clipPath id="mordisco-clip-modern" clipPathUnits="objectBoundingBox">
-              <path d="M 0,0.06 
-                       C 0,0.02 0.04,0 0.08,0 
-                       L 0.25,0 
-                       C 0.28,0 0.3,0 0.3,0.01 
-                       L 0.3,0.02 
-                       C 0.3,0.035 0.35,0.04 0.5,0.04 
-                       C 0.65,0.04 0.7,0.035 0.7,0.02 
-                       L 0.7,0.01 
-                       C 0.7,0 0.72,0 0.75,0 
-                       L 0.92,0 
-                       C 0.96,0 1,0.02 1,0.06 
-                       L 1,0.94 
-                       C 1,0.98 0.96,1 0.92,1 
-                       L 0.08,1 
-                       C 0.04,1 0,0.98 0,0.94 
-                       Z" />
+              <path d="M 0,0.06 C 0,0.02 0.04,0 0.08,0 L 0.25,0 C 0.28,0 0.3,0 0.3,0.01 L 0.3,0.02 C 0.3,0.035 0.35,0.04 0.5,0.04 C 0.65,0.04 0.7,0.035 0.7,0.02 L 0.7,0.01 C 0.7,0 0.72,0 0.75,0 L 0.92,0 C 0.96,0 1,0.02 1,0.06 L 1,0.94 C 1,0.98 0.96,1 0.92,1 L 0.08,1 C 0.04,1 0,0.98 0,0.94 Z" />
             </clipPath>
           </defs>
         </svg>
 
-        {/* CONTENEDOR DE LA ANIMACIÓN */}
-        <div className="relative w-full overflow-hidden flex">
-          <div className="animate-infinite-scroll gap-6">
-            {/* Renderizamos la lista de imágenes DOS VECES para que el scroll sea infinito y fluido */}
-            {[...Array(2)].map((_, listIndex) => (
-              <div key={listIndex} className="flex gap-6">
-                {[
-                  "/01.png",
-                  "/02.png",
-                  "/03.png",
-                  "/galeria-4.png",
-                  "/01.png",
-                  "/02.png"
-                ].map((imgSrc, i) => (
-                  <div key={`${listIndex}-${i}`} className="relative flex-shrink-0">
-                    {/* PANELES MÁS CHICOS: 180px x 360px */}
-                    <div className="mordisco-screen-small relative h-[360px] w-[180px] bg-gray-900 shadow-xl">
-                      <Image
-                        src={imgSrc}
-                        alt={`Demo ${i}`}
-                        fill
-                        className="object-cover"
+        <div className="relative w-full">
+          {/* Contenedor Animado */}
+          <div className="animate-gallery gap-12 py-10">
+            {/* Duplicamos el mapeo para el efecto infinito */}
+            {[...galleries, ...galleries].map((item, i) => (
+              <div 
+                key={i} 
+                className={`flex-shrink-0 ${item.offset}`}
+              >
+                <div className="group flex flex-col items-center">
+                  {/* CELULAR COMPACTO: w-[180px] */}
+                  <div className="relative w-[180px] transition-all duration-500 hover:-translate-y-3">
+                    <div className="mordisco-screen-modern relative aspect-[9/18.5] bg-gray-900 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] overflow-hidden">
+                      <img 
+                        src={item.image} 
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
-                      {/* Borde sutil del notch */}
-                      <div className="mordisco-screen-small absolute inset-0 border-[1px] border-black/5 pointer-events-none z-20"></div>
-                      {/* Brillo de pantalla */}
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none z-10"></div>
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none z-10" />
+                      <div className="mordisco-screen-modern absolute inset-0 border-[1.2px] border-white/5 pointer-events-none z-20" />
                     </div>
+                    {/* Sombra de piso */}
+                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[80%] h-4 bg-gray-200 blur-xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   </div>
-                ))}
+                  
+                  {/* Etiqueta de Rubro */}
+                  <div className="mt-6">
+                    <span className="px-4 py-1.5 bg-white border border-gray-100 rounded-full text-[9px] font-black tracking-[0.2em] text-gray-400 shadow-sm uppercase italic">
+                      {item.title}
+                    </span>
+                  </div>
+                </div>
               </div>
+            ))}
+          </div>
+
+          {/* Gradientes a los costados para que no corte en seco (Efecto difuminado) */}
+          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white to-transparent z-20 pointer-events-none"></div>
+          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white to-transparent z-20 pointer-events-none"></div>
+        </div>
+
+        {/* Decoración de puntitos */}
+        <div className="flex flex-col items-center mt-4">
+          <div className="flex items-center gap-2 opacity-20">
+            {[1,2,3,4,5].map((i) => (
+              <div key={i} className="w-1 h-1 rounded-full bg-gray-400" />
             ))}
           </div>
         </div>
@@ -910,6 +943,67 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+{/* --- SECCIÓN: LO QUE VIENE (PRÓXIMAMENTE) --- */}
+      <section className="py-32 bg-[#0a0a0a] text-white overflow-hidden relative border-t border-white/5">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic mb-6">
+              LO QUE <span className="text-green-500">VIENE</span>
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
+              Estamos cocinando nuevas herramientas para que lleves tu negocio al siguiente nivel.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { 
+                title: "Múltiples Sucursales", 
+                desc: "Gestioná todos tus locales desde un solo panel centralizado. Ideal para franquicias y cadenas.", 
+                icon: <Layers size={24}/> 
+              },
+              { 
+                title: "Pagos con Tarjeta", 
+                desc: "Aceptá crédito y débito directamente en el menú. Una experiencia de compra fluida y profesional.", 
+                icon: <CreditCard size={24}/> 
+              },
+              { 
+                title: "Billeteras Virtuales", 
+                desc: "Vinculá tu cuenta de Mercado Pago o Ualá para recibir cobros automáticos y acreditación inmediata.", 
+                icon: <Wallet size={24}/> 
+              }
+            ].map((item, i) => (
+              <div key={i} className="group p-10 rounded-[40px] border border-white/10 bg-white/5 hover:bg-white/[0.08] transition-all backdrop-blur-sm relative overflow-hidden">
+                <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mb-8 text-green-500 group-hover:scale-110 transition-transform">
+                  {item.icon}
+                </div>
+                <h3 className="text-xl font-black uppercase italic mb-4">{item.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                  {item.desc}
+                </p>
+                
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">En desarrollo</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-24 text-center">
+            <p className="text-gray-500 text-sm font-bold uppercase tracking-[0.2em]">
+              ¿Tenés una sugerencia? <a href="https://wa.me/542324313123" className="text-white hover:text-green-500 transition-colors underline decoration-green-500 underline-offset-4">Contanos por WhatsApp</a>
+            </p>
+          </div>
+        </div>
+      </section>
+
+
+
+
       {/* --- FOOTER: RESTAURADO EXACTAMENTE --- */}
       <footer className="py-20 bg-black text-white overflow-hidden relative">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-[120px]"></div>
@@ -936,12 +1030,7 @@ export default function LandingPage() {
               >
                 Instagram
               </a>
-              <a
-                href="#"
-                className="hover:text-green-500 transition font-bold uppercase text-xs tracking-widest"
-              >
-                Facebook
-              </a>
+           
             </div>
           </div>
           <div>
@@ -975,6 +1064,20 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+      {/* --- WHATSAPP FLOTANTE --- */}
+      <a
+        href="https://wa.me/542324313123?text=Hola%20necesito%20ayuda%20con%20snappy.."
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-6 right-6 z-[150] bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center group"
+      >
+        <MessageCircle size={32} fill="currentColor" className="text-white" />
+        
+        {/* Tooltip opcional que aparece al hacer hover */}
+        <span className="absolute right-full mr-4 bg-white text-black text-xs font-bold px-4 py-2 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-gray-100 pointer-events-none">
+          ¿Necesitás ayuda? 💬
+        </span>
+      </a>
     </div>
   );
 }

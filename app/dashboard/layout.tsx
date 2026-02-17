@@ -321,7 +321,11 @@ try {
         </div>
       </main>
 
-      <MobileNav displayName={restaurant.name} displaySubtext={getPlanLabel()} />
+     <MobileNav 
+  displayName={restaurant.name} 
+  displaySubtext={getPlanLabel()} 
+  logoUrl={restaurant.logo_url} // <--- Enviamos el logo aquí
+/>
     </div>
   );
   

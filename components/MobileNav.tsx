@@ -18,9 +18,9 @@ import PushNotificationManager from '@/components/PushNotificationManager';
 interface MobileNavProps {
   displayName: string;
   displaySubtext: string;
+  logoUrl?: string | null; // <--- Línea agregada
 }
-
-export default function MobileNav({ displayName, displaySubtext }: MobileNavProps) {
+export default function MobileNav({ displayName, displaySubtext, logoUrl }: MobileNavProps) {
   const pathname = usePathname();
 
 const navItems = [
@@ -37,9 +37,13 @@ const navItems = [
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm">
          
          <div className="flex items-center gap-3">
-            <div className="bg-black text-white p-2 rounded-lg">
-                <Store size={20} />
-            </div>
+            <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+    {logoUrl ? (
+        <img src={logoUrl} alt="logo" className="w-full h-full object-cover" />
+    ) : (
+        <Store size={20} />
+    )}
+</div>
             <div className="flex flex-col">
                 <span className="font-bold text-sm text-gray-900 leading-tight truncate w-32 sm:w-48">
                     {displayName || 'Cargando...'}
