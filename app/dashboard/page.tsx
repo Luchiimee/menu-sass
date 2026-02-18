@@ -8,7 +8,7 @@ import {
     DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, 
     CheckCircle, XCircle, ChefHat, ArrowRight, Store, Loader2, 
     Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck,
-    QrCode 
+    QrCode, Plus, Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,6 +17,10 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
   const [isPlus, setIsPlus] = useState(false);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const [couponPendingDelete, setCouponPendingDelete] = useState<string | null>(null);
   
   const [hasPlan, setHasPlan] = useState(false);
 
@@ -26,6 +30,17 @@ export default function DashboardHome() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [promoMessage, setPromoMessage] = useState('');
+const [showPromo, setShowPromo] = useState(false);
+const [isSavingPromo, setIsSavingPromo] = useState(false);
+const [coupons, setCoupons] = useState<any[]>([]);
+const [newCoupon, setNewCoupon] = useState({ 
+    code: '', 
+    discount: 10, 
+    startDate: '', // <--- Nuevo
+    endDate: ''    // <---  'expiry'
+});
+  
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,71 +50,84 @@ export default function DashboardHome() {
   useEffect(() => {
     let mounted = true;
 
-    const loadDashboardData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+   const loadDashboardData = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-        const { data: rest } = await supabase
-          .from('restaurants')
-          .select('id, slug, subscription_plan')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+    // 1. SELECT ACTUALIZADO CON PROMO
+    const { data: rest } = await supabase
+      .from('restaurants')
+     .select('id, slug, subscription_plan, promo_message, show_promo')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
 
-        if (mounted) {
-            // SI NO TIENE RESTAURANTE O NO TIENE PLAN, ES NEW USER
-            if (!rest || !rest.subscription_plan) {
-                setIsNewUser(true); 
-                setLoading(false);
-                return;
-            }
-
-            // DETECTAR PLAN
-            const plan = rest.subscription_plan;
-            setHasPlan(!!plan); 
-            setIsPlus(plan === 'plus' || plan === 'max');
-
-            setSlug(rest.slug);
-            const origin = window.location.origin;
-            setStoreLink(`${origin}/${rest.slug}`);
-
-            // SOLO CARGAMOS DATOS SI ES PLUS
-            if (plan === 'plus' || plan === 'max') {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                const { data: todaysOrders } = await supabase
-                    .from('orders')
-                    .select('total, status')
-                    .eq('restaurant_id', rest.id)
-                    .gte('created_at', today.toISOString());
-
-                if (todaysOrders) {
-                    const validOrders = todaysOrders.filter(o => o.status !== 'cancelado');
-                    const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
-                    setStats({
-                        orders: validOrders.length,
-                        revenue: totalRevenue,
-                        views: 0
-                    });
-                }
-
-                const { data: lastOrders } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('restaurant_id', rest.id)
-                    .order('created_at', { ascending: false })
-                    .limit(5);
-
-                if (lastOrders) setRecentOrders(lastOrders);
-            }
+    if (mounted) {
+        // SI NO TIENE RESTAURANTE O NO TIENE PLAN, ES NEW USER
+        if (!rest || !rest.subscription_plan) {
+            setIsNewUser(true); 
+            setLoading(false);
+            return;
         }
-      } catch (error) {
-        console.error("Error cargando dashboard:", error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+        setRestaurantId(rest.id);
+
+        // DETECTAR PLAN
+        const plan = rest.subscription_plan;
+        setHasPlan(!!plan); 
+        setIsPlus(plan === 'plus' || plan === 'max');
+
+        setSlug(rest.slug);
+        const origin = window.location.origin;
+        setStoreLink(`${origin}/${rest.slug}`);
+
+        // --- 2. CARGA DE DATOS DE PROMO (NUEVO) ---
+        setPromoMessage(rest.promo_message || '');
+        setShowPromo(rest.show_promo || false);
+
+        // SOLO CARGAMOS DATOS SI ES PLUS
+        if (plan === 'plus' || plan === 'max') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const { data: todaysOrders } = await supabase
+                .from('orders')
+                .select('total, status')
+                .eq('restaurant_id', rest.id)
+                .gte('created_at', today.toISOString());
+
+            if (todaysOrders) {
+                const validOrders = todaysOrders.filter(o => o.status !== 'cancelado');
+                const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
+                setStats({
+                    orders: validOrders.length,
+                    revenue: totalRevenue,
+                    views: 0
+                });
+            }
+
+            const { data: lastOrders } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('restaurant_id', rest.id)
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            if (lastOrders) setRecentOrders(lastOrders);
+        }
+        const { data: cpns } = await supabase
+    .from('coupons')
+    .select('*')
+    .eq('restaurant_id', rest.id)
+    .order('created_at', { ascending: false });
+
+if (cpns) setCoupons(cpns);
+    }
+  } catch (error) {
+    console.error("Error cargando dashboard:", error);
+  } finally {
+    if (mounted) setLoading(false);
+  }
+};
 
     loadDashboardData();
 
@@ -165,7 +193,83 @@ export default function DashboardHome() {
         default: return null;
     }
   };
+  const handleTogglePromo = async () => {
+    const nuevoEstado = !showPromo;
+    setShowPromo(nuevoEstado);
+    await supabase.from('restaurants')
+        .update({ show_promo: nuevoEstado })
+        .eq('slug', slug);
+  };
 
+  const savePromoMessage = async () => {
+    setIsSavingPromo(true);
+    await supabase.from('restaurants')
+        .update({ promo_message: promoMessage })
+        .eq('slug', slug);
+    setIsSavingPromo(false);
+  };
+const handleCreateCoupon = async () => {
+    if (!newCoupon.code || !restaurantId) return;
+
+    const { data, error } = await supabase
+        .from('coupons')
+        .insert({
+            restaurant_id: restaurantId,
+            code: newCoupon.code.toUpperCase(),
+            discount_percent: newCoupon.discount,
+            starts_at: newCoupon.startDate ? `${newCoupon.startDate}T00:00:00` : new Date().toISOString(),
+            expires_at: newCoupon.endDate ? `${newCoupon.endDate}T23:59:59` : null,
+            is_active: true
+        })
+        .select()
+        .single();
+
+    if (!error && data) {
+        setCoupons([data, ...coupons]);
+        setNewCoupon({ code: '', discount: 10, startDate: '', endDate: '' });
+        
+        // ACTIVAR NOTIFICACIÓN VISUAL
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000); // Se va en 3 segundos
+    }
+};
+
+const deleteCoupon = async (id: string) => {
+    if (!confirm("¿Seguro que quieres eliminar este cupón?")) return;
+
+    const { error } = await supabase
+        .from('coupons')
+        .delete()
+        .eq('id', id);
+
+    if (!error) {
+        setCoupons(coupons.filter(c => c.id !== id));
+    } else {
+        alert("Error al eliminar el cupón");
+    }
+};
+const handleDeleteClick = (id: string) => {
+    setCouponPendingDelete(id);
+    setShowDeleteConfirm(true);
+};
+
+// 2. Ejecuta el borrado final
+const confirmDelete = async () => {
+    if (!couponPendingDelete) return;
+
+    const { error } = await supabase
+        .from('coupons')
+        .delete()
+        .eq('id', couponPendingDelete);
+
+    if (!error) {
+        // Actualizamos la lista local para que desaparezca al instante
+        setCoupons(coupons.filter(c => c.id !== couponPendingDelete));
+        // Cerramos el modal de advertencia
+        setShowDeleteConfirm(false);
+        setCouponPendingDelete(null);
+    }
+};
   if (loading) return <div className="h-[60vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2"/> Cargando...</div>;
 
   // --- PANTALLA DE BIENVENIDA Y PLANES ---
@@ -253,89 +357,235 @@ export default function DashboardHome() {
 
   // --- DASHBOARD REAL (CUANDO YA TIENE PLAN) ---
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in pb-10 pt-24 md:pt-0">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Resumen de hoy</h1>
-        <p className="text-gray-500 text-sm">Así va tu negocio este {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-24 md:pt-0">
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 relative overflow-hidden">
-          <div className={`p-3 rounded-xl ${isPlus ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-            <DollarSign size={24} />
+      {/* 1. BLOQUE: TIENDA ACTIVA */}
+      <div className="bg-gray-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <h2 className="text-xl font-black flex items-center gap-2 italic uppercase tracking-tighter">
+              ¡Tu tienda está activa! <span className="animate-pulse text-green-500 text-sm">●</span>
+            </h2>
+            <div className="flex items-center gap-2 mt-4 bg-white/10 p-2 rounded-2xl w-full border border-white/5">
+              <span className="text-green-400 text-xs font-mono pl-1">snappy.uno/</span>
+              <span className="font-bold text-white pr-1 text-sm">{slug || '...'}</span>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 font-bold uppercase">Ventas Hoy</p>
-            <h3 className="text-2xl font-bold text-gray-900">${stats.revenue.toLocaleString('es-AR')}</h3>
-          </div>
-        </div>
-        {/* ... El resto del Dashboard igual ... */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className={`p-3 rounded-xl ${isPlus ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-            <ShoppingBag size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-bold uppercase">Pedidos Hoy</p>
-            <h3 className="text-2xl font-bold text-gray-900">{stats.orders}</h3>
-          </div>
-        </div>
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className={`p-3 rounded-xl ${isPlus ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
-            <Eye size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-bold uppercase">Visitas</p>
-            <h3 className="text-2xl font-bold text-gray-900">-</h3>
+          
+          <div className="relative z-10 flex flex-wrap gap-2">
+            <button onClick={copyToClipboard} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-black px-6 py-3 rounded-2xl text-xs font-black uppercase hover:bg-gray-100 transition shadow-lg active:scale-95">
+              {copied ? '¡Copiado!' : <><Copy size={16}/> Copiar</>}
+            </button>
+            <button onClick={handleDownloadQrPdf} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white/10 text-white border border-white/10 px-6 py-3 rounded-2xl text-xs font-black uppercase hover:bg-white/20 transition">
+              <QrCode size={16}/> QR PDF
+            </button>
+            <button onClick={openStoreInBrowser} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase hover:bg-blue-700 transition">
+              <ExternalLink size={16}/> Abrir
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-900 text-white p-6 md:p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
-        <div className="relative z-10 space-y-2">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-            ¡Tu tienda está activa! <span className="animate-pulse">🟢</span>
-            </h2>
-            <div className="flex items-center gap-2 mt-4 bg-white/10 p-2 rounded-lg w-fit">
-                <span className="text-green-400 text-xs font-mono pl-2">snappy.uno/</span>
-                <span className="font-bold text-white pr-2">{slug || '...'}</span>
-            </div>
-        </div>
+      {/* 2. GRID OPERATIVO: PROMO Y CUPONES */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        <div className="relative z-10 flex flex-col sm:flex-row gap-3">
-            <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 bg-white text-black px-5 py-3 rounded-xl text-sm font-bold hover:bg-gray-100 transition shadow-lg">
-            {copied ? '¡Copiado!' : 'Copiar'}
+        {/* MÓDULO: MENSAJE DE PROMOCIÓN */}
+        <div className="lg:col-span-4 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap size={20} className="text-orange-500 fill-orange-500" />
+              <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Mensaje Promo</h3>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <button 
+                onClick={handleTogglePromo}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${showPromo ? 'bg-green-500' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPromo ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className={`text-[8px] font-black uppercase ${showPromo ? 'text-green-600' : 'text-gray-400'}`}>
+                {showPromo ? 'Visible' : 'Oculto'}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <textarea 
+              value={promoMessage}
+              onChange={(e) => setPromoMessage(e.target.value)}
+              onBlur={savePromoMessage}
+              placeholder="Ej: ¡2x1 en burgers!"
+              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xs font-bold focus:border-orange-500 outline-none transition-all resize-none h-28 text-gray-900"
+            />
+            <button onClick={savePromoMessage} className="w-full py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2">
+              {isSavingPromo ? <Loader2 className="animate-spin" size={14}/> : 'Guardar Texto'}
             </button>
-            <button onClick={handleDownloadQrPdf} className="flex items-center justify-center gap-2 bg-white text-black px-5 py-3 rounded-xl text-sm font-bold shadow-lg">
-                QR PDF
-            </button>
-            <button onClick={openStoreInBrowser} className="flex items-center justify-center gap-2 bg-gray-800 text-white border border-gray-700 px-5 py-3 rounded-xl text-sm font-bold">
-            <ExternalLink size={18}/> Abrir
-            </button>
+          </div>
         </div>
+
+        {/* MÓDULO: CUPONES */}
+        {/* MÓDULO: CUPONES DE DESCUENTO (Principal) */}
+<div className="lg:col-span-8 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm space-y-6">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <Crown size={20} className="text-purple-500 fill-purple-500" />
+      <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Gestión de Cupones</h3>
+    </div>
+    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase">Plan Plus ⚡</span>
+  </div>
+
+  {/* Formulario de Creación Programada */}
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+    <div className="space-y-1">
+      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
+      <input 
+        type="text" 
+        placeholder="EJ: VERANO20" 
+        value={newCoupon.code} 
+        onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} 
+        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-purple-500" 
+      />
+    </div>
+
+    <div className="space-y-1">
+      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
+      <input 
+        type="number" 
+        placeholder="20" 
+        value={newCoupon.discount} 
+        onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} 
+        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-purple-500" 
+      />
+    </div>
+
+    <div className="space-y-1">
+      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
+      <input 
+        type="date" 
+        value={newCoupon.startDate} 
+        onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} 
+        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
+      />
+    </div>
+
+    <div className="space-y-1">
+      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
+      <input 
+        type="date" 
+        value={newCoupon.endDate} 
+        onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} 
+        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
+      />
+    </div>
+
+    <button 
+      onClick={handleCreateCoupon} 
+      className="col-span-2 md:col-span-4 w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all"
+    >
+      <Plus size={16} /> Crear y Programar Cupón
+    </button>
+  </div>
+
+  {/* Listado de Cupones con Scroll Mobile */}
+  <div className="overflow-x-auto scrollbar-hide">
+    <table className="w-full text-left">
+      <thead>
+        <tr className="text-[10px] text-gray-400 font-black uppercase border-b border-gray-50">
+          <th className="pb-3 px-2">Código</th>
+          <th className="pb-3 px-2">Dcto.</th>
+          <th className="pb-3 px-2">Validez</th>
+          <th className="pb-3 px-2 text-right">Acción</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-50">
+        {coupons.map((c) => (
+          <tr key={c.id} className="group hover:bg-gray-50/50 transition-colors">
+            <td className="py-4 px-2 font-black text-xs text-gray-900 italic">{c.code}</td>
+            <td className="py-4 px-2 text-purple-600 font-black text-xs">-{c.discount_percent}%</td>
+            <td className="py-4 px-2 text-[9px] text-gray-500 font-bold uppercase">
+              {new Date(c.starts_at).toLocaleDateString()} al {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '∞'}
+            </td>
+            <td className="py-4 px-2 text-right">
+              <button onClick={() => handleDeleteClick(c.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
+                <Trash2 size={16} />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {coupons.length === 0 && (
+      <p className="text-center py-8 text-[10px] font-bold text-gray-400 uppercase italic">No hay cupones generados</p>
+    )}
+  </div>
+</div>
       </div>
-      
-      {/* ... Actividad Reciente (solo si es Plus) ... */}
+
+      {/* 3. BLOQUE: ACTIVIDAD RECIENTE / BLOQUEO PLAN */}
       {isPlus ? (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden p-6 text-gray-900">
-             <h2 className="text-lg font-bold mb-4 text-gray-900">Actividad Reciente</h2>
-             {/* Tabla de pedidos aquí */}
-             <p className="text-sm text-gray-500">Aquí aparecerán tus últimos pedidos.</p>
+        <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden p-8 text-gray-900">
+             <h2 className="text-lg font-black uppercase tracking-tighter mb-4">Actividad Reciente</h2>
+             <p className="text-xs text-gray-400 font-bold uppercase italic tracking-widest">Aquí aparecerán tus últimos pedidos pronto.</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm text-gray-900">
+        <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
             <div className="flex items-center gap-4">
-                <div className="bg-blue-50 p-3 rounded-full text-blue-600">
-                    <Lock size={24}/>
+                <div className="bg-blue-50 p-4 rounded-3xl text-blue-600">
+                    <Lock size={28}/>
                 </div>
                 <div>
-                    <h3 className="font-bold">Historial de Pedidos</h3>
-                    <p className="text-sm text-gray-500">Mejora tu plan para ver estadísticas.</p>
+                    <h3 className="font-black text-gray-900 uppercase tracking-tighter">Historial de Pedidos</h3>
+                    <p className="text-sm text-gray-500 font-medium">Mejora tu plan para habilitar métricas y pedidos en tiempo real.</p>
                 </div>
             </div>
-            <Link href="/dashboard/settings" className="bg-black text-white px-6 py-3 rounded-xl font-bold">
-                Ver Planes
+            <Link href="/dashboard/settings" className="w-full md:w-auto bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-gray-800 transition-all">
+                Ver Planes ⚡
             </Link>
+        </div>
+      )}
+      {/* NOTIFICACIÓN: CUPÓN CREADO (Toast) */}
+      {showSuccessToast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-10">
+          <div className="bg-gray-900 text-white px-6 py-4 rounded-3xl shadow-2xl border border-white/10 flex items-center gap-3">
+            <div className="bg-green-500 rounded-full p-1">
+              <CheckCircle2 size={16} className="text-white" />
+            </div>
+            <span className="text-sm font-black uppercase tracking-tighter">¡Cupón creado con éxito!</span>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMACIÓN DE BORRADO */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-gray-100 space-y-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="bg-red-50 p-4 rounded-full text-red-500">
+                <AlertCircle size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter italic">¡Cuidado!</h3>
+                <p className="text-sm text-gray-500 font-medium">
+                  Este cupón está activo y podría estar siendo usado. Si lo borras, se desactivará inmediatamente para todos los clientes.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={confirmDelete}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-100"
+              >
+                Borrar de todas formas
+              </button>
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

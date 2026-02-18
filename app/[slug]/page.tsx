@@ -12,7 +12,7 @@ import {
   Utensils,
   Star,
   Clock,
-  Zap
+  Zap, Ticket
 } from "lucide-react";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";

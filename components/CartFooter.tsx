@@ -30,35 +30,75 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     // --- ACÁ ESTÁ EL CAMBIO CLAVE ---
     const [nroMesa, setNroMesa] = useState(''); 
     const [availableTables, setAvailableTables] = useState<Table[]>([]); // Agregamos <Table[]>
+    // --- CUPON DE DESCUENTO ---
+    const [couponCode, setCouponCode] = useState("");
+const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+const [isValidating, setIsValidating] = useState(false);
+const [couponError, setCouponError] = useState("");
+    
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    useEffect(() => {
-        if (cart.length === 0 && isVisible) setIsVisible(false);
-    }, [cart.length, isVisible]);
+    const applyCoupon = async () => {
+    if (!couponCode) return;
+    setIsValidating(true);
+    setCouponError("");
 
-    // LIMPIEZA AUTOMÁTICA - CORREGIDO: Eliminado window.location.reload()
-    useEffect(() => {
-        if (activeOrderId && (planType !== 'plus' && planType !== 'max')) {
+    const { data: coupon, error } = await supabase
+        .from("coupons")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("code", couponCode.toUpperCase())
+        .eq("is_active", true)
+        .maybeSingle();
+
+    const now = new Date();
+
+    if (coupon) {
+        const startDate = new Date(coupon.starts_at);
+        const expiresDate = coupon.expires_at ? new Date(coupon.expires_at) : null;
+
+        if (now < startDate) {
+            setCouponError("Este cupón aún no está activo.");
+            setAppliedCoupon(null);
+        } else if (expiresDate && now > expiresDate) {
+            setCouponError("Este cupón ha expirado.");
+            setAppliedCoupon(null);
+        } else {
+            setAppliedCoupon(coupon);
+            setCouponError("");
+        }
+    } else {
+        setCouponError("Cupón no válido.");
+        setAppliedCoupon(null);
+    }
+    setIsValidating(false);
+};
+
+   useEffect(() => {
+    if (activeOrderId) {
+        // CASO LIGHT: Se limpia a los 15 minutos (el cartel que mencionás)
+        if (planType !== 'plus' && planType !== 'max') {
             const timer = setTimeout(() => {
                 clearCart();
                 setActiveOrderId(null);
-                // window.location.reload(); <-- ELIMINADO PARA EVITAR REFRESCO EN MÓVIL
             }, 15 * 60 * 1000); 
             return () => clearTimeout(timer);
         }
-      // Lógica para PLUS/MAX: 5 min si terminó o se canceló
-if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado', 'completado', 'cancelado'].includes(orderStatus))) {
-    const timer = setTimeout(() => {
-        clearCart();
-        setActiveOrderId(null);
-    }, 5 * 60 * 1000); // 5 minutos
-    return () => clearTimeout(timer);
-}
-    }, [activeOrderId, planType, orderStatus, clearCart, setActiveOrderId]);
+        
+        // CASO PLUS: Se limpia 5 min después de que el dueño marque como ENTREGADO
+        if (['entregado', 'completado', 'cancelado'].includes(orderStatus)) {
+            const timer = setTimeout(() => {
+                clearCart();
+                setActiveOrderId(null);
+            }, 5 * 60 * 1000);
+            return () => clearTimeout(timer);
+        }
+    }
+}, [activeOrderId, planType, orderStatus]);
 
     useEffect(() => {
         if (metodoEnvio === 'mesa') {
@@ -162,15 +202,30 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
         return null;
     }
 
+ // 1. Calculamos el valor de los productos + adicionales
     const subtotal = cart.reduce((acc: number, item: any) => {
         const extrasTotal = (item.extrasList || []).reduce((a: number, b: any) => a + (b.price * b.quantity), 0);
         return acc + (item.price + extrasTotal) * item.quantity;
     }, 0);
-    const envio = metodoEnvio === 'delivery' ? (Number(deliveryCost) || 0) : 0;
-    const totalFinal = subtotal + envio;
 
+    // 2. Calculamos el monto a descontar (solo si hay un cupón aplicado)
+    const montoDescuento = appliedCoupon 
+        ? (subtotal * Number(appliedCoupon.discount_percent) / 100) 
+        : 0;
+
+    // 3. Definimos el costo de envío
+    const envio = metodoEnvio === 'delivery' ? (Number(deliveryCost) || 0) : 0;
+
+    // 4. EL TOTAL FINAL: Subtotal - Descuento + Envío
+    const totalFinal = subtotal - montoDescuento + envio;
+
+    // Formateador de precios (se mantiene igual)
     const formatPrice = (price: number) => 
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
+        new Intl.NumberFormat('es-AR', { 
+            style: 'currency', 
+            currency: 'ARS', 
+            minimumFractionDigits: 0 
+        }).format(price);
 
     const handleCopyAlias = async () => {
         if (!aliasMp) return;
@@ -202,86 +257,118 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
         setTimeout(() => setCopied(false), 3000); 
     };
 
- const handleSendOrder = async () => {
+const handleSendOrder = async () => {
+    // 1. Validaciones de Seguridad
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
     if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
-    
-    // Nueva validación para Mesas
     if (metodoEnvio === 'mesa' && !nroMesa) {
         return alert("Por favor, seleccioná una mesa antes de enviar.");
     }
 
-        setIsSending(true);
+    // Identificamos el plan para la lógica de notificaciones y redirección
+    const isPlus = planType === 'plus' || planType === 'max';
+    setIsSending(true);
 
-        try {
-            const { data: newOrder, error } = await supabase.from('orders').insert({
-                restaurant_id: restaurantId,
-                customer_name: nombre,
-                customer_phone: telCliente,
-                address: metodoEnvio === 'delivery' ? direccion : '',
-                order_type: metodoEnvio,
-                payment_method: metodoPago,
-                total: totalFinal,
-                status: 'pendiente',
-                delivery_cost: envio,
-                origin_plan: planType,
-                items: cart,
-                table_number: metodoEnvio === 'mesa' ? nroMesa : null,
-                description: aclaraciones
-            }).select().single();
+    try {
+        // 2. Guardado en Base de Datos (Supabase)
+        const { data: newOrder, error } = await supabase.from('orders').insert({
+            restaurant_id: restaurantId,
+            customer_name: nombre,
+            customer_phone: telCliente,
+            address: metodoEnvio === 'delivery' ? direccion : '',
+            order_type: metodoEnvio,
+            payment_method: metodoPago,
+            total: totalFinal,
+            status: 'pendiente',
+            delivery_cost: envio,
+            origin_plan: planType,
+            items: cart,
+            table_number: metodoEnvio === 'mesa' ? nroMesa : null,
+            description: aclaraciones
+        }).select().single();
 
-            if (error) throw error;
+        if (error) throw error;
 
-            if (newOrder) {
-                setActiveOrderId(newOrder.id);
+        if (newOrder) {
+            setActiveOrderId(newOrder.id); 
+            
+            // --- CAMBIO CLAVE: SOLO PUSH SI ES PLAN SUPERIOR ---
+            // Esto evita que el panel suene o muestre alertas en Plan Light
+            if (isPlus) {
                 fetch('/api/push/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ restaurantId, customerName: nombre, total: totalFinal, orderType: metodoEnvio }),
                 }).catch(() => {});
             }
-
-            let mensaje = `*¡Hola! Nuevo Pedido* 🍔\n`;
-            if (newOrder) mensaje += `Ref: #${newOrder.id.slice(0, 5)}\n`;
-            mensaje += `------------------\n`;
-            mensaje += `👤 *Nombre:* ${nombre}\n`;
-            if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
-            mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
-            if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
-            mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n`;
-            
-            mensaje += `*Pedido:*\n`;
-            cart.forEach((item: any) => {
-                mensaje += `✅ ${item.quantity}x ${item.name}`;
-                if (item.extrasList?.length > 0) item.extrasList.forEach((ex: any) => mensaje += ` (+ ${ex.name})`);
-                mensaje += `\n`;
-            });
-
-            if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
-            if (envio > 0) mensaje += `🚚 *Envío:* ${formatPrice(envio)}\n`;
-            mensaje += `\n💰 *TOTAL: ${formatPrice(totalFinal)}*`;
-
-            setIsVisible(false);
-
-            // SOLO ABRIMOS WHATSAPP SI ESTÁ ENCENDIDO
-            if (receiveWhatsapp) {
-                const textEncoded = encodeURIComponent(mensaje);
-                const cleanPhone = phone.toString().replace(/\D/g, ''); 
-                window.onbeforeunload = null; // Para evitar el cartel de seguridad
-                window.open(`whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`, '_blank');
-            } else {
-                console.log("WhatsApp desactivado: Pedido enviado solo al panel.");
-            }
-
-            setIsSending(false);
-
-        } catch (err) {
-            console.error("Error:", err);
-            alert("Error al procesar el pedido.");
-            setIsSending(false);
         }
-    };
 
+        // 3. Construcción del Mensaje de WhatsApp
+        let mensaje = `*¡Hola! Nuevo Pedido* 🍔\n`;
+        if (newOrder) mensaje += `Ref: #${newOrder.id.slice(0, 5)}\n`;
+        mensaje += `------------------\n`;
+        mensaje += `👤 *Nombre:* ${nombre}\n`;
+        if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
+        mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
+        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
+        if (metodoEnvio === 'mesa') mensaje += `🍽️ *Mesa:* ${nroMesa}\n`;
+        mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n`;
+        
+        mensaje += `*Pedido:*\n`;
+        cart.forEach((item: any) => {
+            mensaje += `✅ ${item.quantity}x ${item.name}`;
+            if (item.extrasList?.length > 0) item.extrasList.forEach((ex: any) => mensaje += ` (+ ${ex.name})`);
+            mensaje += `\n`;
+        });
+
+        if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
+
+        mensaje += `\n------------------\n`;
+        mensaje += `💰 *Subtotal:* ${formatPrice(subtotal)}\n`;
+
+        // Lógica de Cupón en WhatsApp
+        if (appliedCoupon) {
+            mensaje += `🎟️ *Cupón:* ${appliedCoupon.code} (-${appliedCoupon.discount_percent}%)\n`;
+            mensaje += `➖ *Descuento:* -${formatPrice(montoDescuento)}\n`;
+        }
+
+        if (envio > 0) mensaje += `🚚 *Envío:* ${formatPrice(envio)}\n`;
+        mensaje += `\n🔥 *TOTAL: ${formatPrice(totalFinal)}*`;
+
+     // 4. Protocolo de Redirección Inteligente
+        setIsVisible(false);
+
+        // reactor isPlus definido al inicio de la función para evitar el error anterior
+        if (!isPlus || receiveWhatsapp !== false) {
+            const textEncoded = encodeURIComponent(mensaje);
+            const cleanPhone = String(phone).replace(/\D/g, ''); 
+            
+            window.onbeforeunload = null; // Apaga el detector de salida
+
+            // DETECTOR DE DISPOSITIVO
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                // EN MÓVIL: Redirigimos para que salte a la App
+                const mobileUrl = `https://wa.me/${cleanPhone}?text=${textEncoded}`;
+                window.location.href = mobileUrl;
+            } else {
+                // EN PC: Usamos el protocolo directo 'whatsapp://'
+                // Esto dispara la App de escritorio sin abrir una pestaña nueva en el navegador.
+                // La pestaña de Snappy se queda quieta con el cartel de "Pedido Enviado" de fondo.
+                const desktopUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
+                window.location.href = desktopUrl;
+            }
+        }
+
+        setIsSending(false);
+
+    } catch (err) {
+        console.error("Error:", err);
+        alert("Error al procesar el pedido.");
+        setIsSending(false);
+    }
+};
     return (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-[120] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] rounded-t-[2.5rem] p-4 max-h-[95vh] overflow-y-auto font-sans text-black">
             <div className="max-w-md mx-auto space-y-5 relative">
@@ -426,14 +513,82 @@ if (activeOrderId && (planType === 'plus' || planType === 'max') && (['entregado
                     <textarea placeholder="Ej: Sin cebolla, que el delivery llame al timbre..." value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" />
                 </div>
 
-                <div className="pt-2 border-t border-gray-100">
-                    <div className="flex justify-between items-center mb-4 px-2">
-                        <span className="text-gray-400 text-xs font-black uppercase tracking-tighter">Total Pedido</span>
-                        <span className="text-3xl font-black text-gray-900 tracking-tighter">{formatPrice(totalFinal)}</span>
-                    </div>
-                    <button onClick={handleSendOrder} disabled={isSending} className="w-full bg-green-700 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}
-                    </button>
+              {/* --- SECCIÓN FINAL DE PAGO --- */}
+<div className="pt-2 border-t border-gray-100 space-y-4">
+    
+    {/* 1. Bloque de Cupón (Ahora independiente) */}
+    <div className="bg-gray-50 p-4 rounded-[2rem] border border-gray-100 shadow-inner">
+        <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-2 block tracking-widest">
+            ¿Tenés un cupón de descuento?
+        </label>
+        {!appliedCoupon ? (
+            <div className="flex gap-2">
+                <input 
+                    type="text" 
+                    placeholder="INGRESÁ TU CÓDIGO" 
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="flex-1 p-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
+                />
+                <button 
+                    onClick={applyCoupon}
+                    disabled={isValidating}
+                    className="bg-gray-900 text-white px-5 rounded-2xl text-[10px] font-black uppercase transition-all active:scale-95 disabled:opacity-50"
+                >
+                    {isValidating ? <Loader2 className="animate-spin" size={16}/> : 'Aplicar'}
+                </button>
+            </div>
+        ) : (
+            <div className="flex justify-between items-center bg-green-100 border border-green-200 p-3 px-5 rounded-2xl animate-in zoom-in duration-300">
+                <div className="flex flex-col text-left leading-tight">
+                    <span className="text-[9px] font-black text-green-700 uppercase tracking-tighter">Cupón Activado</span>
+                    <span className="text-sm font-black text-green-800 italic">{appliedCoupon.code} (-{appliedCoupon.discount_percent}%)</span>
+                </div>
+                <button onClick={() => {setAppliedCoupon(null); setCouponCode("");}} className="text-green-700 p-1 hover:bg-green-200 rounded-full transition-colors">
+                    <X size={20} />
+                </button>
+            </div>
+        )}
+        {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 ml-2 italic animate-in fade-in">{couponError}</p>}
+    </div>
+
+    {/* 2. Desglose de Totales */}
+    <div className="px-2 space-y-1">
+        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter">
+            <span>Subtotal Productos</span>
+            <span>{formatPrice(subtotal)}</span>
+        </div>
+        
+        {appliedCoupon && (
+            <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic">
+                <span>Descuento Aplicado</span>
+                <span>-{formatPrice(montoDescuento)}</span>
+            </div>
+        )}
+
+        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter">
+            <span>Costo de Envío</span>
+            <span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span>
+        </div>
+
+        {/* 3. El Gran Total (Ancho total y bien visible) */}
+        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200">
+            <span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">
+                {formatPrice(totalFinal)}
+            </span>
+        </div>
+    </div>
+
+    {/* 4. Botón de Acción */}
+    <button 
+        onClick={handleSendOrder} 
+        disabled={isSending} 
+        className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+        {isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}
+    </button>
+
                 </div>
             </div>
         </div>
