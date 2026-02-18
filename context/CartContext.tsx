@@ -42,18 +42,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const addToCart = (product: any) => {
     setCart((prev) => {
-      // CASO 1: ES UN EXTRA
+      // CASO 1: ES UN EXTRA (Mantenemos tu lógica para los adicionales)
       if (product.extraId) {
         const newCart = [...prev];
         // Buscamos el último item que coincida con el ID padre
         const parentIndex = [...newCart].reverse().findIndex((item) => item.id === product.id);
         
         if (parentIndex !== -1) {
-            // Ajustamos índice porque usamos reverse()
             const actualIndex = newCart.length - 1 - parentIndex;
             const parentItem = { ...newCart[actualIndex] };
             
-            // Inicializamos extrasList si no existe (seguridad)
             const currentExtras = parentItem.extrasList || [];
             const existingExtraIndex = currentExtras.findIndex((ex: any) => ex.id === product.extraId);
             const updatedExtras = [...currentExtras];
@@ -76,9 +74,29 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         return prev;
       }
 
-      // CASO 2: PRODUCTO PRINCIPAL
-      const uniqueId = `${product.id}-${Date.now()}`;
-      const newItem = { ...product, uniqueId, quantity: 1, extrasList: [] };
+      // --- CASO 2: PRODUCTO PRINCIPAL (CORREGIDO PARA UNIFICAR) ---
+      // Buscamos si ya existe el producto base en el carrito (sin contar los que ya tienen extras)
+      const existingItemIndex = prev.findIndex((item) => 
+        item.id === product.id && (!item.extrasList || item.extrasList.length === 0)
+      );
+
+      if (existingItemIndex !== -1) {
+        // Si existe, mapeamos el carrito y sumamos 1 a la cantidad del producto encontrado
+        return prev.map((item, index) =>
+          index === existingItemIndex
+            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            : item
+        );
+      }
+
+      // Si es un producto nuevo, lo agregamos con cantidad 1
+      // Usamos el ID del producto como uniqueId para que sea estable
+      const newItem = { 
+        ...product, 
+        uniqueId: `${product.id}-${Date.now()}`, 
+        quantity: 1, 
+        extrasList: [] 
+      };
       return [...prev, newItem];
     });
   };

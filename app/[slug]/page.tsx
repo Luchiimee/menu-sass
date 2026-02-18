@@ -474,15 +474,17 @@ return (
       <style dangerouslySetInnerHTML={{ __html: memoizedStyles }} />
       <ClearCartLogic currentRestaurantId={restaurant.id} />
       
-      {/* Notificación ajustada al ancho del contenedor */}
+    {/* Notificación más chica y centrada */}
       {notificacion && (
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[1000] w-[90%]">
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[2000] whitespace-nowrap">
           <div className={`
             ${TEMPLATE === 'visualgrid' ? 'bg-white/10 backdrop-blur-xl border-white/20 text-white' : TEMPLATE === 'minimal' ? 'bg-white text-black border-gray-200' : 'bg-blue-600 text-white border-blue-400'} 
-            px-6 py-3 rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-300 border
+            px-4 py-2 rounded-full shadow-lg flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300 border
           `}>
-            <Check size={20} className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} />
-            <span className="font-black text-sm uppercase tracking-tight">{notificacion.replace('✅', '')}</span>
+            <Check size={16} className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} />
+            <span className="font-bold text-xs uppercase tracking-wide">
+                {notificacion.replace('✅', '').replace('⚠️', '')}
+            </span>
           </div>
         </div>
       )}

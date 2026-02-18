@@ -480,7 +480,7 @@ export default function LandingPage() {
                 <div className="h-full w-full">
                   {activeTab === 'visualgrid' && (
                     <img 
-                      src="/visual-grid.png" 
+                      src="/02.png" 
                       alt="Visual Grid Demo" 
                       className="w-full h-full object-cover animate-in fade-in duration-500"
                     />
@@ -504,7 +504,7 @@ export default function LandingPage() {
 
                   {activeTab === 'urban' && (
                     <img 
-                      src="/urbandark.png" 
+                      src="/01.png" 
                       alt="Urban Dark Demo" 
                       className="w-full h-full object-cover animate-in fade-in duration-500"
                     />

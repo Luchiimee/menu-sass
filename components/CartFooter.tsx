@@ -386,26 +386,32 @@ const handleSendOrder = async () => {
                     {cart.map((item: any) => (
                         <div key={item.uniqueId} className="bg-gray-50 rounded-3xl p-4 border border-gray-100">
                             <div className="flex justify-between items-center mb-3">
-                                <div className="flex-1">
-                                    <span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span>
-                                    <span className="text-green-600 font-bold text-sm">{formatPrice(item.price)} c/u</span>
-                                </div>
+                               <div className="flex-1">
+    <span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span>
+    {/* Quitamos el c/u para dejar solo el precio */}
+    <span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span>
+</div>
                                 <div className="flex items-center gap-4 bg-white shadow-sm rounded-2xl p-1 border border-gray-100">
                                     <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-red-500 active:scale-90"><Minus size={20} strokeWidth={3}/></button>
                                     <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
                                     <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-green-600 active:scale-90"><Plus size={20} strokeWidth={3}/></button>
                                 </div>
                             </div>
-                            {item.extrasList?.map((ex: any) => (
-                                <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
-                                    <span className="text-xs text-gray-500 font-bold">+ {ex.name}</span>
-                                    <div className="flex items-center gap-3 mr-1">
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-90"><Minus size={16} strokeWidth={3}/></button>
-                                        <span className="text-xs font-black">{ex.quantity}</span>
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-green-600 active:scale-90"><Plus size={16} strokeWidth={3}/></button>
-                                    </div>
-                                </div>
-                            ))}
+      {item.extrasList?.map((ex: any) => (
+    <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
+        <div className="flex flex-col flex-1">
+            <span className="text-xs text-gray-500 font-bold">+ {ex.name}</span>
+            {/* Precio del extra sin el c/u */}
+            <span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span>
+        </div>
+        
+        <div className="flex items-center gap-3 mr-1">
+            <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-90"><Minus size={16} strokeWidth={3}/></button>
+            <span className="text-xs font-black">{ex.quantity}</span>
+            <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-green-600 active:scale-90"><Plus size={16} strokeWidth={3}/></button>
+        </div>
+    </div>
+))}
                         </div>
                     ))}
                 </div>
