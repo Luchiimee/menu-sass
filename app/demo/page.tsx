@@ -110,6 +110,7 @@ const REAL_TEMPLATES_CSS = `
 
 /* --- DISEÑO FINAL VISUAL GRID (FIDELIDAD TOTAL) --- */
   .sushi-visual { background: #121212; color: white; padding: 15px; font-family: 'Inter', sans-serif; min-height: 100vh; text-align: left; }
+  .sushi-brand { display: flex; align-items: center; gap: 15px; text-align: left; } /* <--- ESTO ARREGLA EL ALINEADO */
   
   /* HEADER Y BANNER (image_a5d423.jpg, image_a5df83.png) */
   .sushi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -192,6 +193,17 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [nroMesa, setNroMesa] = useState('');
   const [copied, setCopied] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const COSTO_ENVIO = 1500;
+const [couponInput, setCouponInput] = useState('SNAPPYDEMO');
+const [appliedCoupon, setAppliedCoupon] = useState(false);
+
+const applyCoupon = () => {
+  if (couponInput.toUpperCase() === 'SNAPPYDEMO') {
+    setAppliedCoupon(true);
+  } else {
+    alert("Cupón inválido. Prueba con SNAPPYDEMO");
+  }
+};
 
   const addToCart = (id: string) => {
     setCart(prev => {
@@ -226,13 +238,23 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const subtotal = useMemo(() => {
-    const products = DEMO_PRODUCTS[template] || [];
-    return products.reduce((acc, p) => acc + (p.p * (cart[p.id] || 0)), 0);
-  }, [cart, template]);
+  // --- REEMPLAZAR TU BLOQUE POR ESTE ---
+const { totalProductos, descuento, totalFinal } = useMemo(() => {
+  const products = DEMO_PRODUCTS[template] || [];
+  const rawTotal = products.reduce((acc, p) => acc + (p.p * (cart[p.id] || 0)), 0);
+  
+  const discount = appliedCoupon ? rawTotal * 0.15 : 0; // 15% de descuento
+  const shipping = metodoEnvio === 'delivery' ? COSTO_ENVIO : 0;
+  
+  return {
+    totalProductos: rawTotal,
+    descuento: Math.round(discount),
+    totalFinal: rawTotal + shipping - Math.round(discount)
+  };
+}, [cart, template, appliedCoupon, metodoEnvio]);
 
-  const cartCount = useMemo(() => Object.values(cart).reduce((acc: number, val: number) => acc + val, 0), [cart]);
-  const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(p);
+const cartCount = useMemo(() => Object.values(cart).reduce((acc: number, val: number) => acc + val, 0), [cart]);
+const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(p);
 
  const startSimulation = () => {
   if (!nombre.trim()) return alert("Ingresá tu nombre.");
@@ -308,15 +330,11 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
 
         <div 
         className="demo-phone-viewport">
-            <button 
-  onClick={() => {
-    setView('selector');
-    setIsCartOpen(false);
-    setCart({});
-  }} 
-  className="absolute top-4 left-4 z-[100] bg-white/80 backdrop-blur-md p-2 rounded-full shadow-lg border border-gray-100 hover:scale-110 active:scale-95 transition-all text-gray-900"
+         <button 
+  onClick={() => { setView('selector'); setIsCartOpen(false); setCart({}); }} 
+  className="absolute bottom-10 left-4 z-[100] bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-xl border border-gray-100 hover:scale-110 active:scale-95 transition-all text-gray-900"
 >
-  <ArrowLeft size={20} />
+  <ArrowLeft size={22} />
 </button>
           
           {view === 'menu' ? (
@@ -327,7 +345,7 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
     {/* CABECERA: Logo + Nombres + Botón Abierto */}
     <div className="urbano-top">
       <div className="flex items-center gap-4">
-        <div className="urbano-logo" style={{backgroundImage: "url('https://placehold.co/100/111/fff?text=B')"}}></div>
+        <div className="urbano-logo" style={{backgroundImage: "url('https://placehold.co/100/111/fff?text=BURGER')"}}></div>
         <div className="urbano-names">
           <h4>Burger KRUSTY</h4>
           <span>A la parrilla desde 1954</span>
@@ -380,7 +398,7 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   <div className="classic-del">
     {/* ... Header y Banner se mantienen igual ... */}
     <div className="classic-header">
-      <div className="classic-logo">LT</div>
+      <div className="classic-logo" style={{backgroundImage: "url('https://placehold.co/100/d32f2f/fff?text=PIZZA')", backgroundSize: 'cover'}}></div>
       <h2 className="classic-title">Pizzería Los Tíos</h2>
     </div>
     <div className="classic-banner">🛵 Envío GRATIS en tu primera compra</div>
@@ -434,13 +452,22 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
       </div>
     )}
 
-    <div className="sushi-header">
-      <div className="sushi-brand">
-        <div className="sushi-logo" style={{backgroundImage: "url('https://placehold.co/100/ea580c/fff?text=PIZZA')"}}></div>
-        <div><h2 className="sushi-name">PIZZERIA COOL</h2><p className="sushi-desc-local font-black opacity-40">LA MEJOR COMIDA DE LA CIUDAD</p></div>
-      </div>
-      <div className="sushi-status-btn">Abierto</div>
+   <div className="sushi-header">
+  <div className="sushi-brand">
+    {/* Logo circular con texto adentro */}
+    <div className="sushi-logo flex items-center justify-center bg-[#ea580c] text-white font-black text-[10px] italic">
+      SUSHI
     </div>
+    {/* Título y descripción al costado */}
+    <div className="flex flex-col">
+      <h2 className="sushi-name">SUSHI BAR</h2>
+      <p className="text-[10px] font-black opacity-40 uppercase tracking-tighter">
+        EL MEJOR SUSHI DE LA CIUDAD
+      </p>
+    </div>
+  </div>
+  <div className="sushi-status-btn">Abierto</div>
+</div>
 
     <div className="sushi-promo-banner">
       <p className="sushi-promo-text">Lunes de promo muzzarella la 2da al 50%</p>
@@ -555,7 +582,7 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
       </div>
       <div className="flex items-center gap-2">
         <span className="opacity-60 font-medium text-xs">Total:</span>
-        <span className="text-base">${subtotal}</span>
+        <span className="text-base">${totalFinal}</span>
       </div>
     </button>
   </div>
@@ -588,6 +615,7 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   </div>
 </div>
                     <div className="space-y-4 mb-8">
+    
                       <h2 className="text-xl font-black italic uppercase">Tus Datos</h2>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="text" placeholder="Tu Nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs outline-none" />
@@ -621,7 +649,18 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
       );
     })}
   </div>
-  
+  {metodoEnvio === 'delivery' && (
+    <p className="text-[15px] font-bold text-gray-900 mt-2 ml-2 flex items-center gap-1 animate-in slide-in-from-top-1 duration-300">
+      <Bike size={12} className="text-blue-600"/> 
+      Costo de envío: <span className="text-blue-600">${COSTO_ENVIO}</span>
+    </p>
+  )}
+
+  {metodoEnvio === 'retiro' && (
+    <p className="text-[10px] font-bold text-green-600 mt-2 ml-2 animate-in slide-in-from-top-1">
+      ✓ Retiro sin cargo por el local
+    </p>
+  )}
  
 </div>
                       {metodoEnvio === 'delivery' && (
@@ -683,13 +722,56 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
     )}
   </div>
 )}
+<div className="mt-8 mb-6 p-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+  <label className="text-[8px] font-black text-gray-400 uppercase ml-2 tracking-widest">
+    ¿Tenés un cupón?
+  </label>
+  <div className="flex gap-2 mt-1">
+    <input 
+      type="text" 
+      placeholder="Ej: SNAPPYDEMO" 
+      value={couponInput}
+      onChange={(e) => setCouponInput(e.target.value)}
+      disabled={appliedCoupon}
+      className="flex-1 p-3 bg-white rounded-xl border border-gray-100 text-xs outline-none uppercase font-bold" 
+    />
+    <button 
+      onClick={applyCoupon}
+      disabled={appliedCoupon}
+      className={`px-4 rounded-xl font-black text-[10px] transition-all ${
+        appliedCoupon ? 'bg-green-600 text-white' : 'bg-black text-white'
+      }`}
+    >
+      {appliedCoupon ? 'APLICADO' : 'APLICAR'}
+    </button>
+  </div>
+</div>
+                 <div className="pt-6 border-t border-gray-100 space-y-2">
+  <div className="flex justify-between text-[11px] font-bold text-gray-500 px-2">
+    <span>Subtotal productos</span>
+    <span>${totalProductos}</span>
+  </div>
 
-                    <div className="pt-6 border-t border-gray-100">
-                      <div className="flex justify-between items-center mb-4"><span className="text-[10px] font-black text-gray-400 uppercase">Total</span><span className="text-3xl font-black">${subtotal}</span></div>
-                      <button onClick={startSimulation} disabled={isSending} className="w-full bg-green-600 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 text-lg shadow-xl active:scale-95 transition-all">
-                        {isSending ? <Loader2 className="animate-spin" size={24}/> : <><Send size={24}/> ENVIAR PEDIDO</>}
-                      </button>
-                    </div>
+  {/* Esto se muestra solo si toca 'delivery' */}
+  {metodoEnvio === 'delivery' && (
+    <div className="flex justify-between text-[11px] font-bold text-gray-800 px-2 animate-in fade-in slide-in-from-left-2">
+      <span className="flex items-center gap-1"><Bike size={12}/> Costo de envío</span>
+      <span>+${COSTO_ENVIO}</span>
+    </div>
+  )}
+
+  {appliedCoupon && (
+    <div className="flex justify-between text-[11px] font-black text-green-600 px-2 animate-in zoom-in-95">
+      <span>Descuento Snappy (15%)</span>
+      <span>-${descuento}</span>
+    </div>
+  )}
+
+  <div className="flex justify-between items-center pt-4 mb-4 border-t border-gray-50">
+    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Final</span>
+    <span className="text-3xl font-black text-gray-900">${totalFinal}</span>
+  </div>
+</div>
                   </div>
                 </div>
               )}
@@ -736,7 +818,7 @@ const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
                 const p = DEMO_PRODUCTS[template]?.find(x => x.id === id);
                 return `✅ ${qty}x ${p?.n}\n`;
             })}
-            {"\n"}💰 *TOTAL: ${subtotal}*
+            {"\n"}💰 *TOTAL: ${totalFinal}*
           </p>
           <span className="text-[9px] text-gray-400 block text-right mt-1">12:45</span>
         </div>
@@ -777,7 +859,9 @@ const DEMO_PRODUCTS: Record<string, any[]> = {
 urban: [
     { id: 'u1', n: 'Doble Black Bacon', d: 'Medallón 180g + Cheddar', p: 8500, i: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300' },
     // IMAGEN CAMBIADA AQUÍ:
-    { id: 'u2', n: 'Papas King Cheddar', d: 'Panceta y verdeo crunchy', p: 4200, i: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=300&q=80' }
+    { id: 'u2', n: 'Papas King Cheddar', d: 'Panceta y verdeo crunchy', p: 4200, i: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=300&q=80' },
+    { id: 'u3', n: 'Crispy Chicken', d: 'Pollo frito + Alioli', p: 7800, i: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300' },
+    { id: 'u4', n: 'Aros de Cebolla', d: 'X10 unidades con BBQ', p: 3500, i: 'https://images.unsplash.com/photo-1639146174825-df8551817a01?w=300' }
   ],
   visualgrid: [
     { id: 's1', n: 'Niguiri Salmón', p: 12500, i: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400', d: 'Fina lámina de salmón sobre arroz shari.' },
@@ -799,10 +883,14 @@ urban: [
   ],
   classic: [
     { id: 'c1', n: 'Muzzarella Familiar', d: 'Salsa y muzza', p: 8500 },
-    { id: 'c2', n: 'Napolitana Special', d: 'Tomate y ajo', p: 10200 }
+    { id: 'c2', n: 'Napolitana Special', d: 'Tomate y ajo', p: 10200 },
+    { id: 'c3', n: 'Fugazzeta Rellena', d: 'Cebolla y mucho queso', p: 12500 },
+    { id: 'c4', n: 'Calabresa Hot', d: 'Longaniza y morrón', p: 11000 }
   ],
   minimal: [
     { id: 'm1', n: 'Flat White', d: 'Doble espresso', p: 2800 },
-    { id: 'm2', n: 'Avocado Toast', d: 'Masa madre', p: 5500 }
+    { id: 'm2', n: 'Avocado Toast', d: 'Masa madre', p: 5500 },
+    { id: 'm3', n: 'Cappuccino XL', d: 'Espuma de leche y canela', p: 3200 },
+    { id: 'm4', n: 'Croissant Almendras', d: 'Relleno de crema pastelera', p: 2500 }
   ]
 };
