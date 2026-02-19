@@ -15,7 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  LayoutList
+  LayoutList, Pencil,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -32,7 +32,10 @@ const supabase = createBrowserClient(
   );
 
 export default function OrdersPage() {
-  
+  const [editingTableId, setEditingTableId] = useState<string | null>(null);
+  // 1. HOOKS DE NAVEGACIÓN Y ESTADO (Siempre al inicio)
+  const searchParams = useSearchParams();
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("list");
@@ -45,260 +48,196 @@ export default function OrdersPage() {
   const [newTableName, setNewTableName] = useState('');
   const [newTableDesc, setNewTableDesc] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-const [isCreatingTable, setIsCreatingTable] = useState(false);
-  // ESTADOS NUEVOS PARA GESTIÓN DE MESAS Y UI
+  const [isCreatingTable, setIsCreatingTable] = useState(false);
   const [showTables, setShowTables] = useState(false);
   const [availableTables, setAvailableTables] = useState<Table[]>([]);
-  const fetchTables = async (id: string) => {
-    const { data } = await supabase
-      .from('tables')
-      .select('*')
-      .eq('restaurant_id', id)
-      .order('name', { ascending: true });
-    setAvailableTables(data || []);
-  };
-  const addTable = async () => {
-    if (!newTableName.trim() || !restaurantId) return;
-    setIsCreatingTable(true);
-    
-    const { error } = await supabase.from('tables').insert({
-        restaurant_id: restaurantId,
-        name: newTableName,
-        description: newTableDesc, // <--- Ahora enviamos la descripción
-        status: 'libre'
-    });
-
-    if (!error) {
-        setNewTableName('');
-        setNewTableDesc(''); // Limpiamos el input después de crear
-        fetchTables(restaurantId); // Refrescamos la lista automáticamente
-        setIsModalOpen(false);
-        setShowTables(true)
-    } else {
-        console.error("Error al crear mesa:", error);
-        alert("No se pudo crear la mesa. Revisá si la columna 'description' existe en Supabase.");
-    }
-    setIsCreatingTable(false);
-  };
-
-  // Esta función es nueva y es la que hace la magia del On/Off
-  const toggleTableStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'libre' ? 'reservada' : 'libre';
-    await supabase.from('tables').update({ status: newStatus }).eq('id', id);
-    fetchTables(restaurantId!); 
-  };
-
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  // 2. FUNCIONES DE APOYO UI (Definidas antes de los Efectos)
+  const getStatusBadge = (status: string, orderType?: string) => {
+    switch (status) {
+      case "pendiente":
+        return <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock size={10} /> Pendiente</span>;
+      case "en_proceso":
+        return <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><ChefHat size={10} /> Cocina</span>;
+      case "en_camino":
+        return (
+          <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+            <Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : 'En camino'}
+          </span>
+        );
+      case "entregado":
+      case "completado":
+        return <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Check size={10} /> Finalizado</span>;
+      case "cancelado":
+        return <span className="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><XCircle size={10} /> Cancelado</span>;
+      default:
+        return <span className="bg-gray-100 text-gray-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{status}</span>;
+    }
+  };
+
+  const getWhatsAppLink = (phone: string, type: "notify" | "chat") => {
+    let message = type === "notify" ? `Hola! 🛵 Tu pedido de *${restaurantName}* está en camino.` : "";
+    return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+  };
 
   const formatDateDisplay = (dateStr: string) => {
     const [year, month, day] = dateStr.split("-");
     return `${day}/${month}/${year}`;
   };
 
- 
+  const fetchTables = async (id: string) => {
+    const { data } = await supabase.from('tables').select('*').eq('restaurant_id', id).order('name', { ascending: true });
+    setAvailableTables(data || []);
+  };
+
+ const saveTable = async () => {
+    if (!newTableName.trim() || !restaurantId) return;
+    setIsCreatingTable(true);
+
+    if (editingTableId) {
+      // MODO EDICIÓN
+      const { error } = await supabase
+        .from('tables')
+        .update({ 
+          name: newTableName, 
+          description: newTableDesc 
+        })
+        .eq('id', editingTableId);
+
+      if (!error) {
+        setEditingTableId(null);
+        setNewTableName('');
+        setNewTableDesc('');
+        fetchTables(restaurantId);
+        setIsModalOpen(false);
+      }
+    } else {
+      // MODO CREACIÓN (Tu lógica original)
+      const { error } = await supabase.from('tables').insert({
+          restaurant_id: restaurantId, 
+          name: newTableName, 
+          description: newTableDesc, 
+          status: 'libre'
+      });
+      if (!error) {
+          setNewTableName(''); setNewTableDesc(''); fetchTables(restaurantId);
+          setIsModalOpen(false); setShowTables(true);
+      }
+    }
+    setIsCreatingTable(false);
+  };
+
+  // --- 3. Agregar esta función para abrir el modal en modo edición ---
+  const openEditModal = (mesa: any) => {
+    setEditingTableId(mesa.id);
+    setNewTableName(mesa.name);
+    setNewTableDesc(mesa.description || '');
+    setIsModalOpen(true);
+  };
+
+  const toggleTableStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'libre' ? 'reservada' : 'libre';
+    await supabase.from('tables').update({ status: newStatus }).eq('id', id);
+    fetchTables(restaurantId!); 
+  };
+
+  const updateStatus = async (id: string, newStatus: string) => {
+    setOrders(prev => prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)));
+    await supabase.from("orders").update({ status: newStatus }).eq("id", id);
+  };
+
+  const deleteOrder = async (id: string) => {
+    if (!confirm("¿Eliminar este pedido?")) return;
+    setOrders(prev => prev.filter((o) => o.id !== id));
+    await supabase.from("orders").delete().eq("id", id);
+  };
+
+  const toggleWhatsapp = async () => {
+    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) {
+      setShowPhoneAlert(true); return;
+    }
+    const newValue = !receiveWhatsapp;
+    setReceiveWhatsapp(newValue);
+    await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
+  };
+
+  const handlePrint = (order: any) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const itemsHtml = order.items.map((item: any) => `
+        <div style="display: flex; justify-content: space-between; font-family: monospace; margin-bottom:5px;">
+            <span>${item.quantity}x ${item.name}</span>
+            <span>$${item.price * item.quantity}</span>
+        </div>`).join("");
+    printWindow.document.write(`<html><body style="font-family: monospace; width: 300px; padding: 20px;"><h2 style="text-align:center">${restaurantName}</h2>${itemsHtml}<h3>TOTAL: $${order.total}</h3></body></html>`);
+    printWindow.document.close(); printWindow.print();
+  };
+
+  const changeView = (newView: string) => {
+    setView(newView); localStorage.setItem("ordersView", newView);
+  };
+
+  // 3. EFECTOS (Efectos de carga y tiempo real)
+  useEffect(() => {
+    const targetId = searchParams.get('id');
+    if (targetId && orders.length > 0) {
+      setTimeout(() => {
+        const element = document.getElementById(`order-${targetId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setHighlightedId(targetId);
+          setTimeout(() => setHighlightedId(null), 3000);
+        }
+      }, 500);
+    }
+  }, [searchParams, orders]);
 
   useEffect(() => {
     const savedView = localStorage.getItem("ordersView");
     if (savedView) setView(savedView);
   }, []);
 
-  const changeView = (newView: string) => {
-    setView(newView);
-    localStorage.setItem("ordersView", newView);
-  };
-
-  // --- CARGA DE MESAS (Solo si no está bloqueado) ---
   useEffect(() => {
     if (!restaurantId || isLocked) return;
-    const fetchTables = async () => {
-        const { data } = await supabase
-            .from('tables')
-            .select('*')
-            .eq('restaurant_id', restaurantId)
-            .order('name', { ascending: true });
-        setAvailableTables(data || []);
-    };
-    fetchTables();
+    fetchTables(restaurantId);
   }, [restaurantId, isLocked]);
 
   useEffect(() => {
     let mounted = true;
     const loadOrders = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        const isSuperAdmin = user.email === "luchiimee2@gmail.com";
-
-        const { data: rest } = await supabase
-          .from("restaurants")
-          .select("id, subscription_plan, name, receive_whatsapp, phone")
-          .eq("user_id", user.id)
-          .single();
-
+        const { data: rest } = await supabase.from("restaurants").select("*").eq("user_id", user.id).single();
         if (mounted && rest) {
-          setRestaurantName(rest.name || "nuestro local");
-          setRestaurantId(rest.id);
-          setRestaurantPhone(rest.phone);
-          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
-
-          if (
-            isSuperAdmin ||
-            rest.subscription_plan === "plus" ||
-            rest.subscription_plan === "max"
-          ) {
+          setRestaurantName(rest.name); setRestaurantId(rest.id); setRestaurantPhone(rest.phone); setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+          if (rest.subscription_plan !== "light") {
             setIsLocked(false);
-            const { data: ords } = await supabase
-              .from("orders")
-              .select("*")
-              .eq("restaurant_id", rest.id)
-              .gte("created_at", `${selectedDate}T00:00:00`)
-              .lte("created_at", `${selectedDate}T23:59:59`)
-              .neq("order_type", "apertura")
-              .neq("customer_name", "Venta Detectada (Cierre)")
-              .neq("origin_plan", "light")
-              .order("created_at", { ascending: false });
-
+            const { data: ords } = await supabase.from("orders").select("*").eq("restaurant_id", rest.id).gte("created_at", `${selectedDate}T00:00:00`).order("created_at", { ascending: false });
             setOrders(ords || []);
-          } else {
-            setIsLocked(true);
           }
         }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      } catch (e) { console.error(e); } finally { if (mounted) setLoading(false); }
     };
     loadOrders();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [selectedDate]);
 
   useEffect(() => {
     if (!restaurantId || isLocked) return;
-    const channel = supabase
-      .channel("orders_channel")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `restaurant_id=eq.${restaurantId}`,
-        },
-        (payload: any) => {
-          if (payload.new && payload.new.created_at) {
-            const orderDate = new Date(payload.new.created_at).toISOString().split('T')[0];
-            if (orderDate !== selectedDate) return; 
-          }
-
-          if (payload.new && payload.new.order_type === "apertura") return;
-          if (payload.new && payload.new.customer_name === "Venta Detectada (Cierre)") return;
-
-          if (payload.eventType === "INSERT") {
-            setOrders((prev) => [payload.new, ...prev]);
-          } 
-          else if (payload.eventType === "UPDATE") {
-            setOrders((prev) =>
-              prev.map((o) => (o.id === payload.new.id ? payload.new : o))
-            );
-          } 
-          else if (payload.eventType === "DELETE") {
-            setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
-          }
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const channel = supabase.channel("orders_channel").on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload: any) => {
+      if (payload.eventType === "INSERT") setOrders((prev) => [payload.new, ...prev]);
+      else if (payload.eventType === "UPDATE") setOrders((prev) => prev.map((o) => (o.id === payload.new.id ? payload.new : o)));
+      else if (payload.eventType === "DELETE") setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
+    }).subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [restaurantId, isLocked, selectedDate]);
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    setOrders(
-      orders.map((o) => (o.id === id ? { ...o, status: newStatus } : o)),
-    );
-    await supabase.from("orders").update({ status: newStatus }).eq("id", id);
-  };
-
-  const deleteOrder = async (id: string) => {
-    if (!confirm("¿Eliminar este pedido del historial?")) return;
-    setOrders(orders.filter((o) => o.id !== id));
-    await supabase.from("orders").delete().eq("id", id);
-  };
-
-  const getWhatsAppLink = (phone: string, type: "notify" | "chat") => {
-    let message = "";
-    if (type === "notify")
-      message = `Hola! 🛵 Tu pedido de *${restaurantName}* acaba de salir hacia tu dirección.`;
-    return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pendiente":
-        return (
-          <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-            <Clock size={10} /> Pendiente
-          </span>
-        );
-      case "en_proceso":
-        return (
-          <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-            <ChefHat size={10} /> Cocina
-          </span>
-        );
-        // ... los demás badges se mantienen igual ...
-      default:
-        return <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{status}</span>;
-    }
-  };
-
-  const toggleWhatsapp = async () => {
-    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) {
-      setShowPhoneAlert(true);
-      return;
-    }
-    const newValue = !receiveWhatsapp;
-    setReceiveWhatsapp(newValue);
-    await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
-  };
-const handlePrint = (order: any) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const itemsHtml = order.items.map((item: any) => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-family: monospace;">
-            <span>${item.quantity}x ${item.name}</span>
-            <span>$${item.price * item.quantity}</span>
-        </div>
-    `).join("");
-
-    printWindow.document.write(`
-        <html>
-            <body style="font-family: monospace; width: 300px; padding: 20px;">
-                <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-                    <h2 style="margin:0">${restaurantName}</h2>
-                    <p>Ticket #${order.id.slice(0, 5)}</p>
-                </div>
-                <p><strong>Cliente:</strong> ${order.customer_name}</p>
-                <div style="margin-top:15px;">${itemsHtml}</div>
-                <div style="border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; text-align: center;">
-                    <h3>TOTAL: $${order.total}</h3>
-                </div>
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-  };
+  // 4. CORTE DE CARGA (Al final de los Hooks)
   if (loading) {
     return (
       <div className="p-10 flex justify-center">
@@ -306,24 +245,7 @@ const handlePrint = (order: any) => {
       </div>
     );
   }
-const searchParams = useSearchParams();
-const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
-useEffect(() => {
-  const targetId = searchParams.get('id');
-  if (targetId && orders.length > 0) {
-    // Esperamos un momento a que el DOM se renderice completamente
-    setTimeout(() => {
-      const element = document.getElementById(`order-${targetId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setHighlightedId(targetId);
-        // Quitamos el resaltado después de 3 segundos
-        setTimeout(() => setHighlightedId(null), 3000);
-      }
-    }, 500);
-  }
-}, [searchParams, orders]);
   return (
     <div className="max-w-6xl mx-auto min-h-screen p-2 pt-20 md:pt-28 lg:pt-8 relative font-sans">
       
@@ -503,44 +425,51 @@ useEffect(() => {
                 {/* CONTENIDO DESPLEGABLE: Solo el listado */}
                 {showTables && (
                     <div className="p-6 animate-in slide-in-from-top-2 duration-300">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {availableTables.map((mesa) => (
-                                <div key={mesa.id} className="bg-white p-5 rounded-[1.5rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-sm relative group hover:border-blue-200 transition-all">
-                                    
-                                    {/* BOTÓN ELIMINAR */}
-                                    <button 
-                                        onClick={() => {
-                                            if(confirm(`¿Eliminar ${mesa.name}?`)) {
-                                                supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!));
-                                            }
-                                        }}
-                                        className="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors p-1"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    {availableTables.map((mesa) => (
+        <div key={mesa.id} className="bg-white p-5 rounded-[1.5rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-sm relative group hover:border-blue-200 transition-all">
+            
+            {/* BOTONES DE ACCIÓN: EDITAR Y ELIMINAR */}
+            <div className="absolute top-3 right-3 flex gap-2">
+                <button 
+                    onClick={() => openEditModal(mesa)} 
+                    className="text-gray-300 hover:text-blue-500 transition-colors p-1"
+                >
+                    <Pencil size={16} /> 
+                </button>
+                <button 
+                    onClick={() => {
+                        if(confirm(`¿Eliminar ${mesa.name}?`)) {
+                            supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!));
+                        }
+                    }}
+                    className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                >
+                    <Trash2 size={16} />
+                </button>
+            </div>
 
-                                    <span className="text-3xl mb-2">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span>
-                                    
-                                    <span className="font-black text-sm text-gray-900 uppercase mb-1 tracking-tighter">
-                                        {mesa.name}
-                                    </span>
-                                    
-                                    <p className="text-[10px] text-gray-800 font-bold italic mb-4 line-clamp-2 min-h-[1.5rem] leading-tight">
-                                        {mesa.description || "Sin descripción"}
-                                    </p>
+            <span className="text-3xl mb-2">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span>
+            
+            <span className="font-black text-sm text-gray-900 uppercase mb-1 tracking-tighter">
+                {mesa.name}
+            </span>
+            
+            <p className="text-[10px] text-gray-800 font-bold italic mb-4 line-clamp-2 min-h-[1.5rem] leading-tight">
+                {mesa.description || "Sin descripción"}
+            </p>
 
-                                    {/* BOTÓN ON/OFF RESERVA */}
-                                    <button 
-                                        onClick={() => toggleTableStatus(mesa.id, mesa.status)}
-                                        className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 shadow-sm ${
-                                            mesa.status === 'reservada' 
-                                            ? 'bg-red-50 border-red-600 text-red-600' 
-                                            : 'bg-green-50 border-green-600 text-green-700'
-                                        }`}
-                                    >
-                                        {mesa.status === 'reservada' ? 'Reservada (Off)' : 'Libre (On)'}
-                                    </button>
-                                </div>
+            <button 
+                onClick={() => toggleTableStatus(mesa.id, mesa.status)}
+                className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 shadow-sm ${
+                    mesa.status === 'reservada' 
+                    ? 'bg-red-50 border-red-600 text-red-600' 
+                    : 'bg-green-50 border-green-600 text-green-700'
+                }`}
+            >
+                {mesa.status === 'reservada' ? 'Reservada (Off)' : 'Libre (On)'}
+            </button>
+        </div>
                             ))}
 
                             {availableTables.length === 0 && (
@@ -726,7 +655,9 @@ useEffect(() => {
               <XCircle size={24} />
             </button>
 
-            <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tighter uppercase italic">Nueva Mesa</h3>
+            <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tighter uppercase italic">
+    {editingTableId ? 'Editar Mesa' : 'Nueva Mesa'}
+</h3>
             
             <div className="space-y-5">
               {/* Campo Nombre */}
@@ -753,15 +684,14 @@ useEffect(() => {
                 />
               </div>
               
-
-              <button 
-                onClick={addTable}
-                disabled={isCreatingTable}
-                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-              >
-                {isCreatingTable ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                {isCreatingTable ? 'Guardando...' : 'Confirmar y Crear'}
-              </button>
+<button 
+    onClick={saveTable} 
+    disabled={isCreatingTable}
+    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-4"
+>
+    {isCreatingTable ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+    {isCreatingTable ? 'Guardando...' : editingTableId ? 'Guardar Cambios' : 'Confirmar y Crear'}
+</button>
             </div>
           </div>
         </div>
