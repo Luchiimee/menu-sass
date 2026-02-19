@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react"; // Agregamos Suspense aquí
 import { createBrowserClient } from "@supabase/ssr";
 import { useSearchParams } from 'next/navigation';
 import {
@@ -26,14 +26,17 @@ interface Table {
     status: string;
     description?: string;
 }
+
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+);
 
-export default function OrdersPage() {
+// 1. Cambiamos el nombre de la función a OrdersContent para poder envolverla
+function OrdersContent() {
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
-  // 1. HOOKS DE NAVEGACIÓN Y ESTADO (Siempre al inicio)
+  
+  // HOOKS DE NAVEGACIÓN Y ESTADO
   const searchParams = useSearchParams();
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -56,7 +59,7 @@ export default function OrdersPage() {
   );
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  // 2. FUNCIONES DE APOYO UI (Definidas antes de los Efectos)
+  // FUNCIONES DE APOYO UI
   const getStatusBadge = (status: string, orderType?: string) => {
     switch (status) {
       case "pendiente":
@@ -94,44 +97,30 @@ export default function OrdersPage() {
     setAvailableTables(data || []);
   };
 
- const saveTable = async () => {
+  const saveTable = async () => {
     if (!newTableName.trim() || !restaurantId) return;
     setIsCreatingTable(true);
 
     if (editingTableId) {
-      // MODO EDICIÓN
       const { error } = await supabase
         .from('tables')
-        .update({ 
-          name: newTableName, 
-          description: newTableDesc 
-        })
+        .update({ name: newTableName, description: newTableDesc })
         .eq('id', editingTableId);
 
       if (!error) {
-        setEditingTableId(null);
-        setNewTableName('');
-        setNewTableDesc('');
-        fetchTables(restaurantId);
-        setIsModalOpen(false);
+        setEditingTableId(null); setNewTableName(''); setNewTableDesc(''); fetchTables(restaurantId); setIsModalOpen(false);
       }
     } else {
-      // MODO CREACIÓN (Tu lógica original)
       const { error } = await supabase.from('tables').insert({
-          restaurant_id: restaurantId, 
-          name: newTableName, 
-          description: newTableDesc, 
-          status: 'libre'
+          restaurant_id: restaurantId, name: newTableName, description: newTableDesc, status: 'libre'
       });
       if (!error) {
-          setNewTableName(''); setNewTableDesc(''); fetchTables(restaurantId);
-          setIsModalOpen(false); setShowTables(true);
+          setNewTableName(''); setNewTableDesc(''); fetchTables(restaurantId); setIsModalOpen(false); setShowTables(true);
       }
     }
     setIsCreatingTable(false);
   };
 
-  // --- 3. Agregar esta función para abrir el modal en modo edición ---
   const openEditModal = (mesa: any) => {
     setEditingTableId(mesa.id);
     setNewTableName(mesa.name);
@@ -181,7 +170,7 @@ export default function OrdersPage() {
     setView(newView); localStorage.setItem("ordersView", newView);
   };
 
-  // 3. EFECTOS (Efectos de carga y tiempo real)
+  // EFECTOS
   useEffect(() => {
     const targetId = searchParams.get('id');
     if (targetId && orders.length > 0) {
@@ -237,15 +226,13 @@ export default function OrdersPage() {
     return () => { supabase.removeChannel(channel); };
   }, [restaurantId, isLocked, selectedDate]);
 
-  // 4. CORTE DE CARGA (Al final de los Hooks)
   if (loading) {
     return (
-      <div className="p-10 flex justify-center">
-        <Loader2 className="animate-spin" />
+      <div className="p-10 flex justify-center items-center min-h-screen">
+        <Loader2 className="animate-spin text-blue-600" />
       </div>
     );
   }
-
   return (
     <div className="max-w-6xl mx-auto min-h-screen p-2 pt-20 md:pt-28 lg:pt-8 relative font-sans">
       
@@ -699,4 +686,16 @@ export default function OrdersPage() {
               </div>
             </div>
           );
+          
         }
+        export default function OrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-10 flex justify-center items-center min-h-screen">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    }>
+      <OrdersContent />
+    </Suspense>
+  );
+}
