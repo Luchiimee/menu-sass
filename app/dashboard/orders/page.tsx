@@ -181,7 +181,7 @@ function OrdersContent() {
           setHighlightedId(targetId);
           setTimeout(() => setHighlightedId(null), 3000);
         }
-      }, 500);
+      }, 800);
     }
   }, [searchParams, orders]);
 
@@ -486,14 +486,14 @@ function OrdersContent() {
           {/* Mapeo de Pedidos con UI Completa */}
         {orders.map((order) => (
   <div 
-    key={order.id} 
-    id={`order-${order.id}`} // <--- ESTO ES LA "DIRECCIÓN" PARA EL SCROLL
-    className={`bg-white border rounded-3xl p-5 shadow-sm transition-all flex flex-col justify-between hover:shadow-md ${
-      highlightedId === order.id 
-        ? 'border-blue-500 ring-2 ring-blue-100 scale-[1.02] bg-blue-50/30' 
-        : 'border-gray-100'
-    }`}
-  >
+  key={order.id} 
+  id={`order-${order.id}`} // <--- AGREGUE ESTA LÍNEA (El destino del GPS)
+  className={`p-4 rounded-3xl transition-all duration-500 border-2 ${
+    highlightedId === order.id 
+    ? 'border-blue-600 bg-blue-50 ring-4 ring-blue-100 scale-[1.02]' 
+    : 'border-white bg-white shadow-sm'
+  }`} // <--- REEMPLACE SU CLASSNAME POR ESTE (Para que se pinte de azul)
+>
               <div>
                 <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-4">
                   <div>
@@ -690,11 +690,7 @@ function OrdersContent() {
         }
         export default function OrdersPage() {
   return (
-    <Suspense fallback={
-      <div className="p-10 flex justify-center items-center min-h-screen">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    }>
+    <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin" /></div>}>
       <OrdersContent />
     </Suspense>
   );
