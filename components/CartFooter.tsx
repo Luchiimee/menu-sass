@@ -284,7 +284,10 @@ const handleSendOrder = async () => {
             origin_plan: planType,
             items: cart,
             table_number: metodoEnvio === 'mesa' ? nroMesa : null,
-            description: aclaraciones
+            description: aclaraciones,
+            // --- NUEVOS CAMPOS PARA EL CUPÓN ---
+            coupon_code: appliedCoupon?.code || null,
+            discount_amount: montoDescuento || 0
         }).select().single();
 
         if (error) throw error;
@@ -292,13 +295,18 @@ const handleSendOrder = async () => {
         if (newOrder) {
             setActiveOrderId(newOrder.id); 
             
-            // --- CAMBIO CLAVE: SOLO PUSH SI ES PLAN SUPERIOR ---
-            // Esto evita que el panel suene o muestre alertas en Plan Light
+            // --- NOTIFICACIÓN PUSH CON ID PARA EL SCROLL ---
             if (isPlus) {
                 fetch('/api/push/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ restaurantId, customerName: nombre, total: totalFinal, orderType: metodoEnvio }),
+                    body: JSON.stringify({ 
+                        restaurantId, 
+                        orderId: newOrder.id, // Enviamos el ID para el scroll automático después
+                        customerName: nombre, 
+                        total: totalFinal, 
+                        orderType: metodoEnvio 
+                    }),
                 }).catch(() => {});
             }
         }

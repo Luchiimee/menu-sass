@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useSearchParams } from 'next/navigation';
 import {
   Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
   CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
@@ -31,6 +32,7 @@ const supabase = createBrowserClient(
   );
 
 export default function OrdersPage() {
+  
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("list");
@@ -304,7 +306,24 @@ const handlePrint = (order: any) => {
       </div>
     );
   }
+const searchParams = useSearchParams();
+const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
+useEffect(() => {
+  const targetId = searchParams.get('id');
+  if (targetId && orders.length > 0) {
+    // Esperamos un momento a que el DOM se renderice completamente
+    setTimeout(() => {
+      const element = document.getElementById(`order-${targetId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedId(targetId);
+        // Quitamos el resaltado después de 3 segundos
+        setTimeout(() => setHighlightedId(null), 3000);
+      }
+    }, 500);
+  }
+}, [searchParams, orders]);
   return (
     <div className="max-w-6xl mx-auto min-h-screen p-2 pt-20 md:pt-28 lg:pt-8 relative font-sans">
       
@@ -549,8 +568,16 @@ const handlePrint = (order: any) => {
           )}
 
           {/* Mapeo de Pedidos con UI Completa */}
-          {orders.map((order) => (
-            <div key={order.id} className="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm transition-all flex flex-col justify-between hover:shadow-md">
+        {orders.map((order) => (
+  <div 
+    key={order.id} 
+    id={`order-${order.id}`} // <--- ESTO ES LA "DIRECCIÓN" PARA EL SCROLL
+    className={`bg-white border rounded-3xl p-5 shadow-sm transition-all flex flex-col justify-between hover:shadow-md ${
+      highlightedId === order.id 
+        ? 'border-blue-500 ring-2 ring-blue-100 scale-[1.02] bg-blue-50/30' 
+        : 'border-gray-100'
+    }`}
+  >
               <div>
                 <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-4">
                   <div>
@@ -590,11 +617,20 @@ const handlePrint = (order: any) => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-2xl text-gray-900 tracking-tighter">${order.total}</p>
-                    <p className="text-[9px] text-gray-300 mt-1 font-bold italic">
-                      {new Date(order.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
+  {/* INFO DE CUPÓN: Solo aparece si existe el código */}
+  {order.coupon_code && (
+    <div className="mb-2 animate-in fade-in slide-in-from-right-2">
+      <span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-100 uppercase tracking-tighter italic">
+        Cupón: {order.coupon_code} (-${order.discount_amount})
+      </span>
+    </div>
+  )}
+
+  <p className="font-black text-2xl text-gray-900 tracking-tighter">${order.total}</p>
+  <p className="text-[9px] text-gray-300 mt-1 font-bold italic">
+    {new Date(order.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+  </p>
+</div>
                 </div>
 
                 {/* Lista de Items del Pedido */}
