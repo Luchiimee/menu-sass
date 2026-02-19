@@ -299,58 +299,70 @@ const confirmDelete = async () => {
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <div className="bg-white border border-gray-200 p-6 rounded-3xl hover:border-gray-300 transition shadow-sm flex flex-col h-full text-gray-900">
-                <div className="mb-4">
-                    <h3 className="text-lg font-bold text-gray-500">Plan Light</h3>
-                    <div className="flex items-baseline gap-1 mt-2">
-                        <span className="text-4xl font-bold text-gray-900">$7.000</span>
-                        <span className="text-sm text-gray-400">/mes</span>
-                    </div>
-                </div>
-                <hr className="border-gray-100 my-4"/>
-                <ul className="space-y-3 text-sm text-gray-600 flex-1">
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> <b>Hasta 15 Productos</b></li>
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Pedidos WhatsApp</li>
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Catálogo Digital Interactivo</li>
-                </ul>
-                <Link href="/dashboard/settings" className="mt-6 block w-full py-3 bg-gray-100 text-gray-600 font-bold text-center rounded-xl hover:bg-gray-200 transition">Elegir Light</Link>
-            </div>
-
-            <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border border-gray-800 h-full">
-                <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[10px] font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
-                <div className="mb-4 z-10">
-                    <h3 className="text-lg font-bold text-purple-300">Plan Plus</h3>
-                    <div className="flex items-baseline gap-1 mt-2">
-                        <span className="text-4xl font-bold text-white">$15.900</span>
-                        <span className="text-sm text-gray-400">/mes</span>
-                    </div>
-                    <p className="text-sm text-green-400 font-bold mt-2 flex items-center gap-1"><Zap size={14}/> 14 días GRATIS hoy</p>
-                </div>
-                <hr className="border-gray-800 my-4 z-10"/>
-                <ul className="space-y-3 text-sm text-gray-300 flex-1 z-10">
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> <b>Productos Ilimitados</b></li>
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Todo lo del plan Light</li>
-                    <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Panel de Pedidos</li>
-                </ul>
-                <Link href="/dashboard/settings" className="mt-6 block w-full py-4 bg-white text-black font-black text-center rounded-xl hover:bg-gray-100 transition shadow-lg z-10">Probar Gratis</Link>
-            </div>
-
-            <div className="bg-white border-2 border-gray-100 p-6 rounded-3xl flex flex-col relative overflow-hidden h-full text-gray-900">
-                <div className="mb-4">
-                    <h3 className="text-lg font-bold text-gray-400">Plan Max</h3>
-                    <div className="flex items-baseline gap-1 mt-2 select-none filter blur-[5px]">
-                        <span className="text-4xl font-bold text-gray-300">$28.600</span>
-                    </div>
-                </div>
-                <hr className="border-gray-100 my-4"/>
-                <ul className="space-y-3 text-sm text-gray-400 flex-1">
-                    <li className="flex gap-2"><CheckCircle2 size={18}/> Todo lo del Plus</li>
-                    <li className="flex gap-2"><CheckCircle2 size={18}/> Métricas Pro</li>
-                </ul>
-                <button disabled className="mt-6 block w-full py-3 bg-gray-50 text-gray-300 font-bold text-center rounded-xl cursor-not-allowed">Próximamente</button>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    {/* 1. Plan Light */}
+    <div className="bg-white border border-gray-200 p-6 rounded-3xl hover:border-gray-300 transition shadow-sm flex flex-col h-full text-gray-900">
+        <div className="mb-4">
+            <h3 className="text-lg font-bold text-gray-500">Plan Light</h3>
+            <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-4xl font-bold text-gray-900">$7.000</span>
+                <span className="text-sm text-gray-400">/mes</span>
             </div>
         </div>
+        <hr className="border-gray-100 my-4"/>
+        <ul className="space-y-3 text-sm text-gray-600 flex-1">
+            <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> <b>Hasta 15 Productos</b></li>
+            <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Pedidos WhatsApp</li>
+            <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Catálogo Digital Interactivo</li>
+        </ul>
+        <Link href="/dashboard/settings" className="mt-6 block w-full py-3 bg-gray-100 text-gray-600 font-bold text-center rounded-xl hover:bg-gray-200 transition">
+            Elegir Light
+        </Link>
+    </div>
+
+    {/* 2. Plan Plus - El más popular */}
+    <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border border-gray-800 h-full">
+        <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[10px] font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
+        <div className="mb-4 z-10">
+            <h3 className="text-lg font-bold text-purple-300">Plan Plus</h3>
+            <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-4xl font-bold text-white">$15.900</span>
+                <span className="text-sm text-gray-400">/mes</span>
+            </div>
+            {/* Beneficio de prueba gratuita destacado */}
+            <p className="text-sm text-green-400 font-bold mt-2 flex items-center gap-1">
+                <Zap size={14}/> 14 días GRATIS hoy
+            </p>
+        </div>
+        <hr className="border-gray-800 my-4 z-10"/>
+        <ul className="space-y-3 text-sm text-gray-300 flex-1 z-10">
+            <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> <b>Productos Ilimitados</b></li>
+            <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Todo lo del plan Light</li>
+            <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Panel de Pedidos</li>
+        </ul>
+        <Link href="/dashboard/settings" className="mt-6 block w-full py-4 bg-white text-black font-black text-center rounded-xl hover:bg-gray-100 transition shadow-lg z-10">
+            Probar Gratis
+        </Link>
+    </div>
+
+    {/* 3. Plan Max - Próximamente */}
+    <div className="bg-white border-2 border-gray-100 p-6 rounded-3xl flex flex-col relative overflow-hidden h-full text-gray-900">
+        <div className="mb-4">
+            <h3 className="text-lg font-bold text-gray-400">Plan Max</h3>
+            <div className="flex items-baseline gap-1 mt-2 select-none filter blur-[5px]">
+                <span className="text-4xl font-bold text-gray-300">$28.600</span>
+            </div>
+        </div>
+        <hr className="border-gray-100 my-4"/>
+        <ul className="space-y-3 text-sm text-gray-400 flex-1">
+            <li className="flex gap-2"><CheckCircle2 size={18}/> Todo lo del Plus</li>
+            <li className="flex gap-2"><CheckCircle2 size={18}/> Métricas Pro</li>
+        </ul>
+        <button disabled className="mt-6 block w-full py-3 bg-gray-50 text-gray-300 font-bold text-center rounded-xl cursor-not-allowed">
+            Próximamente
+        </button>
+    </div>
+</div>
       </div>
     );
   }

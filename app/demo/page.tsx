@@ -746,13 +746,12 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
     </button>
   </div>
 </div>
-                 <div className="pt-6 border-t border-gray-100 space-y-2">
+            <div className="pt-6 border-t border-gray-100 space-y-2 pb-24"> {/* Agregamos pb-24 para que no lo tape nada abajo */}
   <div className="flex justify-between text-[11px] font-bold text-gray-500 px-2">
     <span>Subtotal productos</span>
     <span>${totalProductos}</span>
   </div>
 
-  {/* Esto se muestra solo si toca 'delivery' */}
   {metodoEnvio === 'delivery' && (
     <div className="flex justify-between text-[11px] font-bold text-gray-800 px-2 animate-in fade-in slide-in-from-left-2">
       <span className="flex items-center gap-1"><Bike size={12}/> Costo de envío</span>
@@ -767,12 +766,24 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
     </div>
   )}
 
-  <div className="flex justify-between items-center pt-4 mb-4 border-t border-gray-50">
+  <div className="flex justify-between items-center pt-4 mb-8 border-t border-gray-50">
     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Final</span>
     <span className="text-3xl font-black text-gray-900">${totalFinal}</span>
   </div>
-</div>
-                  </div>
+
+  {/* EL BOTÓN QUE FALTABA */}
+  <button 
+    onClick={startSimulation} 
+    disabled={isSending} 
+    className="w-full bg-green-600 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 text-lg shadow-xl active:scale-95 transition-all hover:bg-green-700"
+  >
+    {isSending ? (
+      <Loader2 className="animate-spin" size={24}/>
+    ) : (
+      <><Send size={24}/> ENVIAR PEDIDO</>
+    )}
+  </button>
+</div>         </div>
                 </div>
               )}
             </div>

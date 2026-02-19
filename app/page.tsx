@@ -84,11 +84,32 @@ const PhoneFrame = ({ image, title, className = '' }: PhoneFrameProps) => (
   </div>
 );
 
+const TUTORIALS = [
+  { title: "Crea tu primer menú", duration: "1:20", pcId: "ID_PC_1", mobileId: "ID_CELU_1" },
+  { title: "Configura tus Extras", duration: "0:55", pcId: "ID_PC_2", mobileId: "ID_CELU_2" },
+  { title: "Panel de Comandas", duration: "1:45", pcId: "ID_PC_3", mobileId: "ID_CELU_3" },
+];
 export default function LandingPage() {
   const [tutorialToast, setTutorialToast] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('visualgrid');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [aliasCopied, setAliasCopied] = useState(false);
+const [videoStep, setVideoStep] = useState<'idle' | 'choosing' | 'playing'>('idle');
+const [videoSource, setVideoSource] = useState('');
+const [activeTutorialData, setActiveTutorialData] = useState<any>(null); //
+
+const openTutorial = (video: any) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  setActiveTutorialData(video); // Guardamos todo el objeto (título e IDs)
+
+  if (isMobile) {
+    setVideoStep('choosing'); // Preguntamos qué versión quiere ver
+  } else {
+    // Si es PC, cargamos directamente el video de YouTube horizontal
+    setVideoSource(`https://www.youtube.com/embed/${video.pcId}?autoplay=1&rel=0`);
+    setVideoStep('playing');
+  }
+};
 
   const handleCopyAlias = () => {
     navigator.clipboard.writeText("luciano.mp");
@@ -589,53 +610,96 @@ export default function LandingPage() {
             </a>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: "Crea tu primer menú", duration: "1:20" },
-              { title: "Configura tus Extras", duration: "0:55" },
-              { title: "Panel de Comandas", duration: "1:45" },
-            ].map((v, i) => (
-              <div 
-                key={i} 
-                className="group cursor-pointer relative"
-                onClick={() => {
-                  setTutorialToast(i);
-                  setTimeout(() => setTutorialToast(null), 2500);
-                }}
-              >
-                <div className="relative aspect-video bg-gray-800 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg transition-all duration-500 group-hover:shadow-2xl">
-                  {/* Overlay de "Grabando" */}
-                  {tutorialToast === i ? (
-                    <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 animate-in fade-in zoom-in duration-300">
-                      <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-3">
-                        <PlayCircle size={30} className="text-green-500 animate-pulse" />
-                      </div>
-                      <p className="text-white font-black uppercase italic text-xs tracking-widest">
-                        ¡Lo estamos grabando!
-                      </p>
-                      <p className="text-gray-400 text-[10px] mt-1 font-bold">DISPONIBLE MUY PRONTO</p>
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition duration-500">
-                      <PlayCircle
-                        size={50}
-                        className="text-white drop-shadow-2xl opacity-80"
-                        fill="currentColor"
-                      />
-                    </div>
-                  )}
-                  
-                  <span className="absolute bottom-4 right-4 bg-black/70 text-white text-[10px] px-2 py-1 rounded font-bold">
-                    {v.duration}
-                  </span>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {TUTORIALS.map((v, i) => (
+            <div 
+              key={i} 
+              className="group cursor-pointer relative"
+              onClick={() => openTutorial(v)} // Ahora pasamos el objeto completo 'v'
+            >
+              <div className="relative aspect-video bg-gray-800 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg transition-all duration-500 group-hover:shadow-2xl">
+                <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition duration-500">
+                  <PlayCircle
+                    size={50}
+                    className="text-white drop-shadow-2xl opacity-80"
+                    fill="currentColor"
+                  />
                 </div>
-                <h4 className={`font-black uppercase italic transition-colors ml-2 ${tutorialToast === i ? 'text-green-600' : 'text-gray-900 group-hover:text-green-600'}`}>
-                  {v.title}
-                </h4>
+                
+                <span className="absolute bottom-4 right-4 bg-black/70 text-white text-[10px] px-2 py-1 rounded font-bold">
+                  {v.duration}
+                </span>
               </div>
-            ))}
+              <h4 className="font-black uppercase italic transition-colors ml-2 text-gray-900 group-hover:text-green-600">
+                {v.title}
+              </h4>
+            </div>
+          ))}
+        </div>
+        </div>
+{/* OVERLAY DE VIDEO INTELIGENTE */}
+{(videoStep === 'choosing' || videoStep === 'playing') && (
+  <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
+    <button onClick={() => setVideoStep('idle')} className="absolute top-6 right-6 text-white/50 hover:text-white"><X size={32} /></button>
+
+    <div className="w-full max-w-4xl text-center">
+      {/* SELECTOR MOBILE */}
+      {videoStep === 'choosing' && (
+        <div className="animate-in zoom-in duration-300">
+          <h3 className="text-2xl font-black text-white uppercase italic mb-8">
+            ¿Desde dónde vas a manejar <span className="text-green-500">Snappy</span>?
+          </h3>
+          <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+            <button 
+              onClick={() => { setVideoSource(`https://www.youtube.com/embed/${activeTutorialData?.mobileId}?autoplay=1`); setVideoStep('playing'); }}
+              className="flex items-center gap-4 p-6 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-green-600 hover:text-black transition-all group"
+            >
+              <Smartphone size={28} />
+              <div className="text-left">
+                <span className="block font-black uppercase text-xs">Desde mi Celular</span>
+                <span className="text-[9px] opacity-60">Tutorial en Vertical</span>
+              </div>
+            </button>
+            <button 
+              onClick={() => { setVideoSource(`https://www.youtube.com/embed/${activeTutorialData?.pcId}?autoplay=1`); setVideoStep('playing'); }}
+              className="flex items-center gap-4 p-6 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all"
+            >
+              <Monitor size={28} />
+              <div className="text-left">
+                <span className="block font-black uppercase text-xs">Desde mi PC</span>
+                <span className="text-[9px] opacity-60">Tutorial en Horizontal</span>
+              </div>
+            </button>
           </div>
         </div>
+      )}
+
+      {/* REPRODUCTOR YOUTUBE */}
+      {videoStep === 'playing' && (
+        <div className="animate-in fade-in duration-500">
+          <p className="text-green-500 font-black uppercase italic text-xs mb-4 tracking-widest">Tutorial: {activeTutorialData?.title}</p>
+          <div className="relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+            <iframe
+              src={videoSource}
+              title="YouTube tutorial"
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+          {/* Botón para forzar ver en YouTube */}
+          <a 
+            href={`https://www.youtube.com/watch?v=${videoSource.split('/embed/')[1].split('?')[0]}`} 
+            target="_blank" 
+            className="inline-block mt-6 text-[10px] font-black text-white/30 hover:text-white uppercase tracking-widest border-b border-white/10 pb-1"
+          >
+            Ver directamente en YouTube →
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+)}
       </section>
 
       {/* --- PLANES (INFO ORIGINAL + PRECIO BLUR) --- */}
