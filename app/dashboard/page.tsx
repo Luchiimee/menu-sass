@@ -299,66 +299,76 @@ const confirmDelete = async () => {
             </div>
         </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-    {/* 1. Plan Light */}
-    <div className="bg-white border border-gray-200 p-6 rounded-3xl hover:border-gray-300 transition shadow-sm flex flex-col h-full text-gray-900">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-end">
+    {/* Plan Light - Sincronizado con Landing */}
+    <div className="bg-white border border-gray-200 p-8 rounded-3xl hover:shadow-xl transition flex flex-col h-full text-gray-900">
         <div className="mb-4">
-            <h3 className="text-lg font-bold text-gray-500">Plan Light</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
+            <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
             <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-gray-900">$7.000</span>
+                <span className="text-4xl font-black text-gray-900">$7.400</span>
                 <span className="text-sm text-gray-400">/mes</span>
             </div>
         </div>
         <hr className="border-gray-100 my-4"/>
-        <ul className="space-y-3 text-sm text-gray-600 flex-1">
-            <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> <b>Hasta 15 Productos</b></li>
-            <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Pedidos WhatsApp</li>
-            <li className="flex gap-2"><CheckCircle2 size={18} className="text-gray-400"/> Catálogo Digital Interactivo</li>
+        <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> <b>Hasta 15 Productos</b></li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Catálogo Digital Interactivo</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Pedidos directos a WhatsApp</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Mostrar Alias para Transferencias</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Dominio Personalizable</li>
         </ul>
-        <Link href="/dashboard/settings" className="mt-6 block w-full py-3 bg-gray-100 text-gray-600 font-bold text-center rounded-xl hover:bg-gray-200 transition">
-            Elegir Light
+        <Link href="/dashboard/settings" className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm">
+            Prueba 14 días gratis
         </Link>
     </div>
 
-    {/* 2. Plan Plus - El más popular */}
-    <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border border-gray-800 h-full">
-        <div className="absolute top-0 right-0 bg-yellow-400 text-black text-[10px] font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
-        <div className="mb-4 z-10">
-            <h3 className="text-lg font-bold text-purple-300">Plan Plus</h3>
+    {/* Plan Plus - El "Más Elegido" de la Landing */}
+    <div className="bg-gray-900 text-white p-8 rounded-[35px] shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border-2 border-gray-900 h-full z-10">
+        <div className="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl">MÁS ELEGIDO</div>
+        <div className="mb-4">
+            <h3 className="text-xl font-bold text-green-400 mb-1 flex items-center gap-2">
+                Plus <Zap size={18} fill="currentColor" />
+            </h3>
+            <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Profesional</p>
             <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-white">$15.900</span>
+                <span className="text-4xl font-black text-white">$15.900</span>
                 <span className="text-sm text-gray-400">/mes</span>
             </div>
-            {/* Beneficio de prueba gratuita destacado */}
-            <p className="text-sm text-green-400 font-bold mt-2 flex items-center gap-1">
-                <Zap size={14}/> 14 días GRATIS hoy
-            </p>
         </div>
-        <hr className="border-gray-800 my-4 z-10"/>
-        <ul className="space-y-3 text-sm text-gray-300 flex-1 z-10">
-            <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> <b>Productos Ilimitados</b></li>
-            <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Todo lo del plan Light</li>
-            <li className="flex gap-2"><CheckCircle2 size={18} className="text-green-400"/> Panel de Pedidos</li>
+        <hr className="border-gray-800 my-4"/>
+        <ul className="space-y-4 text-sm text-gray-300 flex-1 font-medium mb-8">
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> <b>Productos Ilimitados</b> ✨</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Todo lo del plan Light</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> <b>Seguimiento de Pedido en Vivo</b> 🚀</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> <b>QR Inteligente</b></li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Panel de Comandas (Cocina)</li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Acceso a todas las plantillas</li>
         </ul>
-        <Link href="/dashboard/settings" className="mt-6 block w-full py-4 bg-white text-black font-black text-center rounded-xl hover:bg-gray-100 transition shadow-lg z-10">
-            Probar Gratis
+        <Link href="/dashboard/settings" className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm">
+            Prueba 14 días gratis
         </Link>
     </div>
 
-    {/* 3. Plan Max - Próximamente */}
-    <div className="bg-white border-2 border-gray-100 p-6 rounded-3xl flex flex-col relative overflow-hidden h-full text-gray-900">
+    {/* Plan Max - Próximamente */}
+    <div className="bg-white border border-gray-200 p-8 rounded-3xl flex flex-col h-full opacity-60 grayscale-[0.5]">
         <div className="mb-4">
-            <h3 className="text-lg font-bold text-gray-400">Plan Max</h3>
-            <div className="flex items-baseline gap-1 mt-2 select-none filter blur-[5px]">
-                <span className="text-4xl font-bold text-gray-300">$28.600</span>
+            <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-2 py-1 rounded-lg mb-4 w-fit inline-block">PRÓXIMAMENTE</span>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Max</h3>
+            <p className="text-xs text-gray-400 mb-6 font-bold uppercase">Escalabilidad</p>
+            <div className="mb-8 blur-[4px] select-none">
+                <span className="text-3xl font-black text-gray-900">$28.600</span>
+                <span className="text-gray-400 text-sm">/mes</span>
             </div>
         </div>
         <hr className="border-gray-100 my-4"/>
-        <ul className="space-y-3 text-sm text-gray-400 flex-1">
-            <li className="flex gap-2"><CheckCircle2 size={18}/> Todo lo del Plus</li>
-            <li className="flex gap-2"><CheckCircle2 size={18}/> Métricas Pro</li>
+        <ul className="space-y-4 text-sm text-gray-500 flex-1 mb-8 font-medium">
+            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Todo lo del plan Plus</li>
+            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Panel Pro para Caja</li>
+            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Integración Mercado Pago</li>
+            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Gestión de hasta 2 sucursales</li>
         </ul>
-        <button disabled className="mt-6 block w-full py-3 bg-gray-50 text-gray-300 font-bold text-center rounded-xl cursor-not-allowed">
+        <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-bold cursor-not-allowed">
             Próximamente
         </button>
     </div>
