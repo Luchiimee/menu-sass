@@ -49,10 +49,10 @@ interface GalleryItem {
 }
 
 const galleries: GalleryItem[] = [
-  { title: 'Hamburguesería', image: '/01.png', offset: 'lg:mt-0' },
-  { title: 'Sushi Bar', image: '/02.png', offset: 'lg:mt-16' },
-  { title: 'Pizzería', image: '/03.png', offset: 'lg:mt-8' },
-  { title: 'Kiosco 24hs', image: '/galeria-4.png', offset: 'lg:mt-24' }
+  { title: 'Hamburguesería', image: '/galeria/01.png', offset: 'lg:mt-0' },
+  { title: 'Sushi Bar', image: '/galeria/02.png', offset: 'lg:mt-16' },
+  { title: 'Cafeteria', image: '/galeria/03.png', offset: 'lg:mt-8' },
+  { title: 'Pizeria', image: '/galeria/04.png', offset: 'lg:mt-24' }
 ];
 
 // 2. Tipamos las Props del componente PhoneFrame
@@ -381,57 +381,88 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- SECCIÓN WEBAPP PRO: PARA EL DUEÑO --- */}
-      <section className="py-24 bg-black text-white overflow-hidden border-y border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="relative aspect-video lg:aspect-square flex items-center justify-center">
-            <div className="relative">
-              <Monitor size={200} className="text-gray-800 opacity-40" />
-              <Smartphone
-                size={100}
-                className="text-green-500 absolute -bottom-4 -right-4 drop-shadow-2xl"
-              />
+     {/* --- SECCIÓN WEBAPP PRO: PARA EL DUEÑO --- */}
+<section className="py-24 bg-black text-white overflow-hidden border-y border-gray-800">
+  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+    
+    {/* PARTE IZQUIERDA: ICONOS Y PRÓXIMAMENTE */}
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative mb-12">
+        <Monitor size={200} className="text-gray-800 opacity-40" />
+        <Smartphone
+          size={100}
+          className="text-green-500 absolute -bottom-4 -right-4 drop-shadow-2xl"
+        />
+      </div>
+
+      {/* DISTINTIVOS DE STORES (PRÓXIMAMENTE) */}
+      <div className="flex flex-col items-center gap-4">
+        <span className="text-[10px] font-black tracking-[0.3em] text-gray-500 uppercase italic">
+          Próximamente en
+        </span>
+        <div className="flex items-center gap-4 opacity-30 grayscale hover:opacity-50 transition-opacity">
+          {/* Badge Play Store */}
+          <div className="flex items-center gap-2 border border-gray-700 px-4 py-2 rounded-xl">
+            <div className="w-5 h-5 bg-white/10 rounded flex items-center justify-center">
+              <Zap size={12} className="text-white" />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="text-[7px] uppercase font-bold text-gray-400">Disponible en</span>
+              <span className="text-xs font-black">Google Play</span>
             </div>
           </div>
-          <div>
-            <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-8">
-              <SmartphoneNfc size={32} className="text-green-500" />
-            </div>
-            <h2 className="text-4xl font-extrabold tracking-tight mb-6 uppercase">
-              WebApp Pro <br />{" "}
-              <span className="text-green-500">Tu panel siempre a mano</span>
-            </h2>
-            <p className="text-gray-400 text-lg mb-8 leading-relaxed italic font-medium">
-              No pierdas tiempo abriendo el navegador. Instala Snappy en tu
-              **PC, Tablet o Celular** y gestiona tu local como una App nativa.
-              Más rápido, más cómodo y sin descargas de ninguna Store.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3 mb-4 text-green-500 font-black text-xs uppercase tracking-widest">
-                  <Monitor size={18} /> EN TU PC
-                </div>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  Desde Chrome, haz clic en el icono de <b>"Instalar"</b> en la
-                  barra de direcciones.
-                </p>
-              </div>
-              <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3 mb-4 text-green-500 font-black text-xs uppercase tracking-widest">
-                  <Smartphone size={18} /> EN TU MÓVIL
-                </div>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  <b>Android Chrome:</b> 3 puntitos {`>`} "Agregar a inicio".{" "}
-                  <br /> <b>iOS Chrome:</b> Compartir {`>`} Mas {`>`}"Agregar al
-                  inicio".
-                  <br /> <b>iOS Safari:</b> 3 puntitos {`>`} Compartir {`>`} Mas{" "}
-                  {`>`} "Agregar a inicio".
-                </p>
-              </div>
+
+          {/* Badge App Store */}
+          <div className="flex items-center gap-2 border border-gray-700 px-4 py-2 rounded-xl">
+            <Smartphone size={14} className="text-white" />
+            <div className="flex flex-col leading-none">
+              <span className="text-[7px] uppercase font-bold text-gray-400">Consíguelo en el</span>
+              <span className="text-xs font-black">App Store</span>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+
+    {/* PARTE DERECHA: TEXTOS E INSTRUCCIONES */}
+    <div>
+      <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-8">
+        <SmartphoneNfc size={32} className="text-green-500" />
+      </div>
+      <h2 className="text-4xl font-extrabold tracking-tight mb-6 uppercase">
+        WebApp Pro <br />{" "}
+        <span className="text-green-500">Tu panel siempre a mano</span>
+      </h2>
+      <p className="text-gray-400 text-lg mb-8 leading-relaxed italic font-medium">
+        No pierdas tiempo abriendo el navegador. Instala Snappy en tu
+        **PC, Tablet o Celular** y gestiona tu local como una App nativa.
+        Más rápido, más cómodo y sin descargas de ninguna Store.
+      </p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3 mb-4 text-green-500 font-black text-xs uppercase tracking-widest">
+            <Monitor size={18} /> EN TU PC
+          </div>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Desde Chrome, haz clic en el icono de <b>"Instalar"</b> en la
+            barra de direcciones.
+          </p>
+        </div>
+        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3 mb-4 text-green-500 font-black text-xs uppercase tracking-widest">
+            <Smartphone size={18} /> EN TU MÓVIL
+          </div>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            <b>Android Chrome:</b> 3 puntitos {`>`} "Agregar a inicio".
+            <br /> <b>iOS Chrome:</b> Compartir {`>`} Mas {`>`}"Agregar al inicio".
+            <br /> <b>iOS Safari:</b> 3 puntitos {`>`} Compartir {`>`} Mas {`>`} "Agregar a inicio".
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
   {/* --- SECCIÓN: DISEÑOS QUE ENAMORAN (ESPACIO PARA GIFS COMPLETOS) --- */}
       <section id="disenos" className="py-24 bg-white">
@@ -851,12 +882,12 @@ export default function LandingPage() {
         <div className="relative w-full">
           {/* Contenedor Animado */}
           <div className="animate-gallery gap-12 py-10">
-            {/* Duplicamos el mapeo para el efecto infinito */}
-            {[...galleries, ...galleries].map((item, i) => (
-              <div 
-                key={i} 
-                className={`flex-shrink-0 ${item.offset}`}
-              >
+  {/* Triplicamos el contenido para que el bucle sea perfecto */}
+  {[...galleries, ...galleries, ...galleries].map((item, i) => (
+    <div 
+      key={i} 
+      className={`flex-shrink-0 ${item.offset}`}
+    >
                 <div className="group flex flex-col items-center">
                   {/* CELULAR COMPACTO: w-[180px] */}
                   <div className="relative w-[180px] transition-all duration-500 hover:-translate-y-3">
