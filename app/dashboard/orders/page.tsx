@@ -153,17 +153,79 @@ function OrdersContent() {
     setReceiveWhatsapp(newValue);
     await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
   };
-
-  const handlePrint = (order: any) => {
+const handlePrint = (order: any) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    const itemsHtml = order.items.map((item: any) => `
-        <div style="display: flex; justify-content: space-between; font-family: monospace; margin-bottom:5px;">
-            <span>${item.quantity}x ${item.name}</span>
-            <span>$${item.price * item.quantity}</span>
-        </div>`).join("");
-    printWindow.document.write(`<html><body style="font-family: monospace; width: 300px; padding: 20px;"><h2 style="text-align:center">${restaurantName}</h2>${itemsHtml}<h3>TOTAL: $${order.total}</h3></body></html>`);
-    printWindow.document.close(); printWindow.print();
+
+    // Buscamos la dirección en todos los campos posibles
+    const direccionReal = order.address || order.customer_address || 'Sin dirección';
+    
+    const direccionExhibida = order.order_type === 'delivery' 
+      ? direccionReal 
+      : order.order_type === 'mesa' ? `Mesa: ${order.table_number || 'S/N'}` : 'Retiro por Local';
+
+    const itemsHtml = order.items.map((item: any) => {
+      // Desglose de extras con precio
+      const extras = item.extras && item.extras.length > 0 
+        ? `<div style="font-size: 11px; color: #666; margin-left: 10px;">${item.extras.map((e: any) => `+ ${e.name} ($${e.price})`).join('<br>')}</div>`
+        : '';
+      
+      return `
+        <div style="margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
+                <span>${item.quantity}x ${item.name}</span>
+                <span>$${item.price * item.quantity}</span>
+            </div>
+            ${extras}
+        </div>`;
+    }).join("");
+
+    printWindow.document.write(`
+        <html>
+            <body style="font-family: 'Courier New', monospace; width: 280px; padding: 10px; color: #000; line-height: 1.2;">
+                <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+                    <h2 style="margin:0; text-transform: uppercase; letter-spacing: -1px;">${restaurantName}</h2>
+                    <p style="margin: 4px 0; font-weight: bold;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
+                    <p style="margin: 0; font-size: 11px;">${new Date(order.created_at).toLocaleString('es-AR')}</p>
+                </div>
+
+                <div style="margin-bottom: 12px; font-size: 13px;">
+                    <p style="margin: 3px 0;"><strong>CLIENTE:</strong> ${order.customer_name}</p>
+                    <p style="margin: 3px 0;"><strong>TEL:</strong> ${order.customer_phone || 'N/A'}</p>
+                    <p style="margin: 3px 0;"><strong>DIR:</strong> ${direccionExhibida}</p>
+                    <p style="margin: 3px 0;"><strong>PAGO:</strong> ${order.payment_method?.toUpperCase() || 'EFECTIVO'}</p>
+                    ${order.notes ? `<div style="margin-top: 6px; padding: 4px; border: 1px solid #000; font-size: 12px;"><strong>NOTA:</strong> ${order.notes}</div>` : ''}
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    ${itemsHtml}
+                </div>
+
+                <div style="border-top: 2px dashed #000; padding-top: 8px;">
+                    ${order.discount_amount > 0 ? `
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span>SUBTOTAL:</span>
+                            <span>$${Number(order.total) + Number(order.discount_amount)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span>DESC. (${order.coupon_code || 'CUPÓN'}):</span>
+                            <span>-$${order.discount_amount}</span>
+                        </div>
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 900; margin-top: 4px;">
+                        <span>TOTAL:</span>
+                        <span>$${order.total}</span>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px; font-size: 11px;">
+                    <p>*** GRACIAS POR ELEGIRNOS ***</p>
+                </div>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const changeView = (newView: string) => {
@@ -412,37 +474,41 @@ function OrdersContent() {
                 {/* CONTENIDO DESPLEGABLE: Solo el listado */}
                 {showTables && (
                     <div className="p-6 animate-in slide-in-from-top-2 duration-300">
-                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
     {availableTables.map((mesa) => (
-        <div key={mesa.id} className="bg-white p-5 rounded-[1.5rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-sm relative group hover:border-blue-200 transition-all">
+        <div key={mesa.id} className="bg-white p-5 rounded-[1.5rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-sm relative group hover:border-blue-200 transition-all overflow-hidden">
             
-            {/* BOTONES DE ACCIÓN: EDITAR Y ELIMINAR */}
-            <div className="absolute top-3 right-3 flex gap-2">
+            {/* BOTONES FLOTANTES (Esquina superior derecha) */}
+            <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
                 <button 
-                    onClick={() => openEditModal(mesa)} 
-                    className="text-gray-300 hover:text-blue-500 transition-colors p-1"
+                    onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} 
+                    className="bg-gray-50 p-2 rounded-full text-blue-600 shadow-sm hover:bg-blue-50 transition-all"
                 >
-                    <Pencil size={16} /> 
+                    <Pencil size={14} /> 
                 </button>
                 <button 
-                    onClick={() => {
+                    onClick={(e) => { 
+                        e.stopPropagation();
                         if(confirm(`¿Eliminar ${mesa.name}?`)) {
                             supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!));
                         }
                     }}
-                    className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                    className="bg-gray-50 p-2 rounded-full text-red-500 shadow-sm hover:bg-red-50 transition-all"
                 >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                 </button>
             </div>
 
-            <span className="text-3xl mb-2">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span>
+            {/* ICONO CENTRAL (Con más margen arriba para que no lo tapen los botones) */}
+            <span className="text-4xl mt-4 mb-2 select-none">
+                {mesa.status === 'reservada' ? '🔒' : '🍽️'}
+            </span>
             
             <span className="font-black text-sm text-gray-900 uppercase mb-1 tracking-tighter">
                 {mesa.name}
             </span>
             
-            <p className="text-[10px] text-gray-800 font-bold italic mb-4 line-clamp-2 min-h-[1.5rem] leading-tight">
+            <p className="text-[10px] text-gray-500 font-bold italic mb-4 line-clamp-1 h-3">
                 {mesa.description || "Sin descripción"}
             </p>
 
@@ -454,19 +520,11 @@ function OrdersContent() {
                     : 'bg-green-50 border-green-600 text-green-700'
                 }`}
             >
-                {mesa.status === 'reservada' ? 'Reservada (Off)' : 'Libre (On)'}
+                {mesa.status === 'reservada' ? 'Ocupada' : 'Libre'}
             </button>
         </div>
-                            ))}
-
-                            {availableTables.length === 0 && (
-                                <div className="col-span-full py-14 text-center border-2 border-dashed border-gray-100 rounded-[2rem] bg-gray-50/50">
-                                    <LayoutGrid size={32} className="mx-auto mb-3 text-gray-200" />
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No hay mesas configuradas</p>
-                                    <p className="text-[10px] text-gray-400 font-bold mt-1">Usa el botón "Crear Mesa" para empezar.</p>
-                                </div>
-                                    )}
-                                </div>
+    ))}
+</div>
                             </div>
                         )}
                     </div>
