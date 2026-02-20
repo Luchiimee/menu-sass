@@ -84,32 +84,68 @@ const PhoneFrame = ({ image, title, className = '' }: PhoneFrameProps) => (
   </div>
 );
 
-const TUTORIALS = [
-  { title: "Crea tu primer menú", duration: "1:20", pcId: "ID_PC_1", mobileId: "ID_CELU_1" },
-  { title: "Configura tus Extras", duration: "0:55", pcId: "ID_PC_2", mobileId: "ID_CELU_2" },
-  { title: "Panel de Comandas", duration: "1:45", pcId: "ID_PC_3", mobileId: "ID_CELU_3" },
+interface Tutorial {
+  title: string;
+  duration: string;
+  videoPath: string;
+  thumbnail: string;
+  isAvailable: boolean;
+}
+
+const TUTORIALS: Tutorial[] = [
+  {
+    title: "Primeros pasos snappy",
+    duration: "4:22",
+    videoPath: "/videos/primeros-pasos.mp4",
+    thumbnail: "/thumbnails/paso1-cover.png",
+    isAvailable: true 
+  },
+  {
+    title: "Configura tus Extras",
+    duration: "0:55",
+    videoPath: "/videos/extras.mp4",
+    thumbnail: "/thumbnails/extras-cover.png",
+    isAvailable: false 
+  },
+  {
+    title: "Panel de Comandas",
+    duration: "1:45",
+    videoPath: "/videos/comandas.mp4",
+    thumbnail: "/thumbnails/comandas-cover.png",
+    isAvailable: false 
+  },
 ];
 export default function LandingPage() {
   const [tutorialToast, setTutorialToast] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('visualgrid');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [aliasCopied, setAliasCopied] = useState(false);
-const [videoStep, setVideoStep] = useState<'idle' | 'choosing' | 'playing'>('idle');
-const [videoSource, setVideoSource] = useState('');
-const [activeTutorialData, setActiveTutorialData] = useState<any>(null); //
+  const [videoStep, setVideoStep] = useState<'idle' | 'choosing' | 'playing'>('idle');
+  const [videoSource, setVideoSource] = useState('');
+  const [activeTutorialData, setActiveTutorialData] = useState<any>(null);
+  
+  // Nuevo estado para controlar el mensaje de "Próximamente"
+  const [showSoonToast, setShowSoonToast] = useState(false);
 
-const openTutorial = (video: any) => {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  setActiveTutorialData(video); // Guardamos todo el objeto (título e IDs)
-
-  if (isMobile) {
-    setVideoStep('choosing'); // Preguntamos qué versión quiere ver
-  } else {
-    // Si es PC, cargamos directamente el video de YouTube horizontal
-    setVideoSource(`https://www.youtube.com/embed/${video.pcId}?autoplay=1&rel=0`);
+  // Función para manejar la apertura de tutoriales con validación de disponibilidad
+  const openTutorial = (video: any) => {
+    if (!video.isAvailable) {
+      setShowSoonToast(true);
+      setTimeout(() => setShowSoonToast(false), 3000); // El aviso desaparece en 3 segundos
+      return;
+    }
+    
+    setActiveTutorialData(video);
+    setVideoSource(video.videoPath); 
     setVideoStep('playing');
-  }
-};
+  };
+
+  // Función para el link de YouTube que todavía no está listo
+  const handleYoutubeClick = (e: React.MouseEvent) => {
+    e.preventDefault(); 
+    setShowSoonToast(true);
+    setTimeout(() => setShowSoonToast(false), 3000);
+  };
 
   const handleCopyAlias = () => {
     navigator.clipboard.writeText("luciano.mp");
@@ -589,118 +625,114 @@ const openTutorial = (video: any) => {
         </div>
       </section>
 
-     {/* --- SECCIÓN TUTORIALES (CON AVISO DE GRABACIÓN) --- */}
-      <section className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-            <div>
-              <h2 className="text-4xl font-extrabold tracking-tight uppercase italic leading-none">
-                Aprende en <span className="text-green-600">60 segundos</span>
-              </h2>
-              <p className="text-gray-500 font-medium mt-2">
-                Tutoriales rápidos para configurar tu Snappy hoy mismo.
-              </p>
-            </div>
-            <a
-              href="https://youtube.com/@snappy"
-              target="_blank"
-              className="text-gray-400 font-bold flex items-center gap-2 hover:text-black transition-colors"
-            >
-              Ver todos en YouTube <ArrowRight size={18} />
-            </a>
-          </div>
+    {/* --- SECCIÓN TUTORIALES (CON SISTEMA DE AVISOS) --- */}
+<section className="py-24 bg-gray-50 relative">
+  {/* AVISO FLOTANTE (TOAST) - Aparece cuando algo no está listo */}
+  {showSoonToast && (
+    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[600] bg-black text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
+      <Zap size={18} className="text-yellow-400 fill-current" />
+      <span className="font-bold text-sm uppercase tracking-widest">Próximamente: Estamos grabando el contenido</span>
+    </div>
+  )}
 
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {TUTORIALS.map((v, i) => (
-            <div 
-              key={i} 
-              className="group cursor-pointer relative"
-              onClick={() => openTutorial(v)} // Ahora pasamos el objeto completo 'v'
-            >
-              <div className="relative aspect-video bg-gray-800 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg transition-all duration-500 group-hover:shadow-2xl">
-                <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition duration-500">
-                  <PlayCircle
-                    size={50}
-                    className="text-white drop-shadow-2xl opacity-80"
-                    fill="currentColor"
-                  />
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+      <div>
+        <h2 className="text-4xl font-extrabold tracking-tight uppercase italic leading-none">
+          Aprende en <span className="text-green-600">60 segundos</span>
+        </h2>
+        <p className="text-gray-500 font-medium mt-2">
+          Tutoriales rápidos para configurar tu Snappy hoy mismo.
+        </p>
+      </div>
+      {/* LINK DE YOUTUBE: Ahora llama a handleYoutubeClick */}
+      <a
+        href="#"
+        onClick={handleYoutubeClick}
+        className="text-gray-400 font-bold flex items-center gap-2 hover:text-black transition-colors"
+      >
+        Ver todos en YouTube <ArrowRight size={18} />
+      </a>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {TUTORIALS.map((v, i) => (
+        <div
+          key={i}
+          className={`group cursor-pointer relative ${!v.isAvailable ? 'opacity-70' : ''}`}
+          onClick={() => openTutorial(v)}
+        >
+          <div className="relative aspect-video bg-gray-900 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg transition-all duration-500 group-hover:shadow-2xl group-hover:border-green-200">
+            
+            <Image
+              src={v.thumbnail}
+              alt={`Portada del tutorial ${v.title}`}
+              fill
+              className={`object-cover transition-all duration-500 ${!v.isAvailable ? 'grayscale group-hover:grayscale-0' : 'opacity-80 group-hover:opacity-100'}`}
+            />
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+
+            <div className="absolute inset-0 flex items-center justify-center">
+              {!v.isAvailable ? (
+                /* Icono para videos no disponibles */
+                <div className="bg-black/40 backdrop-blur-sm p-4 rounded-full text-white font-black text-[10px] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                  Grabando...
                 </div>
-                
-                <span className="absolute bottom-4 right-4 bg-black/70 text-white text-[10px] px-2 py-1 rounded font-bold">
-                  {v.duration}
-                </span>
-              </div>
-              <h4 className="font-black uppercase italic transition-colors ml-2 text-gray-900 group-hover:text-green-600">
-                {v.title}
-              </h4>
+              ) : (
+                /* Icono Play para video disponible */
+                <PlayCircle
+                  size={64}
+                  className="text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-110 group-hover:text-green-400"
+                  fill="rgba(255,255,255,0.2)"
+                />
+              )}
             </div>
-          ))}
-        </div>
-        </div>
-{/* OVERLAY DE VIDEO INTELIGENTE */}
-{(videoStep === 'choosing' || videoStep === 'playing') && (
-  <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
-    <button onClick={() => setVideoStep('idle')} className="absolute top-6 right-6 text-white/50 hover:text-white"><X size={32} /></button>
 
-    <div className="w-full max-w-4xl text-center">
-      {/* SELECTOR MOBILE */}
-      {videoStep === 'choosing' && (
-        <div className="animate-in zoom-in duration-300">
-          <h3 className="text-2xl font-black text-white uppercase italic mb-8">
-            ¿Desde dónde vas a manejar <span className="text-green-500">Snappy</span>?
-          </h3>
-          <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
-            <button 
-              onClick={() => { setVideoSource(`https://www.youtube.com/embed/${activeTutorialData?.mobileId}?autoplay=1`); setVideoStep('playing'); }}
-              className="flex items-center gap-4 p-6 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-green-600 hover:text-black transition-all group"
-            >
-              <Smartphone size={28} />
-              <div className="text-left">
-                <span className="block font-black uppercase text-xs">Desde mi Celular</span>
-                <span className="text-[9px] opacity-60">Tutorial en Vertical</span>
-              </div>
-            </button>
-            <button 
-              onClick={() => { setVideoSource(`https://www.youtube.com/embed/${activeTutorialData?.pcId}?autoplay=1`); setVideoStep('playing'); }}
-              className="flex items-center gap-4 p-6 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all"
-            >
-              <Monitor size={28} />
-              <div className="text-left">
-                <span className="block font-black uppercase text-xs">Desde mi PC</span>
-                <span className="text-[9px] opacity-60">Tutorial en Horizontal</span>
-              </div>
-            </button>
+            <span className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-md text-white text-[10px] px-3 py-1 rounded-full font-bold border border-white/10">
+              {v.isAvailable ? v.duration : 'PRÓX.'}
+            </span>
           </div>
-        </div>
-      )}
 
-      {/* REPRODUCTOR YOUTUBE */}
-      {videoStep === 'playing' && (
-        <div className="animate-in fade-in duration-500">
-          <p className="text-green-500 font-black uppercase italic text-xs mb-4 tracking-widest">Tutorial: {activeTutorialData?.title}</p>
-          <div className="relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
-            <iframe
-              src={videoSource}
-              title="YouTube tutorial"
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-          {/* Botón para forzar ver en YouTube */}
-          <a 
-            href={`https://www.youtube.com/watch?v=${videoSource.split('/embed/')[1].split('?')[0]}`} 
-            target="_blank" 
-            className="inline-block mt-6 text-[10px] font-black text-white/30 hover:text-white uppercase tracking-widest border-b border-white/10 pb-1"
-          >
-            Ver directamente en YouTube →
-          </a>
+          <h4 className="font-black uppercase italic transition-colors ml-2 text-gray-900 group-hover:text-green-600">
+            {v.title} {!v.isAvailable && <span className="text-[10px] text-gray-400 normal-case ml-2">(Próximamente)</span>}
+          </h4>
         </div>
-      )}
+      ))}
     </div>
   </div>
-)}
-      </section>
+
+  {/* REPRODUCTOR DE VIDEO (Mantenemos esta lógica para que el video 1 funcione) */}
+  {(videoStep === 'choosing' || videoStep === 'playing') && (
+    <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
+      <button onClick={() => setVideoStep('idle')} className="absolute top-6 right-6 text-white/50 hover:text-white">
+        <X size={32} />
+      </button>
+
+      <div className="w-full max-w-4xl text-center">
+        {videoStep === 'playing' && (
+          <div className="animate-in fade-in duration-500">
+            <p className="text-green-500 font-black uppercase italic text-xs mb-4 tracking-widest">
+              Tutorial: {activeTutorialData?.title}
+            </p>
+            <div className="relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+              <video
+                src={videoSource}
+                controls
+                autoPlay
+                className="absolute inset-0 w-full h-full object-cover"
+              >
+                Tu navegador no soporta videos.
+              </video>
+            </div>
+            <p className="mt-4 text-[10px] text-white/30 uppercase tracking-widest">
+              Reproduciendo desde el servidor de Snappy
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+</section>
 
       {/* --- PLANES (INFO ORIGINAL + PRECIO BLUR) --- */}
 
@@ -1147,7 +1179,7 @@ const openTutorial = (video: any) => {
             </h4>
             <ul className="space-y-4 text-gray-500 text-sm font-medium">
               <li>
-                <a href="https://wa.me/2324694045">WhatsApp</a>
+                <a href="https://wa.me/2324313123">WhatsApp</a>
               </li>
             </ul>
           </div>
