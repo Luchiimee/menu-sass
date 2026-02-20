@@ -14,20 +14,19 @@ const supabase = createClient(
 export async function POST(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const id = searchParams.get('id'); // ID de la notificación
-        const topic = searchParams.get('topic'); // Tipo de notificación
+        const id = searchParams.get('id'); 
+        const topic = searchParams.get('topic'); 
 
-        // Solo procesamos si es una suscripción (preapproval)
         if (topic === 'preapproval' && id) {
             const preapproval = new PreApproval(client);
             const subData = await preapproval.get({ id });
 
             const userId = subData.external_reference;
-            const status = subData.status; // 'authorized' = pagado/activo
+            const status = subData.status; 
 
             if (status === 'authorized') {
-                // ACTIVAMOS EL PLAN EN LA BASE DE DATOS
-                const { error } = await supabase
+                // 1. ACTIVAMOS EL PLAN EN LA TABLA RESTAURANTS
+                await supabase
                     .from('restaurants')
                     .update({ 
                         subscription_status: 'active',
@@ -35,12 +34,21 @@ export async function POST(request: Request) {
                     })
                     .eq('user_id', userId);
 
-                if (error) throw error;
-                console.log(`✅ Suscripción activada para el usuario: ${userId}`);
+                // 2. AHORA ACTIVAMOS LA "LLAVE MAESTRA" EN PROFILES (NUEVO)
+                // Esto es lo que quita el cartel de bloqueo de los 14 días
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        payment_configured: true // <--- Gira la llave maestra
+                    })
+                    .eq('id', userId);
+
+                if (profileError) throw profileError;
+                
+                console.log(`✅ Suscripción y llave maestra activadas para: ${userId}`);
             }
         }
 
-        // MP espera un 200 o 201 para dejar de mandar la notificación
         return NextResponse.json({ received: true }, { status: 200 });
 
     } catch (error: any) {

@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -35,8 +35,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [isLoading, setIsLoading] = useState(true);
   const [hasPhone, setHasPhone] = useState(true); 
-  const [isCollapsed, setIsCollapsed] = useState(false); // Estado colapsable
-  const [isAdmin, setIsAdmin] = useState(false); // Estado Admin
+  const [isCollapsed, setIsCollapsed] = useState(false); 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null); // Tu estado centralizado
   const [restaurant, setRestaurant] = useState<{
     name: string,
     plan: string | null,
@@ -52,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     let mounted = true;
 
- const loadData = async () => {
+    const loadData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
@@ -61,35 +62,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         return;
       }
-try {
-        // 1. Verificar Restaurante
+
+      try {
         const { data: rest } = await supabase
           .from('restaurants')
           .select('name, subscription_plan, subscription_status, logo_url') 
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        // 2. Verificar Perfil (Quitamos is_admin que es lo que rompe todo)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name, last_name, phone') // <--- Solo lo que existe
+          .select('first_name, last_name, phone, created_at, payment_configured')
           .eq('id', session.user.id)
           .maybeSingle();
         
         if (mounted) {
-            // TU ACCESO SUPER ADMIN POR CORREO
             const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
-
-            /* --- LÓGICA DE BANNER --- */
-            // Ahora 'profile' no será null, por lo que leerá bien el teléfono
-            if (!profile?.phone || profile.phone.trim() === "") {
-              setHasPhone(false);
-            } else {
-              setHasPhone(true);
-            }
-
-            // Mantenés el botón de Admin porque sos vos, sin depender de la base de datos
+            
+            // 1. Guardamos los datos en el estado para que TODO el componente los vea
+            setProfileData(profile); 
             setIsAdmin(isSuperAdmin);
+
+            setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
 
             let displayName = "Bienvenido";
             if (profile?.first_name) {
@@ -105,11 +99,15 @@ try {
                 status: isSuperAdmin ? 'active' : (rest?.subscription_status || 'active'),
                 logo_url: rest?.logo_url || null
             });
+            
+            setIsLoading(false);
         }
       } catch (error) {
         console.error("Error layout:", error);
+        if (mounted) setIsLoading(false);
       }
     };
+
     loadData();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -125,6 +123,52 @@ try {
     };
   }, [router]);
 
+  // --- FUNCIONES AUXILIARES ---
+  const getPlanLabel = () => {
+      if (restaurant.plan === 'plus') return 'Plan Plus';
+      if (restaurant.plan === 'light') return 'Plan Light';
+      if (restaurant.plan === 'max') return 'Plan Max';
+      return 'Free';
+  };
+
+  const getPlanColor = () => {
+      if (restaurant.plan === 'plus') return 'text-blue-600';
+      if (restaurant.plan === 'light') return 'text-black';
+      if (restaurant.plan === 'max') return 'text-purple-600';
+      return 'text-gray-400';
+  };
+
+  const supportMessage = encodeURIComponent(`Hola! Soy de ${restaurant.name}, necesito ayuda con mi panel.`);
+
+  // --- LÓGICA DE TIEMPO (Cambiamos 'profile' por 'profileData' para corregir el error) ---
+ // --- LÓGICA DE TIEMPO BLINDADA (Reemplazo corregido) ---
+  const trialDuration = 14;
+  let daysRemaining = 14;
+  let isExpired = false;
+  let showWarning = false;
+
+  // Solo calculamos si ya terminó de cargar y tenemos los datos del perfil
+  if (!isLoading && profileData?.created_at) {
+    const createdAt = new Date(profileData.created_at);
+    const today = new Date();
+    
+    // Calculamos días usados reales
+    const diffInMs = today.getTime() - createdAt.getTime();
+    const daysUsed = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    daysRemaining = trialDuration - daysUsed;
+    const paymentConfigured = profileData?.payment_configured || false;
+
+    // Definimos estados de bloqueo y aviso
+    isExpired = daysRemaining <= 0 && !paymentConfigured;
+    showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured;
+
+    console.log(`Días usados: ${daysUsed} | Quedan: ${daysRemaining} | Bloqueado: ${isExpired}`);
+  }
+
+  const bypassBlock = isAdmin;
+
+  // --- TUS FUNCIONES Y MENÚS (Se mantienen igual) ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.refresh(); 
@@ -144,23 +188,6 @@ try {
   if (isAdmin) {
     menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });
   }
-
-  const getPlanLabel = () => {
-      if (restaurant.plan === 'plus') return 'Plan Plus';
-      if (restaurant.plan === 'light') return 'Plan Light';
-      if (restaurant.plan === 'max') return 'Plan Max';
-      return 'Free';
-  };
-
-  const getPlanColor = () => {
-      if (restaurant.plan === 'plus') return 'text-blue-600';
-      if (restaurant.plan === 'light') return 'text-black';
-      if (restaurant.plan === 'max') return 'text-purple-600';
-      return 'text-gray-400';
-  };
-
-  const supportMessage = encodeURIComponent(`Hola! Soy de ${restaurant.name}, necesito ayuda con mi panel.`);
-
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       <style jsx global>{`
@@ -316,9 +343,50 @@ try {
 
         {restaurant.plan && <TrialBanner />}
 
-        <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10">
-            {children}
+      <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10">
+    
+    {/* AVISO DÍA 10 AL 14 (Solo si no es Admin y no ha pagado) */}
+    {showWarning && !bypassBlock && (
+      <div className="mb-6 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-white/20 p-2 rounded-xl">
+            <Zap size={20} className="text-white fill-current" />
+          </div>
+          <div>
+            <p className="font-black text-xs uppercase tracking-widest">Atención: Periodo de prueba</p>
+            <p className="text-sm opacity-90">Te quedan <b>{daysRemaining} días</b>. Configura tu plan para evitar el corte.</p>
+          </div>
         </div>
+        <Link href="/dashboard/settings" className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-orange-50 transition">
+          Configurar ahora
+        </Link>
+      </div>
+    )}
+
+    {/* LÓGICA DE BLOQUEO TOTAL */}
+    {isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+        <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-red-50 max-w-md">
+          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle size={40} />
+          </div>
+          <h2 className="text-3xl font-black mb-4 uppercase italic">Servicio Pausado</h2>
+          <p className="text-gray-500 mb-8 font-medium">
+            Tu prueba de 14 días ha finalizado. Para seguir recibiendo pedidos y activar tu menú, selecciona un plan.
+          </p>
+          <Link 
+            href="/dashboard/settings" 
+            className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl"
+          >
+            Configurar Pago <ArrowRight size={18} className="inline ml-2" />
+          </Link>
+        </div>
+      </div>
+    ) : (
+      /* SI NO ESTÁ BLOQUEADO, MUESTRA EL CONTENIDO NORMAL */
+      children
+    )}
+</div>
       </main>
 
      <MobileNav 
