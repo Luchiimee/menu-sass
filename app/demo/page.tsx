@@ -170,8 +170,49 @@ const REAL_TEMPLATES_CSS = `
   .minimal-plus-btn { width: 38px; height: 38px; border: 1.5px solid #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #333; }
   .minimal-qty-box { display: flex; align-items: center; gap: 12px; background: #f9f9f9; padding: 4px 10px; border-radius: 100px; border: 1px solid #eee; }
   .minimal-qty-btn { color: #000; font-weight: 900; }
+
+  /* --- IDEAL KIOSCO (POP VIBRANT) --- */
+.pop-kiosco { background: #f5f2e8; padding: 20px; font-family: 'Inter', sans-serif; min-height: 100vh; text-align: left; }
+.pop-header { background: white; border: 3px solid black; border-radius: 12px; margin-bottom: 20px; padding: 15px; display: flex; align-items: center; gap: 12px; box-shadow: 4px 4px 0 black; position: relative; }
+.pop-logo { width: 50px; height: 50px; border-radius: 50%; border: 2px solid black; background-size: cover; flex-shrink: 0; }
+.pop-status { position: absolute; top: -10px; right: 10px; background: #00CED1; border: 2px solid black; padding: 2px 8px; font-size: 8px; font-weight: 900; transform: rotate(3deg); color: black; }
+.pop-promo { background: #FFD700; border: 3px solid black; margin: 0 0 20px; padding: 10px; text-align: center; font-weight: 900; font-size: 12px; box-shadow: 3px 3px 0 rgba(0,0,0,0.2); }
+.pop-card { background: white; border: 3px solid black; border-radius: 15px; margin-bottom: 15px; padding: 15px; box-shadow: 4px 4px 0 #d32f2f; display: flex; justify-content: space-between; align-items: center; }
+.pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: #d32f2f; margin-bottom: 4px; }
+.pop-price-tag { background: black; color: white; padding: 4px 10px; border-radius: 4px; font-weight: 900; display: inline-block; margin-top: 8px; }
+.pop-add-btn { width: 35px; height: 35px; border: 2px solid black; background: white; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 20px; }
+
+/* --- IDEAL RESTAURANTE (SPOTLIGHT HERO) --- */
+.spot-restaurante { background: white; font-family: 'Inter', sans-serif; min-height: 100vh; text-align: left; }
+.spot-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: white; }
+.spot-logo-box { display: flex; align-items: center; gap: 10px; }
+.spot-logo { width: 40px; height: 40px; border-radius: 50%; background-size: cover; border: 1px solid #eee; }
+.spot-status { background: #2ecc71; color: white; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; }
+.spot-banner { position: relative; height: 260px; width: 100%; background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; }
+.spot-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent 60%); }
+.spot-info { position: relative; z-index: 2; color: white; }
+.spot-badge { background: #FFD700; color: black; padding: 4px 10px; font-size: 10px; font-weight: 900; border-radius: 6px; display: inline-block; margin-bottom: 6px; }
+.spot-hero-title { font-size: 32px; font-weight: 900; text-transform: uppercase; font-style: italic; line-height: 1; }
+.spot-hero-price { font-size: 20px; font-weight: 900; color: #FFD700; margin-top: 5px; }
+.spot-hero-btn { position: absolute; bottom: 20px; right: 20px; width: 45px; height: 45px; background: white; color: black; border-radius: 50%; display: grid; place-items: center; font-size: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 5; }
+.spot-promo-bar { background: #fff3e0; color: #000; padding: 12px; text-align: center; font-size: 13px; font-weight: 700; }
+.spot-item { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #f8f8f8; }
+.spot-thumb { width: 75px; height: 75px; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; }
+.spot-item h4 { font-bold; text-[15px]; margin-bottom: 4px; text-align: left; }
+.spot-item p { 
+    text-[11px]; 
+    color: #9ca3af; 
+    margin-top: 2px; 
+    text-align: left; 
+    line-height: 1.3; 
+    
+}
+.spot-product-price { font-weight: 900; font-size: 16px; margin-top: 4px; }
+.spot-add-btn { width: 32px; height: 32px; border: 1px solid #eee; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 `;
 export default function DemoPage() {
+  const [showHeroModalDemo, setShowHeroModalDemo] = useState(false);
+const [heroQtyDemo, setHeroQtyDemo] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
 const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [view, setView] = useState<'selector' | 'menu' | 'tracking'>('selector');
@@ -312,6 +353,8 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
+              { id: 'pop', label: 'Ideal Kiosco', icon: <Store/>, template: 'pop', color: 'text-pink-600' },
+              { id: 'spotlight', label: 'Ideal Restaurante', icon: <ChefHat/>, template: 'spotlight', color: 'text-amber-600' },
               { id: 'classic', label: 'Ideal Pizzería', icon: <Pizza/>, template: 'classic', color: 'text-red-600' },
               { id: 'urban', label: 'Ideal Hamburguesería', icon: <Utensils/>, template: 'urban', color: 'text-orange-600' },
               { id: 'visualgrid', label: 'Ideal Sushi', icon: <Fish/>, template: 'visualgrid', color: 'text-blue-600' },
@@ -340,6 +383,80 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
           {view === 'menu' ? (
             <div className="flex flex-col h-screen overflow-hidden">
               <div className="flex-1 overflow-y-auto">
+
+{template === 'pop' && (
+  <div className="pop-kiosco">
+    <div className="pop-header">
+      <div className="pop-status">OPEN</div>
+      <div className="pop-logo" style={{backgroundImage: "url('https://placehold.co/100/d32f2f/fff?text=SNAPPY')"}}></div>
+      <div>
+        <h2 className="pop-title font-black text-2xl">SNAPPY</h2>
+        <p className="text-[10px] font-bold opacity-60">KIOSCO 24HS</p>
+      </div>
+    </div>
+    <div className="pop-promo">Envios gratis todos los jueves</div>
+    <div className="flex flex-col">
+      {DEMO_PRODUCTS.pop.map(p => (
+        <div key={p.id} className="pop-card">
+          <div className="flex-1 text-left">
+            <div className="pop-prod-title">{p.n}</div>
+            <p className="text-[11px] font-bold text-gray-500">{p.d}</p>
+            <div className="pop-price-tag">${p.p}</div>
+          </div>
+          <button onClick={() => addToCart(p.id)} className="pop-add-btn active:scale-90 transition-transform">+</button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+{template === 'spotlight' && (
+  <div className="spot-restaurante">
+    <div className="spot-header">
+      <div className="spot-logo-box">
+        <div className="spot-logo" style={{backgroundImage: "url('https://placehold.co/100/111/fff?text=CLUB')"}}></div>
+        <div>
+          <h2 className="font-black text-sm uppercase">CLUB MERCEDES</h2>
+          <p className="text-[10px] font-bold opacity-40 uppercase">Restaurante</p>
+        </div>
+      </div>
+      <div className="spot-status">ABIERTO</div>
+    </div>
+    <div className="spot-banner" style={{backgroundImage: "url('https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600')"}}>
+      <div className="spot-overlay"></div>
+      <div className="spot-info">
+        <div className="spot-badge">PLATO DEL DIA</div>
+        <h3 className="spot-hero-title">ESTOFADO</h3>
+        <div className="spot-hero-price">$28.000</div>
+      </div>
+     <button 
+  onClick={() => {
+    setHeroQtyDemo(1); // Reiniciamos cantidad
+    setShowHeroModalDemo(true); // Abrimos el modal
+  }} 
+  className="spot-hero-btn active:scale-90 transition-transform"
+>
+  <Plus/>
+</button>
+    </div>
+    <div className="spot-promo-bar">Envios gratis todos los jueves</div>
+    <div className="flex flex-col">
+      {DEMO_PRODUCTS.spotlight.map(p => (
+        <div key={p.id} className="spot-item">
+          <div className="spot-thumb" style={{backgroundImage: `url(${p.i})`}}></div>
+          <div className="flex-1 text-left">
+            <h4 className="font-bold text-[15px]">{p.n}</h4>
+            <p className="text-[11px] text-gray-400 mt-0.5">{p.d}</p>
+            <div className="spot-product-price">${p.p}</div>
+          </div>
+          <button onClick={() => addToCart(p.id)} className="spot-add-btn active:scale-90 transition-transform"><Plus size={18}/></button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+
         {template === 'urban' && (
   <div className="urbano-dark">
     {/* CABECERA: Logo + Nombres + Botón Abierto */}
@@ -860,6 +977,62 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
     </div>
   </div>
 )}
+{/* --- MODAL PLATO DEL DÍA (SOLO PARA DEMO RESTAURANTE) --- */}
+{showHeroModalDemo && (
+  <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4">
+    {/* Fondo oscuro con desenfoque */}
+    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowHeroModalDemo(false)}></div>
+    
+    <div className="bg-white w-full max-w-sm rounded-[2.5rem] relative z-10 overflow-hidden animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
+      {/* Imagen del plato */}
+      <div className="h-52 bg-cover bg-center relative" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600')" }}>
+          <button onClick={() => setShowHeroModalDemo(false)} className="absolute top-4 right-4 w-9 h-9 bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-md">
+            <X size={20} strokeWidth={3} />
+          </button>
+      </div>
+      
+      <div className="p-6 text-left">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-xl font-black uppercase italic tracking-tighter leading-none mb-1">ESTOFADO</h3>
+            <div className="text-xl font-black text-orange-600">$ 28.000</div>
+          </div>
+          
+          {/* Selector de cantidad */}
+          <div className="flex items-center gap-3 bg-gray-100 p-1.5 rounded-2xl">
+            <button onClick={() => setHeroQtyDemo(Math.max(1, heroQtyDemo - 1))} className="w-7 h-7 flex items-center justify-center font-bold">-</button>
+            <span className="font-bold w-4 text-center">{heroQtyDemo}</span>
+            <button onClick={() => setHeroQtyDemo(heroQtyDemo + 1)} className="w-7 h-7 flex items-center justify-center font-bold">+</button>
+          </div>
+        </div>
+        
+        {/* Descripción completa */}
+        <p className="text-gray-400 text-[11px] leading-relaxed mb-6 border-t pt-4">
+          Estofado con tuco incluye una cocca de 250cc y postre
+        </p>
+        
+        {/* Botón de acción final */}
+        <button 
+          className="w-full py-4 rounded-2xl font-black text-white text-center uppercase tracking-widest shadow-lg transition-transform active:scale-95" 
+          style={{ backgroundColor: '#FFD700', color: '#000' }}
+          onClick={() => {
+            // Lógica para sumar al carrito N veces según la cantidad elegida
+            for(let i=0; i < heroQtyDemo; i++) {
+                addToCart('s_hero');
+            }
+            setShowHeroModalDemo(false);
+            // Aseguramos que el producto exista en la data para el carrito
+            if(!DEMO_PRODUCTS.spotlight.find(x => x.id === 's_hero')) {
+                DEMO_PRODUCTS.spotlight.push({ id: 's_hero', n: 'ESTOFADO DEL DIA', p: 28000 });
+            }
+          }}
+        >
+          Sumar al pedido — {formatPrice(28000 * heroQtyDemo)}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -903,5 +1076,34 @@ urban: [
     { id: 'm2', n: 'Avocado Toast', d: 'Masa madre', p: 5500 },
     { id: 'm3', n: 'Cappuccino XL', d: 'Espuma de leche y canela', p: 3200 },
     { id: 'm4', n: 'Croissant Almendras', d: 'Relleno de crema pastelera', p: 2500 }
-  ]
+  ],
+  pop: [
+  { id: 'p1', n: 'PROMO FERNET 750CC', d: 'Coca cola 2.5lts + Fernet 750cc + Bolsa hielo', p: 21000 },
+  { id: 'p2', n: 'PROMO FERNET 1LTS', d: 'Coca cola 1ltrs + Fernet 1lts + Hielo', p: 25000 },
+  { id: 'p3', n: 'PACK IMPERIAL', d: 'Imperial x6 473cc', p: 16000 }
+],
+spotlight: [
+  // Eliminamos el id 's0' de la lista
+  { 
+    id: 's1', 
+    n: 'POLLO AL CHAMPIGNON', 
+    d: 'Pollo con salsa de champignon lo puede acompañar con pure, papa rustica, ens. de rúcula con parmesano', 
+    p: 18000, 
+    i: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=300' // Imagen corregida
+  },
+  { 
+    id: 's2', 
+    n: 'MATAMBRE A LA PIZA', 
+    d: 'Matambre a la pizza de cerdo, Muzarella jamon y tomate', 
+    p: 25000, 
+    i: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300' 
+  },
+  { 
+    id: 's3', 
+    n: 'MILANESA A LA NAPOLITANA', 
+    d: 'Milanesa ( pollo o ternera ), salsa, jamon, muzarella y tomate', 
+    p: 16000, 
+    i: 'https://images.unsplash.com/photo-1606471191009-63994c53433b?w=300' 
+  }
+],
 };
