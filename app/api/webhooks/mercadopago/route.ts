@@ -24,29 +24,33 @@ export async function POST(request: Request) {
             const userId = subData.external_reference;
             const status = subData.status; 
 
-            if (status === 'authorized') {
-                // 1. ACTIVAMOS EL PLAN EN LA TABLA RESTAURANTS
-                await supabase
-                    .from('restaurants')
-                    .update({ 
-                        subscription_status: 'active',
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('user_id', userId);
+     if (status === 'authorized') {
+            // 1. ACTIVAMOS EL PLAN EN LA TABLA RESTAURANTS
+            // Esto asegura que el restaurante tenga acceso a las funciones del plan
+            await supabase
+                .from('restaurants')
+                .update({ 
+                    subscription_status: 'active',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', userId);
 
-                // 2. AHORA ACTIVAMOS LA "LLAVE MAESTRA" EN PROFILES (NUEVO)
-                // Esto es lo que quita el cartel de bloqueo de los 14 días
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        payment_configured: true // <--- Gira la llave maestra
-                    })
-                    .eq('id', userId);
+            // 2. ACTIVAMOS LA "LLAVE MAESTRA" EN PROFILES
+            // Esto elimina automáticamente el bloqueo de pantalla de los 14 días
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ 
+                    payment_configured: true 
+                })
+                .eq('id', userId);
 
-                if (profileError) throw profileError;
-                
-                console.log(`✅ Suscripción y llave maestra activadas para: ${userId}`);
+            if (profileError) {
+                console.error("Error actualizando perfil:", profileError);
+                throw profileError;
             }
+            
+            console.log(`✅ Suscripción y llave maestra activadas para: ${userId}`);
+        }
         }
 
         return NextResponse.json({ received: true }, { status: 200 });
