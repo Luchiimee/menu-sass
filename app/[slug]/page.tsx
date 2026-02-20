@@ -78,7 +78,11 @@ function checkIsOpen(businessHours: any) {
 }
 
 // --- 3. FUNCIÓN DE ESTILOS (MOVIDA ARRIBA PARA EVITAR EL ERROR DE INICIALIZACIÓN) ---
-const getStyles = (TEMPLATE: any, BG: any, THEME: any, CARD_BG: any, TEXT: any, DESC: any, PROMO_BG: any) => {
+const getStyles = (
+  TEMPLATE: any, BG: any, THEME: any, CARD_BG: any, TEXT: any, DESC: any, PROMO_BG: any,
+  // Agregamos estos 4 parámetros nuevos:
+  HERO_BADGE_BG?: string, HERO_BADGE_COLOR?: string, HERO_TITLE_COLOR?: string, HERO_PRICE_COLOR?: string
+) => {
     const common = ``;
 
     switch (TEMPLATE) {
@@ -129,8 +133,76 @@ const getStyles = (TEMPLATE: any, BG: any, THEME: any, CARD_BG: any, TEXT: any, 
             .notificacion-glass { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.2); color: white; padding: 12px 24px; border-radius: 16px; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; z-index: 9999; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); display: flex; align-items: center; gap: 10px; }`;
       default:
         return `${common} body { background: ${BG}; }`;
+
+  case "pop":
+  return `
+      ${common}
+      body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
+      .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; }
+      
+      .pop-header-box { 
+          background: white; border: 3px solid black; border-radius: 12px; 
+          margin: 20px 15px; padding: 15px; display: flex; align-items: center; gap: 12px;
+          box-shadow: 4px 4px 0 black; position: relative;
+      }
+      .pop-status { 
+          position: absolute; top: -10px; right: 10px; background: #00CED1; 
+          border: 2px solid black; padding: 2px 8px; font-size: 8px; font-weight: 900;
+          transform: rotate(3deg); color: black;
+      }
+      .pop-promo { 
+          background: #FFD700; border: 3px solid black; margin: 0 15px 20px; 
+          padding: 10px; text-align: center; font-weight: 900; font-size: 12px;
+          box-shadow: 3px 3px 0 rgba(0,0,0,0.2); transform: rotate(-1deg);
+      }
+      .pop-card { 
+          background: white; border: 3px solid black; border-radius: 15px; 
+          margin: 0 15px 15px; padding: 15px; 
+          box-shadow: 4px 4px 0 ${THEME}; /* Usamos el color de tema para la sombra */
+      }
+      .pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: ${THEME}; }
+      .pop-price-tag { 
+          background: black; color: white; padding: 2px 8px; 
+          border-radius: 4px; font-weight: 900; transform: rotate(2deg);
+      }
+  `;
+case "spotlight":
+        return `
+            body { background: #ffffff; margin: 0; font-family: 'Inter', sans-serif; }
+            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: #000000; }
+            .spot-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: white; }
+            .spot-logo { width: 45px; height: 45px; border-radius: 50%; background-size: cover; background-position: center; border: 1px solid #eee; }
+            .spot-status-pill { background: #2ecc71; color: white; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; }
+            .spot-banner-container { position: relative; height: 260px; width: 100%; overflow: hidden; }
+            .spot-hero-img { width: 100%; height: 100%; background-size: cover; background-position: center; transition: transform 0.5s ease; }
+            .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; }
+            .spot-hero-content { color: white; position: relative; z-index: 2; text-align: left; width: 85%; }
+            
+            /* USAMOS LOS COLORES DINÁMICOS AQUÍ */
+            .spot-badge { 
+                background: ${HERO_BADGE_BG || THEME}; 
+                color: ${HERO_BADGE_COLOR || 'white'}; 
+                padding: 4px 10px; font-size: 10px; font-weight: 900; border-radius: 6px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; 
+            }
+            .spot-hero-title { 
+                color: ${HERO_TITLE_COLOR || 'white'}; 
+                font-size: 24px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1.1; margin-bottom: 4px; text-transform: uppercase; italic; 
+            }
+            .spot-hero-price { 
+                color: ${HERO_PRICE_COLOR || '#FFD700'}; 
+                font-size: 20px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+            }
+            
+            .spot-plus-btn { position: absolute; bottom: 20px; right: 20px; width: 45px; height: 45px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 10; transition: transform 0.2s; }
+            .spot-promo-bar { background: #fff3e0; color: #000; padding: 12px; text-align: center; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+            .spot-product-card { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #f8f8f8; }
+            .spot-product-thumb { width: 70px; height: 70px; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; }
+            .spot-product-price { font-weight: 900; font-size: 15px; margin-top: 4px; color: #111; }
+        `;
     }
+    
 };
+
 
 // --- 4. COMPONENTE DE CONTENIDO ---
 function MenuContent({
@@ -145,6 +217,29 @@ function MenuContent({
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
   const [notificacion, setNotificacion] = useState<string | null>(null);
+  const [showHeroModal, setShowHeroModal] = useState(false); // Controla si el modal está abierto
+  const [heroQty, setHeroQty] = useState(1);
+
+  const handleAddHeroToCart = () => {
+    if (!restaurant.hero_title || !restaurant.hero_price) return;
+
+    // Creamos un objeto que el carrito entienda
+    const heroProduct = {
+      id: 'hero-item', // ID único para el destacado
+      name: restaurant.hero_title,
+      price: Number(restaurant.hero_price),
+      quantity: heroQty
+    };
+
+    // Usamos tu función existente del context
+    for (let i = 0; i < heroQty; i++) {
+      addToCart(heroProduct);
+    }
+
+    setShowHeroModal(false);
+    setHeroQty(1); // Reseteamos la cantidad
+    mostrarAviso("✅ Destacado agregado");
+  };
 // --- DETECTOR SEGURO DE SALIDA ---
   useEffect(() => {
     const handleBeforeUnload = (e: any) => {
@@ -176,9 +271,15 @@ function MenuContent({
   const SHOW_BANNER = restaurant.show_banner;
 
   // --- OPTIMIZACIÓN DE ESTILOS MEMORIZADOS ---
-  const memoizedStyles = useMemo(() => {
-    return getStyles(TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG);
-  }, [TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG]);
+ const memoizedStyles = useMemo(() => {
+  return getStyles(
+    TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG,
+    restaurant.hero_badge_bg, 
+    restaurant.hero_badge_color, 
+    restaurant.hero_title_color, 
+    restaurant.hero_price_color
+  );
+}, [TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, restaurant.hero_badge_bg, restaurant.hero_badge_color, restaurant.hero_title_color, restaurant.hero_price_color]);
 
  useEffect(() => {
   if (activeCardId) {
@@ -464,6 +565,137 @@ function MenuContent({
             ))}
           </div>
         );
+        case "pop":
+  return (
+    <div className="app-wrapper">
+      {/* Encabezado Estilo Cómic */}
+      <div className="pop-header-box">
+        <div className="pop-status">{isOpen ? "OPEN" : "CLOSED"}</div>
+        <div className="w-16 h-16 rounded-full border-4 border-black overflow-hidden flex-shrink-0 bg-white">
+          <img src={LOGO} className="w-full h-full object-cover" alt="logo" />
+        </div>
+        <div>
+          <h1 className="text-xl font-black uppercase leading-none">{restaurant.name}</h1>
+          <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-tight">{restaurant.description}</p>
+        </div>
+      </div>
+
+      {/* Mensaje Promo */}
+     {restaurant.show_promo && restaurant.promo_message && (
+  <div className="pop-promo">
+    {restaurant.promo_message} 
+  </div>
+)}
+
+      {/* Lista de Productos */}
+      {restaurant.categories?.map((cat: any) => (
+        <div key={cat.id}>
+        
+          {cat.products?.map((prod: any) => {
+            const extras = getExtrasForProduct(prod.id);
+            const principalEnCarrito = cart.some(item => item.id === prod.id);
+            return (
+              <div key={prod.id} className="pop-card text-left">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="pop-prod-title">{prod.name}</h3>
+                    <p className="text-xs font-bold text-gray-500 mb-2 leading-tight">{prod.description}</p>
+                    <span className="pop-price-tag inline-block">{formatPrice(prod.price)}</span>
+                  </div>
+                  <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
+                    <AddToCartBtn product={prod} variant="icon" isDark={true} disabled={!isOpen} />
+                  </div>
+                </div>
+
+                {/* Extras para Pop */}
+                {principalEnCarrito && extras && extras.length > 0 && (
+                  <div className="mt-4 pt-3 border-t-2 border-black/5 space-y-2">
+                    {extras.map((ex: any) => (
+                      <div key={ex.id} className="flex justify-between items-center bg-gray-50 p-2 border-2 border-black rounded-lg">
+                        <span className="text-[10px] font-black uppercase">{ex.name} (+{formatPrice(ex.price)})</span>
+                        <button 
+                          onClick={() => { addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Extra sumado"); }}
+                          className="w-8 h-8 bg-black text-white rounded-md flex items-center justify-center active:scale-90"
+                        >
+                          <Plus size={14} strokeWidth={4} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+ case "spotlight":
+  return (
+    <div className="app-wrapper">
+      {/* 1. Encabezado Superior */}
+      <div className="spot-header">
+        <div className="flex items-center gap-3 text-left">
+          <div className="spot-logo" style={{ backgroundImage: `url('${LOGO}')` }}></div>
+          <div>
+            <h1 className="text-sm font-black uppercase leading-none tracking-tight">{restaurant.name}</h1>
+            {/* CORRECCIÓN: Quitamos el substring para eliminar los puntos suspensivos (...) */}
+            <p className="text-[10px] font-bold opacity-50 uppercase">{restaurant.description}</p>
+          </div>
+        </div>
+        <div className="spot-status-pill">{isOpen ? "ABIERTO" : "CERRADO"}</div>
+      </div>
+
+      {/* 2. Banner Héroe Interactivo */}
+      <div className="spot-banner-container" onClick={() => isOpen && restaurant.hero_title && setShowHeroModal(true)}>
+        <div className="spot-hero-img" style={{ backgroundImage: `url('${BANNER || LOGO}')` }}></div>
+        
+        {restaurant.hero_title && (
+            <div className="spot-overlay">
+              <div className="spot-hero-content">
+                <div className="spot-badge">{restaurant.hero_badge_text || 'DESTACADO'}</div>
+                <h2 className="spot-hero-title">{restaurant.hero_title}</h2>
+                {restaurant.hero_price && <div className="spot-hero-price">{formatPrice(restaurant.hero_price)}</div>}
+              </div>
+              {isOpen && (
+                  <button className="spot-plus-btn">
+                    <Plus size={24} strokeWidth={3} />
+                  </button>
+              )}
+            </div>
+        )}
+      </div>
+
+      {/* 3. Barra Promo */}
+      {restaurant.show_promo && restaurant.promo_message && (
+        <div className="spot-promo-bar">
+          {restaurant.promo_message}
+        </div>
+      )}
+
+      {/* 4. Lista de Productos */}
+      {restaurant.categories?.map((cat: any) => (
+        <div key={cat.id}>
+          {cat.products?.map((prod: any) => {
+            const principalEnCarrito = cart.some(item => item.id === prod.id);
+            return (
+              <div key={prod.id} className="spot-product-card text-left">
+                <div className="spot-product-thumb" style={{ backgroundImage: `url('${prod.image_url || ""}')` }}></div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-[14px] leading-tight uppercase">{prod.name}</h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{prod.description}</p>
+                  <div className="spot-product-price">{formatPrice(prod.price)}</div>
+                </div>
+                <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Agregado")}>
+                   <AddToCartBtn product={prod} variant="icon" isDark={false} disabled={!isOpen} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
@@ -500,6 +732,50 @@ return (
         <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} receiveWhatsapp={restaurant.receive_whatsapp} />
       </div>
     </div>
+    {/* --- CÓDIGO DEL MODAL PARA EL PRODUCTO DESTACADO --- */}
+      {showHeroModal && restaurant.hero_title && (
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4">
+          {/* Fondo oscuro con blur */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowHeroModal(false)}></div>
+          
+          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] relative z-10 overflow-hidden animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
+            {/* Imagen del plato en el modal */}
+            <div className="h-56 bg-cover bg-center relative" style={{ backgroundImage: `url('${BANNER || LOGO}')` }}>
+                <button onClick={() => setShowHeroModal(false)} className="absolute top-5 right-5 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-md">
+                  <X size={20} strokeWidth={3} />
+                </button>
+            </div>
+            
+            <div className="p-8 text-left bg-white">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2">{restaurant.hero_title}</h3>
+                  <div className="text-2xl font-black text-orange-500">{formatPrice(restaurant.hero_price)}</div>
+                </div>
+                {/* Selector de cantidad simple */}
+                <div className="flex items-center gap-3 bg-gray-100 p-1.5 rounded-2xl">
+                  <button onClick={() => setHeroQty(Math.max(1, heroQty - 1))} className="w-8 h-8 flex items-center justify-center font-bold">-</button>
+                  <span className="font-bold w-4 text-center">{heroQty}</span>
+                  <button onClick={() => setHeroQty(heroQty + 1)} className="w-8 h-8 flex items-center justify-center font-bold">+</button>
+                </div>
+              </div>
+              
+              <p className="text-gray-500 text-sm leading-relaxed mb-8 border-t pt-4">
+                {restaurant.hero_description || "Sin descripción disponible."}
+              </p>
+              
+              <button 
+                className="w-full py-4 rounded-2xl font-black text-white text-center uppercase tracking-widest shadow-lg transition-transform active:scale-95" 
+                style={{ backgroundColor: THEME }}
+                onClick={handleAddHeroToCart}
+              >
+                Sumar al pedido — {formatPrice(restaurant.hero_price * heroQty)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
   </main>
 );
 }

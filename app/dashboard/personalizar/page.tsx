@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud
+  CheckCircle, Utensils, X, Lock, UploadCloud,Star
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -67,7 +67,11 @@ export default function EditorPage() {
     theme_color: '', bg_color: '', card_color: '', 
     text_color: '', description_color: '',
     slug: '', alias_mp: '', logo_url: '', banner_url: '', 
-    template_id: 'classic', show_banner: true
+    template_id: 'classic', show_banner: true,
+    hero_badge_text: 'DESTACADO', 
+  hero_title: '', 
+  hero_price: 0, 
+  hero_description: ''
   });
 
   const [products, setProducts] = useState<any[]>([]);
@@ -139,35 +143,39 @@ export default function EditorPage() {
     return () => { mounted = false; };
   }, []);
 
-  const getTemplateConfig = () => {
+const getTemplateConfig = () => {
     const id = data.template_id || 'classic';
     let config = { 
-      editable: true, showCard: false, showBannerImg: false,
+      editable: true, 
+      showCard: false, 
+      showBannerImg: false,
+      showHeroEditor: false, // 1. Agregamos el flag apagado por defecto
       labels: { theme: 'Color Principal', bg: 'Fondo Web', card: 'Fondo Tarjeta', text: 'Títulos', desc: 'Descripciones' } 
     };
 
     if (id === 'elegant' || id === 'bistro') { config.editable = false; return config; }
 
     if (id === 'classic' || id === 'minimal') {
-       config.labels.theme = id === 'classic' ? 'Banner Header' : 'Acento / Íconos';
+        config.labels.theme = id === 'classic' ? 'Banner Header' : 'Acento / Íconos';
     } 
     else if (id === 'urban' || id === 'visualgrid') {
-       config.showCard = true;
-       config.labels.theme = 'Acento / Precio';
-       config.labels.bg = 'Fondo Pantalla';
-       config.labels.card = 'Fondo Tarjeta';
+        config.showCard = true;
+        config.labels.theme = 'Acento / Precio';
+        config.labels.bg = 'Fondo Pantalla';
+        config.labels.card = 'Fondo Tarjeta';
     } 
     else if (id === 'pop') {
-       config.showCard = true;
-       config.labels.theme = 'Sombra / Acento';
+        config.showCard = true;
+        config.labels.theme = 'Sombra / Acento';
     }
     else if (id === 'spotlight') {
-       config.showCard = true;
-       config.showBannerImg = true;
-       config.labels.theme = 'Acento';
+        config.showCard = true;
+        config.showBannerImg = true;
+        config.showHeroEditor = true; // 2. Lo activamos solo para Spotlight
+        config.labels.theme = 'Acento';
     }
     return config;
-  };
+};
 
   const tConfig = getTemplateConfig();
 
@@ -400,6 +408,75 @@ export default function EditorPage() {
                   </div>
               </section>
 
+          
+{/* SECCIÓN PRODUCTO DESTACADO (SOLO PARA SPOTLIGHT) */}
+{tConfig.showHeroEditor && (
+  <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
+    <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+      <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+        <Star size={14} className="fill-indigo-600 text-indigo-600"/> 
+        Producto en Banner (Hero)
+      </h3>
+      
+      <div className="space-y-4">
+        {/* FILA 1: ETIQUETA + SUS 2 COLORES */}
+        <div className="flex flex-wrap md:flex-nowrap gap-3 items-end">
+          <div className="flex-1 min-w-[200px] space-y-1">
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Texto Etiqueta</label>
+            <input value={data.hero_badge_text || ''} onChange={(e) => { setData({...data, hero_badge_text: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: PLATO DEL DÍA"/>
+          </div>
+          <div className="flex gap-2">
+            <div className="space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase">Fondo</label>
+              <input type="color" value={data.hero_badge_bg || '#FFD700'} onChange={(e) => { setData({...data, hero_badge_bg: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase">Texto</label>
+              <input type="color" value={data.hero_badge_color || '#000000'} onChange={(e) => { setData({...data, hero_badge_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
+            </div>
+          </div>
+        </div>
+
+        {/* FILA 2: TÍTULO + SU COLOR */}
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 space-y-1">
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Título del Plato</label>
+            <input value={data.hero_title || ''} onChange={(e) => { setData({...data, hero_title: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: Ñoquis caseros"/>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-gray-400 uppercase">Color</label>
+            <input type="color" value={data.hero_title_color || '#ffffff'} onChange={(e) => { setData({...data, hero_title_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
+          </div>
+        </div>
+
+        {/* FILA 3: PRECIO + SU COLOR */}
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 space-y-1">
+            <label className="text-[10px] font-bold text-gray-500 uppercase">Precio ($)</label>
+            <input type="number" value={data.hero_price || ''} onChange={(e) => { setData({...data, hero_price: Number(e.target.value)}); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="0"/>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-gray-400 uppercase">Color</label>
+            <input type="color" value={data.hero_price_color || '#FFD700'} onChange={(e) => { setData({...data, hero_price_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
+          </div>
+        </div>
+
+        {/* FILA 4: DESCRIPCIÓN (MODAL) */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-500 uppercase">Descripción Completa (se verá en el Modal)</label>
+          <textarea 
+            value={data.hero_description || ''} 
+            onChange={(e) => { setData({...data, hero_description: e.target.value}); setUnsavedChanges(true); }} 
+            className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-300 resize-none bg-white" 
+            rows={3} 
+            placeholder="Escribe aquí los ingredientes o detalles que el cliente verá al abrir el producto..."
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+ 
               <section className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                       <div>

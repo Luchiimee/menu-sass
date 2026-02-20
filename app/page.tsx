@@ -52,7 +52,9 @@ const galleries: GalleryItem[] = [
   { title: 'Hamburguesería', image: '/galeria/01.png', offset: 'lg:mt-0' },
   { title: 'Sushi Bar', image: '/galeria/02.png', offset: 'lg:mt-16' },
   { title: 'Cafeteria', image: '/galeria/03.png', offset: 'lg:mt-8' },
-  { title: 'Pizeria', image: '/galeria/04.png', offset: 'lg:mt-24' }
+  { title: 'Pizeria', image: '/galeria/04.png', offset: 'lg:mt-24' },
+  { title: 'Kiosco', image: '/galeria/05.png', offset: 'lg:mt-24' },
+  { title: 'Restaurante', image: '/galeria/06.png', offset: 'lg:mt-24' }
 ];
 
 // 2. Tipamos las Props del componente PhoneFrame
@@ -536,8 +538,8 @@ export default function LandingPage() {
           {/* SELECTOR DE PLANTILLA */}
           <div className="flex flex-wrap justify-center gap-3 mb-12">
             {[
-              { id: 'visualgrid', label: 'Visual Grid', color: 'bg-orange-500' },
-              { id: 'classic', label: 'Classic List', color: 'bg-red-600' },
+              { id: 'restaurante', label: 'Restaurante', color: 'bg-orange-500' },
+              { id: 'kiosco', label: 'Kiosco', color: 'bg-red-600' },
               { id: 'minimal', label: 'Minimal', color: 'bg-black' },
               { id: 'urban', label: 'Urban Dark', color: 'bg-[#121212]' }
             ].map((tab) => (
@@ -566,7 +568,7 @@ export default function LandingPage() {
                 
                 {/* --- ESPACIO PARA TUS GIFS --- */}
                 <div className="h-full w-full">
-                  {activeTab === 'visualgrid' && (
+                  {activeTab === 'restaurante' && (
                     <img 
                       src="/02.png" 
                       alt="Visual Grid Demo" 
@@ -574,9 +576,9 @@ export default function LandingPage() {
                     />
                   )}
 
-                  {activeTab === 'classic' && (
+                  {activeTab === 'kiosco' && (
                     <img 
-                      src="/classic.png" 
+                      src="/kiosco.png" 
                       alt="Classic List Demo" 
                       className="w-full h-full object-cover animate-in fade-in duration-500"
                     />

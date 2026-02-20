@@ -207,16 +207,36 @@ const GALLERY_STYLES = `
   .pop-btn { width: 100%; background: #fff; border: 2px solid #000; padding: 3px; border-radius: 20px; font-weight: 900; font-size: 7px; text-transform: uppercase; text-align: center; }
 
   /* SPOTLIGHT */
-  .spot-hero { background: white; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; }
-  .spot-banner { height: 100px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; }
-  .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.8)); }
-  .spot-info { position: relative; z-index: 2; color: white; }
-  .spot-badge { background: #FFD700; color: black; padding: 1px 5px; font-size: 6px; font-weight: 800; border-radius: 6px; display: inline-block; margin-bottom: 2px; }
-  .spot-title { font-size: 12px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-  .spot-list { padding: 8px; flex: 1; overflow-y: auto; }
-  .spot-item { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
-  .spot-thumb { width: 35px; height: 35px; background-size: cover; border-radius: 5px; background-color: #eee; }
+  .spot-hero { background: white; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; text-align: left; }
   
+  /* Header con Status Pill */
+  .spot-header-mini { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f8f8f8; }
+  .spot-logo-mini { width: 22px; height: 22px; background: #000; border-radius: 50%; display: grid; place-items: center; color: white; font-size: 7px; font-weight: bold; background-size: cover; }
+  .spot-status-mini { background: #22c55e; color: white; font-size: 6px; font-weight: 800; padding: 2px 5px; border-radius: 10px; }
+  
+  /* Banner con Botón + */
+  .spot-banner-mini { height: 130px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; }
+  .spot-overlay-mini { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent 70%); }
+  .spot-info-mini { position: relative; z-index: 2; color: white; }
+  .spot-badge-mini { background: #FFD700; color: black; padding: 2px 5px; font-size: 6px; font-weight: 900; border-radius: 4px; display: inline-block; margin-bottom: 3px; text-transform: uppercase; }
+  .spot-title-mini { font-size: 14px; font-weight: 900; line-height: 1; text-transform: uppercase; font-style: italic; }
+  .spot-price-mini { font-size: 11px; font-weight: 800; color: #FFD700; margin-top: 2px; }
+  .spot-hero-btn-mini { position: absolute; bottom: 12px; right: 12px; width: 28px; height: 28px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 5; }
+
+  /* Lista con Botones + */
+  .spot-list-mini { padding: 10px; flex: 1; overflow-y: auto; background: white; }
+  .spot-item-mini { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+  .spot-thumb-mini { width: 40px; height: 40px; background-size: cover; border-radius: 8px; background-color: #eee; flex-shrink: 0; }
+  .spot-details-mini { flex: 1; }
+  .spot-details-mini h5 { font-size: 9px; font-weight: 800; margin: 0; text-transform: uppercase; }
+ .spot-details-mini p { 
+    font-size: 7px; 
+    color: #999; 
+    margin: 1px 0; 
+    /* Borramos: line-clamp, display: -webkit-box, etc. */
+}
+  .spot-add-mini { width: 20px; height: 20px; background: #000; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+
   /* ELEGANT */
   .elegant-serif { background: #f9f5f0; padding: 15px; font-family: 'Playfair Display', serif; color: #333; text-align: center; height: 100%; display: flex; flex-direction: column; }
   .elegant-logo { width: 28px; height: 28px; margin: 0 auto 4px; border: 1px solid #D4AF37; border-radius: 50%; display: grid; place-items: center; color: #D4AF37; }
@@ -241,14 +261,14 @@ const GALLERY_STYLES = `
 
 // --- DATA ---
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic Delivery', desc: 'Simple y efectivo.', premium: false, type: 'classic' },
-  { id: 'urban', name: 'Urbano Dark', desc: 'Impacto visual oscuro.', premium: false, type: 'urban' },
-  { id: 'minimal', name: 'Minimalista', desc: 'Limpio y moderno.', premium: false, type: 'minimal' },
-  { id: 'visualgrid', name: 'Visual Grid', desc: 'Grilla de fotos grande.', premium: true, type: 'visualgrid' },
-  { id: 'pop', name: 'Pop Vibrante', desc: 'Estilo cómic colorido.', premium: true, type: 'pop' },
-  { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante.', premium: true, type: 'spotlight' },
-  { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant' },
-  { id: 'bistro', name: 'Bistro Chalk', desc: 'Estilo pizarra.', premium: true, type: 'bistro' },
+  { id: 'classic', name: 'Classic Delivery', desc: 'Simple y efectivo.', premium: false, type: 'classic', category: 'minimal' },
+  { id: 'urban', name: 'Urbano Dark', desc: 'Impacto visual oscuro.', premium: false, type: 'urban', category: 'basicas' },
+  { id: 'minimal', name: 'Minimalista', desc: 'Limpio y moderno.', premium: false, type: 'minimal', category: 'minimal' },
+  { id: 'visualgrid', name: 'Visual Grid', desc: 'Grilla de fotos grande.', premium: true, type: 'visualgrid', category: 'basicas' },
+  { id: 'pop', name: 'Pop Vibrante', desc: 'Estilo cómic colorido.', premium: true, type: 'pop', category: 'completas' },
+  { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante.', premium: true, type: 'spotlight', category: 'completas' },
+  { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant', category: 'minimal' },
+  { id: 'bistro', name: 'Bistro Chalk', desc: 'Estilo pizarra.', premium: true, type: 'bistro', category: 'minimal' },
 ];
 
 export default function GalleryPage() {
@@ -256,6 +276,7 @@ export default function GalleryPage() {
   const [currentTemplate, setCurrentTemplate] = useState('classic');
   const [userPlan, setUserPlan] = useState('free');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState('todas');
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -278,8 +299,8 @@ export default function GalleryPage() {
 
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
   const handleSelect = async (id: string, premium: boolean) => {
-    const proximamente = ['pop', 'spotlight', 'elegant', 'bistro'];
-   if (['pop', 'spotlight', 'elegant', 'bistro'].includes(id)) {
+    const proximamente = ['elegant', 'bistro'];
+   if (['elegant', 'bistro'].includes(id)) {
     setShowUpcomingModal(true);
     return;
   }
@@ -364,13 +385,57 @@ export default function GalleryPage() {
           </div>
         </div>
       );
-      case 'spotlight': return (
+    case 'spotlight': return (
         <div className="spot-hero">
-          <div style={{padding:'8px', display:'flex', alignItems:'center', gap:'5px'}}><div style={{width:'20px', height:'20px', background:'#000', borderRadius:'50%', display:'grid', placeItems:'center', color:'white', fontSize:'8px', fontWeight:'bold'}}>BK</div><div style={{fontSize:'10px', fontWeight:'bold'}}>BURGER KING</div></div>
-          <div className="spot-banner" style={{backgroundImage: "url('https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200')"}}><div className="spot-overlay"></div><div className="spot-info"><div className="spot-badge">DESTACADO</div><div className="spot-title">Súper Doble</div><div style={{fontSize:'12px', fontWeight:'bold', color:'#FFD700'}}>$8.500</div></div></div>
-          <div className="spot-list">
-            <div className="spot-item"><div className="spot-thumb" style={{backgroundImage:"url('https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=50')"}}></div><div style={{flex:1}}><div style={{fontWeight:'bold', fontSize:'10px'}}>Doble Queso</div><div style={{fontSize:'8px', color:'#888'}}>Con panceta.</div></div><div style={{fontWeight:'bold', fontSize:'10px'}}>$9.000</div></div>
-            <div className="spot-item"><div className="spot-thumb" style={{backgroundImage:"url('https://images.unsplash.com/photo-1639024471283-03518883512d?auto=format&fit=crop&w=50')"}}></div><div style={{flex:1}}><div style={{fontWeight:'bold', fontSize:'10px'}}>Aros Cebolla</div><div style={{fontSize:'8px', color:'#888'}}>12 unidades.</div></div><div style={{fontWeight:'bold', fontSize:'10px'}}>$7.500</div></div>
+          {/* Header Superior con Descripción */}
+          <div className="spot-header-mini">
+            <div className="flex items-center gap-2">
+              <div className="spot-logo-mini">CM</div>
+              <div className="text-left">
+                <div style={{fontSize:'9px', fontWeight:'800'}}>CLUB MERCEDES</div>
+                <div style={{fontSize:'7px', opacity:0.5, fontWeight:'600'}}>RESTAURANTE</div>
+              </div>
+            </div>
+            <div className="spot-status-mini">ABIERTO</div>
+          </div>
+
+          {/* Banner con Imagen de Estofado y Botón + */}
+          <div className="spot-banner-mini" style={{backgroundImage: "url('https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=300')"}}>
+            <div className="spot-overlay-mini"></div>
+            <div className="spot-info-mini">
+              <div className="spot-badge-mini">PLATO DEL DIA</div>
+              <div className="spot-title-mini">ESTOFADO</div>
+              <div className="spot-price-mini">$ 28.000</div>
+            </div>
+            <div className="spot-hero-btn-mini">+</div>
+          </div>
+
+          {/* Mensaje Promo */}
+          <div style={{background:'#fff3e0', fontSize:'8px', padding:'6px', textAlign:'center', fontWeight:'700', color: '#000'}}>
+             Envios gratis todos los jueves
+          </div>
+
+          {/* Lista de Productos con imágenes correspondientes y botones + */}
+          <div className="spot-list-mini">
+           <div className="spot-item-mini">
+    {/* CAMBIÁ EL LINK EN ESTA LÍNEA (Aprox 408) */}
+    <div className="spot-thumb-mini" style={{backgroundImage:"url('https://images.unsplash.com/photo-1606471191009-63994c53433b?auto=format&fit=crop&w=100')"}}></div>
+    <div className="spot-details-mini text-left">
+      <h5>Milanesa Napo</h5>
+      <p>Con fritas y ensalada.</p>
+      <div style={{fontWeight:'800', fontSize:'9px'}}>$ 16.000</div>
+    </div>
+    <div className="spot-add-mini">+</div>
+  </div>
+            <div className="spot-item-mini">
+              <div className="spot-thumb-mini" style={{backgroundImage:"url('https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=100')"}}></div>
+              <div className="spot-details-mini text-left">
+                <h5>Matambre Pizza</h5>
+                <p>Muzzarella y jamón.</p>
+                <div style={{fontWeight:'800', fontSize:'9px'}}>$ 25.000</div>
+              </div>
+              <div className="spot-add-mini">+</div>
+            </div>
           </div>
         </div>
       );
@@ -401,7 +466,11 @@ export default function GalleryPage() {
       default: return null;
     }
   };
-
+const filteredTemplates = TEMPLATES.filter(t => {
+  if (activeFilter === 'todas') return true;
+  if (activeFilter === 'premium') return t.premium;
+  return t.category === activeFilter;
+});
   return (
     <div className="relative px-4 pt-20 lg:px-8 min-h-[85vh] bg-gray-50/50">
       <style>{GALLERY_STYLES}</style>
@@ -410,9 +479,30 @@ export default function GalleryPage() {
         <h1 className="text-2xl font-bold mb-2 text-gray-900">Galería de Diseños</h1>
         <p className="text-gray-500 text-sm">Elige la base para tu menú digital. Todas son personalizables.</p>
       </header>
-
+{/* --- BARRA DE FILTROS --- */}
+<div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
+  {['todas', 'minimal', 'basicas', 'completas'].map((f) => (
+    <button
+      key={f}
+      onClick={() => setActiveFilter(f)}
+      className={`px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border-2 ${
+        activeFilter === f ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'
+      }`}
+    >
+      {f}
+    </button>
+  ))}
+  <button
+    onClick={() => setActiveFilter('premium')}
+    className={`px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border-2 flex items-center gap-2 ${
+      activeFilter === 'premium' ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-white text-yellow-600 border-yellow-100 hover:border-yellow-200'
+    }`}
+  >
+    <Crown size={12} /> Premium
+  </button>
+</div>
       <div className="templates-grid">
-        {TEMPLATES.map((t) => {
+  {filteredTemplates.map((t) => {
           const isSelected = currentTemplate === t.id;
           const isLocked = t.premium && userPlan === 'free';
 
@@ -446,10 +536,10 @@ export default function GalleryPage() {
                 <button 
   onClick={() => handleSelect(t.id, t.premium)}
   // Se deshabilita solo si se está guardando o si ya está seleccionada (pero no para las "Próximamente")
-  disabled={savingId === t.id || (isSelected && !['pop', 'spotlight', 'elegant', 'bistro'].includes(t.id))}
+  disabled={savingId === t.id || (isSelected && !['elegant', 'bistro'].includes(t.id))}
   className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
 >
-  {['pop', 'spotlight', 'elegant', 'bistro'].includes(t.id) 
+  {['elegant', 'bistro'].includes(t.id) 
     ? 'Próximamente' 
     : savingId === t.id 
       ? <Loader2 className="animate-spin" size={14}/> 
