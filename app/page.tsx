@@ -119,7 +119,7 @@ const TUTORIALS: Tutorial[] = [
 ];
 export default function LandingPage() {
   const [tutorialToast, setTutorialToast] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState('visualgrid');
+  const [activeTab, setActiveTab] = useState('restaurante');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [aliasCopied, setAliasCopied] = useState(false);
   const [videoStep, setVideoStep] = useState<'idle' | 'choosing' | 'playing'>('idle');
@@ -571,7 +571,7 @@ export default function LandingPage() {
                   {activeTab === 'restaurante' && (
                     <img 
                       src="/02.png" 
-                      alt="Visual Grid Demo" 
+                      alt="Restaurante Demo" 
                       className="w-full h-full object-cover animate-in fade-in duration-500"
                     />
                   )}
@@ -579,7 +579,7 @@ export default function LandingPage() {
                   {activeTab === 'kiosco' && (
                     <img 
                       src="/kiosco.png" 
-                      alt="Classic List Demo" 
+                      alt="Kiosco Demo" 
                       className="w-full h-full object-cover animate-in fade-in duration-500"
                     />
                   )}
