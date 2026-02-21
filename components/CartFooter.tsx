@@ -77,8 +77,14 @@ const [couponError, setCouponError] = useState("");
     }
     setIsValidating(false);
 };
-
+useEffect(() => {
+        if (cart.length === 0) {
+            setIsVisible(false);
+        }
+    }, [cart.length]);
+    
    useEffect(() => {
+    
     if (activeOrderId) {
         // CASO LIGHT: Se limpia a los 15 minutos (el cartel que mencionás)
         if (planType !== 'plus' && planType !== 'max') {

@@ -270,6 +270,161 @@ case "spotlight":
                 margin-top: 10px; 
             }
         `;
+        case "bistro":
+        return `
+            @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+            
+            body, h1, h2, h3, p, span, div, button { 
+                font-family: 'Patrick Hand', cursive !important; 
+            }
+
+            body { background: #222222; margin: 0; color: #eeeeee; }
+            
+            .app-wrapper { 
+                min-height: 100vh; 
+                display: flex; 
+                flex-direction: column; 
+                padding: 15px; 
+                padding-bottom: 40px; 
+            }
+            
+            .bistro-border { 
+                border: 2px dashed #555555; 
+                border-radius: 20px; 
+                padding: 20px 15px; 
+                flex: 1; 
+                display: flex;
+                flex-direction: column;
+                position: relative;
+            }
+
+            .bistro-header { text-align: center; margin-bottom: 25px; }
+            .bistro-logo { width: 65px; height: 65px; margin: 0 auto 12px; border-radius: 50%; border: 2px solid #e6c87e; padding: 3px; object-fit: cover; }
+            .bistro-title { font-size: 30px; color: #e6c87e; line-height: 1; margin-bottom: 5px; text-transform: uppercase; }
+            .bistro-desc { font-size: 15px; color: #aaaaaa; }
+
+            .bistro-promo {
+                margin-bottom: 25px;
+                padding: 12px;
+                border: 2px dashed rgba(230, 200, 126, 0.4);
+                border-radius: 12px;
+                text-align: center;
+                color: #e6c87e;
+                font-size: 14px;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+
+            /* --- ESTRUCTURA DE PRODUCTO REFORZADA --- */
+            .bistro-item-container {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                margin-bottom: 20px;
+                text-align: left;
+                border-bottom: 1px dashed rgba(255,255,255,0.05);
+                padding-bottom: 15px;
+            }
+
+            /* Nombre: se achica y opaca cuando ya está en el carrito */
+            .bistro-name { 
+                font-size: 20px; 
+                font-weight: bold;
+                color: #ffffff; 
+                line-height: 1.2;
+                transition: all 0.2s ease;
+            }
+            .bistro-name.in-cart { font-size: 16px; opacity: 0.6; }
+
+            /* Descripción: se achica si está en el carrito */
+            .bistro-prod-desc { 
+                font-size: 13px; 
+                color: #888888; 
+                margin-bottom: 8px; 
+                display: block; 
+                width: 100%;
+                line-height: 1.3;
+                transition: all 0.2s ease;
+            }
+            .bistro-prod-desc.in-cart { font-size: 11px; opacity: 0.5; }
+
+            /* Fila inferior: Precio e interfaz de carrito */
+            .bistro-footer-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 5px;
+            }
+
+            .bistro-price { 
+                font-size: 18px; 
+                color: #e6c87e; 
+                font-weight: bold; 
+            }
+
+            .bistro-btn-wrapper {
+                flex-shrink: 0;
+                min-width: 45px;
+                display: flex;
+                justify-content: flex-end;
+            }
+            /* Espacio reservado para que el - 1 + no empuje el diseño */
+            .bistro-btn-wrapper.expanded {
+                min-width: 100px;
+            }
+                .bistro-extras-container {
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(230, 200, 126, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bistro-extra-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(230, 200, 126, 0.1);
+}
+
+.bistro-extra-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.bistro-extra-name {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #eeeeee;
+    font-weight: bold;
+}
+
+.bistro-extra-price {
+    font-size: 11px;
+    color: #e6c87e;
+}
+
+.bistro-extra-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #e6c87e;
+    color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: transform 0.1s;
+}
+.bistro-extra-btn:active { transform: scale(0.9); }
+      
+        `;
+        
     }
     
 };
@@ -819,42 +974,144 @@ function MenuContent({
     </div>
   );
 
+
+case "bistro":
+  return (
+    <div className="app-wrapper">
+      {/* Contenedor con borde de tiza */}
+      <div className="bistro-border relative">
+        
+        {/* --- CARTEL DE ESTADO (Abierto/Cerrado) Estilo Sello --- */}
+        <div className="absolute -top-3 -right-2 rotate-12 z-20">
+          <div className={`
+            px-3 py-1 border-2 border-dashed rounded-lg text-[10px] font-black uppercase tracking-widest
+            ${isOpen ? 'border-[#2ecc71] text-[#2ecc71] bg-[#222]/80' : 'border-red-500 text-red-500 bg-[#222]/80'}
+          `}>
+            {isOpen ? "Abierto" : "Cerrado"}
+          </div>
+        </div>
+
+        {/* Header */}
+        <div className="bistro-header">
+          {LOGO && <img src={LOGO} className="bistro-logo" alt="logo" />}
+          <h1 className="bistro-title">{restaurant.name}</h1>
+          <p className="bistro-desc">{restaurant.description}</p>
+        </div>
+
+        {/* Banner de Promoción (Como en el editor) */}
+        {restaurant.show_promo && restaurant.promo_message && (
+          <div className="bistro-promo">
+            {restaurant.promo_message}
+          </div>
+        )}
+
+        {/* Lista de Productos */}
+     {restaurant.categories?.map((cat: any) => (
+  <div key={cat.id} className="mb-8">
+    {cat.products?.map((prod: any) => {
+      // 1. OBTENEMOS ADICIONALES
+      const extras = getExtrasForProduct(prod.id);
+      const principalEnCarrito = cart.some(item => item.id === prod.id);
+      
+      return (
+        <div key={prod.id} className="bistro-item-container">
+          <h3 className={`bistro-name ${principalEnCarrito ? 'in-cart' : ''}`}>
+            {prod.name}
+          </h3>
+
+          {prod.description && (
+            <p className={`bistro-prod-desc italic ${principalEnCarrito ? 'in-cart' : ''}`}>
+              {prod.description}
+            </p>
+          )}
+
+          <div className="bistro-footer-row">
+            <span className="bistro-price">{formatPrice(prod.price)}</span>
+            
+            <div 
+              className={`bistro-btn-wrapper ${principalEnCarrito ? 'expanded' : ''}`}
+              onClick={() => !principalEnCarrito && mostrarAviso("✅ Agregado")}
+            >
+               <AddToCartBtn product={prod} variant="icon" isDark={true} disabled={!isOpen} />
+            </div>
+          </div>
+
+          {/* 2. DIBUJAMOS ADICIONALES SI EL PLATO ESTÁ EN EL CARRITO */}
+          {principalEnCarrito && extras && extras.length > 0 && (
+            <div className="bistro-extras-container animate-in fade-in slide-in-from-top-2 duration-300">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Adicionales</p>
+              {extras.map((ex: any) => (
+                <div key={ex.id} className="bistro-extra-item">
+                  <div className="bistro-extra-info">
+                    <span className="bistro-extra-name">{ex.name}</span>
+                    <span className="bistro-extra-price">+{formatPrice(ex.price)}</span>
+                  </div>
+                  <button 
+                    onClick={() => { 
+                        addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); 
+                        mostrarAviso("✅ Extra sumado"); // <-- EL AVISO QUE FALTABA
+                    }} 
+                    className="bistro-extra-btn"
+                  >
+                    <Plus size={16} strokeWidth={3} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+))}  </div>
+    </div>
+  );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
   };
 return (
-  <main className="min-h-screen bg-[#0a0a0a]"> {/* Fondo neutro para el resto de la pantalla en PC */}
-    <div className="max-w-[500px] mx-auto min-h-screen relative shadow-[0_0_100px_rgba(0,0,0,0.8)] border-x border-white/5 overflow-x-hidden" style={{ backgroundColor: BG }}>
+<main className="min-h-screen bg-[#0a0a0a]">
+    {/* Agregamos flex y flex-col aquí */}
+    <div className="max-w-[500px] mx-auto min-h-screen relative shadow-[0_0_100px_rgba(0,0,0,0.8)] border-x border-white/5 overflow-x-hidden flex flex-col" style={{ backgroundColor: BG }}>
       <style dangerouslySetInnerHTML={{ __html: memoizedStyles }} />
       <ClearCartLogic currentRestaurantId={restaurant.id} />
       
-    {/* Notificación más chica y centrada */}
-      {notificacion && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[2000] whitespace-nowrap">
-          <div className={`
-            ${TEMPLATE === 'visualgrid' ? 'bg-white/10 backdrop-blur-xl border-white/20 text-white' : TEMPLATE === 'minimal' ? 'bg-white text-black border-gray-200' : 'bg-blue-600 text-white border-blue-400'} 
-            px-4 py-2 rounded-full shadow-lg flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300 border
-          `}>
-            <Check size={16} className={TEMPLATE === 'minimal' ? 'text-green-500' : 'text-white'} />
-            <span className="font-bold text-xs uppercase tracking-wide">
-                {notificacion.replace('✅', '').replace('⚠️', '')}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Notificaciones... */}
+     {notificacion && (
+  <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[2000] whitespace-nowrap">
+    <div className={`
+      ${TEMPLATE === 'visualgrid' ? 'bg-white/10 backdrop-blur-xl border-white/20 text-white' : 
+        TEMPLATE === 'minimal' ? 'bg-white text-black border-gray-200' : 
+        TEMPLATE === 'bistro' ? 'bg-[#1a1a1a] text-[#e6c87e] border-dashed border-[#e6c87e]/40' : // Estilo Tiza
+        'bg-blue-600 text-white border-blue-400'} 
+      px-4 py-2 rounded-full shadow-lg flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300 border
+    `}>
+      <Check size={16} className={TEMPLATE === 'minimal' || TEMPLATE === 'bistro' ? 'text-[#e6c87e]' : 'text-white'} />
+      <span className="font-bold text-xs uppercase tracking-wide">
+          {notificacion.replace('✅', '').replace('⚠️', '')}
+      </span>
+    </div>
+  </div>
+)}
 
-      {renderTemplate()}
+      {/* ENVOLVEMOS EL CONTENIDO EN UN DIV QUE CRECE */}
+      <div className="flex-1">
+        {renderTemplate()}
+      </div>
 
-      <a href="https://snappy.uno" target="_blank" rel="noreferrer" className="block w-full py-8 text-center bg-gray-900/50 hover:bg-black transition-colors cursor-pointer no-underline" style={{ paddingBottom: '100px' }}>
-        <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy</p>
+      {/* EL FOOTER DE SNAPPY AHORA SIEMPRE QUEDARÁ ABAJO */}
+      <a href="https://snappy.uno" target="_blank" rel="noreferrer" className="block w-full py-8 text-center bg-gray-900/50 hover:bg-black transition-colors cursor-pointer no-underline">
+        <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
+            Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy
+        </p>
       </a>
 
-      {/* El Footer ahora quedará anclado al contenedor de 500px si es fixed/absolute */}
       <div className="sticky bottom-0 left-0 w-full z-[50]">
         <CartFooter phone={restaurant.phone} deliveryCost={Number(restaurant.delivery_cost)} restaurantId={restaurant.id} aliasMp={restaurant.alias_mp} planType={restaurant.subscription_plan} receiveWhatsapp={restaurant.receive_whatsapp} />
       </div>
     </div>
+
     {/* --- CÓDIGO DEL MODAL PARA EL PRODUCTO DESTACADO --- */}
       {showHeroModal && restaurant.hero_title && (
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4">
@@ -898,8 +1155,7 @@ return (
           </div>
         </div>
       )}
-
-  </main>
+    </main>
 );
 }
 

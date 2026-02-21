@@ -257,6 +257,9 @@ const GALLERY_STYLES = `
   .bistro-name { font-size: 11px; color: #fff; }
   .bistro-dots { flex: 1; border-bottom: 1px dotted #555; margin: 0 4px; }
   .bistro-price { font-size: 11px; color: #e6c87e; }
+  
+  
+  
 `;
 
 // --- DATA ---
@@ -299,11 +302,7 @@ export default function GalleryPage() {
 
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
  const handleSelect = async (id: string, premium: boolean) => {
-    // Solo dejamos 'bistro' bloqueada por ahora
-    if (['bistro'].includes(id)) {
-      setShowUpcomingModal(true);
-      return;
-    }
+    
    if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
     
     setSavingId(id);
@@ -531,22 +530,19 @@ const filteredTemplates = TEMPLATES.filter(t => {
                   {t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500"/>}
                 </h3>
                 <p className="card-desc">{t.desc}</p>
-          <button 
+         <button 
   onClick={() => handleSelect(t.id, t.premium)}
-  // Solo se deshabilita si es 'bistro', si se está guardando, o si ya está en uso (pero no para la elegante)
-  disabled={savingId === t.id || (isSelected && t.id !== 'elegant')}
+  // Se deshabilita solo si se está guardando o si ya es la plantilla en uso
+  disabled={savingId === t.id || isSelected}
   className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
 >
-  {/* Texto dinámico según el ID */}
-  {t.id === 'bistro' 
-    ? 'Próximamente' 
-    : savingId === t.id 
-      ? <Loader2 className="animate-spin" size={14}/> 
-      : isSelected 
-        ? 'En uso' 
-        : isLocked 
-          ? <><Lock size={12}/> Usar Plantilla</> 
-          : 'Usar Plantilla'}
+  {savingId === t.id 
+    ? <Loader2 className="animate-spin" size={14}/> 
+    : isSelected 
+      ? 'En uso' 
+      : isLocked 
+        ? <><Lock size={12}/> Usar Plantilla</> 
+        : 'Usar Plantilla'}
 </button>
                 {isSelected && <Link href="/dashboard/personalizar" className="btn-personalize">Ir a Personalizar →</Link>}
               </div>
