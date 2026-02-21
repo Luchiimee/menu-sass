@@ -116,11 +116,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           router.refresh();
       }
     });
+    
+    const handleRefresh = () => {
+  console.log("Recibido aviso de actualización, recargando...");
+  loadData(); 
+};
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+// Escuchamos el evento que mandamos desde Settings
+window.addEventListener('profile-updated', handleRefresh);
+
+return () => {
+  mounted = false;
+  subscription.unsubscribe();
+  // Limpiamos el escuchador cuando se cierra el componente
+  window.removeEventListener('profile-updated', handleRefresh);
+}; 
+
   }, [router]);
 
   // --- FUNCIONES AUXILIARES ---
@@ -138,7 +149,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return 'text-gray-400';
   };
 
-  const supportMessage = encodeURIComponent(`Hola! Soy de ${restaurant.name}, necesito ayuda con mi panel.`);
+  const supportMessage = encodeURIComponent(`Hola! Soy  ${restaurant.name}, necesito ayuda con mi panel.`);
 
   // --- LÓGICA DE TIEMPO (Cambiamos 'profile' por 'profileData' para corregir el error) ---
  // --- LÓGICA DE TIEMPO BLINDADA (Reemplazo corregido) ---
@@ -260,7 +271,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <p className="text-[10px] text-blue-700 font-medium mb-3">Comunicate con nosotros para asistencia rápida.</p>
                 <a 
-                    href={`https://wa.me/TU_NUMERO_AQUI?text=${supportMessage}`} 
+                    href={`https://wa.me/2324313123?text=${supportMessage}`} 
                     target="_blank"
                     className="flex items-center justify-center gap-2 w-full py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold hover:bg-blue-700 transition shadow-sm no-underline"
                 >

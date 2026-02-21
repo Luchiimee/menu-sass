@@ -132,13 +132,19 @@ export default function SettingsPage() {
     } catch (error: any) { toast.error("Error al eliminar"); }
   };
 
-  // --- AUTO-GUARDADO DE PERFIL (CON DELAY) ---
-  const saveProfileData = async (newData: any) => {
-    if (!userId) return;
-    const { error } = await supabase.from('profiles').upsert({ id: userId, ...newData });
-    if (!error) toast.success('Perfil actualizado', { position: 'bottom-right', duration: 1000 });
-  };
 
+  // --- AUTO-GUARDADO DE PERFIL (CON REFRESH) ---
+const saveProfileData = async (newData: any) => {
+  if (!userId) return;
+  const { error } = await supabase.from('profiles').upsert({ id: userId, ...newData });
+  
+  if (!error) {
+    toast.success('Perfil actualizado');
+    
+    // ESTA LÍNEA ES EL "GRITO" QUE ESCUCHA TU LAYOUT
+    window.dispatchEvent(new Event('profile-updated')); 
+  }
+};
   const updateProfile = (field: string, value: string) => {
     const newData = { ...profile, [field]: value };
     setProfile(newData);
@@ -340,34 +346,47 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-4 space-y-6">
-            <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                <h2 className="font-bold text-xl mb-6">Mis Datos</h2>
-                <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Nombre</label>
-                            <input value={profile.first_name} onChange={(e) => updateProfile('first_name', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Apellido</label>
-                            <input value={profile.last_name} onChange={(e) => updateProfile('last_name', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">WhatsApp Personal</label>
-                        <input value={profile.phone} onChange={(e) => updateProfile('phone', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
-                    </div>
-                    <div className="pt-2 flex flex-col gap-3">
-                         <button onClick={handlePasswordReset} className="w-full py-3 text-xs font-bold text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">Cambiar Contraseña</button>
-                         <button onClick={handleLogout} className="md:hidden w-full py-3 text-xs font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 tracking-widest uppercase">
-                            <LogOut size={16}/> Cerrar sesión
-                         </button>
-                         <button onClick={handleDeleteAccount} className="w-full py-3 text-[10px] font-black text-red-400/50 hover:text-red-600 transition flex items-center justify-center gap-2 uppercase tracking-widest">
-                            <Trash2 size={14}/> Eliminar mi cuenta
-                         </button>
-                    </div>
-                </div>
-            </section>
+          <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+    <h2 className="font-bold text-xl mb-6">Mis Datos</h2>
+    <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-3">
+            <div>
+                <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Nombre</label>
+                <input value={profile.first_name} onChange={(e) => updateProfile('first_name', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
+            </div>
+            <div>
+                <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Apellido</label>
+                <input value={profile.last_name} onChange={(e) => updateProfile('last_name', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
+            </div>
+        </div>
+        
+        <div>
+            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">WhatsApp Personal</label>
+            <input value={profile.phone} onChange={(e) => updateProfile('phone', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
+        </div>
+
+        {/* --- NUEVO CAMPO: CORREO ELECTRÓNICO --- */}
+        <div>
+            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Correo Electrónico</label>
+            <input 
+                value={profile.email} 
+                disabled 
+                className="w-full p-3 bg-gray-100 border-none rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed outline-none" 
+                title="El correo no se puede cambiar ya que es tu identificador de acceso"
+            />
+        </div>
+
+        <div className="pt-2 flex flex-col gap-3">
+             <button onClick={handlePasswordReset} className="w-full py-3 text-xs font-bold text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">Cambiar Contraseña</button>
+             <button onClick={handleLogout} className="md:hidden w-full py-3 text-xs font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 tracking-widest uppercase">
+                <LogOut size={16}/> Cerrar sesión
+             </button>
+             <button onClick={handleDeleteAccount} className="w-full py-3 text-[10px] font-black text-red-400/50 hover:text-red-600 transition flex items-center justify-center gap-2 uppercase tracking-widest">
+                <Trash2 size={14}/> Eliminar mi cuenta
+             </button>
+        </div>
+    </div>
+</section>
         </div>
 
         <div className="lg:col-span-8">
