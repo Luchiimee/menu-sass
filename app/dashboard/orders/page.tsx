@@ -159,44 +159,59 @@ const handlePrint = (order: any) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    // Buscamos la dirección en todos los campos posibles
-    const direccionReal = order.address || order.customer_address || 'Sin dirección';
-    
+    // 1. Lógica de Ubicación y Dirección
+    const direccionReal = order.address || 'Sin dirección';
     const direccionExhibida = order.order_type === 'delivery' 
       ? direccionReal 
       : order.order_type === 'mesa' ? `Mesa: ${order.table_number || 'S/N'}` : 'Retiro por Local';
 
     const itemsHtml = order.items.map((item: any) => {
-      // Desglose de extras con precio
-      const extras = item.extras && item.extras.length > 0 
-        ? `<div style="font-size: 11px; color: #666; margin-left: 10px;">${item.extras.map((e: any) => `+ ${e.name} ($${e.price})`).join('<br>')}</div>`
+      // Usamos extrasList que es el campo que tenés en tu mapeo de UI
+      const extras = item.extrasList && item.extrasList.length > 0 
+        ? `<div style="font-size: 11px; color: #333; margin-left: 10px; font-style: italic;">${item.extrasList.map((e: any) => `+ ${e.name}`).join('<br>')}</div>`
         : '';
       
       return `
-        <div style="margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px;">
+        <div style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">
             <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
                 <span>${item.quantity}x ${item.name}</span>
-                <span>$${item.price * item.quantity}</span>
+                <span>$${(item.price * item.quantity).toLocaleString()}</span>
             </div>
             ${extras}
         </div>`;
     }).join("");
 
+    // 2. Construcción del HTML del Ticket
     printWindow.document.write(`
         <html>
-            <body style="font-family: 'Courier New', monospace; width: 280px; padding: 10px; color: #000; line-height: 1.2;">
+            <head>
+                <title>Ticket #${order.id.slice(0, 5)}</title>
+                <style>
+                    @media print {
+                        body { margin: 0; padding: 10px; }
+                        @page { margin: 0; }
+                    }
+                </style>
+            </head>
+            <body style="font-family: 'Courier New', monospace; width: 280px; padding: 10px; color: #000; line-height: 1.2; margin: 0 auto;">
                 <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-                    <h2 style="margin:0; text-transform: uppercase; letter-spacing: -1px;">${restaurantName}</h2>
-                    <p style="margin: 4px 0; font-weight: bold;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
+                    <h2 style="margin:0; text-transform: uppercase;">${restaurantName}</h2>
+                    <p style="margin: 4px 0; font-weight: bold;">COMANDA #${order.id.slice(0, 5).toUpperCase()}</p>
                     <p style="margin: 0; font-size: 11px;">${new Date(order.created_at).toLocaleString('es-AR')}</p>
                 </div>
 
                 <div style="margin-bottom: 12px; font-size: 13px;">
                     <p style="margin: 3px 0;"><strong>CLIENTE:</strong> ${order.customer_name}</p>
                     <p style="margin: 3px 0;"><strong>TEL:</strong> ${order.customer_phone || 'N/A'}</p>
-                    <p style="margin: 3px 0;"><strong>DIR:</strong> ${direccionExhibida}</p>
+                    <p style="margin: 3px 0;"><strong>TIPO:</strong> ${order.order_type.toUpperCase()}</p>
+                    <p style="margin: 3px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida}</p>
                     <p style="margin: 3px 0;"><strong>PAGO:</strong> ${order.payment_method?.toUpperCase() || 'EFECTIVO'}</p>
-                    ${order.notes ? `<div style="margin-top: 6px; padding: 4px; border: 1px solid #000; font-size: 12px;"><strong>NOTA:</strong> ${order.notes}</div>` : ''}
+                    
+                    ${order.description ? `
+                        <div style="margin-top: 8px; padding: 8px; border: 1px solid #000; font-size: 12px; background: #f9f9f9; border-radius: 5px;">
+                            <strong>NOTA:</strong> ${order.description}
+                        </div>
+                    ` : ''}
                 </div>
 
                 <div style="margin-bottom: 12px;">
@@ -204,31 +219,49 @@ const handlePrint = (order: any) => {
                 </div>
 
                 <div style="border-top: 2px dashed #000; padding-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                        <span>SUBTOTAL:</span>
+                        <span>$${(Number(order.total) - (Number(order.delivery_cost) || 0) + (Number(order.discount_amount) || 0)).toLocaleString()}</span>
+                    </div>
+
                     ${order.discount_amount > 0 ? `
                         <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                            <span>SUBTOTAL:</span>
-                            <span>$${Number(order.total) + Number(order.discount_amount)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
                             <span>DESC. (${order.coupon_code || 'CUPÓN'}):</span>
-                            <span>-$${order.discount_amount}</span>
+                            <span>-$${order.discount_amount.toLocaleString()}</span>
                         </div>
                     ` : ''}
-                    <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 900; margin-top: 4px;">
+
+                    ${Number(order.delivery_cost) > 0 ? `
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span>ENVÍO:</span>
+                            <span>$${Number(order.delivery_cost).toLocaleString()}</span>
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 900; margin-top: 6px; border-top: 1px solid #000; padding-top: 4px;">
                         <span>TOTAL:</span>
-                        <span>$${order.total}</span>
+                        <span>$${Number(order.total).toLocaleString()}</span>
                     </div>
                 </div>
                 
-                <div style="text-align: center; margin-top: 20px; font-size: 11px;">
-                    <p>*** GRACIAS POR ELEGIRNOS ***</p>
+                <div style="text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <p style="font-size: 10px; margin-bottom: 4px;">*** GRACIAS POR TU COMPRA ***</p>
+                    <p style="font-size: 9px; font-weight: bold; color: #444; margin: 0; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                       <span style="color: #000;">Snappy</span> Tu Menú Digital
+                    </p>
                 </div>
             </body>
         </html>
     `);
+
     printWindow.document.close();
-    printWindow.print();
-  };
+
+    // 3. AUTO-PRINT Y CERRADO AUTOMÁTICO
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 300); // Pequeño delay para asegurar que el navegador cargó el contenido
+};
 
   const changeView = (newView: string) => {
     setView(newView); localStorage.setItem("ordersView", newView);
