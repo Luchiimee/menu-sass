@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud,Star
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -43,6 +43,7 @@ const CUSTOM_STYLES = `
 `;
 
 export default function EditorPage() {
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
@@ -318,7 +319,7 @@ const getTemplateConfig = () => {
   return (
     <>
     <style>{CUSTOM_STYLES}</style>
-    <div className="relative pt-06 min-h-[85vh] bg-gray-50/50">
+    <div className="relative pt-16 xl:pt-6 min-h-screen bg-gray-50/50 px-2 sm:px-6">
       
       {showRestoreModal && <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in"><div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"><h3 className="font-bold text-lg text-gray-900 mb-2">¿Restaurar colores?</h3><p className="text-sm text-gray-600 mb-6">Volverás a los colores originales del diseño.</p><div className="flex gap-3"><button onClick={() => setShowRestoreModal(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200">Cancelar</button><button onClick={confirmReset} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-700">Sí, Restaurar</button></div></div></div>}
       {showSuccessModal && <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-pop-in"><div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3"><CheckCircle size={20} className="text-green-400"/><span className="font-bold text-sm">¡Guardado!</span></div></div>}
@@ -327,18 +328,43 @@ const getTemplateConfig = () => {
           <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0 min-w-0">
             
             {/* PANEL IZQUIERDO */}
-            <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
-                  <div><h1 className="text-xl font-bold whitespace-nowrap text-gray-900">Personalizar Tienda</h1><div className="flex items-center gap-2 mt-1"><p className="text-xs text-gray-500">Diseña la apariencia de tu menú digital.</p>{unsavedChanges && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">Autoguardando...</span>}</div></div>
-                  <div className="flex gap-2">
-                    <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors">
-                      <Palette size={14}/> Estilos
-                    </button>
-                    <button onClick={handleSave} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-colors">
-                      <Save size={14}/> Guardado
-                    </button>
-                  </div>
-              </div>
+          <div className="flex-1 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
+  
+  
+<div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 border-b border-gray-100 pb-8">
+    <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-tight">
+            Personalizar tienda
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[11px] sm:text-xs text-gray-400 font-medium">Diseña la apariencia de tu menú digital.</p>
+            {unsavedChanges && (
+                <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                    Autoguardando...
+                </span>
+            )}
+        </div>
+    </div>
+
+    <div className="flex flex-col gap-3 w-full lg:w-auto">
+        <div className="flex gap-2">
+          <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[11px] font-bold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm">
+            <Palette size={14}/> Estilos
+          </button>
+          <button onClick={handleSave} disabled={loading} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all">
+            <Save size={14}/> Guardado
+          </button>
+        </div>
+
+        {/* BOTÓN OJITO PARA MOBILE */}
+        <button 
+          onClick={() => setShowMobilePreview(true)} 
+          className="xl:hidden flex items-center justify-center gap-2 w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl"
+        >
+          <Eye size={18} className="text-indigo-400"/> Mirá cómo va quedando
+        </button>
+    </div>
+</div>
 
               {/* SECCIÓN DE ESTILOS DINÁMICA */}
               {showAdvanced && (
@@ -565,7 +591,29 @@ const getTemplateConfig = () => {
             )}
           </div>
       </div>
+{/* --- MODAL VISTA PREVIA MOBILE (DENTRO DEL RETURN) --- */}
+      {showMobilePreview && (
+        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm h-[85vh] bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative border-[6px] border-zinc-800">
+            <button 
+              onClick={() => setShowMobilePreview(false)} 
+              className="absolute top-6 right-6 z-[210] bg-black text-white p-3 rounded-full shadow-lg border border-white/20 active:scale-90 transition-transform"
+            >
+              <X size={24} />
+            </button>
+            <div className="h-full">
+               <PhoneMockup templateId={data.template_id} />
+            </div>
+          </div>
+          <p className="mt-6 text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse italic">Vista Previa en Vivo</p>
+        </div>
+      )}
+
+
     </div>
     </>
+    
   );
+  
+
 }
