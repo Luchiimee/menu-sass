@@ -199,6 +199,77 @@ case "spotlight":
             .spot-product-thumb { width: 70px; height: 70px; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; }
             .spot-product-price { font-weight: 900; font-size: 15px; margin-top: 4px; color: #111; }
         `;
+
+
+        case "elegant":
+        return `
+            /* 1. Importamos la fuente con todos los pesos necesarios (400, 700 y 900) */
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
+            
+            body, h1, h2, h3, p, span, div, button { 
+                font-family: 'Playfair Display', serif !important; 
+            }
+
+            body { background: ${BG}; margin: 0; color: ${TEXT}; }
+            .app-wrapper { min-height: 100vh; padding-bottom: 120px; text-align: center; }
+            
+            /* Header */
+            .elegant-header { padding: 60px 20px 30px; }
+            .elegant-logo { width: 90px; height: 90px; margin: 0 auto 20px; border-radius: 50%; border: 2px solid ${THEME}; padding: 4px; object-fit: cover; }
+            .elegant-title { font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; font-style: italic; }
+            
+            /* Banner de Promoción */
+            .elegant-promo { 
+                background: ${PROMO_BG}; 
+                border: 1px solid ${THEME}40;
+                padding: 18px; 
+                margin: 0 25px 40px 25px;
+                font-size: 15px; 
+                font-weight: 700; /* Más negro */
+                font-style: italic;
+                color: ${TEXT};
+                border-radius: 12px;
+            }
+            
+            .elegant-cat-title { display: none; } 
+
+            /* Tarjetas de Producto */
+            .elegant-card { 
+                padding: 20px 25px; 
+                margin-bottom: 10px; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: flex-start; 
+                text-align: left; 
+                border-bottom: 1px solid rgba(0,0,0,0.04); 
+            }
+
+            /* Nombre del producto: Más grande y bien negro */
+            .elegant-prod-name { 
+                font-size: 20px; 
+                font-weight: 900; 
+                text-transform: uppercase; 
+                letter-spacing: 0.5px; 
+                color: ${TEXT}; 
+            }
+
+            /* DESCRIPCIÓN: Subimos tamaño a 14px y oscurecemos el color */
+            .elegant-prod-desc { 
+                font-size: 14px; 
+                font-style: italic; 
+                color: ${TEXT}; 
+                opacity: 0.9; /* Casi negro total */
+                margin-top: 6px; 
+                line-height: 1.5; 
+            }
+
+            .elegant-price { 
+                font-size: 18px; 
+                font-weight: 900; 
+                color: ${THEME}; 
+                margin-top: 10px; 
+            }
+        `;
     }
     
 };
@@ -696,6 +767,58 @@ function MenuContent({
       ))}
     </div>
   );
+
+  case "elegant":
+  return (
+    <div className="app-wrapper">
+      <div className="elegant-header">
+        {LOGO && <img src={LOGO} className="elegant-logo" alt="logo" />}
+        <h1 className="elegant-title">{restaurant.name}</h1>
+        <p className="text-[10px] uppercase tracking-[0.3em] opacity-40 font-bold">{restaurant.description}</p>
+      </div>
+
+      {restaurant.show_promo && restaurant.promo_message && (
+        <div className="elegant-promo">
+          {restaurant.promo_message}
+        </div>
+      )}
+
+      {restaurant.categories?.map((cat: any) => (
+        <div key={cat.id}>
+          <h2 className="elegant-cat-title">{cat.name}</h2>
+          {cat.products?.map((prod: any) => {
+            const extras = getExtrasForProduct(prod.id);
+            const principalEnCarrito = cart.some(item => item.id === prod.id);
+            return (
+              <div key={prod.id} className="elegant-card">
+                <div className="flex-1 pr-6">
+                  <h3 className="elegant-prod-name">{prod.name}</h3>
+                  <p className="elegant-prod-desc">{prod.description}</p>
+                  <div className="elegant-price">{formatPrice(prod.price)}</div>
+                  
+                  {/* Extras Estilo Elegante */}
+                  {principalEnCarrito && extras && extras.length > 0 && (
+                    <div className="mt-4 space-y-3 border-l border-black/10 pl-4 animate-in fade-in slide-in-from-left-2">
+                       {extras.map((ex: any) => (
+                         <div key={ex.id} className="flex justify-between items-center text-[11px]">
+                           <span className="font-bold opacity-60 uppercase">{ex.name} (+{formatPrice(ex.price)})</span>
+                           <button onClick={() => { addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Adicional sumado"); }} className="w-6 h-6 rounded-full border border-black/10 flex items-center justify-center active:bg-black/5"><Plus size={12} /></button>
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                </div>
+                <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
+                  <AddToCartBtn product={prod} variant="icon" isDark={false} disabled={!isOpen} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }

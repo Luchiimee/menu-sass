@@ -298,22 +298,20 @@ export default function GalleryPage() {
   }, []);
 
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
-  const handleSelect = async (id: string, premium: boolean) => {
-    const proximamente = ['elegant', 'bistro'];
-   if (['elegant', 'bistro'].includes(id)) {
-    setShowUpcomingModal(true);
-    return;
-  }
-    if(premium && userPlan === 'free') return alert("Plantilla Premium");
+ const handleSelect = async (id: string, premium: boolean) => {
+    // Solo dejamos 'bistro' bloqueada por ahora
+    if (['bistro'].includes(id)) {
+      setShowUpcomingModal(true);
+      return;
+    }
+   if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
+    
     setSavingId(id);
     
     const { data: { user } } = await supabase.auth.getUser();
-    if(user) {
-      // 1. Obtenemos los defaults de la plantilla seleccionada
+    if (user) {
       const defaults = TEMPLATE_DEFAULTS[id] || TEMPLATE_DEFAULTS['classic'];
 
-      // 2. Sobrescribimos ABSOLUTAMENTE TODOS los campos de diseño en la DB
-      // Esto elimina cualquier personalización anterior que tuviera el usuario
       await supabase.from('restaurants').update({ 
           template_id: id,
           theme_color: defaults.theme,
@@ -533,13 +531,14 @@ const filteredTemplates = TEMPLATES.filter(t => {
                   {t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500"/>}
                 </h3>
                 <p className="card-desc">{t.desc}</p>
-                <button 
+          <button 
   onClick={() => handleSelect(t.id, t.premium)}
-  // Se deshabilita solo si se está guardando o si ya está seleccionada (pero no para las "Próximamente")
-  disabled={savingId === t.id || (isSelected && !['elegant', 'bistro'].includes(t.id))}
+  // Solo se deshabilita si es 'bistro', si se está guardando, o si ya está en uso (pero no para la elegante)
+  disabled={savingId === t.id || (isSelected && t.id !== 'elegant')}
   className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
 >
-  {['elegant', 'bistro'].includes(t.id) 
+  {/* Texto dinámico según el ID */}
+  {t.id === 'bistro' 
     ? 'Próximamente' 
     : savingId === t.id 
       ? <Loader2 className="animate-spin" size={14}/> 
