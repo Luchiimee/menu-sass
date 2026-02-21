@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useRef, Suspense } from "react"; // Agregamos Suspense aquí
 import { createBrowserClient } from "@supabase/ssr";
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
   CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
@@ -15,7 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  LayoutList, Pencil,
+  LayoutList, Pencil,X, 
 } from "lucide-react";
 import Link from "next/link";
 
@@ -32,12 +33,13 @@ const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-// 1. Cambiamos el nombre de la función a OrdersContent para poder envolverla
 function OrdersContent() {
-  const [editingTableId, setEditingTableId] = useState<string | null>(null);
-  
-  // HOOKS DE NAVEGACIÓN Y ESTADO
+  // --- INICIALIZACIÓN DE HOOKS ---
+  const router = useRouter(); // <--- ESTA ES LA LÍNEA QUE SOLUCIONA EL ERROR
   const searchParams = useSearchParams();
+  
+  // ESTADOS DE LA TABLA Y EDICIÓN
+  const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ function OrdersContent() {
   );
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  // FUNCIONES DE APOYO UI
+  // --- FUNCIONES DE APOYO UI (Se mantienen igual) ---
   const getStatusBadge = (status: string, orderType?: string) => {
     switch (status) {
       case "pendiente":
@@ -259,24 +261,61 @@ const handlePrint = (order: any) => {
 
   useEffect(() => {
     let mounted = true;
+
     const loadOrders = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { data: rest } = await supabase.from("restaurants").select("*").eq("user_id", user.id).single();
+
+        // Traemos toda la info del restaurante
+        const { data: rest } = await supabase
+          .from("restaurants")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
         if (mounted && rest) {
-          setRestaurantName(rest.name); setRestaurantId(rest.id); setRestaurantPhone(rest.phone); setReceiveWhatsapp(rest.receive_whatsapp ?? true);
-          if (rest.subscription_plan !== "light") {
-            setIsLocked(false);
-            const { data: ords } = await supabase.from("orders").select("*").eq("restaurant_id", rest.id).gte("created_at", `${selectedDate}T00:00:00`).order("created_at", { ascending: false });
+          // Seteamos datos básicos del local
+          setRestaurantName(rest.name);
+          setRestaurantId(rest.id);
+          setRestaurantPhone(rest.phone);
+          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+
+          // --- LÓGICA DE BLOQUEO INTELIGENTE ---
+          const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
+          // Bloqueamos solo si el plan es 'light' y NO es tu correo de admin
+          const shouldBeLocked = rest.subscription_plan === "light" && !isSuperAdmin;
+          
+          setIsLocked(shouldBeLocked);
+
+          if (!shouldBeLocked) {
+            // Si NO está bloqueado (Plus, Max o Admin), cargamos los pedidos
+            const { data: ords } = await supabase
+              .from("orders")
+              .select("*")
+              .eq("restaurant_id", rest.id)
+              .gte("created_at", `${selectedDate}T00:00:00`)
+              .order("created_at", { ascending: false });
+            
             setOrders(ords || []);
+          } else {
+            // Si está bloqueado, nos aseguramos de que la lista de pedidos esté vacía
+            setOrders([]);
           }
         }
-      } catch (e) { console.error(e); } finally { if (mounted) setLoading(false); }
+      } catch (e) {
+        console.error("Error en loadOrders:", e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
+
     loadOrders();
-    return () => { mounted = false; };
-  }, [selectedDate]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedDate, supabase]); // Añadimos supabase a las dependencias por seguridad
 
   useEffect(() => {
     if (!restaurantId || isLocked) return;
@@ -298,21 +337,38 @@ const handlePrint = (order: any) => {
   return (
     <div className="max-w-6xl mx-auto min-h-screen p-2 pt-20 md:pt-28 lg:pt-8 relative font-sans">
       
-      {/* --- LÓGICA DE BLOQUEO --- */}
-      {isLocked && (
-        <div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/60 flex items-center justify-center p-4">
-          <div className="bg-white shadow-2xl p-8 rounded-[2.5rem] max-w-md w-full text-center border border-gray-100 animate-in zoom-in-95 duration-300">
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5 text-blue-600">
-              <Zap size={32} fill="currentColor" />
-            </div>
-            <h2 className="text-2xl font-bold mb-3 text-gray-900 tracking-tighter">Gestor de Pedidos</h2>
-            <p className="text-gray-500 mb-8 text-base font-medium">Panel de control exclusivo del <b>Plan Plus</b>.</p>
-            <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg bg-blue-600 text-white hover:bg-blue-700">
-              Actualizar a Plus <Zap size={20} fill="currentColor" />
-            </Link>
-          </div>
-        </div>
-      )}
+ 
+  {/* --- LÓGICA DE BLOQUEO (Se mantiene visible la sección pero tapada) --- */}
+{isLocked && (
+  <div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/60 flex items-center justify-center p-4">
+    <div className="bg-white shadow-2xl p-10 rounded-[2.5rem] max-w-md w-full text-center border border-gray-100 relative">
+      
+      {/* Botón X para volver al Dashboard */}
+      <button 
+        onClick={() => router.push('/dashboard')} 
+        className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+      >
+        <X size={20} className="text-gray-500" />
+      </button>
+
+      <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5 text-blue-600">
+        <Zap size={32} fill="currentColor" />
+      </div>
+
+      <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic">Gestor de Pedidos</h2>
+      <p className="text-gray-500 mb-8 text-sm">Panel de control exclusivo del <b>Plan Plus</b>.</p>
+      
+      <div className="flex flex-col gap-3">
+         <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg uppercase text-xs tracking-widest">
+           Actualizar a Plus <Zap size={18} fill="currentColor" className="inline ml-1" />
+         </Link>
+         <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600">
+           Volver al inicio
+         </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <div className={`${isLocked ? "blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-full" : ""}`}>
         

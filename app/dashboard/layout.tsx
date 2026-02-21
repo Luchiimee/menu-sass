@@ -185,16 +185,15 @@ return () => {
     router.refresh(); 
     router.push('/login');
   };
-
-  const menuItems = [
-    { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Personalizar', href: '/dashboard/personalizar', icon: Palette },
-    { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
-    { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
-    { name: 'Caja', href: '/dashboard/analytics', icon: BarChart3 }, 
-    { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag },
-    { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
-  ];
+const menuItems = [
+  { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Personalizar', href: '/dashboard/personalizar', icon: Palette },
+  { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
+  { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
+  { name: 'Caja', href: '/dashboard/analytics', icon: BarChart3 }, // Siempre visible
+  { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag }, // Siempre visible
+  { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
+];
 
   if (isAdmin) {
     menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });

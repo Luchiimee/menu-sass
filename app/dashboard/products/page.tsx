@@ -22,6 +22,7 @@ export default function ProductsPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [showModal, setShowModal] = useState(false); 
   const [showExtraModal, setShowExtraModal] = useState(false); 
@@ -48,11 +49,15 @@ export default function ProductsPage() {
       localStorage.setItem('productsView', newView);
   };
 
-  useEffect(() => {
+ useEffect(() => {
     const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
+
+        // 1. Detectamos si sos el SuperAdmin para el bypass total
+        const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+        setIsAdmin(isSuperAdmin);
 
         const { data: rest, error: restError } = await supabase
             .from('restaurants')
@@ -67,21 +72,30 @@ export default function ProductsPage() {
             setCurrentPlan(rest.subscription_plan);
             if (rest.template_id) setSelectedTemplate(rest.template_id);
 
-            const hasActivePlan = rest.subscription_plan !== null || rest.subscription_status === 'active';
+            // 2. Lógica de Bloqueo: Si no tiene plan y NO es admin, se bloquea la pantalla
+            const hasNoPlan = rest.subscription_plan === null;
+            setIsLocked(hasNoPlan && !isSuperAdmin);
 
-            if (hasActivePlan) {
-                setIsLocked(false);
-                const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: false });
-                if (prods) setProducts(prods);
-                
-                const { data: extras } = await supabase.from('extras').select('*').eq('restaurant_id', rest.id).order('name', { ascending: true });
-                if (extras) setAvailableExtras(extras);
-            } else { 
-                setIsLocked(true); 
-            }
+            // 3. Cargamos los productos y extras
+            // (Los cargamos siempre para que el contador 0/15 se actualice incluso si es Light)
+            const { data: prods } = await supabase
+                .from('products')
+                .select('*')
+                .eq('restaurant_id', rest.id)
+                .order('created_at', { ascending: false });
+            
+            if (prods) setProducts(prods);
+            
+            const { data: extras } = await supabase
+                .from('extras')
+                .select('*')
+                .eq('restaurant_id', rest.id)
+                .order('name', { ascending: true });
+            
+            if (extras) setAvailableExtras(extras);
         }
       } catch (error) { 
-          console.error("Error:", error); 
+          console.error("Error cargando productos:", error); 
       } finally { 
           setLoading(false); 
       }
@@ -89,17 +103,20 @@ export default function ProductsPage() {
     loadData();
   }, [supabase]);
 
-  const openCreateModal = () => {
-      if (!isLocked && currentPlan === 'light' && products.length >= 15) {
-           if (confirm("🚀 Límite alcanzado. ¿Pasar al plan Plus?")) router.push('/dashboard/settings'); 
-           return; 
-      }
-      setEditingId(null);
-      setFormData({ name: '', description: '', price: '', image_url: '' });
-      setSelectedExtras([]); 
-      setShowModal(true);
-  };
-
+const openCreateModal = () => {
+    // Si es plan light, no es admin y ya tiene 15 o más, bloqueamos
+    if (currentPlan === 'light' && !isAdmin && products.length >= 15) {
+         if (confirm("🚀 Límite de 15 productos alcanzado. ¿Pasar al plan Plus para productos ilimitados?")) {
+             router.push('/dashboard/settings');
+         }
+         return; 
+    }
+    // Si no, abrimos el modal normal
+    setEditingId(null);
+    setFormData({ name: '', description: '', price: '', image_url: '' });
+    setSelectedExtras([]); 
+    setShowModal(true);
+};
   const openEditModal = async (product: any) => {
       setEditingId(product.id);
       setFormData({
@@ -218,25 +235,38 @@ export default function ProductsPage() {
             </div>
         )}
 
-        <div className={`space-y-8 ${isLocked ? 'blur-sm pointer-events-none opacity-60' : ''}`}>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 tracking-tight">
-                        <span className="p-2 bg-violet-100 text-violet-600 rounded-lg"><UtensilsCrossed size={24}/></span>
-                        Menú Digital
-                    </h1>
-                    <p className="text-gray-500 mt-1 ml-1">Administra tus productos y opciones extra.</p>
-                </div>
+   {/* --- REEMPLAZÁ DESDE AQUÍ --- */}
+   <div className={`space-y-8 transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60' : ''}`}>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 tracking-tight">
+            <span className="p-2 bg-violet-100 text-violet-600 rounded-lg"><UtensilsCrossed size={24}/></span>
+            Menú Digital
+            
+            {/* CONTADOR DINÁMICO: Solo aparece en Plan Light y si no sos Admin */}
+          {currentPlan === 'light' && !isAdmin && (
+            <span className={`ml-2 px-2 py-0.5 rounded-md text-xs font-bold border transition-colors duration-300 ${
+                products.length >= 15 
+                ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' 
+                : 'bg-gray-100 text-gray-500 border-gray-200'
+            }`}>
+                {products.length} / 15
+            </span>
+        )}
+          </h1>
+          <p className="text-gray-500 mt-1 ml-1">Administra tus productos y opciones extra.</p>
+        </div>
 
-                <div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto">
-                    <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
-                    </button>
-                    <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <Layers size={16} className="inline mr-2"/> Adicionales
-                    </button>
-                </div>
-            </div>
+        <div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto shadow-inner">
+          <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+            <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
+          </button>
+          <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+            <Layers size={16} className="inline mr-2"/> Adicionales
+          </button>
+        </div>
+      </div>
+      {/* --- EL RESTO DE TU CÓDIGO (Buscador, Tabla, etc.) SIGUE ABAJO --- */}
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                {activeTab === 'products' ? (
@@ -360,6 +390,22 @@ export default function ProductsPage() {
             <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
                 <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
                     <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                        {currentPlan === 'light' && !isAdmin && (
+    <div className="flex flex-col items-end mr-2">
+        <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-black ${products.length >= 15 ? 'text-red-500' : 'text-gray-400'}`}>
+                {products.length}/15
+            </span>
+            <div className="w-16 h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                    className={`h-full transition-all duration-500 ${products.length >= 15 ? 'bg-red-500' : 'bg-violet-500'}`}
+                    style={{ width: `${Math.min((products.length / 15) * 100, 100)}%` }}
+                />
+            </div>
+        </div>
+        <span className="text-[8px] font-bold text-gray-300 uppercase tracking-tighter">Límite de productos</span>
+    </div>
+)}
                         <h2 className="font-bold text-lg text-gray-900">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h2>
                         <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-200 rounded-full"><X size={20}/></button>
                     </div>
