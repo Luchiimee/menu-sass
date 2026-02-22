@@ -19,14 +19,16 @@ self.addEventListener('push', (event) => {
     // Si no es JSON valido, usar defaults
   }
 
-  const options = {
+const options = {
     body: data.body,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    vibrate: [200, 100, 200, 100, 300],
+    // Vibración más larga: [vibrar, pausa, vibrar, pausa, vibrar largo]
+    vibrate: [500, 100, 500, 100, 1000], 
     tag: 'new-order-' + Date.now(),
     renotify: true,
     requireInteraction: true,
+    silent: false, // <--- AGREGÁ ESTO PARA ASEGURAR QUE NO ESTÉ MUDO
     actions: [
       { action: 'view', title: 'Ver pedido' },
       { action: 'dismiss', title: 'Ignorar' },

@@ -148,9 +148,10 @@ function OrdersContent() {
   };
 
  // --- 1. WHATSAPP ---
-// --- 1. WHATSAPP ---
   const toggleWhatsapp = async () => {
-    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) return;
+    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) {
+      setShowPhoneAlert(true); return;
+    }
     const newValue = !receiveWhatsapp;
     setReceiveWhatsapp(newValue);
     await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
@@ -172,7 +173,7 @@ function OrdersContent() {
     }
   };
 
-  // --- 3. IMPRESIÓN CORREGIDA ---
+  // --- 3. IMPRESIÓN (CIERRA PESTAÑA SOLA) ---
   const handlePrint = (order: any) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -206,12 +207,16 @@ function OrdersContent() {
                 <div style="border-top: 2px dashed #000; padding-top: 10px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between;">
                     <span>TOTAL:</span><span>$${Number(order.total).toLocaleString()}</span>
                 </div>
-                <p style="text-align: center; font-size: 10px; margin-top: 20px;">Snappy ⚡ Tu Menú Digital</p>
+                <p style="text-align: center; font-size: 10px; margin-top: 20px;">Snappy Tu Menú Digital</p>
             </body>
         </html>
     `);
+
     printWindow.document.close();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 350);
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 350);
   };
 
   const changeView = (newView: string) => {
@@ -219,7 +224,7 @@ function OrdersContent() {
     localStorage.setItem("ordersView", newView);
   };
 
-  // --- 4. EFECTOS (CARGA Y TIEMPO REAL) ---
+  // --- 4. EFECTOS (AUTH, CARGA Y TIEMPO REAL) ---
   useEffect(() => {
     const initApp = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -228,8 +233,7 @@ function OrdersContent() {
       if (rest) {
         setRestaurantName(rest.name); setRestaurantId(rest.id); setRestaurantPhone(rest.phone);
         setReceiveWhatsapp(rest.receive_whatsapp ?? true);
-        const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
-        setIsLocked(rest.subscription_plan === "light" && !isSuperAdmin);
+        setIsLocked(rest.subscription_plan === "light" && user.email !== 'luchiimee2@gmail.com');
       }
       setLoading(false);
     };
@@ -249,10 +253,10 @@ function OrdersContent() {
         { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, 
         (payload: any) => {
           setOrders((prev) => [payload.new, ...prev]);
-          // SONIDO: Aquí es donde suena al entrar pedido nuevo
+          // SONIDO AQUÍ
           try {
             const audio = new Audio('/notification.mp3');
-            audio.play().catch(() => console.log("Permiso de audio pendiente"));
+            audio.play().catch(() => console.log("Esperando clic para sonar"));
           } catch (e) {}
         }
       )
@@ -267,7 +271,7 @@ function OrdersContent() {
     };
   }, [restaurantId, isLocked]);
   if (loading) {
-
+    
     return (
       <div className="p-10 flex justify-center items-center min-h-screen">
         <Loader2 className="animate-spin text-blue-600" />

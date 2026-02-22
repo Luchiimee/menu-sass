@@ -69,7 +69,7 @@ export default function PushNotificationManager({ mobile = false }: { mobile?: b
         setStatus('ready');
         return;
       }
-
+new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
