@@ -147,220 +147,127 @@ function OrdersContent() {
     await supabase.from("orders").delete().eq("id", id);
   };
 
+ // --- 1. WHATSAPP ---
+// --- 1. WHATSAPP ---
   const toggleWhatsapp = async () => {
-    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) {
-      setShowPhoneAlert(true); return;
-    }
+    if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) return;
     const newValue = !receiveWhatsapp;
     setReceiveWhatsapp(newValue);
     await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
   };
-const handlePrint = (order: any) => {
+
+  // --- 2. CARGA DE PEDIDOS (UNIFICADA) ---
+  const loadOrders = async () => {
+    if (!restaurantId || isLocked) return;
+    try {
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .gte("created_at", `${selectedDate}T00:00:00`)
+        .order("created_at", { ascending: false });
+      setOrders(ords || []);
+    } catch (e) {
+      console.error("Error loadOrders:", e);
+    }
+  };
+
+  // --- 3. IMPRESIÓN CORREGIDA ---
+  const handlePrint = (order: any) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    // 1. Lógica de Ubicación y Dirección
-    const direccionReal = order.address || 'Sin dirección';
     const direccionExhibida = order.order_type === 'delivery' 
-      ? direccionReal 
-      : order.order_type === 'mesa' ? `Mesa: ${order.table_number || 'S/N'}` : 'Retiro por Local';
+      ? (order.address || 'Sin dirección') 
+      : order.order_type === 'mesa' ? `Mesa: ${order.table_number || 'S/N'}` : 'Retiro';
 
-    const itemsHtml = order.items.map((item: any) => {
-      // Usamos extrasList que es el campo que tenés en tu mapeo de UI
-      const extras = item.extrasList && item.extrasList.length > 0 
-        ? `<div style="font-size: 11px; color: #333; margin-left: 10px; font-style: italic;">${item.extrasList.map((e: any) => `+ ${e.name}`).join('<br>')}</div>`
-        : '';
-      
-      return `
+    const itemsHtml = order.items.map((item: any) => `
         <div style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">
             <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
                 <span>${item.quantity}x ${item.name}</span>
                 <span>$${(item.price * item.quantity).toLocaleString()}</span>
             </div>
-            ${extras}
-        </div>`;
-    }).join("");
+            ${item.extrasList?.map((e: any) => `<div style="font-size: 11px; margin-left: 10px;">+ ${e.name}</div>`).join('') || ''}
+        </div>`).join("");
 
-    // 2. Construcción del HTML del Ticket
     printWindow.document.write(`
         <html>
-            <head>
-                <title>Ticket #${order.id.slice(0, 5)}</title>
-                <style>
-                    @media print {
-                        body { margin: 0; padding: 10px; }
-                        @page { margin: 0; }
-                    }
-                </style>
-            </head>
-            <body style="font-family: 'Courier New', monospace; width: 280px; padding: 10px; color: #000; line-height: 1.2; margin: 0 auto;">
-                <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-                    <h2 style="margin:0; text-transform: uppercase;">${restaurantName}</h2>
-                    <p style="margin: 4px 0; font-weight: bold;">COMANDA #${order.id.slice(0, 5).toUpperCase()}</p>
-                    <p style="margin: 0; font-size: 11px;">${new Date(order.created_at).toLocaleString('es-AR')}</p>
+            <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto;">
+                <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px;">
+                    <h2 style="margin:0;">${restaurantName}</h2>
+                    <p>TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
                 </div>
-
-                <div style="margin-bottom: 12px; font-size: 13px;">
-                    <p style="margin: 3px 0;"><strong>CLIENTE:</strong> ${order.customer_name}</p>
-                    <p style="margin: 3px 0;"><strong>TEL:</strong> ${order.customer_phone || 'N/A'}</p>
-                    <p style="margin: 3px 0;"><strong>TIPO:</strong> ${order.order_type.toUpperCase()}</p>
-                    <p style="margin: 3px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida}</p>
-                    <p style="margin: 3px 0;"><strong>PAGO:</strong> ${order.payment_method?.toUpperCase() || 'EFECTIVO'}</p>
-                    
-                    ${order.description ? `
-                        <div style="margin-top: 8px; padding: 8px; border: 1px solid #000; font-size: 12px; background: #f9f9f9; border-radius: 5px;">
-                            <strong>NOTA:</strong> ${order.description}
-                        </div>
-                    ` : ''}
+                <div style="font-size: 13px; margin: 10px 0;">
+                    <p>CLIENTE: ${order.customer_name}</p>
+                    <p>UBICACIÓN: ${direccionExhibida}</p>
+                    ${order.description ? `<div style="border: 1px solid #000; padding: 5px;">NOTA: ${order.description}</div>` : ''}
                 </div>
-
-                <div style="margin-bottom: 12px;">
-                    ${itemsHtml}
+                ${itemsHtml}
+                <div style="border-top: 2px dashed #000; padding-top: 10px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between;">
+                    <span>TOTAL:</span><span>$${Number(order.total).toLocaleString()}</span>
                 </div>
-
-                <div style="border-top: 2px dashed #000; padding-top: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                        <span>SUBTOTAL:</span>
-                        <span>$${(Number(order.total) - (Number(order.delivery_cost) || 0) + (Number(order.discount_amount) || 0)).toLocaleString()}</span>
-                    </div>
-
-                    ${order.discount_amount > 0 ? `
-                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                            <span>DESC. (${order.coupon_code || 'CUPÓN'}):</span>
-                            <span>-$${order.discount_amount.toLocaleString()}</span>
-                        </div>
-                    ` : ''}
-
-                    ${Number(order.delivery_cost) > 0 ? `
-                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                            <span>ENVÍO:</span>
-                            <span>$${Number(order.delivery_cost).toLocaleString()}</span>
-                        </div>
-                    ` : ''}
-
-                    <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 900; margin-top: 6px; border-top: 1px solid #000; padding-top: 4px;">
-                        <span>TOTAL:</span>
-                        <span>$${Number(order.total).toLocaleString()}</span>
-                    </div>
-                </div>
-                
-                <div style="text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
-                    <p style="font-size: 10px; margin-bottom: 4px;">*** GRACIAS POR TU COMPRA ***</p>
-                    <p style="font-size: 9px; font-weight: bold; color: #444; margin: 0; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                       <span style="color: #000;">Snappy</span> Tu Menú Digital
-                    </p>
-                </div>
+                <p style="text-align: center; font-size: 10px; margin-top: 20px;">Snappy ⚡ Tu Menú Digital</p>
             </body>
         </html>
     `);
-
     printWindow.document.close();
-
-    // 3. AUTO-PRINT Y CERRADO AUTOMÁTICO
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 300); // Pequeño delay para asegurar que el navegador cargó el contenido
-};
-
-  const changeView = (newView: string) => {
-    setView(newView); localStorage.setItem("ordersView", newView);
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 350);
   };
 
-  // EFECTOS
-  useEffect(() => {
-    const targetId = searchParams.get('id');
-    if (targetId && orders.length > 0) {
-      setTimeout(() => {
-        const element = document.getElementById(`order-${targetId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setHighlightedId(targetId);
-          setTimeout(() => setHighlightedId(null), 3000);
-        }
-      }, 800);
-    }
-  }, [searchParams, orders]);
+  const changeView = (newView: string) => {
+    setView(newView);
+    localStorage.setItem("ordersView", newView);
+  };
 
+  // --- 4. EFECTOS (CARGA Y TIEMPO REAL) ---
   useEffect(() => {
-    const savedView = localStorage.getItem("ordersView");
-    if (savedView) setView(savedView);
+    const initApp = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: rest } = await supabase.from("restaurants").select("*").eq("user_id", user.id).single();
+      if (rest) {
+        setRestaurantName(rest.name); setRestaurantId(rest.id); setRestaurantPhone(rest.phone);
+        setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+        const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
+        setIsLocked(rest.subscription_plan === "light" && !isSuperAdmin);
+      }
+      setLoading(false);
+    };
+    initApp();
   }, []);
 
   useEffect(() => {
-    if (!restaurantId || isLocked) return;
-    fetchTables(restaurantId);
-  }, [restaurantId, isLocked]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadOrders = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // Traemos toda la info del restaurante
-        const { data: rest } = await supabase
-          .from("restaurants")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (mounted && rest) {
-          // Seteamos datos básicos del local
-          setRestaurantName(rest.name);
-          setRestaurantId(rest.id);
-          setRestaurantPhone(rest.phone);
-          setReceiveWhatsapp(rest.receive_whatsapp ?? true);
-
-          // --- LÓGICA DE BLOQUEO INTELIGENTE ---
-          const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
-          // Bloqueamos solo si el plan es 'light' y NO es tu correo de admin
-          const shouldBeLocked = rest.subscription_plan === "light" && !isSuperAdmin;
-          
-          setIsLocked(shouldBeLocked);
-
-          if (!shouldBeLocked) {
-            // Si NO está bloqueado (Plus, Max o Admin), cargamos los pedidos
-            const { data: ords } = await supabase
-              .from("orders")
-              .select("*")
-              .eq("restaurant_id", rest.id)
-              .gte("created_at", `${selectedDate}T00:00:00`)
-              .order("created_at", { ascending: false });
-            
-            setOrders(ords || []);
-          } else {
-            // Si está bloqueado, nos aseguramos de que la lista de pedidos esté vacía
-            setOrders([]);
-          }
-        }
-      } catch (e) {
-        console.error("Error en loadOrders:", e);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
     loadOrders();
-
-    return () => {
-      mounted = false;
-    };
-  }, [selectedDate, supabase]); // Añadimos supabase a las dependencias por seguridad
+    if (restaurantId) fetchTables(restaurantId);
+  }, [selectedDate, restaurantId, isLocked]);
 
   useEffect(() => {
     if (!restaurantId || isLocked) return;
-    const channel = supabase.channel("orders_channel").on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload: any) => {
-      if (payload.eventType === "INSERT") setOrders((prev) => [payload.new, ...prev]);
-      else if (payload.eventType === "UPDATE") setOrders((prev) => prev.map((o) => (o.id === payload.new.id ? payload.new : o)));
-      else if (payload.eventType === "DELETE") setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
-    }).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [restaurantId, isLocked, selectedDate]);
 
+    const channel = supabase.channel("orders_channel")
+      .on("postgres_changes", 
+        { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, 
+        (payload: any) => {
+          setOrders((prev) => [payload.new, ...prev]);
+          // SONIDO: Aquí es donde suena al entrar pedido nuevo
+          try {
+            const audio = new Audio('/notification.mp3');
+            audio.play().catch(() => console.log("Permiso de audio pendiente"));
+          } catch (e) {}
+        }
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => loadOrders())
+      .subscribe();
+
+    const handleVisibility = () => { if (document.visibilityState === 'visible') loadOrders(); };
+    window.addEventListener('visibilitychange', handleVisibility);
+    return () => { 
+      supabase.removeChannel(channel); 
+      window.removeEventListener('visibilitychange', handleVisibility); 
+    };
+  }, [restaurantId, isLocked]);
   if (loading) {
+
     return (
       <div className="p-10 flex justify-center items-center min-h-screen">
         <Loader2 className="animate-spin text-blue-600" />
