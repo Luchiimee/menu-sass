@@ -28,7 +28,6 @@ const options = {
     tag: 'new-order-' + Date.now(),
     renotify: true,
     requireInteraction: true,
-    priority: 2,
     silent: false, // <--- AGREGÁ ESTO PARA ASEGURAR QUE NO ESTÉ MUDO
     actions: [
       { action: 'view', title: 'Ver pedido' },

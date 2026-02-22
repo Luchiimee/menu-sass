@@ -78,21 +78,26 @@ const orderType = record.order_type;
       subscriptions.map(async (sub) => {
         try {
          await webpush.sendNotification(
-  {
-    endpoint: sub.endpoint,
-    keys: {
-      p256dh: sub.p256dh,
-      auth: sub.auth,
-    },
-  },
-  payload,
-  {
-    // --- CONFIGURACIÓN DE ALTA PRIORIDAD ---
-    TTL: 60,            // Tiempo de vida: si no llega en 60 seg, expira
-    priority: 'high',   // Indica a Google (Android) que despierte el celu y muestre el cartel
-    urgency: 'high'     // Prioridad alta para el estándar Web Push
-  }
-);
+
+            {
+
+              endpoint: sub.endpoint,
+
+              keys: {
+
+                p256dh: sub.p256dh,
+
+                auth: sub.auth,
+
+              },
+
+            },
+
+            payload
+
+           
+
+          );
           sentCount++;
         } catch (err: unknown) {
           const error = err as { statusCode?: number };
