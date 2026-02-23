@@ -179,12 +179,42 @@ return () => {
 
   const bypassBlock = isAdmin;
 
-  // --- TUS FUNCIONES Y MENÚS (Se mantienen igual) ---
-  const handleLogout = async () => {
+ // Reemplaza tu handleLogout actual por este:
+const handleLogout = async () => {
+  try {
+    // 1. Intentamos limpiar la suscripción push antes de salir
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        // Obtenemos el usuario actual para saber a quién borrar en la BD
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user?.id) {
+          // Borramos la suscripción de la base de datos
+          await fetch('/api/push/subscribe', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              endpoint: subscription.endpoint,
+              userId: session.user.id
+            }),
+          });
+        }
+        // Desvinculamos el navegador del servicio push
+        await subscription.unsubscribe();
+      }
+    }
+  } catch (error) {
+    console.error("Error al desuscribir notificaciones:", error);
+  } finally {
+    // 2. Cerramos sesión en Supabase y redirigimos (siempre se ejecuta)
     await supabase.auth.signOut();
     router.refresh(); 
     router.push('/login');
-  };
+  }
+};
 const menuItems = [
   { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Personalizar', href: '/dashboard/personalizar', icon: Palette },

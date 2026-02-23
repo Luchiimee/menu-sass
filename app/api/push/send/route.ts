@@ -31,16 +31,20 @@ const orderType = record.order_type;
     );
 
     // 1. Buscar el user_id del dueño del restaurante
-    const { data: restaurant } = await supabaseAdmin
-      .from('restaurants')
-      .select('user_id')
-      .eq('id', restaurantId)
-      .single();
+const { data: restaurant } = await supabaseAdmin
+  .from('restaurants')
+  .select('user_id, subscription_plan') // <--- CAMBIÁ ESTO (Línea 35)
+  .eq('id', restaurantId)
+  .single();
 
-    if (!restaurant?.user_id) {
-      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
-    }
+if (!restaurant?.user_id) {
+  return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+}
 
+// Ahora TypeScript ya no marcará error aquí
+if (restaurant?.subscription_plan === 'light') {
+  return NextResponse.json({ ok: true, message: 'Plan Light no incluye Push' });
+}
     // 2. Buscar todas las suscripciones push del dueño
     const { data: subscriptions } = await supabaseAdmin
       .from('push_subscriptions')
