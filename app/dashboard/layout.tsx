@@ -182,18 +182,17 @@ return () => {
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
   try {
-    // 1. Intentamos limpiar la suscripción push antes de salir
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // Obtenemos el usuario actual para saber a quién borrar en la BD
+        // 1. Obtenemos la sesión primero para asegurar que tenemos el ID
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user?.id) {
-          // Borramos la suscripción de la base de datos
-          await fetch('/api/push/subscribe', {
+          // 2. Usamos 'await' y capturamos la respuesta para obligar al navegador a esperar
+          const response = await fetch('/api/push/subscribe', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -201,18 +200,20 @@ const handleLogout = async () => {
               userId: session.user.id
             }),
           });
+          
+          if (response.ok) console.log("Suscripción borrada con éxito");
         }
-        // Desvinculamos el navegador del servicio push
         await subscription.unsubscribe();
       }
     }
   } catch (error) {
-    console.error("Error al desuscribir notificaciones:", error);
+    console.error("Error al desuscribir:", error);
   } finally {
-    // 2. Cerramos sesión en Supabase y redirigimos (siempre se ejecuta)
+    // 3. REGLA DE ORO: Un pequeño delay de 500ms para que el iPhone termine de enviar los datos
+    await new Promise(resolve => setTimeout(resolve, 500));
     await supabase.auth.signOut();
-    router.refresh(); 
     router.push('/login');
+    router.refresh();
   }
 };
 const menuItems = [

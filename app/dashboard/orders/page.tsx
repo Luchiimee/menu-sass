@@ -41,6 +41,11 @@ function OrdersContent() {
   // ESTADOS DE LA TABLA Y EDICIÓN
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const getArgentinaDate = (offset = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+};
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("list");
@@ -56,9 +61,7 @@ function OrdersContent() {
   const [isCreatingTable, setIsCreatingTable] = useState(false);
   const [showTables, setShowTables] = useState(false);
   const [availableTables, setAvailableTables] = useState<Table[]>([]);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+ const [selectedDate, setSelectedDate] = useState(getArgentinaDate());
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // --- FUNCIONES DE APOYO UI (Se mantienen igual) ---
@@ -158,20 +161,27 @@ function OrdersContent() {
   };
 
   // --- 2. CARGA DE PEDIDOS (UNIFICADA) ---
-  const loadOrders = async () => {
+ const loadOrders = async () => {
     if (!restaurantId || isLocked) return;
     try {
+      // Definimos el inicio y el fin del día seleccionado
+      const startOfDay = `${selectedDate}T00:00:00.000Z`;
+      const endOfDay = `${selectedDate}T23:59:59.999Z`;
+
       const { data: ords } = await supabase
         .from("orders")
         .select("*")
         .eq("restaurant_id", restaurantId)
-        .gte("created_at", `${selectedDate}T00:00:00`)
+        // Filtramos exactamente dentro de ese día
+        .gte("created_at", startOfDay)
+        .lte("created_at", endOfDay) 
         .order("created_at", { ascending: false });
+        
       setOrders(ords || []);
     } catch (e) {
       console.error("Error loadOrders:", e);
     }
-  };
+};
 
   // --- 3. IMPRESIÓN (CIERRA PESTAÑA SOLA) ---
   const handlePrint = (order: any) => {
@@ -377,21 +387,18 @@ function OrdersContent() {
             {/* Control de Fecha y Calendario */}
             <div className="flex-1 flex items-center justify-between bg-white p-2 rounded-[1.5rem] border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl">
-                    <button 
-                        onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])}
-                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === new Date().toISOString().split("T")[0] ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
-                    >
-                        Hoy
-                    </button>
-                    <button 
-                        onClick={() => {
-                            const d = new Date(); d.setDate(d.getDate() - 1);
-                            setSelectedDate(d.toISOString().split("T")[0]);
-                        }}
-                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate !== new Date().toISOString().split("T")[0] ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
-                    >
-                        Ayer
-                    </button>
+                   <button 
+    onClick={() => setSelectedDate(getArgentinaDate())}
+    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === getArgentinaDate() ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
+>
+    Hoy
+</button>
+                  <button 
+    onClick={() => setSelectedDate(getArgentinaDate(-1))}
+    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === getArgentinaDate(-1) ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
+>
+    Ayer
+</button>
                 </div>
 
                 <div className="flex items-center gap-3">
