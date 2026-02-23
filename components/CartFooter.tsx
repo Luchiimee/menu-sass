@@ -136,52 +136,57 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         }
 
         // CASO 2: PLAN LIGHT (SOLO WHATSAPP)
-        return (
-            <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
-                <div className="w-full bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-green-100 relative animate-in slide-in-from-bottom-10 md:max-w-md overflow-hidden flex flex-col">
-                    <button 
-                        onClick={() => { clearCart(); setActiveOrderId(null); }} 
-                        className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-10"
-                    >
-                        <X size={24} className="text-gray-400" />
-                    </button>
+      // CASO 2: PLAN LIGHT (VISTA DE ÉXITO PERSONALIZADA)
+    return (
+        <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
+            <div className="w-full bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-green-100 relative animate-in slide-in-from-bottom-10 md:max-w-md overflow-hidden flex flex-col">
+                
+                <button 
+                    onClick={() => { clearCart(); setActiveOrderId(null); }} 
+                    className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-10"
+                >
+                    <X size={24} className="text-gray-400" />
+                </button>
 
-                    <div className="text-center space-y-6 pt-10 pb-8 px-8 flex-1">
-                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 mb-4 animate-in zoom-in duration-300 shadow-inner">
-                            <CheckCircle2 size={48} />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl font-black text-gray-900 tracking-tighter">¡Pedido Enviado!</h2>
-                            <p className="text-gray-500 text-sm mt-2 font-medium px-2 leading-relaxed">
-                                Si no se abrió WhatsApp automáticamente, tocá el botón de abajo para enviarlo.
-                            </p>
-                        </div>
-                        <div className="pt-2">
-                            <button 
-                                onClick={() => {
-                                    const cleanPhone = String(phone).replace(/\D/g, '');
-                                    window.open(`https://wa.me/${cleanPhone}`, '_blank');
-                                }}
-                                className="w-full bg-green-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl text-lg active:scale-95"
-                            >
-                                <MessageSquare size={24} /> Volver al WhatsApp
-                            </button>
-                            <button 
-                                onClick={() => { clearCart(); setActiveOrderId(null); }}
-                                className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 hover:text-gray-600 transition-colors"
-                            >
-                                Hacer otro pedido
-                            </button>
-                        </div>
+                <div className="text-center space-y-6 pt-10 pb-8 px-8 flex-1">
+                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 mb-4 animate-in zoom-in duration-300 shadow-inner">
+                        <CheckCircle2 size={48} />
                     </div>
-                    <div className="p-4 text-center bg-gray-900 border-t border-gray-800">
-                        <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
-                            Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy
+                    
+                    <div>
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">¡Pedido Enviado!</h2>
+                        <p className="text-gray-500 text-sm mt-2 font-medium px-2 leading-relaxed">
+                            Si tenés dudas o querés consultar algo, envianos un WhatsApp.
                         </p>
                     </div>
+
+                    <div className="pt-2">
+                        {/* Botón con el texto que pediste */}
+                        <a 
+                            href={`https://wa.me/${String(phone).replace(/\D/g, '')}`}
+                            target="_blank"
+                            className="w-full bg-green-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl text-lg active:scale-95 no-underline"
+                        >
+                            <MessageSquare size={24} /> Enviar WhatsApp
+                        </a>
+                        
+                        <button 
+                            onClick={() => { clearCart(); setActiveOrderId(null); }}
+                            className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 hover:text-gray-600 transition-colors"
+                        >
+                            Volver al menú
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="p-4 text-center bg-gray-900 border-t border-gray-800">
+                    <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
+                        Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy
+                    </p>
                 </div>
             </div>
-        );
+        </div>
+    );
     }
 
     // --- CÁLCULOS DE TOTAL ---
@@ -284,6 +289,15 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             const cleanPhone = String(phone).replace(/\D/g, ''); 
             const textEncoded = encodeURIComponent(mensaje);
             const whatsappUrl = `https://wa.me/${cleanPhone}?text=${textEncoded}`;
+            window.onbeforeunload = null; // Desactiva alerta de salida
+
+// Pequeño delay para asegurar que el estado 'setActiveOrderId' se guarde
+setTimeout(() => {
+    // Usamos location.href para que no te genere pestañas blancas extras
+    window.location.href = whatsappUrl;
+}, 100);
+
+setIsSending(false);
 
             window.onbeforeunload = null;
             if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
