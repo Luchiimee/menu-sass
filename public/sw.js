@@ -64,3 +64,4 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+// Versión estable recuperada - 22/02
