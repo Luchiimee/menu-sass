@@ -18,7 +18,6 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
 
-    // Form states
     const [nombre, setNombre] = useState('');
     const [telCliente, setTelCliente] = useState('');
     const [direccion, setDireccion] = useState('');
@@ -40,37 +39,19 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // --- LÓGICA DE CUPONES ---
     const applyCoupon = async () => {
         if (!couponCode) return;
         setIsValidating(true);
         setCouponError("");
-        const { data: coupon } = await supabase
-            .from("coupons")
-            .select("*")
-            .eq("restaurant_id", restaurantId)
-            .eq("code", couponCode.toUpperCase())
-            .eq("is_active", true)
-            .maybeSingle();
-
+        const { data: coupon } = await supabase.from("coupons").select("*").eq("restaurant_id", restaurantId).eq("code", couponCode.toUpperCase()).eq("is_active", true).maybeSingle();
         const now = new Date();
         if (coupon) {
             const startDate = new Date(coupon.starts_at);
             const expiresDate = coupon.expires_at ? new Date(coupon.expires_at) : null;
-            if (now < startDate) {
-                setCouponError("Este cupón aún no está activo.");
-                setAppliedCoupon(null);
-            } else if (expiresDate && now > expiresDate) {
-                setCouponError("Este cupón ha expirado.");
-                setAppliedCoupon(null);
-            } else {
-                setAppliedCoupon(coupon);
-                setCouponError("");
-            }
-        } else {
-            setCouponError("Cupón no válido.");
-            setAppliedCoupon(null);
-        }
+            if (now < startDate) { setCouponError("Este cupón aún no está activo."); setAppliedCoupon(null); }
+            else if (expiresDate && now > expiresDate) { setCouponError("Este cupón ha expirado."); setAppliedCoupon(null); }
+            else { setAppliedCoupon(coupon); setCouponError(""); }
+        } else { setCouponError("Cupón no válido."); setAppliedCoupon(null); }
         setIsValidating(false);
     };
 
@@ -78,21 +59,14 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         if (cart.length === 0) setIsVisible(false);
     }, [cart.length]);
 
-    // --- LIMPIEZA AUTOMÁTICA DEL CARRITO ---
     useEffect(() => {
         if (activeOrderId) {
             if (planType !== 'plus' && planType !== 'max') {
-                const timer = setTimeout(() => {
-                    clearCart();
-                    setActiveOrderId(null);
-                }, 15 * 60 * 1000); 
+                const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 15 * 60 * 1000); 
                 return () => clearTimeout(timer);
             }
             if (['entregado', 'completado', 'cancelado'].includes(orderStatus)) {
-                const timer = setTimeout(() => {
-                    clearCart();
-                    setActiveOrderId(null);
-                }, 5 * 60 * 1000);
+                const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 5 * 60 * 1000);
                 return () => clearTimeout(timer);
             }
         }
@@ -101,95 +75,58 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     useEffect(() => {
         if (metodoEnvio === 'mesa') {
             const getTables = async () => {
-                const { data } = await supabase
-                    .from('tables')
-                    .select('*')
-                    .eq('restaurant_id', restaurantId)
-                    .order('name', { ascending: true });
+                const { data } = await supabase.from('tables').select('*').eq('restaurant_id', restaurantId).order('name', { ascending: true });
                 setAvailableTables(data || []);
             };
             getTables();
         }
     }, [metodoEnvio, restaurantId, supabase]);
 
-    // --- VISTAS POST-PEDIDO (CORREGIDAS) ---
     if (activeOrderId) {
-        // CASO 1: PLANES CON SEGUIMIENTO (PLUS/MAX)
         if (planType === 'plus' || planType === 'max') {
             return (
                 <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
                     <div className="w-full h-[85vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col">
-                        <button 
-                            onClick={() => { clearCart(); setActiveOrderId(null); }}
-                            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-[130] shadow-sm"
-                        >
-                            <X size={20} className="text-gray-400" />
-                        </button>
-                        <OrderTracker 
-                            orderId={activeOrderId} 
-                            restaurantPhone={phone}
-                            onStatusChange={(status: string) => setOrderStatus(status)}
-                        />
+                        <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-[130] shadow-sm"><X size={20} className="text-gray-400" /></button>
+                        <OrderTracker orderId={activeOrderId} restaurantPhone={phone} onStatusChange={(status: string) => setOrderStatus(status)} />
                     </div>
                 </div>
             );
         }
 
-        // CASO 2: PLAN LIGHT (SOLO WHATSAPP)
-      // CASO 2: PLAN LIGHT (VISTA DE ÉXITO PERSONALIZADA)
-    return (
-        <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
-            <div className="w-full bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-green-100 relative animate-in slide-in-from-bottom-10 md:max-w-md overflow-hidden flex flex-col">
-                
-                <button 
-                    onClick={() => { clearCart(); setActiveOrderId(null); }} 
-                    className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-10"
-                >
-                    <X size={24} className="text-gray-400" />
-                </button>
-
-                <div className="text-center space-y-6 pt-10 pb-8 px-8 flex-1">
-                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 mb-4 animate-in zoom-in duration-300 shadow-inner">
-                        <CheckCircle2 size={48} />
+        return (
+            <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
+                <div className="w-full bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-green-100 relative animate-in slide-in-from-bottom-10 md:max-w-md overflow-hidden flex flex-col">
+                    <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-10"><X size={24} className="text-gray-400" /></button>
+                    <div className="text-center space-y-6 pt-10 pb-8 px-8 flex-1">
+                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 mb-4 animate-in zoom-in duration-300 shadow-inner"><CheckCircle2 size={48} /></div>
+                        <div>
+                            <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">¡Pedido Enviado!</h2>
+                            <p className="text-gray-500 text-sm mt-2 font-medium px-2 leading-relaxed">
+                                Si tenés dudas o querés consultar algo, envianos un WhatsApp.
+                            </p>
+                        </div>
+                        <div className="pt-2">
+                            <button 
+                                onClick={() => {
+                                    const cleanPhone = String(phone).replace(/\D/g, '');
+                                    window.location.href = `whatsapp://send?phone=${cleanPhone}`;
+                                }}
+                                className="w-full bg-green-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl text-lg active:scale-95"
+                            >
+                                <MessageSquare size={24} /> Enviar WhatsApp
+                            </button>
+                            <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 hover:text-gray-600 transition-colors">Volver al menú</button>
+                        </div>
                     </div>
-                    
-                    <div>
-                        <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">¡Pedido Enviado!</h2>
-                        <p className="text-gray-500 text-sm mt-2 font-medium px-2 leading-relaxed">
-                            Si tenés dudas o querés consultar algo, envianos un WhatsApp.
-                        </p>
+                    <div className="p-4 text-center bg-gray-900 border-t border-gray-800">
+                        <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy</p>
                     </div>
-
-                    <div className="pt-2">
-                        {/* Botón con el texto que pediste */}
-                        <a 
-                            href={`https://wa.me/${String(phone).replace(/\D/g, '')}`}
-                            target="_blank"
-                            className="w-full bg-green-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl text-lg active:scale-95 no-underline"
-                        >
-                            <MessageSquare size={24} /> Enviar WhatsApp
-                        </a>
-                        
-                        <button 
-                            onClick={() => { clearCart(); setActiveOrderId(null); }}
-                            className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 hover:text-gray-600 transition-colors"
-                        >
-                            Volver al menú
-                        </button>
-                    </div>
-                </div>
-                
-                <div className="p-4 text-center bg-gray-900 border-t border-gray-800">
-                    <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
-                        Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy
-                    </p>
                 </div>
             </div>
-        </div>
-    );
+        );
     }
 
-    // --- CÁLCULOS DE TOTAL ---
     const subtotal = cart.reduce((acc: number, item: any) => {
         const extrasTotal = (item.extrasList || []).reduce((a: number, b: any) => a + (b.price * b.quantity), 0);
         return acc + (item.price + extrasTotal) * item.quantity;
@@ -197,134 +134,93 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const montoDescuento = appliedCoupon ? (subtotal * Number(appliedCoupon.discount_percent) / 100) : 0;
     const envio = metodoEnvio === 'delivery' ? (Number(deliveryCost) || 0) : 0;
     const totalFinal = subtotal - montoDescuento + envio;
-
-    const formatPrice = (price: number) => 
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
+    const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
     const handleCopyAlias = async () => {
         if (!aliasMp) return;
-        try {
-            await navigator.clipboard.writeText(aliasMp);
-        } catch (err) {
-            const textArea = document.createElement("textarea");
-            textArea.value = aliasMp;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
+        try { await navigator.clipboard.writeText(aliasMp); } catch (err) {
+            const textArea = document.createElement("textarea"); textArea.value = aliasMp; document.body.appendChild(textArea); textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);
         }
         setCopied(true);
-        setTimeout(() => setCopied(false), 3000); 
+        setTimeout(() => setCopied(false), 4000); 
     };
 
     const handleSendOrder = async () => {
-        if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
-        if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
-        if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
+    if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
+    if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
+    if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
 
-        const isPlus = planType === 'plus' || planType === 'max';
-        const isLight = planType === 'light';
-        setIsSending(true);
+    const isPlus = planType === 'plus' || planType === 'max';
+    const isLight = planType === 'light';
+    setIsSending(true);
 
-        try {
-            let orderRef = "WhatsApp";
-            
-            if (!isLight) {
-                const { data: newOrder, error } = await supabase.from('orders').insert({
-                    restaurant_id: restaurantId,
-                    customer_name: nombre,
-                    customer_phone: telCliente,
-                    address: metodoEnvio === 'delivery' ? direccion : '',
-                    order_type: metodoEnvio,
-                    payment_method: metodoPago,
-                    total: totalFinal,
-                    status: 'pendiente',
-                    delivery_cost: envio,
-                    origin_plan: planType,
-                    items: cart,
-                    table_number: metodoEnvio === 'mesa' ? nroMesa : null,
-                    description: aclaraciones,
-                    coupon_code: appliedCoupon?.code || null,
-                    discount_amount: montoDescuento || 0
-                }).select().single();
+    try {
+        let orderRef = "WhatsApp";
+        
+        // 1. GUARDADO EN BASE DE DATOS (Solo si no es Light)
+        if (!isLight) {
+            const { data: newOrder, error } = await supabase.from('orders').insert({
+                restaurant_id: restaurantId, customer_name: nombre, customer_phone: telCliente, address: metodoEnvio === 'delivery' ? direccion : '',
+                order_type: metodoEnvio, payment_method: metodoPago, total: totalFinal, status: 'pendiente', delivery_cost: envio, origin_plan: planType,
+                items: cart, table_number: metodoEnvio === 'mesa' ? nroMesa : null, description: aclaraciones, coupon_code: appliedCoupon?.code || null, discount_amount: montoDescuento || 0
+            }).select().single();
 
-                if (error) throw error;
-                if (newOrder) {
-                    setActiveOrderId(newOrder.id);
-                    orderRef = `#${newOrder.id.slice(0, 5)}`;
-                    if (isPlus) {
-                        fetch('/api/push/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ restaurantId, orderId: newOrder.id, customerName: nombre, total: totalFinal, orderType: metodoEnvio }),
-                        }).catch(() => {});
-                    }
+            if (error) throw error;
+            if (newOrder) {
+                setActiveOrderId(newOrder.id); // <--- ESTO ACTIVA EL TRACKER AUTOMÁTICAMENTE
+                orderRef = `#${newOrder.id.slice(0, 5)}`;
+                if (isPlus) {
+                    fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurantId, orderId: newOrder.id, customerName: nombre, total: totalFinal, orderType: metodoEnvio }), }).catch(() => {});
                 }
-            } else {
-                setActiveOrderId('light-plan-order');
             }
-
-            // --- CONSTRUCCIÓN DEL MENSAJE ---
-            let mensaje = `*¡Hola! Nuevo Pedido* 🍔\nRef: ${orderRef}\n------------------\n`;
-            mensaje += `👤 *Nombre:* ${nombre}\n`;
-            if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
-            mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
-            if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
-            if (metodoEnvio === 'mesa') mensaje += `🍽️ *Mesa:* ${nroMesa}\n`;
-            mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
-            cart.forEach((item: any) => {
-                mensaje += `✅ ${item.quantity}x ${item.name}`;
-                if (item.extrasList?.length > 0) item.extrasList.forEach((ex: any) => mensaje += ` (+ ${ex.name})`);
-                mensaje += `\n`;
-            });
-            if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
-            mensaje += `\n------------------\n💰 *Subtotal:* ${formatPrice(subtotal)}\n`;
-            if (appliedCoupon) {
-                mensaje += `🎟️ *Cupón:* ${appliedCoupon.code} (-${appliedCoupon.discount_percent}%)\n➖ *Descuento:* -${formatPrice(montoDescuento)}\n`;
-            }
-            if (envio > 0) mensaje += `🚚 *Envío:* ${formatPrice(envio)}\n`;
-            mensaje += `\n🔥 *TOTAL: ${formatPrice(totalFinal)}*`;
-
-            setIsVisible(false);
-            const cleanPhone = String(phone).replace(/\D/g, ''); 
-            const textEncoded = encodeURIComponent(mensaje);
-            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${textEncoded}`;
-            window.onbeforeunload = null; // Desactiva alerta de salida
-
-// Pequeño delay para asegurar que el estado 'setActiveOrderId' se guarde
-setTimeout(() => {
-    // Usamos location.href para que no te genere pestañas blancas extras
-    window.location.href = whatsappUrl;
-}, 100);
-
-setIsSending(false);
-
-            window.onbeforeunload = null;
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                window.open(whatsappUrl, '_blank');
-            } else {
-                window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
-            }
-            setIsSending(false);
-        } catch (err) {
-            console.error("Error:", err);
-            alert("Error al procesar el pedido.");
-            setIsSending(false);
+        } else {
+            setActiveOrderId('light-plan-order'); // <--- ESTO ACTIVA EL CARTEL VERDE EN LIGHT
         }
-    };
 
-    // --- UI DEL CARRITO FLOTANTE Y ABIERTO ---
+        // 2. CONSTRUCCIÓN DEL MENSAJE (Se mantiene igual)
+        let mensaje = `*¡Hola! Nuevo Pedido* 🍔\nRef: ${orderRef}\n------------------\n`;
+        mensaje += `👤 *Nombre:* ${nombre}\n`;
+        if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
+        mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
+        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
+        if (metodoEnvio === 'mesa') mensaje += `🍽️ *Mesa:* ${nroMesa}\n`;
+        mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
+        cart.forEach((item: any) => { mensaje += `✅ ${item.quantity}x ${item.name}`; if (item.extrasList?.length > 0) item.extrasList.forEach((ex: any) => mensaje += ` (+ ${ex.name})`); mensaje += `\n`; });
+        if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
+        mensaje += `\n------------------\n💰 *Subtotal:* ${formatPrice(subtotal)}\n`;
+        if (appliedCoupon) { mensaje += `🎟️ *Cupón:* ${appliedCoupon.code} (-${appliedCoupon.discount_percent}%)\n➖ *Descuento:* -${formatPrice(montoDescuento)}\n`; }
+        if (envio > 0) mensaje += `🚚 *Envío:* ${formatPrice(envio)}\n`;
+        mensaje += `\n🔥 *TOTAL: ${formatPrice(totalFinal)}*`;
+
+        // 3. PROTOCOLO DE REDIRECCIÓN INTELIGENTE (EL CAMBIO CLAVE)
+        setIsVisible(false);
+        const cleanPhone = String(phone).replace(/\D/g, ''); 
+        const textEncoded = encodeURIComponent(mensaje);
+        
+        // Protocolo directo para evitar pestañas blancas
+        const protocolUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
+
+        window.onbeforeunload = null;
+
+        // --- ACÁ ARREGLAMOS EL TOGGLE ---
+        // Redirigimos SOLO si:
+        // a) Es Plan Light (siempre va a WhatsApp)
+        // b) Es Plan Plus Y el toggle de WhatsApp está encendido (true)
+        if (isLight || receiveWhatsapp === true) {
+            setTimeout(() => {
+                window.location.href = protocolUrl;
+            }, 100);
+        } else {
+            // SI ES "SOLO PANEL": No hacemos nada. 
+            // El componente ya cambió a la vista de OrderTracker porque seteamos setActiveOrderId(newOrder.id) arriba.
+            console.log("Pedido guardado. Solo panel activado.");
+        }
+        
+        setIsSending(false);
+    } catch (err) { console.error("Error:", err); alert("Error al procesar el pedido."); setIsSending(false); }
+};
     if (!cart || cart.length === 0 || !isVisible) {
-        if (cart.length > 0) {
-            return (
-                <button onClick={() => setIsVisible(true)} className="fixed bottom-6 right-6 bg-green-600 text-white p-4 rounded-full shadow-2xl z-[110] active:scale-90 transition-transform hover:scale-105">
-                    <ShoppingBag size={28} />
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white">
-                        {cart.length}
-                    </span>
-                </button>
-            );
-        }
+        if (cart.length > 0) return <button onClick={() => setIsVisible(true)} className="fixed bottom-6 right-6 bg-green-600 text-white p-4 rounded-full shadow-2xl z-[110] active:scale-90 transition-transform hover:scale-105"><ShoppingBag size={28} /><span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white">{cart.length}</span></button>;
         return null;
     }
 
@@ -332,22 +228,15 @@ setIsSending(false);
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-[120] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] rounded-t-[2.5rem] p-4 max-h-[95vh] overflow-y-auto font-sans text-black">
             <div className="max-w-md mx-auto space-y-5 relative">
                 <div className="flex justify-between items-center">
-                    <button onClick={() => setIsVisible(false)} className="flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-widest">
-                        <ChevronDown size={20} /> Seguir pidiendo
-                    </button>
+                    <button onClick={() => setIsVisible(false)} className="flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-widest"><ChevronDown size={20} /> Seguir pidiendo</button>
                     <button onClick={() => setIsVisible(false)} className="bg-gray-100 p-2 rounded-full text-gray-500"><X size={20} /></button>
                 </div>
-
                 <h2 className="text-xl font-black text-gray-800 px-1">Tu Pedido</h2>
-
                 <div className="space-y-4">
                     {cart.map((item: any) => (
                         <div key={item.uniqueId} className="bg-gray-50 rounded-3xl p-4 border border-gray-100">
                             <div className="flex justify-between items-center mb-3">
-                                <div className="flex-1">
-                                    <span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span>
-                                    <span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span>
-                                </div>
+                                <div className="flex-1"><span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span><span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span></div>
                                 <div className="flex items-center gap-4 bg-white shadow-sm rounded-2xl p-1 border border-gray-100">
                                     <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-red-500 active:scale-90"><Minus size={20} strokeWidth={3}/></button>
                                     <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
@@ -356,10 +245,7 @@ setIsSending(false);
                             </div>
                             {item.extrasList?.map((ex: any) => (
                                 <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
-                                    <div className="flex flex-col flex-1">
-                                        <span className="text-xs text-gray-500 font-bold">+ {ex.name}</span>
-                                        <span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span>
-                                    </div>
+                                    <div className="flex flex-col flex-1"><span className="text-xs text-gray-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
                                     <div className="flex items-center gap-3 mr-1">
                                         <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-90"><Minus size={16} strokeWidth={3}/></button>
                                         <span className="text-xs font-black">{ex.quantity}</span>
@@ -370,41 +256,24 @@ setIsSending(false);
                         </div>
                     ))}
                 </div>
-
                 <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100">
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label>
-                            <input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono</label>
-                            <input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                        </div>
+                        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label><input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
+                        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono</label><input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
                     </div>
-
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
                         <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
-                            {['delivery', 'retiro', 'mesa']
-                                .filter(m => !(m === 'mesa' && planType === 'light')) 
-                                .map((m) => (
-                                    <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>
-                                        {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
-                                    </button>
-                                ))
-                            }
+                            {['delivery', 'retiro', 'mesa'].filter(m => !(m === 'mesa' && planType === 'light')).map((m) => (
+                                <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>{m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}</button>
+                            ))}
                         </div>
                     </div>
-
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100">
-                                <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
-                                <span className="font-black text-green-700">{formatPrice(envio)}</span>
-                            </div>
+                            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100"><span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span><span className="font-black text-green-700">{formatPrice(envio)}</span></div>
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
-                            <input type="text" placeholder="Calle, número y localidad" value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            <input type="text" placeholder="Calle, número..." value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
                         </div>
                     )}
                     {metodoEnvio === 'mesa' && (
@@ -412,87 +281,52 @@ setIsSending(false);
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
                             <div className="grid grid-cols-3 gap-2">
                                 {availableTables.map((mesa: any) => (
-                                    <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}>
-                                        <span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span>
-                                        <span className="truncate w-full text-center">{mesa.name}</span>
-                                    </button>
+                                    <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
                                 ))}
                             </div>
                         </div>
                     )}
                 </div>
-
                 <div className="space-y-3">
                     <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Medio de Pago</label>
                     <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
-                            <Wallet size={18} /> Efectivo
-                        </button>
-                        <button onClick={() => setMetodoPago('transferencia')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}>
-                            <Landmark size={18} /> Transferencia
-                        </button>
+                        <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}><Wallet size={18} /> Efectivo</button>
+                        <button onClick={() => setMetodoPago('transferencia')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}><Landmark size={18} /> Transferencia</button>
                     </div>
                     {metodoPago === 'transferencia' && aliasMp && (
                         <div className="space-y-2">
                             <div onClick={handleCopyAlias} className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}>
-                                <div className={copied ? 'text-white' : 'text-blue-900'}>
-                                    <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">{copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}</p>
-                                    <p className="text-sm font-black">{aliasMp}</p>
-                                </div>
+                                <div className={copied ? 'text-white' : 'text-blue-900'}><p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">{copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}</p><p className="text-sm font-black">{aliasMp}</p></div>
                                 {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
                             </div>
+                            {/* --- RECUPERADO: MENSAJE DEL COMPROBANTE --- */}
+                            {copied && (
+                                <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
+                                    <MessageSquare size={16} className="text-blue-500" />
+                                    <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
-
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label>
-                    <textarea placeholder="Ej: Sin cebolla..." value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" />
-                </div>
-
+                <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Ej: Sin cebolla..." value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
                 <div className="pt-2 border-t border-gray-100 space-y-4">
                     <div className="bg-gray-50 p-4 rounded-[2rem] border border-gray-100 shadow-inner">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-2 block tracking-widest">¿Tenés un cupón?</label>
                         {!appliedCoupon ? (
-                            <div className="flex gap-2">
-                                <input type="text" placeholder="INGRESÁ TU CÓDIGO" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1 p-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase outline-none focus:ring-2 focus:ring-green-500 text-gray-900" />
-                                <button onClick={applyCoupon} disabled={isValidating} className="bg-gray-900 text-white px-5 rounded-2xl text-[10px] font-black uppercase transition-all active:scale-95 disabled:opacity-50">
-                                    {isValidating ? <Loader2 className="animate-spin" size={16}/> : 'Aplicar'}
-                                </button>
-                            </div>
+                            <div className="flex gap-2"><input type="text" placeholder="CÓDIGO" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1 p-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase outline-none focus:ring-2 focus:ring-green-500 text-gray-900" /><button onClick={applyCoupon} disabled={isValidating} className="bg-gray-900 text-white px-5 rounded-2xl text-[10px] font-black uppercase active:scale-95 disabled:opacity-50">{isValidating ? <Loader2 className="animate-spin" size={16}/> : 'Aplicar'}</button></div>
                         ) : (
-                            <div className="flex justify-between items-center bg-green-100 border border-green-200 p-3 px-5 rounded-2xl animate-in zoom-in duration-300">
-                                <div className="flex flex-col text-left leading-tight">
-                                    <span className="text-[9px] font-black text-green-700 uppercase tracking-tighter">Cupón Activado</span>
-                                    <span className="text-sm font-black text-green-800 italic">{appliedCoupon.code} (-{appliedCoupon.discount_percent}%)</span>
-                                </div>
-                                <button onClick={() => {setAppliedCoupon(null); setCouponCode("");}} className="text-green-700 p-1 hover:bg-green-200 rounded-full transition-colors"><X size={20} /></button>
-                            </div>
+                            <div className="flex justify-between items-center bg-green-100 border border-green-200 p-3 px-5 rounded-2xl animate-in zoom-in"><div className="flex flex-col text-left leading-tight"><span className="text-[9px] font-black text-green-700 uppercase tracking-tighter">Cupón Activado</span><span className="text-sm font-black text-green-800 italic">{appliedCoupon.code} (-{appliedCoupon.discount_percent}%)</span></div><button onClick={() => {setAppliedCoupon(null); setCouponCode("");}} className="text-green-700 p-1 hover:bg-green-200 rounded-full transition-colors"><X size={20} /></button></div>
                         )}
                         {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 ml-2 italic animate-in fade-in">{couponError}</p>}
                     </div>
-
                     <div className="px-2 space-y-1">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter">
-                            <span>Subtotal Productos</span><span>{formatPrice(subtotal)}</span>
-                        </div>
-                        {appliedCoupon && (
-                            <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic">
-                                <span>Descuento</span><span>-{formatPrice(montoDescuento)}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter">
-                            <span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span>
-                        </div>
-                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200">
-                            <span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span>
-                            <span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span>
-                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                        {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
+                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
-
-                    <button onClick={handleSendOrder} disabled={isSending} className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50">
-                        {isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}
-                    </button>
+                    <button onClick={handleSendOrder} disabled={isSending} className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50">{isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}</button>
                 </div>
             </div>
         </div>
