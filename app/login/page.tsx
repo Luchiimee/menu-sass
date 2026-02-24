@@ -96,7 +96,7 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
-        router.push('/dashboard')
+        router.replace('/dashboard')
       }
     } catch (error: any) {
       setMessage(error.message || 'Ocurrió un error')

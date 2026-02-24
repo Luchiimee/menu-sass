@@ -389,7 +389,7 @@ const confirmDelete = async () => {
             <h2 className="text-xl font-black flex items-center gap-2 italic uppercase tracking-tighter">
               ¡Tu tienda está activa! <span className="animate-pulse text-green-500 text-sm">●</span>
             </h2>
-            <div className="flex items-center gap-2 mt-4 bg-white/10 p-2 rounded-2xl w-full border border-white/5">
+            <div className="flex items-center mt-4 bg-white/10 p-2 rounded-2xl w-full border border-white/5">
               <span className="text-green-400 text-xs font-mono pl-1">snappy.uno/</span>
               <span className="font-bold text-white pr-1 text-sm">{slug || '...'}</span>
             </div>
@@ -454,60 +454,60 @@ const confirmDelete = async () => {
       <Crown size={20} className="text-purple-500 fill-purple-500" />
       <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Gestión de Cupones</h3>
     </div>
-    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-lg uppercase">Plan Plus ⚡</span>
   </div>
 
   {/* Formulario de Creación Programada */}
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
-    <div className="space-y-1">
-      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
-      <input 
-        type="text" 
-        placeholder="EJ: VERANO20" 
-        value={newCoupon.code} 
-        onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} 
-        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-purple-500" 
-      />
-    </div>
-
-    <div className="space-y-1">
-      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
-      <input 
-        type="number" 
-        placeholder="20" 
-        value={newCoupon.discount} 
-        onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} 
-        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-purple-500" 
-      />
-    </div>
-
-    <div className="space-y-1">
-      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
-      <input 
-        type="date" 
-        value={newCoupon.startDate} 
-        onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} 
-        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
-      />
-    </div>
-
-    <div className="space-y-1">
-      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
-      <input 
-        type="date" 
-        value={newCoupon.endDate} 
-        onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} 
-        className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
-      />
-    </div>
-
-    <button 
-      onClick={handleCreateCoupon} 
-      className="col-span-2 md:col-span-4 w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all"
-    >
-      <Plus size={16} /> Crear y Programar Cupón
-    </button>
+ {/* Formulario de Creación Programada - CORREGIDO PARA MOBILE */}
+<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
+    <input 
+      type="text" 
+      placeholder="EJ: VERANO20" 
+      value={newCoupon.code} 
+      onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} 
+      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-purple-500" 
+    />
   </div>
+
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
+    <input 
+      type="number" 
+      placeholder="20" 
+      value={newCoupon.discount} 
+      onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} 
+      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-purple-500" 
+    />
+  </div>
+
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
+    <input 
+      type="date" 
+      value={newCoupon.startDate} 
+      onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} 
+      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
+    />
+  </div>
+
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
+    <input 
+      type="date" 
+      value={newCoupon.endDate} 
+      onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} 
+      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
+    />
+  </div>
+
+  <button 
+    onClick={handleCreateCoupon} 
+    className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all"
+  >
+    <Plus size={16} /> Crear y Programar Cupón
+  </button>
+</div>
 
   {/* Listado de Cupones con Scroll Mobile */}
   <div className="overflow-x-auto scrollbar-hide">

@@ -180,20 +180,21 @@ new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
       );
     }
 
-    return (
+   return (
       <button
         onClick={isSubscribed ? unsubscribe : subscribe}
         className={`p-2 rounded-full transition active:scale-95 border ${
           isSubscribed
             ? 'bg-green-50 text-green-700 border-green-200'
-            : 'bg-gray-100 text-gray-700 border-gray-200'
+            : 'bg-red-50 text-red-600 border-red-200 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]'
         }`}
       >
-        {isSubscribed ? <Bell size={20} /> : <BellOff size={20} />}
+        {isSubscribed ? <Bell size={20} /> : <BellOff size={20} className="animate-bounce" />}
       </button>
     );
   }
 
+  // DESKTOP
   // DESKTOP
   if (status === 'loading') {
     return (
@@ -217,6 +218,7 @@ new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
         {showIOSModal && (
           <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
             <div className="bg-white rounded-2xl p-5 animate-in zoom-in-95 max-w-xs w-full">
+              {/* ... todo el contenido del modal que ya tenías queda igual ... */}
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-base font-bold text-gray-900">Instalar App</h3>
                 <button onClick={() => setShowIOSModal(false)} className="p-1.5 bg-gray-100 rounded-full hover:bg-gray-200">
@@ -257,17 +259,24 @@ new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
     );
   }
 
+  // --- ESTE ES EL BOTÓN FINAL PARA DESKTOP ---
   return (
     <button
       onClick={isSubscribed ? unsubscribe : subscribe}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all w-full ${
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all w-full border ${
         isSubscribed
-          ? 'text-green-700 bg-green-50 hover:bg-green-100'
-          : 'text-gray-500 bg-gray-50 hover:bg-gray-100'
+          ? 'text-green-700 bg-green-50 border-green-100 hover:bg-green-100'
+          : 'text-red-600 bg-red-50 border-red-100 hover:bg-red-200 animate-pulse ring-2 ring-red-500/20'
       }`}
     >
-      {isSubscribed ? <Bell size={16} /> : <BellOff size={16} />}
-      <span>{isSubscribed ? 'Notificaciones activas' : 'Activar notificaciones'}</span>
+      {isSubscribed ? (
+        <Bell size={16} fill="currentColor" />
+      ) : (
+        <BellOff size={16} className="text-red-600 animate-bounce" />
+      )}
+      <span className="uppercase tracking-tighter">
+        {isSubscribed ? 'Notificaciones activas' : '¡Activar Notificaciones!'}
+      </span>
     </button>
   );
 }

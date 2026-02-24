@@ -133,7 +133,19 @@ return () => {
 }; 
 
   }, [router]);
+useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
 
+    const handleBackButton = (event: PopStateEvent) => {
+      window.history.pushState(null, '', window.location.href);
+      if (pathname !== '/dashboard') {
+        router.push('/dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handleBackButton);
+    return () => window.removeEventListener('popstate', handleBackButton);
+  }, [pathname, router]);
   // --- FUNCIONES AUXILIARES ---
   const getPlanLabel = () => {
       if (restaurant.plan === 'plus') return 'Plan Plus';
@@ -181,6 +193,7 @@ return () => {
 
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
+  setIsLoading(true); // Para que el usuario vea que algo pasa
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
@@ -190,8 +203,9 @@ const handleLogout = async () => {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // Mandamos la orden de borrado y NO esperamos (keepalive hace el trabajo)
-        fetch('/api/push/subscribe', {
+        // IMITAMOS TU ACCIÓN MANUAL:
+        // Mandamos el DELETE y esperamos la respuesta antes de seguir
+        await fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           keepalive: true,
@@ -202,16 +216,17 @@ const handleLogout = async () => {
         });
 
         await subscription.unsubscribe();
+        console.log("Notificaciones apagadas correctamente");
       }
     }
   } catch (err) {
-    console.error(err);
+    console.error("Error al cerrar sesión:", err);
   } finally {
-    // Delay de 1 segundo para que la WebApp no mate el proceso antes de tiempo
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Damos un respiro final de 1.5 segundos para que el celular termine los procesos
+    await new Promise(resolve => setTimeout(resolve, 1500));
     await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    // Usamos replace para que el login sea la única página en la historia
+    window.location.replace('/login'); 
   }
 };
 const menuItems = [
