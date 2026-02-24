@@ -181,28 +181,28 @@ return () => {
 
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
-  console.log("Iniciando cierre de sesión...");
   try {
-    // 1. Buscamos el ID del usuario apenas tocás el botón
+    // 1. Lo primero: Atajamos la sesión ANTES de que desaparezca
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
+    if ('serviceWorker' in navigator && userId) {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
 
-      // 2. Si hay suscripción y tenemos el ID, borramos
-      if (subscription && userId) {
-        console.log("Borrando suscripción de la base de datos...");
+      if (subscription) {
+        // 2. FETCH CON KEEPALIVE: Este es el secreto para iPhone
+        // El navegador NO puede cancelar este pedido aunque cierres la sesión
         await fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
+          keepalive: true, // <--- EL CANDADO PARA IPHONE
           body: JSON.stringify({
             endpoint: subscription.endpoint,
             userId: userId
           }),
         });
-        
+
         // 3. Desvinculamos el navegador
         await subscription.unsubscribe();
       }
@@ -210,8 +210,10 @@ const handleLogout = async () => {
   } catch (error) {
     console.error("Error en logout:", error);
   } finally {
-    // 4. EL SECRETO: 800ms de espera para que el iPhone no corte el internet
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // 4. ESPERA DE SEGURIDAD (Subimos a 1 segundo para estar sobrados)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // 5. Ahora sí, cerramos sesión y mandamos al login
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
