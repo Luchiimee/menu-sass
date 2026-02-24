@@ -181,36 +181,37 @@ return () => {
 
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
+  console.log("Iniciando cierre de sesión...");
   try {
+    // 1. Buscamos el ID del usuario apenas tocás el botón
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
 
-      if (subscription) {
-        // 1. Obtenemos la sesión primero para asegurar que tenemos el ID
-        const { data: { session } } = await supabase.auth.getSession();
+      // 2. Si hay suscripción y tenemos el ID, borramos
+      if (subscription && userId) {
+        console.log("Borrando suscripción de la base de datos...");
+        await fetch('/api/push/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            userId: userId
+          }),
+        });
         
-        if (session?.user?.id) {
-          // 2. Usamos 'await' y capturamos la respuesta para obligar al navegador a esperar
-          const response = await fetch('/api/push/subscribe', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              endpoint: subscription.endpoint,
-              userId: session.user.id
-            }),
-          });
-          
-          if (response.ok) console.log("Suscripción borrada con éxito");
-        }
+        // 3. Desvinculamos el navegador
         await subscription.unsubscribe();
       }
     }
   } catch (error) {
-    console.error("Error al desuscribir:", error);
+    console.error("Error en logout:", error);
   } finally {
-    // 3. REGLA DE ORO: Un pequeño delay de 500ms para que el iPhone termine de enviar los datos
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 4. EL SECRETO: 800ms de espera para que el iPhone no corte el internet
+    await new Promise(resolve => setTimeout(resolve, 800));
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
