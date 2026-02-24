@@ -182,7 +182,6 @@ return () => {
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
   try {
-    // 1. Lo primero: Atajamos la sesión ANTES de que desaparezca
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
@@ -191,29 +190,25 @@ const handleLogout = async () => {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // 2. FETCH CON KEEPALIVE: Este es el secreto para iPhone
-        // El navegador NO puede cancelar este pedido aunque cierres la sesión
-        await fetch('/api/push/subscribe', {
+        // Mandamos la orden de borrado y NO esperamos (keepalive hace el trabajo)
+        fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          keepalive: true, // <--- EL CANDADO PARA IPHONE
+          keepalive: true,
           body: JSON.stringify({
             endpoint: subscription.endpoint,
             userId: userId
           }),
         });
 
-        // 3. Desvinculamos el navegador
         await subscription.unsubscribe();
       }
     }
-  } catch (error) {
-    console.error("Error en logout:", error);
+  } catch (err) {
+    console.error(err);
   } finally {
-    // 4. ESPERA DE SEGURIDAD (Subimos a 1 segundo para estar sobrados)
+    // Delay de 1 segundo para que la WebApp no mate el proceso antes de tiempo
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 5. Ahora sí, cerramos sesión y mandamos al login
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();

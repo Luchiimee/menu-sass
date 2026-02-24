@@ -1,81 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
 
+// 1. Configuración del cliente Admin (Bypassea RLS)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! 
 );
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-// OPTIONS - Para preflight CORS
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
-// POST - Guardar suscripción
+// 2. Función para GUARDAR suscripciones (POST)
 export async function POST(req: NextRequest) {
   try {
     const { subscription, userId } = await req.json();
 
-    if (!subscription || !userId) {
-      return NextResponse.json({ error: 'Missing data' }, { status: 400, headers: corsHeaders });
-    }
-
-    const { endpoint, keys } = subscription;
-
     const { error } = await supabaseAdmin
       .from('push_subscriptions')
-      .upsert(
-        {
-          user_id: userId,
-          endpoint,
-          p256dh: keys.p256dh,
-          auth: keys.auth,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'endpoint' }
-      );
+      .upsert({
+        user_id: userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth
+      }, { onConflict: 'endpoint' });
 
-    if (error) {
-      console.error('Error saving subscription:', error);
-      return NextResponse.json({ error: 'Database error' }, { status: 500, headers: corsHeaders });
-    }
-
-    return NextResponse.json({ ok: true }, { headers: corsHeaders });
-  } catch (err) {
-    console.error('Subscribe error:', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500, headers: corsHeaders });
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// DELETE - Eliminar suscripción
+// 3. Función para BORRAR suscripciones (DELETE) - La que arregla el iPhone
 export async function DELETE(req: NextRequest) {
   try {
     const { endpoint, userId } = await req.json();
 
     if (!endpoint || !userId) {
-      return NextResponse.json({ error: 'Missing data' }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
+    // Usamos el cliente Admin para que borre aunque la sesión esté cerrada
     const { error } = await supabaseAdmin
       .from('push_subscriptions')
       .delete()
       .eq('endpoint', endpoint)
       .eq('user_id', userId);
 
-    if (error) {
-      console.error('Error deleting subscription:', error);
-      return NextResponse.json({ error: 'Database error' }, { status: 500, headers: corsHeaders });
-    }
+    if (error) throw error;
 
-    return NextResponse.json({ ok: true }, { headers: corsHeaders });
-  } catch (err) {
-    console.error('Unsubscribe error:', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
