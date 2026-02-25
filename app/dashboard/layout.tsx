@@ -360,7 +360,7 @@ const menuItems = [
 
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
-        
+        {/* Alerta de Pagos */}
         {/* Alerta de Pagos */}
         {restaurant.plan && restaurant.status === 'paused' && (
           <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
