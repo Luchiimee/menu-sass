@@ -130,8 +130,16 @@ if (cpns) setCoupons(cpns);
 };
 
     loadDashboardData();
+const handleRefresh = () => {
+      console.log("📢 Pedido detectado, recargando estadísticas y lista...");
+      loadDashboardData(); // Ejecuta de nuevo la carga de datos
+    };
 
-    return () => { mounted = false; };
+    window.addEventListener('order-received', handleRefresh);
+   return () => { 
+      mounted = false;
+      window.removeEventListener('order-received', handleRefresh);
+    };
   }, []);
 
   const copyToClipboard = () => {
@@ -545,12 +553,46 @@ const confirmDelete = async () => {
       </div>
 
       {/* 3. BLOQUE: ACTIVIDAD RECIENTE / BLOQUEO PLAN */}
-      {isPlus ? (
-        <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden p-8 text-gray-900">
-             <h2 className="text-lg font-black uppercase tracking-tighter mb-4">Actividad Reciente</h2>
-             <p className="text-xs text-gray-400 font-bold uppercase italic tracking-widest">Aquí aparecerán tus últimos pedidos pronto.</p>
-        </div>
+     {/* 3. BLOQUE: ACTIVIDAD RECIENTE */}
+{isPlus ? (
+  <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden p-8 text-gray-900">
+    <h2 className="text-lg font-black uppercase tracking-tighter mb-6 italic">Actividad Reciente</h2>
+    
+    <div className="space-y-4">
+      {recentOrders.length > 0 ? (
+        recentOrders.map((order) => (
+          <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-left-2">
+            <div className="flex items-center gap-4">
+              <div className="bg-black text-white p-2 rounded-xl">
+                <ShoppingBag size={16} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-tighter">Pedido #{order.id.slice(0,5)}</p>
+                <p className="text-[9px] text-gray-400 font-bold">
+                  {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="font-black text-xs">${Number(order.total).toLocaleString()}</span>
+              {getStatusBadge(order.status)}
+            </div>
+          </div>
+        ))
       ) : (
+        <div className="py-10 text-center">
+          <p className="text-[10px] text-gray-400 font-bold uppercase italic tracking-widest">No hay pedidos recientes aún</p>
+        </div>
+      )}
+    </div>
+    
+    {recentOrders.length > 0 && (
+      <Link href="/dashboard/orders" className="mt-6 flex items-center justify-center gap-2 text-[9px] font-black uppercase text-gray-400 hover:text-black transition-all">
+        Ver todos los pedidos <ArrowRight size={14} />
+      </Link>
+    )}
+  </div>
+) : ( 
         <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
             <div className="flex items-center gap-4">
                 <div className="bg-blue-50 p-4 rounded-3xl text-blue-600">

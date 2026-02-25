@@ -54,6 +54,7 @@ export default function OrderListener() {
             }
 
             console.log('🔔 PEDIDO NUEVO:', payload);
+            window.dispatchEvent(new Event('order-received'));
             
             // 1. Mostrar Pop-up Negro (Sonner)
             toast.success('¡Nuevo Pedido Recibido!', {

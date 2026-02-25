@@ -39,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileData, setProfileData] = useState<any>(null); // Tu estado centralizado
   const [restaurant, setRestaurant] = useState<{
+    id?: string,
     name: string,
     plan: string | null,
     status: string,
@@ -66,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const { data: rest } = await supabase
           .from('restaurants')
-          .select('name, subscription_plan, subscription_status, logo_url') 
+         .select('id, name, subscription_plan, subscription_status, logo_url')
           .eq('user_id', session.user.id)
           .maybeSingle();
         
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         if (mounted) {
             const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+            console.log("🔍 DEBUG - Datos del Restaurante:", rest);
             
             // 1. Guardamos los datos en el estado para que TODO el componente los vea
             setProfileData(profile); 
@@ -94,11 +96,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
 
             setRestaurant({
-                name: displayName, 
-                plan: isSuperAdmin ? 'max' : (rest?.subscription_plan || null),
-                status: isSuperAdmin ? 'active' : (rest?.subscription_status || 'active'),
-                logo_url: rest?.logo_url || null
-            });
+    id: rest?.id, // <--- AGREGÁ ESTA LÍNEA
+    name: displayName, 
+    plan: isSuperAdmin ? 'max' : (rest?.subscription_plan || null),
+    status: isSuperAdmin ? 'active' : (rest?.subscription_status || 'active'),
+    logo_url: rest?.logo_url || null
+});
             
             setIsLoading(false);
         }

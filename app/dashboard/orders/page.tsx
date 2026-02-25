@@ -161,27 +161,35 @@ function OrdersContent() {
   };
 
   // --- 2. CARGA DE PEDIDOS (UNIFICADA) ---
- const loadOrders = async () => {
+const loadOrders = async () => {
     if (!restaurantId || isLocked) return;
     try {
-      // Definimos el inicio y el fin del día seleccionado
-      const startOfDay = `${selectedDate}T00:00:00.000Z`;
-      const endOfDay = `${selectedDate}T23:59:59.999Z`;
+      const isToday = selectedDate === getArgentinaDate();
+      
+      // Ajustamos para que tome TODO el día sin problemas de zona horaria
+      const startOfDay = `${selectedDate}T00:00:00`; 
 
-      const { data: ords } = await supabase
+      let query = supabase
         .from("orders")
         .select("*")
-        .eq("restaurant_id", restaurantId)
-        // Filtramos exactamente dentro de ese día
-        .gte("created_at", startOfDay)
-        .lte("created_at", endOfDay) 
-        .order("created_at", { ascending: false });
+        .eq("restaurant_id", restaurantId);
+
+      if (isToday) {
+        // Si es hoy, hacemos como en Inicio: traemos todo desde las 00hs en adelante
+        // Sin ponerle un límite final (lte) para que no se corte a las 21hs
+        query = query.gte("created_at", startOfDay);
+      } else {
+        // Si es otro día (Ayer, etc), sí marcamos el rango completo
+        const endOfDay = `${selectedDate}T23:59:59`;
+        query = query.gte("created_at", startOfDay).lte("created_at", endOfDay);
+      }
         
+      const { data: ords } = await query.order("created_at", { ascending: false });
       setOrders(ords || []);
     } catch (e) {
       console.error("Error loadOrders:", e);
     }
-};
+  };
 
   // --- 3. IMPRESIÓN (CIERRA PESTAÑA SOLA) ---
   const handlePrint = (order: any) => {
@@ -255,31 +263,30 @@ function OrdersContent() {
     if (restaurantId) fetchTables(restaurantId);
   }, [selectedDate, restaurantId, isLocked]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!restaurantId || isLocked) return;
 
-    const channel = supabase.channel("orders_channel")
-      .on("postgres_changes", 
-        { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, 
-        (payload: any) => {
-          setOrders((prev) => [payload.new, ...prev]);
-          // SONIDO AQUÍ
-          try {
-            const audio = new Audio('/notification.mp3');
-            audio.play().catch(() => console.log("Esperando clic para sonar"));
-          } catch (e) {}
-        }
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => loadOrders())
-      .subscribe();
+    // Escuchamos el aviso que manda el OrderListener global
+    const handleOrderReceived = () => {
+      console.log("📢 Pedido detectado, sincronizando lista...");
+      // Esperamos 1 seg para que impacte bien en la DB y recargamos
+      setTimeout(() => {
+        loadOrders();
+      }, 1000);
+    };
 
-    const handleVisibility = () => { if (document.visibilityState === 'visible') loadOrders(); };
+    window.addEventListener('order-received', handleOrderReceived);
+    
+    const handleVisibility = () => { 
+      if (document.visibilityState === 'visible') loadOrders(); 
+    };
+
     window.addEventListener('visibilitychange', handleVisibility);
     return () => { 
-      supabase.removeChannel(channel); 
+      window.removeEventListener('order-received', handleOrderReceived);
       window.removeEventListener('visibilitychange', handleVisibility); 
     };
-  }, [restaurantId, isLocked]);
+  }, [restaurantId, isLocked, selectedDate]);
   if (loading) {
     
     return (
