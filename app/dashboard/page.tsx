@@ -93,6 +93,7 @@ const [newCoupon, setNewCoupon] = useState({
                 .from('orders')
                 .select('total, status')
                 .eq('restaurant_id', rest.id)
+                .neq('order_type', 'apertura')
                 .gte('created_at', today.toISOString());
 
             if (todaysOrders) {
@@ -109,6 +110,7 @@ const [newCoupon, setNewCoupon] = useState({
                 .from('orders')
                 .select('*')
                 .eq('restaurant_id', rest.id)
+                .neq('order_type', 'apertura')
                 .order('created_at', { ascending: false })
                 .limit(5);
 
@@ -466,8 +468,10 @@ const confirmDelete = async () => {
 
   {/* Formulario de Creación Programada */}
  {/* Formulario de Creación Programada - CORREGIDO PARA MOBILE */}
-<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
-  <div className="space-y-1">
+{/* Formulario de Cupones - FIX DESBORDE DEFINITIVO */}
+<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+  
+  <div className="flex flex-col gap-1 min-w-0">
     <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
     <input 
       type="text" 
@@ -478,7 +482,7 @@ const confirmDelete = async () => {
     />
   </div>
 
-  <div className="space-y-1">
+  <div className="flex flex-col gap-1 min-w-0">
     <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
     <input 
       type="number" 
@@ -489,23 +493,23 @@ const confirmDelete = async () => {
     />
   </div>
 
-  <div className="space-y-1">
+  <div className="flex flex-col gap-1 min-w-0">
     <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
     <input 
       type="date" 
       value={newCoupon.startDate} 
       onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} 
-      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
+      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500 appearance-none" 
     />
   </div>
 
-  <div className="space-y-1">
+  <div className="flex flex-col gap-1 min-w-0">
     <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
     <input 
       type="date" 
       value={newCoupon.endDate} 
       onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} 
-      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" 
+      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500 appearance-none" 
     />
   </div>
 

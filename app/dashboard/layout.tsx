@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
-          router.push('/login');
+          window.location.replace('/login');
           router.refresh();
       }
     });
@@ -196,8 +196,9 @@ useEffect(() => {
 
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
-  setIsLoading(true); // Para que el usuario vea que algo pasa
+  setIsLoading(true); // Ponemos el estado de carga para que el usuario espere
   try {
+    // 1. Buscamos la sesión activa antes de borrar nada
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
@@ -206,29 +207,34 @@ const handleLogout = async () => {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // IMITAMOS TU ACCIÓN MANUAL:
-        // Mandamos el DELETE y esperamos la respuesta antes de seguir
-        await fetch('/api/push/subscribe', {
+        // 2. DISPARO DE BORRADO (Imitamos el clic manual que ya te funciona)
+        // Usamos 'keepalive' para que la señal viaje aunque la App se esté cerrando
+        fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          keepalive: true,
+          keepalive: true, 
           body: JSON.stringify({
             endpoint: subscription.endpoint,
             userId: userId
           }),
         });
 
+        // 3. Desvinculamos el navegador (importante para que la campana vuelva a rojo)
         await subscription.unsubscribe();
-        console.log("Notificaciones apagadas correctamente");
+        console.log("Notificaciones apagadas antes de salir");
       }
     }
   } catch (err) {
-    console.error("Error al cerrar sesión:", err);
+    console.error("Error en el proceso de salida:", err);
   } finally {
-    // Damos un respiro final de 1.5 segundos para que el celular termine los procesos
+    // 4. EL SECRETO: Esperamos 1.5 segundos. 
+    // Este tiempo es vital para que el iPhone termine de mandar la señal de internet.
     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // 5. SALIDA FINAL
     await supabase.auth.signOut();
-    // Usamos replace para que el login sea la única página en la historia
+    
+    // 6. BLINDAJE: Usamos replace para que NO se pueda volver atrás con el botón del celu
     window.location.replace('/login'); 
   }
 };

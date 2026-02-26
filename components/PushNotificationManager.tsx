@@ -260,22 +260,26 @@ new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
   }
 
   // --- ESTE ES EL BOTÓN FINAL PARA DESKTOP ---
-  return (
+return (
     <button
       onClick={isSubscribed ? unsubscribe : subscribe}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all w-full border ${
+      className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all w-full border ${
         isSubscribed
           ? 'text-green-700 bg-green-50 border-green-100 hover:bg-green-100'
           : 'text-red-600 bg-red-50 border-red-100 hover:bg-red-200 animate-pulse ring-2 ring-red-500/20'
       }`}
     >
-      {isSubscribed ? (
-        <Bell size={16} fill="currentColor" />
-      ) : (
-        <BellOff size={16} className="text-red-600 animate-bounce" />
-      )}
-      <span className="uppercase tracking-tighter">
-        {isSubscribed ? 'Notificaciones activas' : '¡Activar Notificaciones!'}
+      <div className="flex-shrink-0">
+        {isSubscribed ? (
+          <Bell size={14} fill="currentColor" />
+        ) : (
+          <BellOff size={14} className="text-red-600 animate-bounce" />
+        )}
+      </div>
+      
+      {/* Texto más chico y en una sola línea */}
+      <span className="uppercase tracking-tighter text-[9px] font-black whitespace-nowrap overflow-hidden text-ellipsis">
+        {isSubscribed ? 'Notificaciones On' : 'Activar Notificación'}
       </span>
     </button>
   );
