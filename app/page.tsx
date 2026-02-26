@@ -246,44 +246,50 @@ export default function LandingPage() {
             </div>
           </div>
 
-         {/* --- MOCKUP TRIPLE CELULAR: COMPACTO Y SIMÉTRICO (Referencia image_e8f85d.png) --- */}
-          <div className="relative flex justify-center lg:justify-end items-center h-[450px] md:h-[550px] mt-12 lg:mt-0" 
-               style={{ perspective: '1500px' }}> {/* Perspectiva para el efecto 3D */}
-            
-            <div className="relative flex items-center justify-center">
-              
-              {/* CELULAR IZQUIERDA: Inclinado hacia el centro y metido atrás */}
-              <div 
-                className="w-[110px] md:w-[170px] aspect-[9/19] bg-gray-900 rounded-[2rem] border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
-                style={{ 
-                  transform: 'translateX(35px) translateZ(-80px) rotateY(20deg)', // Se mete 35px hacia el centro
-                  zIndex: 10 
+      
+          {/* --- MOCKUP TRIPLE CELULAR: VERSIÓN MOBILE GRANDE Y ESTILIZADA --- */}
+          {/* Aumenté la altura base a h-[600px] para que sea más largo en mobile */}
+          <div className="relative flex justify-center lg:justify-end items-center h-[600px] md:h-[650px] mt-12 lg:mt-0"
+               style={{ perspective: '1500px' }}>
+
+            {/* Quitamos el scale reducido. Ahora está en scale-100 (tamaño real) en mobile */}
+            <div className="relative flex items-center justify-center scale-100 md:scale-100 transition-transform duration-500">
+
+              {/* CELULAR IZQUIERDA */}
+              <div
+                // Aumenté el ancho base (w-[145px])
+                // Bordes más finos (3px) y esquinas menos redondeadas (1.8rem) para que se vea definido
+                className="w-[145px] md:w-[170px] aspect-[9/20] bg-gray-900 rounded-[1.8rem] md:rounded-[2rem] border-[3px] md:border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
+                style={{
+                  transform: 'translateX(60px) translateZ(-100px) rotateY(25deg)', // Ajusté la posición para el nuevo tamaño
+                  zIndex: 10
                 }}
               >
                 <div className="relative w-full h-full bg-white">
                   <Image
-                    src="/02.png" // TU IMAGEN 1
+                    src="/02.png"
                     alt="Vista Izquierda"
                     fill
-                    className="object-full"
+                    className="object-cover"
                   />
                 </div>
               </div>
 
-              {/* CELULAR CENTRO: Al frente, más grande y cubriendo a los lados */}
-              <div 
-                className="w-[130px] md:w-[200px] aspect-[9/19] bg-black rounded-[2.5rem] border-[6px] border-gray-950 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-500 hover:scale-105"
-                style={{ 
+              {/* CELULAR CENTRO (El protagonista) */}
+              <div
+                // Aumenté el ancho base (w-[165px])
+                // Borde de 4px y esquinas de 2.2rem para mobile
+                className="w-[165px] md:w-[200px] aspect-[9/20] bg-black rounded-[2.2rem] md:rounded-[2.5rem] border-[4px] md:border-[6px] border-gray-950 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden transition-all duration-500 hover:scale-105"
+                style={{
                   zIndex: 30,
-                  transform: 'translateZ(40px)' // Lo trae hacia adelante
+                  transform: 'translateZ(50px)'
                 }}
               >
-                {/* Dynamic Island */}
-                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[50px] md:w-[70px] h-[14px] md:h-[18px] bg-black rounded-full z-40"></div>
-
+                {/* Dynamic Island ajustada */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[60px] md:w-[80px] h-[15px] md:h-[20px] bg-black rounded-full z-40"></div>
                 <div className="relative w-full h-full bg-white">
                   <Image
-                    src="/mobile-headerr.gif" // TU GIF PRINCIPAL
+                    src="/mobile-headerr.gif"
                     alt="Panel Principal"
                     fill
                     className="object-cover"
@@ -292,26 +298,27 @@ export default function LandingPage() {
                 </div>
               </div>
 
-               {/* CELULAR DERECHA: Inclinado hacia el centro y metido atrás */}
-              <div 
-                className="w-[110px] md:w-[170px] aspect-[9/19] bg-gray-900 rounded-[2rem] border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
-                style={{ 
-                  transform: 'translateX(-35px) translateZ(-80px) rotateY(-20deg)', // Se mete 35px hacia el centro
-                  zIndex: 10 
+               {/* CELULAR DERECHA */}
+              <div
+                // Mismos ajustes que el izquierdo
+                className="w-[145px] md:w-[170px] aspect-[9/20] bg-gray-900 rounded-[1.8rem] md:rounded-[2rem] border-[3px] md:border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
+                style={{
+                  transform: 'translateX(-60px) translateZ(-100px) rotateY(-25deg)',
+                  zIndex: 10
                 }}
               >
                 <div className="relative w-full h-full bg-white">
                   <Image
-                    src="/galeria/05.png" // TU IMAGEN 2
+                    src="/galeria/05.png"
                     alt="Vista Derecha"
                     fill
-                    className="object-full "
+                    className="object-cover"
                   />
                 </div>
               </div>
 
-              {/* Sombra de piso suave y compacta */}
-              <div className="absolute bottom-[-30px] left-1/2 -translate-x-1/2 w-[250px] md:w-[400px] h-[30px] bg-black/20 rounded-[100%] blur-[40px] -z-10"></div>
+              {/* Sombra de piso más grande */}
+              <div className="absolute bottom-[-40px] left-1/2 -translate-x-1/2 w-[350px] md:w-[450px] h-[40px] bg-black/20 rounded-[100%] blur-[40px] -z-10"></div>
             </div>
           </div>
         </div>
