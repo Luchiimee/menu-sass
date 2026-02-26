@@ -203,32 +203,71 @@ const loadOrders = async () => {
       ? (order.address || 'Sin dirección') 
       : order.order_type === 'mesa' ? `Mesa: ${order.table_number || 'S/N'}` : 'Retiro';
 
+    // --- CÁLCULOS PARA EL DESGLOSE ---
+    // Sumamos solo los productos
+    const subtotalProductos = order.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+    // Usamos el nombre real de la columna: delivery_cost
+    const costoEnvio = Number(order.delivery_cost || 0);
+    const montoDescuento = Number(order.discount_amount || 0);
+    const totalFinal = Number(order.total);
+
     const itemsHtml = order.items.map((item: any) => `
-        <div style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
-                <span>${item.quantity}x ${item.name}</span>
+        <div style="margin-bottom: 5px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between;">
+                <span>${item.quantity}x ${item.name.toUpperCase()}</span>
                 <span>$${(item.price * item.quantity).toLocaleString()}</span>
             </div>
-            ${item.extrasList?.map((e: any) => `<div style="font-size: 11px; margin-left: 10px;">+ ${e.name}</div>`).join('') || ''}
+            ${item.extrasList?.map((e: any) => `<div style="font-size: 10px; margin-left: 10px;">+ ${e.name.toUpperCase()}</div>`).join('') || ''}
         </div>`).join("");
 
     printWindow.document.write(`
         <html>
-            <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto;">
-                <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px;">
-                    <h2 style="margin:0;">${restaurantName}</h2>
-                    <p>TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
+            <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto; color: #000;">
+                <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+                    <h2 style="margin:0; font-size: 18px;">${restaurantName.toUpperCase()}</h2>
+                    <p style="margin: 5px 0; font-size: 12px;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
+                    <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
                 </div>
-                <div style="font-size: 13px; margin: 10px 0;">
-                    <p>CLIENTE: ${order.customer_name}</p>
-                    <p>UBICACIÓN: ${direccionExhibida}</p>
-                    ${order.description ? `<div style="border: 1px solid #000; padding: 5px;">NOTA: ${order.description}</div>` : ''}
+
+                <div style="font-size: 12px; margin-bottom: 10px;">
+                    <p style="margin: 2px 0;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
+                    <p style="margin: 2px 0;"><strong>ENTREGA:</strong> ${order.order_type.toUpperCase()}</p>
+                    <p style="margin: 2px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida.toUpperCase()}</p>
+                    <p style="margin: 2px 0;"><strong>PAGO:</strong> ${order.payment_method.toUpperCase()}</p>
                 </div>
-                ${itemsHtml}
-                <div style="border-top: 2px dashed #000; padding-top: 10px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between;">
-                    <span>TOTAL:</span><span>$${Number(order.total).toLocaleString()}</span>
+                
+                <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 5px 0; margin-bottom: 10px;">
+                    ${itemsHtml}
                 </div>
-                <p style="text-align: center; font-size: 10px; margin-top: 20px;">Snappy Tu Menú Digital</p>
+
+                <div style="font-size: 13px; line-height: 1.6;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>SUBTOTAL PRODUCTOS:</span>
+                        <span>$${subtotalProductos.toLocaleString()}</span>
+                    </div>
+
+                    ${montoDescuento > 0 ? `
+                    <div style="display: flex; justify-content: space-between; color: #000;">
+                        <span>CUPÓN (${order.coupon_code?.toUpperCase() || 'DESC'}):</span>
+                        <span>-$${montoDescuento.toLocaleString()}</span>
+                    </div>` : ''}
+
+                    ${costoEnvio > 0 ? `
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>ENVÍO / DELIVERY:</span>
+                        <span>+$${costoEnvio.toLocaleString()}</span>
+                    </div>` : ''}
+
+                    <div style="border-top: 2px dashed #000; padding-top: 8px; margin-top: 5px; font-size: 22px; font-weight: bold; display: flex; justify-content: space-between;">
+                        <span>TOTAL:</span>
+                        <span>$${totalFinal.toLocaleString()}</span>
+                    </div>
+                </div>
+                
+                <p style="text-align: center; font-size: 10px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 10px;">
+                    GRACIAS POR TU COMPRA<br>
+                    Snappy Tu Menú Digital
+                </p>
             </body>
         </html>
     `);
