@@ -18,6 +18,7 @@ import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
 import ClearCartLogic from "@/components/ClearCartLogic";
 import { CartProvider, useCart } from "@/context/CartContext";
+import MarketProTemplate from "@/components/templates/MarketProTemplate";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -422,7 +423,14 @@ case "spotlight":
     transition: transform 0.1s;
 }
 .bistro-extra-btn:active { transform: scale(0.9); }
-      
+ 
+   `;
+        case "marketpro":
+        return `
+            ${common}
+            body { background: ${BG}; margin: 0; }
+            .no-scrollbar::-webkit-scrollbar { display: none; }
+            .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         `;
         
     }
@@ -1065,7 +1073,27 @@ case "bistro":
   </div>
 ))}  </div>
     </div>
-  );
+
+ );
+ case "marketpro":
+        const allProducts = restaurant.categories?.flatMap((c: any) => 
+          c.products.map((p: any) => ({ ...p, category_id: c.id }))
+        ) || [];
+        
+        return (
+          <MarketProTemplate 
+            restaurant={restaurant}
+            products={allProducts}
+            categories={restaurant.categories || []}
+            fetchedExtras={restaurant.fetched_extras} // <-- AGREGÁ ESTA LÍNEA
+            onAddToCart={(product: any, qty: number) => {
+              for(let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Producto agregado");
+            }}
+          />
+        );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }

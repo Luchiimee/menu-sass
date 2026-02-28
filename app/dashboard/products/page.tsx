@@ -14,9 +14,12 @@ export default function ProductsPage() {
   const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
   const [products, setProducts] = useState<any[]>([]);
   const [availableExtras, setAvailableExtras] = useState<any[]>([]); 
+  const [categories, setCategories] = useState<any[]>([]); 
+const [showCategoryModal, setShowCategoryModal] = useState(false);
+const [categoryFormData, setCategoryFormData] = useState({ name: '' });
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]); 
 
-  const [activeTab, setActiveTab] = useState<'products' | 'extras'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'extras' | 'categories'>('products');
   const [view, setView] = useState('list'); 
   const [isLocked, setIsLocked] = useState(true); 
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
@@ -31,7 +34,7 @@ export default function ProductsPage() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', image_url: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', price: '', image_url: '',category_id: '' });
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
   const supabase = createBrowserClient(
@@ -93,6 +96,14 @@ export default function ProductsPage() {
                 .order('name', { ascending: true });
             
             if (extras) setAvailableExtras(extras);
+
+    const { data: cats } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('restaurant_id', rest.id)
+    .order('sort_order', { ascending: true });
+
+if (cats) setCategories(cats);
         }
       } catch (error) { 
           console.error("Error cargando productos:", error); 
@@ -113,7 +124,7 @@ const openCreateModal = () => {
     }
     // Si no, abrimos el modal normal
     setEditingId(null);
-    setFormData({ name: '', description: '', price: '', image_url: '' });
+    setFormData({ name: '', description: '', price: '', image_url: '', category_id: '' });
     setSelectedExtras([]); 
     setShowModal(true);
 };
@@ -123,7 +134,8 @@ const openCreateModal = () => {
           name: product.name,
           description: product.description || '',
           price: product.price,
-          image_url: product.image_url || ''
+          image_url: product.image_url || '',
+          category_id: product.category_id || ''
       });
       setSelectedExtras([]); 
       const { data: rels } = await supabase.from('product_extras').select('extra_id').eq('product_id', product.id);
@@ -158,21 +170,38 @@ const openCreateModal = () => {
               name: formData.name,
               description: formData.description,
               price: Number(formData.price),
-              image_url: formData.image_url
+              image_url: formData.image_url,
+              category_id: formData.category_id || null
           };
 
           if (editingId) {
               await supabase.from('products').update(productData).eq('id', editingId);
               setProducts(products.map(p => p.id === editingId ? { ...p, ...productData } : p));
           } else {
-              let categoryId;
-              const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', restaurantId).limit(1);
-              if (cats && cats.length > 0) categoryId = cats[0].id;
-              else {
-                  const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: restaurantId, name: 'General', sort_order: 1 }).select().single();
-                  if (newCat) categoryId = newCat.id;
+              // 1. Calculamos la categoría a usar (la seleccionada o la de respaldo)
+              let categoryIdToUse = formData.category_id;
+
+              if (!categoryIdToUse) {
+                  const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', restaurantId).limit(1);
+                  if (cats && cats.length > 0) {
+                      categoryIdToUse = cats[0].id;
+                  } else {
+                      const { data: newCat } = await supabase.from('categories').insert({ 
+                          restaurant_id: restaurantId, 
+                          name: 'General', 
+                          sort_order: 1 
+                      }).select().single();
+                      if (newCat) categoryIdToUse = newCat.id;
+                  }
               }
-              const { data: inserted } = await supabase.from('products').insert({ restaurant_id: restaurantId, category_id: categoryId, ...productData }).select().single();
+
+              // 2. Insertamos usando el categoryIdToUse calculado
+              const { data: inserted } = await supabase.from('products').insert({ 
+                  ...productData, // Trae nombre, desc, precio, img
+                  restaurant_id: restaurantId, 
+                  category_id: categoryIdToUse // Aquí pasamos el valor final
+              }).select().single();
+
               if (inserted) { productId = inserted.id; setProducts([inserted, ...products]); }
           }
 
@@ -210,6 +239,29 @@ const openCreateModal = () => {
       } catch (error: any) { alert("Error: " + error.message); } finally { setSaving(false); }
   };
 
+const handleSaveCategory = async () => {
+    if (!categoryFormData.name) return;
+    setSaving(true);
+    try {
+        const { data, error } = await supabase.from('categories').insert({ 
+            restaurant_id: restaurantId, 
+            name: categoryFormData.name,
+            sort_order: categories.length + 1 
+        }).select().single();
+        
+        if (data) {
+            setCategories([...categories, data]);
+            setShowCategoryModal(false);
+            setCategoryFormData({ name: '' });
+        }
+    } catch (e) { alert("Error al crear categoría"); } finally { setSaving(false); }
+};
+
+const handleDeleteCategory = async (id: string) => {
+    if (!confirm("¿Borrar categoría? Los productos quedarán sin categoría asignada.")) return;
+    await supabase.from('categories').delete().eq('id', id);
+    setCategories(categories.filter(c => c.id !== id));
+};
   const handleDeleteExtra = async (id: string) => {
       if(!confirm("¿Eliminar este adicional?")) return;
       await supabase.from('extras').delete().eq('id', id);
@@ -264,12 +316,19 @@ const openCreateModal = () => {
           <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
             <Layers size={16} className="inline mr-2"/> Adicionales
           </button>
+          {/* DESPUÉS DE: Adicionales */}
+{(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight') && (
+    <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+        <List size={16} className="inline mr-2"/> Categorías
+    </button>
+)}
         </div>
       </div>
       {/* --- EL RESTO DE TU CÓDIGO (Buscador, Tabla, etc.) SIGUE ABAJO --- */}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-               {activeTab === 'products' ? (
+           <div className="flex flex-wrap items-center justify-between gap-4">
+               {/* BOTONES PARA PRODUCTOS */}
+               {activeTab === 'products' && (
                    <>
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
@@ -286,7 +345,10 @@ const openCreateModal = () => {
                             </button>
                         </div>
                    </>
-               ) : (
+               )}
+
+               {/* BOTÓN SOLO PARA ADICIONALES */}
+               {activeTab === 'extras' && (
                    <div className="flex justify-end w-full">
                        <button onClick={openCreateExtra} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
                             <Plus size={20}/> Crear Adicional
@@ -383,8 +445,34 @@ const openCreateModal = () => {
                     </table>
                 </div>
             )}
-        </div>
 
+            {activeTab === 'categories' && (
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-300">
+                    <div className="p-6 border-b bg-gray-50 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-gray-900">Mis Categorías</h3>
+                            <p className="text-xs text-gray-400">Organiza tu menú por secciones (Burgers, Bebidas, etc.)</p>
+                        </div>
+                        <button onClick={() => setShowCategoryModal(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition shadow-lg">
+                            <Plus size={16} className="inline mr-1"/> Nueva Categoría
+                        </button>
+                    </div>
+                    <table className="w-full text-left text-sm">
+                        <tbody className="divide-y">
+                            {categories.filter(c => c.name.toLowerCase() !== 'general').map((c) => (
+                                <tr key={c.id} className="hover:bg-gray-50 transition">
+                                    <td className="px-6 py-4 font-bold text-gray-700 uppercase tracking-tighter italic">{c.name}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+      
         {/* MODAL PRODUCTO */}
         {showModal && (
             <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -444,10 +532,10 @@ const openCreateModal = () => {
                             </div>
                         )}
 
-                        {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
+                 {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Nombre del Producto</label>
+                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Nombre del Producto</label>
                                 <div className="relative">
                                     <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="Ej: Pizza Napolitana"/>
                                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
@@ -455,21 +543,49 @@ const openCreateModal = () => {
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Precio</label>
+                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Precio</label>
                                 <div className="relative">
                                     <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
                                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
                                 </div>
                             </div>
 
+                            {/* BLOQUE DESCRIPCIÓN */}
                             <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Descripción</label>
+                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Descripción</label>
                                 <div className="relative">
-                                    <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all min-h-[80px] resize-none" placeholder="Ingredientes, tamaño..."/>
+                                    <textarea 
+                                        value={formData.description} 
+                                        onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all min-h-[80px] resize-none" 
+                                        placeholder="Ingredientes, tamaño..."
+                                    />
                                     <AlignLeft className="absolute left-3 top-4 text-gray-400" size={18}/>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* BLOQUE CATEGORÍA (Solo si la plantilla es compatible) */}
+                            {(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight') && (
+                                <div className="pt-2 animate-in slide-in-from-top-2 duration-200">
+                                    <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
+                                    <div className="relative">
+                                        <select 
+                                            value={formData.category_id || ''} 
+                                            onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Seleccionar categoría...</option>
+                                            {categories.filter(c => c.name.toLowerCase() !== 'general').map(cat => (
+                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                            <Layers size={14}/>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div> {/* CIERRE DE space-y-4 */}
 
                         {/* 3. SECCIÓN DE ADICIONALES (EXTRAS) */}
                         <div className="pt-2 border-t border-gray-50">
@@ -488,7 +604,7 @@ const openCreateModal = () => {
                                                 onClick={() => toggleExtra(extra.id)} 
                                                 className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 flex items-center justify-between group ${isSelected ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white border-gray-200 text-gray-600 hover:border-violet-300 hover:bg-violet-50'}`}
                                             >
-                                                <div className="flex flex-col overflow-hidden">
+                                                <div className="flex flex-col overflow-hidden text-left">
                                                     <span className="font-bold text-sm truncate">{extra.name}</span>
                                                     <span className={`text-xs ${isSelected ? 'text-violet-200' : 'text-gray-400'}`}>+${extra.price}</span>
                                                 </div>
@@ -535,6 +651,30 @@ const openCreateModal = () => {
                 </div>
             </div>
         )}
+        {/* MODAL PARA CREAR CATEGORÍAS */}
+{showCategoryModal && (
+    <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                <h2 className="font-bold text-gray-900">Nueva Categoría</h2>
+                <button onClick={() => setShowCategoryModal(false)}><X size={20} className="text-gray-400"/></button>
+            </div>
+            <div className="p-6 space-y-4">
+                <input 
+                    value={categoryFormData.name} 
+                    onChange={(e) => setCategoryFormData({name: e.target.value})} 
+                    className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition" 
+                    placeholder="Ej: Hamburguesas, Bebidas..."
+                />
+            </div>
+            <div className="p-6 border-t bg-gray-50">
+                <button onClick={handleSaveCategory} disabled={saving} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-violet-700 shadow-lg">
+                    {saving ? <Loader2 className="animate-spin" size={20}/> : <Save size={18}/>} Guardar Categoría
+                </button>
+            </div>
+        </div>
+    </div>
+)}
     </div>
   );
 }

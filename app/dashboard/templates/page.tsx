@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
@@ -14,7 +14,8 @@ const TEMPLATE_DEFAULTS: any = {
   pop:     { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', promo: '#FFD700', banner: false },
   spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
-  bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false }
+  bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false },
+  marketpro: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#999999', promo: '#f3f4f6', banner: true }
 };
 
 // --- CSS IDÉNTICO A TU HTML DE REFERENCIA ---
@@ -258,7 +259,21 @@ const GALLERY_STYLES = `
   .bistro-dots { flex: 1; border-bottom: 1px dotted #555; margin: 0 4px; }
   .bistro-price { font-size: 11px; color: #e6c87e; }
   
-  
+  /* --- ESTILOS MARKET PRO --- */
+  .market-pro { background: white; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; padding: 10px; }
+  .market-logo-wrap { width: 35px; height: 35px; background: #eee; border-radius: 50%; margin: 5px auto 8px; overflow: hidden; border: 1px solid #f0f0f0; }
+  .market-logo-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .market-search-fake { background: #f3f4f6; border-radius: 12px; height: 25px; margin-bottom: 12px; display: flex; align-items: center; padding: 0 8px; font-size: 7px; color: #999; }
+  .market-banner { width: 100%; height: 60px; background: #eee; border-radius: 12px; margin-bottom: 15px; position: relative; overflow: hidden; }
+  .market-banner img { width: 100%; height: 100%; object-fit: cover; }
+  .market-cats { display: flex; gap: 5px; margin-bottom: 15px; overflow: hidden; }
+  .market-cat-pill { padding: 4px 10px; background: #eee; border-radius: 20px; font-size: 6px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+  .market-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .market-item { display: flex; flex-direction: column; gap: 3px; }
+  .market-img { aspect-ratio: 1/1; background: #f9f9f9; border-radius: 8px; overflow: hidden; }
+  .market-img img { width: 100%; height: 100%; object-fit: cover; }
+  .market-name { font-size: 6px; font-weight: 800; line-height: 1.1; color: #333; }
+  .market-price { font-size: 6px; font-weight: 900; color: #999; }
   
 `;
 
@@ -272,6 +287,7 @@ const TEMPLATES = [
   { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante.', premium: true, type: 'spotlight', category: 'completas' },
   { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant', category: 'minimal' },
   { id: 'bistro', name: 'Bistro Chalk', desc: 'Estilo pizarra.', premium: true, type: 'bistro', category: 'minimal' },
+  { id: 'marketpro', name: 'Market Pro', desc: 'Diseño estilo Tienda App.', premium: true, type: 'marketpro', category: 'completas' },
 ];
 
 export default function GalleryPage() {
@@ -460,6 +476,29 @@ export default function GalleryPage() {
           </div>
         </div>
       );
+// JUSTO DESPUÉS DE: switch (type) {
+  case 'marketpro': return (
+    <div className="market-pro">
+      <div className="market-logo-wrap"><img src="https://placehold.co/100x100?text=Logo" alt="logo" /></div>
+      <div className="market-search-fake"><Search size={8} style={{marginRight: 4}}/> ¿Qué estás buscando hoy?</div>
+      <div className="market-banner"><img src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300" alt="banner" /></div>
+      <div className="market-cats">
+        <div className="market-cat-pill" style={{background: '#000', color: '#fff'}}>TODOS</div>
+        <div className="market-cat-pill">BURGERS</div>
+        <div className="market-cat-pill">PAPAS</div>
+      </div>
+      <div className="market-grid">
+        {[1,2,3].map(i => (
+           <div key={i} className="market-item">
+              <div className="market-img"><img src={`https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100`} /></div>
+              <div className="market-name uppercase italic">Bacon Burger</div>
+              <div className="market-price">$8.500</div>
+           </div>
+        ))}
+      </div>
+    </div>
+  );
+
       default: return null;
     }
   };

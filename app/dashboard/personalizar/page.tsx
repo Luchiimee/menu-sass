@@ -20,6 +20,7 @@ import MinimalWhite from '../../../components/templates/MinimalWhite';
 import SpotlightHero from '../../../components/templates/SpotlightHero';
 import ElegantSerif from '../../../components/templates/ElegantSerif';
 import BistroChalk from '../../../components/templates/BistroChalk';
+import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 
 // 1. COLORES POR DEFECTO
 const TEMPLATE_DEFAULTS: any = {
@@ -30,7 +31,8 @@ const TEMPLATE_DEFAULTS: any = {
   pop:     { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', promo: '#FFD700', banner: false },
   spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
-  bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false }
+  bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false },
+  marketpro: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#999999', promo: '#f3f4f6', banner: true },
 };
 
 const CUSTOM_STYLES = `
@@ -175,6 +177,10 @@ const getTemplateConfig = () => {
         config.showHeroEditor = true; // 2. Lo activamos solo para Spotlight
         config.labels.theme = 'Acento';
     }
+    else if (id === 'marketpro') {
+        config.showBannerImg = true;
+        config.labels.theme = 'Botones / Acento';
+    }
     return config;
 };
 
@@ -307,6 +313,7 @@ const getTemplateConfig = () => {
                       case 'elegant': return <ElegantSerif {...props} />;
                       case 'bistro': return <BistroChalk {...props} />;
                       default: return <ClassicDelivery {...props} />;
+                      case 'marketpro': return <MarketProTemplate {...props} categories={[]} onAddToCart={() => {}} />;
                   }
                })()}
             </div>
