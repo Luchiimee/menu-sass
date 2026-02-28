@@ -270,7 +270,7 @@ export default function LandingPage() {
                     src="/02.png"
                     alt="Vista Izquierda"
                     fill
-                    className="object-cover"
+                    className="object-full"
                   />
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function LandingPage() {
                     src="/galeria/05.png"
                     alt="Vista Derecha"
                     fill
-                    className="object-cover"
+                    className="object-full"
                   />
                 </div>
               </div>
