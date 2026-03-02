@@ -256,8 +256,7 @@ export default function LandingPage() {
 
               {/* CELULAR IZQUIERDA */}
               <div
-                // Aumenté el ancho base (w-[145px])
-                // Bordes más finos (3px) y esquinas menos redondeadas (1.8rem) para que se vea definido
+            
                 className="w-[145px] md:w-[170px] aspect-[9/20] bg-gray-900 rounded-[1.8rem] md:rounded-[2rem] border-[3px] md:border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
                 style={{
                   transform: 'translateX(60px) translateZ(-100px) rotateY(25deg)', // Ajusté la posición para el nuevo tamaño
@@ -341,19 +340,19 @@ export default function LandingPage() {
       {[
         {
           title: "GASTRONOMÍA",
-          desc: "Restaurantes, bares, cafeterías y food trucks.",
+          desc: "Eliminá el error de comanda y ahorrá comisiones. ",
           icon: <Utensils className="text-orange-500" />,
           bg: "bg-orange-50",
         },
         {
           title: "KIOSCOS",
-          desc: "Almacenes, despensas y tiendas de conveniencia.",
+          desc: "Vendé 24/7 sin estar pegado al teléfono.",
           icon: <Store className="text-blue-500" />,
           bg: "bg-blue-50",
         },
         {
           title: "VERDULERÍAS",
-          desc: "Fruterías, dietéticas y productos orgánicos.",
+          desc: "Fruterías, dietéticas y productos orgánicos. Actualizá precios y stock del día en un clic",
           icon: <Carrot className="text-green-500" />,
           bg: "bg-green-50",
         },

@@ -691,62 +691,67 @@ const getTemplateConfig = () => {
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
                   </div>
               </section>
-<section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4">
-  <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
-    <Store size={14}/> Información y Redes
-  </h3>
-  
-  <div className="space-y-4">
-    {/* Dirección y Mapa */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div className="space-y-1">
-    <label className="text-[10px] font-bold text-gray-500 uppercase">Dirección (Texto a mostrar)</label>
-    <input 
-      value={data.address || ''} 
-      onChange={(e) => { setData({...data, address: e.target.value}); setUnsavedChanges(true); }}
-      className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white font-bold" 
-      placeholder="Ej: Av. Santa Fe 1234, CABA"
-    />
-  </div>
-  <div className="space-y-1">
-    <label className="text-[10px] font-bold text-gray-400 uppercase italic">Link de Google Maps (Opcional)</label>
-    <input 
-      value={data.google_maps_link || ''} 
-      onChange={(e) => { setData({...data, google_maps_link: e.target.value}); setUnsavedChanges(true); }}
-      className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white" 
-      placeholder="Pegá el link de maps aquí..."
-    />
-  </div>
-</div>
 
-    {/* Redes Sociales */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div className="space-y-1">
-        <label className="text-[9px] font-bold text-gray-400 uppercase">Instagram (Link)</label>
-        <input value={data.instagram || ''} onChange={(e) => { setData({...data, instagram: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="instagram.com/tu-user"/>
+
+{/* --- SECCIÓN CONDICIONAL: SOLO PARA MARKET PRO --- */}
+{data.template_id === 'marketpro' && (
+  <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
+    <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+      <Store size={14}/> Información y Redes (Solo Market Pro)
+    </h3>
+    
+    <div className="space-y-4">
+      {/* Dirección y Mapa */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-500 uppercase">Dirección (Texto a mostrar)</label>
+          <input 
+            value={data.address || ''} 
+            onChange={(e) => { setData({...data, address: e.target.value}); setUnsavedChanges(true); }}
+            className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white font-bold" 
+            placeholder="Ej: Av. Santa Fe 1234, CABA"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase italic">Link de Google Maps (Opcional)</label>
+          <input 
+            value={data.google_maps_link || ''} 
+            onChange={(e) => { setData({...data, google_maps_link: e.target.value}); setUnsavedChanges(true); }}
+            className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white" 
+            placeholder="Pegá el link de maps aquí..."
+          />
+        </div>
       </div>
-      <div className="space-y-1">
-        <label className="text-[9px] font-bold text-gray-400 uppercase">Facebook (Link)</label>
-        <input value={data.facebook || ''} onChange={(e) => { setData({...data, facebook: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="facebook.com/tu-página"/>
+
+      {/* Redes Sociales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="space-y-1">
+          <label className="text-[9px] font-bold text-gray-400 uppercase">Instagram (Link)</label>
+          <input value={data.instagram || ''} onChange={(e) => { setData({...data, instagram: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="instagram.com/tu-user"/>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[9px] font-bold text-gray-400 uppercase">Facebook (Link)</label>
+          <input value={data.facebook || ''} onChange={(e) => { setData({...data, facebook: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="facebook.com/tu-página"/>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[9px] font-bold text-gray-400 uppercase">TikTok (Link)</label>
+          <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="tiktok.com/@tu-user"/>
+        </div>
       </div>
+
+      {/* Horarios Visuales */}
       <div className="space-y-1">
-        <label className="text-[9px] font-bold text-gray-400 uppercase">TikTok (Link)</label>
-        <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="tiktok.com/@tu-user"/>
+        <label className="text-[10px] font-bold text-gray-500 uppercase">Horarios Informativos</label>
+        <textarea 
+          value={data.opening_hours || ''} 
+          onChange={(e) => { setData({...data, opening_hours: e.target.value}); setUnsavedChanges(true); }}
+          className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white resize-none" 
+          rows={2}
+        />
       </div>
     </div>
-
-    {/* Horarios Visuales */}
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold text-gray-500 uppercase">Horarios Informativos</label>
-      <textarea 
-        value={data.opening_hours || ''} 
-        onChange={(e) => { setData({...data, opening_hours: e.target.value}); setUnsavedChanges(true); }}
-        className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white resize-none" 
-        rows={2}
-      />
-    </div>
-  </div>
-</section>
+  </section>
+)}
               <section className="pt-4 border-t">
                   <h3 className="font-bold flex items-center gap-2 text-sm mb-3"><Utensils size={16}/> Carga Rápida de Platos</h3>
                   {products.length < 2 ? (
