@@ -22,6 +22,17 @@ import ElegantSerif from '../../../components/templates/ElegantSerif';
 import BistroChalk from '../../../components/templates/BistroChalk';
 import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 
+const MARKETPRO_ASSETS = {
+  // Un logo circular de comida prolijo
+  logo: 'https://images.unsplash.com/photo-1512152272829-e3139592d56f?auto=format&fit=crop&w=100&q=80',
+  // Banner de hamburguesas (este ya te funcionaba bien)
+  banner: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80',
+  // Hamburguesa de producto
+  burger: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
+  // PAPAS FRITAS (Link nuevo y verificado que no se rompe)
+  fries: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?auto=format&fit=crop&w=150&q=80',
+};
+
 // 1. COLORES POR DEFECTO
 const TEMPLATE_DEFAULTS: any = {
   classic: { theme: '#d32f2f', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#ffebee', banner: false },
@@ -232,8 +243,9 @@ const getTemplateConfig = () => {
 
   const applyTemplate = (templateId: string) => {
       const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
-      setData((prev: any) => ({
-          ...prev, 
+      
+      let newData = {
+          ...data, 
           template_id: templateId,
           theme_color: defaults.theme,
           bg_color: defaults.bg,
@@ -242,7 +254,24 @@ const getTemplateConfig = () => {
           description_color: defaults.desc,
           promo_bg_color: defaults.promo,
           show_banner: defaults.banner
-      }));
+      };
+
+      // Inyectamos datos en el estado real solo si están vacíos
+      if (templateId === 'marketpro') {
+        newData = {
+          ...newData,
+          logo_url: data.logo_url || MARKETPRO_ASSETS.logo,
+          banner_url: data.banner_url || MARKETPRO_ASSETS.banner,
+          description: data.description || 'Bienvenidos a nuestra tienda digital. Pedí online de forma rápida y segura.',
+          hero_title: data.hero_title || 'Bacon Burger XL',
+          hero_description: data.hero_description || 'Nuestra especialidad con doble cheddar.',
+          hero_price: data.hero_price || 9500,
+          address: data.address || 'Av. Principal 123',
+          opening_hours: data.opening_hours || 'Lunes a Sábados: 19 a 23:30hs'
+        };
+      }
+
+      setData(newData);
       setUnsavedChanges(true);
       setPreviewTemplateId(null);
   };
@@ -323,12 +352,31 @@ const getTemplateConfig = () => {
 
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
       const activeId = templateId || 'classic';
-      const displayProds = products.length > 0 ? products : [
-          { id: 1, name: 'Hamburguesa Doble', description: 'Con cheddar y bacon.', price: 8500, image_url: '' },
-          { id: 2, name: 'Papas Fritas', description: 'Porción abundante.', price: 4000, image_url: '' }
+    const displayProds = products.length > 0 ? products : [
+          { 
+            id: 1, 
+            name: 'Hamburguesa Doble Black', 
+            description: 'Doble carne 180g, cheddar y bacon.', 
+            price: 8500, 
+            image_url: MARKETPRO_ASSETS.burger 
+          },
+         { 
+  id: 2, 
+  name: 'Papas Fritas XL', 
+  description: 'Porción abundante para compartir.', 
+  price: 4000, 
+  image_url: MARKETPRO_ASSETS.fries, // <-- Usás la variable en vez del link largo
+},
+          { 
+            id: 3, 
+            name: 'Gaseosa Línea Coca', 
+            description: 'Sabor original 500ml.', 
+            price: 2500, 
+            image_url: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&w=150&q=80' 
+          }
       ];
       
-      const isPreviewMode = !!previewTemplateId;
+     const isPreviewMode = !!previewTemplateId;
       const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
       
       const renderData = isPreviewMode ? {
@@ -338,7 +386,22 @@ const getTemplateConfig = () => {
           show_banner: defaults.banner
       } : data;
 
-      const props = { restaurant: renderData, products: displayProds };
+      // --- LÓGICA DE FALLBACKS (Para que no se vea vacío) ---
+      const finalPreviewData = activeId === 'marketpro' ? {
+        ...renderData,
+        logo_url: renderData.logo_url || MARKETPRO_ASSETS.logo,
+        banner_url: renderData.banner_url || MARKETPRO_ASSETS.banner,
+        description: renderData.description || 'Bienvenidos a nuestra tienda digital. Pedí online de forma rápida y segura.',
+        name: renderData.name || 'Tu Negocio Pro',
+        hero_title: renderData.hero_title || 'Bacon Burger XL',
+        hero_description: renderData.hero_description || 'Nuestra especialidad con doble cheddar y panceta.',
+        hero_price: renderData.hero_price || 9500,
+        hero_badge_text: renderData.hero_badge_text || 'DESTACADO'
+      } : renderData;
+
+      // ESTA ES LA LÍNEA QUE MANDA LA INFO AL CELULAR
+      const props = { restaurant: finalPreviewData, products: displayProds };
+      
       const isDarkTheme = ['urban', 'fresh', 'bistro'].includes(activeId);
       const statusColor = isDarkTheme ? 'white' : 'black';
 
@@ -738,7 +801,18 @@ const getTemplateConfig = () => {
           <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="tiktok.com/@tu-user"/>
         </div>
       </div>
-
+{/* WhatsApp de Contacto Directo */}
+      <div className="space-y-1">
+        <label className="text-[9px] font-bold text-green-600 uppercase flex items-center gap-1">
+          <Phone size={10}/> WhatsApp de Contacto
+        </label>
+        <input 
+          value={data.phone || ''} 
+          onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} 
+          className="w-full p-2 border border-green-100 rounded-lg text-[10px] outline-none bg-green-50/30 font-bold" 
+          placeholder="Ej: 54911..."
+        />
+      </div>
       {/* Horarios Visuales */}
       <div className="space-y-1">
         <label className="text-[10px] font-bold text-gray-500 uppercase">Horarios Informativos</label>
