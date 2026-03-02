@@ -219,16 +219,15 @@ export default function LandingPage() {
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>{" "}
               Nuevo: Seguimiento en vivo
             </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.05]">
-              Tu menú digital,
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-8 leading-[1.05]">
+              Recibí tus pedidos por WhatsApp 
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-gray-900">
-                listo en segundos.
+                o en tu Panel de Snappy.
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-500 mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              Sin PDFs aburridos. Crea una experiencia de compra increíble para
-              tus clientes y recibe pedidos directo a WhatsApp.
+              "Sin PDFs, imagenes ni mensajes desordenados. Tus clientes eligen, compran y recibís el pedido listo para despachar directamente en tu WP o panel de snappy.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
