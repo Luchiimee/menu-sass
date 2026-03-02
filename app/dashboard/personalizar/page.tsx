@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, 
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -55,7 +55,7 @@ export default function EditorPage() {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
-
+  const [categories, setCategories] = useState<any[]>([]);
   const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
 
   const supabase = createBrowserClient(
@@ -64,17 +64,53 @@ export default function EditorPage() {
   );
 
   const [data, setData] = useState<any>({
-    id: null, name: '', description: '', 
-    promo_message: '', show_promo: true, promo_bg_color: '',
-    phone: '', delivery_cost: 0, 
-    theme_color: '', bg_color: '', card_color: '', 
-    text_color: '', description_color: '',
-    slug: '', alias_mp: '', logo_url: '', banner_url: '', 
-    template_id: 'classic', show_banner: true,
+    id: null, 
+    name: '', 
+    description: '', 
+    promo_message: '', 
+    show_promo: true, 
+    promo_bg_color: '#f3f4f6', // Fondo inicial del banner
+    promo_text_color: '#ffffff', // Color texto banner
+    promo_font: 'Inter',
+    phone: '', 
+    delivery_cost: 0, 
+    theme_color: '#ac0c0c', 
+    bg_color: '#ffffff', 
+    card_color: '#ffffff', 
+    text_color: '#000000', 
+    description_color: '#999999',
+    slug: '', 
+    alias_mp: '', 
+    logo_url: '', 
+    banner_url: '', 
+    template_id: 'classic', 
+    show_banner: true,
     hero_badge_text: 'DESTACADO', 
-  hero_title: '', 
-  hero_price: 0, 
-  hero_description: ''
+    hero_title: '', 
+    hero_price: 0, 
+    hero_description: '',
+    address: '',
+opening_hours: '',
+is_open: true,
+instagram: '',
+facebook: '',
+tiktok: '',
+google_maps_link: '',
+    
+    // --- NUEVOS CAMPOS PARA EL CONTROL PRO ---
+    title_font: 'Inter',
+    desc_font: 'Inter',
+    desc_size: '10px',
+    search_bg_color: '#f3f4f6',
+    search_icon_color: '#9ca3af',
+    cat_bg_color: '#f3f4f6',
+    cat_text_color: '#999999',
+    cat_title_color: '#000000',
+    card_show_bg: true,
+    card_name_color: '#000000',
+    card_price_color: '#059669',
+    card_btn_bg: '#000000',
+    card_btn_text: '#ffffff',
   });
 
   const [products, setProducts] = useState<any[]>([]);
@@ -139,6 +175,14 @@ export default function EditorPage() {
           setIsLocked(!rest.subscription_plan);
           const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
           if(prods && mounted) setProducts(prods);
+
+          const { data: cats } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('restaurant_id', rest.id)
+            .order('sort_order', { ascending: true });
+          
+          if(cats && mounted) setCategories(cats);
         } else if(mounted) setIsLocked(true);
       } catch (error) { console.error(error); } finally { if(mounted) setLoading(false); }
     };
@@ -257,7 +301,7 @@ const getTemplateConfig = () => {
         if (refreshed) { setProducts(refreshed); setNewProd({ name: '', price: '', description: '', image_url: '' }); }
     } catch (error: any) { alert(error.message); }
   };
-
+ 
   const handleDeleteQuick = async (id: string) => {
      if(!confirm("¿Borrar?")) return;
      const { error } = await supabase.from('products').delete().eq('id', id);
@@ -313,7 +357,7 @@ const getTemplateConfig = () => {
                       case 'elegant': return <ElegantSerif {...props} />;
                       case 'bistro': return <BistroChalk {...props} />;
                       default: return <ClassicDelivery {...props} />;
-                      case 'marketpro': return <MarketProTemplate {...props} categories={[]} onAddToCart={() => {}} />;
+                      case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
                   }
                })()}
             </div>
@@ -373,22 +417,140 @@ const getTemplateConfig = () => {
     </div>
 </div>
 
-              {/* SECCIÓN DE ESTILOS DINÁMICA */}
+             
+           {/* SECCIÓN DE ESTILOS DINÁMICA (REESTRUCTURADA) */}
               {showAdvanced && (
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in slide-in-from-top-2 relative">
-                      <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-xs uppercase text-gray-500">Colores del Diseño</h3><button onClick={handleResetClick} className="text-xs font-bold text-red-500 flex items-center gap-1"><RotateCcw size={12}/> Reset</button></div>
-                      {!tConfig.editable ? (
-                          <div className="flex flex-col items-center justify-center p-4 bg-gray-100 rounded-lg text-gray-500 text-xs text-center"><Lock size={20} className="mb-2 opacity-50"/><p>Esta plantilla tiene un diseño fijo.</p></div>
-                      ) : (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                              <div><label className="text-[10px] font-bold text-gray-700 mb-1 block">{tConfig.labels.theme}</label><div className="flex items-center gap-2 bg-white p-1 rounded-lg border w-full"><input type="color" value={data.theme_color} onChange={(e) => { setData({...data, theme_color: e.target.value}); setUnsavedChanges(true); }} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0 flex-shrink-0"/><span className="text-[10px] font-mono text-gray-500 truncate">{data.theme_color}</span></div></div>
-                              <div><label className="text-[10px] font-bold text-gray-700 mb-1 block">{tConfig.labels.bg}</label><div className="flex items-center gap-2 bg-white p-1 rounded-lg border w-full"><input type="color" value={data.bg_color} onChange={(e) => { setData({...data, bg_color: e.target.value}); setUnsavedChanges(true); }} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0 flex-shrink-0"/><span className="text-[10px] font-mono text-gray-500 truncate">{data.bg_color}</span></div></div>
-                              {tConfig.showCard && (<div><label className="text-[10px] font-bold text-gray-700 mb-1 block">{tConfig.labels.card}</label><div className="flex items-center gap-2 bg-white p-1 rounded-lg border w-full"><input type="color" value={data.card_color} onChange={(e) => { setData({...data, card_color: e.target.value}); setUnsavedChanges(true); }} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0 flex-shrink-0"/><span className="text-[10px] font-mono text-gray-500 truncate">{data.card_color}</span></div></div>)}
-                              <div><label className="text-[10px] font-bold text-gray-700 mb-1 block">{tConfig.labels.text}</label><div className="flex items-center gap-2 bg-white p-1 rounded-lg border w-full"><input type="color" value={data.text_color} onChange={(e) => { setData({...data, text_color: e.target.value}); setUnsavedChanges(true); }} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0 flex-shrink-0"/><span className="text-[10px] font-mono text-gray-500 truncate">{data.text_color}</span></div></div>
-                              <div><label className="text-[10px] font-bold text-gray-700 mb-1 block">{tConfig.labels.desc}</label><div className="flex items-center gap-2 bg-white p-1 rounded-lg border w-full"><input type="color" value={data.description_color} onChange={(e) => { setData({...data, description_color: e.target.value}); setUnsavedChanges(true); }} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0 flex-shrink-0"/><span className="text-[10px] font-mono text-gray-500 truncate">{data.description_color}</span></div></div>
-                              <div><label className="text-[10px] font-bold text-gray-700 mb-1 block">Fondo Promo</label><div className="flex items-center gap-2 bg-white p-1 rounded-lg border w-full"><input type="color" value={data.promo_bg_color} onChange={(e) => { setData({...data, promo_bg_color: e.target.value}); setUnsavedChanges(true); }} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent p-0 flex-shrink-0"/><span className="text-[10px] font-mono text-gray-500 truncate">{data.promo_bg_color}</span></div></div>
+                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 animate-in slide-in-from-top-2 space-y-8">
+                     <div className="flex justify-between items-center border-b pb-3">
+    <h3 className="font-black text-xs uppercase text-gray-900 tracking-tighter italic">Panel de Diseño Avanzado</h3>
+    
+    <div className="flex items-center gap-1.5">
+        <button 
+            onClick={handleSave} 
+            className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-all border border-emerald-200 bg-emerald-50 active:scale-95"
+        >
+            <Save size={13}/> Guardar Cambios
+        </button>
+        <button 
+            onClick={handleResetClick} 
+            className="text-[10px] font-bold text-red-500 flex items-center gap-1 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors active:scale-95"
+        >
+            <RotateCcw size={11}/> Resetear a fábrica
+        </button>
+    </div>
+</div>
+
+                      {/* GRUPO 1: TIPOGRAFÍAS Y CABECERA */}
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Cabecera y Textos</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Nombre del Comercio</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={data.text_color} onChange={(e) => setData({...data, text_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/>
+                              <select value={data.title_font} onChange={(e) => setData({...data, title_font: e.target.value})} className="flex-1 text-xs border rounded-lg p-2 outline-none">
+                                <option value="Inter">Moderna (Inter)</option>
+                                <option value="Playfair Display">Elegante (Serif)</option>
+                                <option value="Patrick Hand">Manuscrita (Chalk)</option>
+                              </select>
+                            </div>
                           </div>
-                      )}
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Descripción</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={data.description_color} onChange={(e) => setData({...data, description_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/>
+                              <select value={data.desc_font} onChange={(e) => setData({...data, desc_font: e.target.value})} className="flex-1 text-xs border rounded-lg p-2 outline-none">
+                                <option value="Inter">Moderna</option>
+                                <option value="Playfair Display">Elegante</option>
+                                <option value="Patrick Hand">Manuscrita</option>
+                              </select>
+                              <select value={data.desc_size} onChange={(e) => setData({...data, desc_size: e.target.value})} className="w-16 text-xs border rounded-lg p-2 outline-none">
+                                <option value="9px">S</option>
+                                <option value="11px">M</option>
+                                <option value="13px">L</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* GRUPO 2: BUSCADOR Y CATEGORÍAS */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Buscador y Navegación</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Barra Buscador</label>
+                            <div className="flex items-center gap-2"><input type="color" value={data.search_bg_color || '#f3f4f6'} onChange={(e) => setData({...data, search_bg_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Fondo</span></div>
+                            <div className="flex items-center gap-2"><input type="color" value={data.search_icon_color || '#9ca3af'} onChange={(e) => setData({...data, search_icon_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Icono/Lupa</span></div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Botones Categorías</label>
+                            <div className="flex items-center gap-2"><input type="color" value={data.cat_bg_color || '#f3f4f6'} onChange={(e) => setData({...data, cat_bg_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Fondo</span></div>
+                            <div className="flex items-center gap-2"><input type="color" value={data.cat_text_color || '#000000'} onChange={(e) => setData({...data, cat_text_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Texto</span></div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Títulos Sección</label>
+                            <div className="flex items-center gap-2"><input type="color" value={data.cat_title_color || '#000000'} onChange={(e) => setData({...data, cat_title_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* GRUPO 3: PRODUCTOS (CARDS) */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Tarjetas de Productos</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Fondo Card</label>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => setData({...data, card_show_bg: !data.card_show_bg})} className={`w-8 h-4 rounded-full flex items-center px-0.5 ${data.card_show_bg ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${data.card_show_bg ? 'translate-x-4' : ''}`}></div></button>
+                              <input type="color" disabled={!data.card_show_bg} value={data.card_color} onChange={(e) => setData({...data, card_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer disabled:opacity-20"/>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Nombre/Precio</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={data.card_name_color || '#000000'} onChange={(e) => setData({...data, card_name_color: e.target.value})} title="Nombre" className="w-8 h-8 rounded cursor-pointer"/>
+                              <input type="color" value={data.card_price_color || '#059669'} onChange={(e) => setData({...data, card_price_color: e.target.value})} title="Precio" className="w-8 h-8 rounded cursor-pointer"/>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Botón "Elegir"</label>
+                            <div className="flex gap-2">
+                              <input type="color" value={data.card_btn_bg || '#000000'} onChange={(e) => setData({...data, card_btn_bg: e.target.value})} title="Fondo Botón" className="w-8 h-8 rounded cursor-pointer"/>
+                              <input type="color" value={data.card_btn_text || '#ffffff'} onChange={(e) => setData({...data, card_btn_text: e.target.value})} title="Texto Botón" className="w-8 h-8 rounded cursor-pointer"/>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-600 uppercase">Fondo Web</label>
+                            <input type="color" value={data.bg_color} onChange={(e) => setData({...data, bg_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* GRUPO 4: BANNER PROMO */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Banner de Promoción</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <div className="flex gap-3">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase">Fondo</label>
+                                <input type="color" value={data.promo_bg_color} onChange={(e) => setData({...data, promo_bg_color: e.target.value})} className="w-10 h-10 rounded-xl cursor-pointer"/>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase">Texto</label>
+                                <input type="color" value={data.promo_text_color} onChange={(e) => setData({...data, promo_text_color: e.target.value})} className="w-10 h-10 rounded-xl cursor-pointer"/>
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase">Tipografía</label>
+                                <select value={data.promo_font} onChange={(e) => setData({...data, promo_font: e.target.value})} className="w-full text-xs border rounded-lg p-2.5 outline-none">
+                                  <option value="Inter">Moderna</option>
+                                  <option value="Playfair Display">Elegante</option>
+                                  <option value="Patrick Hand">Manuscrita</option>
+                                </select>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
                   </div>
               )}
 
@@ -529,7 +691,62 @@ const getTemplateConfig = () => {
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
                   </div>
               </section>
+<section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4">
+  <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+    <Store size={14}/> Información y Redes
+  </h3>
+  
+  <div className="space-y-4">
+    {/* Dirección y Mapa */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="space-y-1">
+    <label className="text-[10px] font-bold text-gray-500 uppercase">Dirección (Texto a mostrar)</label>
+    <input 
+      value={data.address || ''} 
+      onChange={(e) => { setData({...data, address: e.target.value}); setUnsavedChanges(true); }}
+      className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white font-bold" 
+      placeholder="Ej: Av. Santa Fe 1234, CABA"
+    />
+  </div>
+  <div className="space-y-1">
+    <label className="text-[10px] font-bold text-gray-400 uppercase italic">Link de Google Maps (Opcional)</label>
+    <input 
+      value={data.google_maps_link || ''} 
+      onChange={(e) => { setData({...data, google_maps_link: e.target.value}); setUnsavedChanges(true); }}
+      className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white" 
+      placeholder="Pegá el link de maps aquí..."
+    />
+  </div>
+</div>
 
+    {/* Redes Sociales */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="space-y-1">
+        <label className="text-[9px] font-bold text-gray-400 uppercase">Instagram (Link)</label>
+        <input value={data.instagram || ''} onChange={(e) => { setData({...data, instagram: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="instagram.com/tu-user"/>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[9px] font-bold text-gray-400 uppercase">Facebook (Link)</label>
+        <input value={data.facebook || ''} onChange={(e) => { setData({...data, facebook: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="facebook.com/tu-página"/>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[9px] font-bold text-gray-400 uppercase">TikTok (Link)</label>
+        <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="tiktok.com/@tu-user"/>
+      </div>
+    </div>
+
+    {/* Horarios Visuales */}
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold text-gray-500 uppercase">Horarios Informativos</label>
+      <textarea 
+        value={data.opening_hours || ''} 
+        onChange={(e) => { setData({...data, opening_hours: e.target.value}); setUnsavedChanges(true); }}
+        className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white resize-none" 
+        rows={2}
+      />
+    </div>
+  </div>
+</section>
               <section className="pt-4 border-t">
                   <h3 className="font-bold flex items-center gap-2 text-sm mb-3"><Utensils size={16}/> Carga Rápida de Platos</h3>
                   {products.length < 2 ? (
