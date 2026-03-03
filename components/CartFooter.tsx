@@ -169,9 +169,9 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             if (newOrder) {
                 setActiveOrderId(newOrder.id); // <--- ESTO ACTIVA EL TRACKER AUTOMÁTICAMENTE
                 orderRef = `#${newOrder.id.slice(0, 5)}`;
-                if (isPlus) {
+               /* if (isPlus) {
                     fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurantId, orderId: newOrder.id, customerName: nombre, total: totalFinal, orderType: metodoEnvio }), }).catch(() => {});
-                }
+                }*/
             }
         } else {
             setActiveOrderId('light-plan-order'); // <--- ESTO ACTIVA EL CARTEL VERDE EN LIGHT
