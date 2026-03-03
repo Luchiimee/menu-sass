@@ -13,7 +13,7 @@ interface Table {
     restaurant_id: string;
 }
 
-export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp }: any) {
+export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, businessType }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
@@ -88,7 +88,13 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
                 <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
                     <div className="w-full h-[85vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col">
                         <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-[130] shadow-sm"><X size={20} className="text-gray-400" /></button>
-                        <OrderTracker orderId={activeOrderId} restaurantPhone={phone} onStatusChange={(status: string) => setOrderStatus(status)} />
+                       
+<OrderTracker 
+  orderId={activeOrderId} 
+  restaurantPhone={phone} 
+  businessType={businessType || "gastronomico"} // <--- USAMOS LA PROP AQUÍ
+  onStatusChange={(status: string) => setOrderStatus(status)} 
+/>
                     </div>
                 </div>
             );

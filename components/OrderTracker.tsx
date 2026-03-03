@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Check, ChefHat, Bike, Clock, MapPin, XCircle, Zap, MessageCircle } from 'lucide-react';
+import { Check, ChefHat, Bike, Clock, MapPin, XCircle, Zap, MessageCircle, Package, Truck } from 'lucide-react';
 
 interface OrderTrackerProps {
     orderId: string;
-    restaurantPhone: string; // <--- NUEVA PROP PARA EL WHATSAPP
+    restaurantPhone: string;
+    businessType?: string;
     onStatusChange?: (status: string) => void;
 }
 
-export default function OrderTracker({ orderId, restaurantPhone, onStatusChange }: OrderTrackerProps) {
+export default function OrderTracker({ orderId, restaurantPhone, businessType = 'gastronomico', onStatusChange }: OrderTrackerProps) {
     const [status, setStatus] = useState('pendiente');
     
     const supabase = createBrowserClient(
@@ -41,15 +42,26 @@ export default function OrderTracker({ orderId, restaurantPhone, onStatusChange 
         return () => { supabase.removeChannel(channel); };
     }, [orderId, supabase, onStatusChange]);
 
-    const steps = [
+
+
+const stepsConfig: any = {
+    gastronomico: [
         { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
         { id: 'en_proceso', label: 'Cocinando 🔥', subLabel: '¡El fuego está prendido!', icon: ChefHat, color: 'bg-orange-500', lightColor: 'bg-orange-50/50', textColor: 'text-orange-600' },
         { id: 'en_camino', label: 'En Camino 🛵', subLabel: 'Tu pedido está llegando', icon: Bike, color: 'bg-blue-600', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
         { id: 'completado', label: '¡Disfrutalo! 🎉', subLabel: 'Pedido entregado con éxito', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
-    ];
+    ],
+comercio: [
+            { id: 'pendiente', label: 'Recibido ✅', subLabel: 'Estamos procesando tu compra', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
+            { id: 'en_proceso', label: 'Preparando 📦', subLabel: 'Estamos armando tu paquete', icon: Package, color: 'bg-blue-500', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
+            { id: 'en_camino', label: 'Despachado 🚚', subLabel: 'Tu pedido salió del local', icon: Truck, color: 'bg-purple-600', lightColor: 'bg-purple-50/50', textColor: 'text-purple-600' },
+            { id: 'completado', label: '¡Entregado! 🛍️', subLabel: 'Gracias por tu compra', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
+        ]
+    };
 
+    const steps = stepsConfig[businessType] || stepsConfig.gastronomico;
     const normalizedStatus = status === 'entregado' ? 'completado' : status;
-    const currentIndex = steps.findIndex(s => s.id === normalizedStatus);
+const currentIndex = steps.findIndex((s: any) => s.id === normalizedStatus);
     const currentStep = steps[currentIndex] || steps[0];
 
     // --- VISTA DE CANCELADO ---
@@ -124,7 +136,7 @@ export default function OrderTracker({ orderId, restaurantPhone, onStatusChange 
                 </p>
 
                 <div className="flex gap-2 h-2 mb-2 px-4">
-                    {steps.map((step, i) => (
+                   {steps.map((step: any, i: number) => (
                         <div key={step.id} className={`flex-1 rounded-full transition-all duration-700 ${i <= currentIndex ? step.color : 'bg-gray-100'}`}></div>
                     ))}
                 </div>
