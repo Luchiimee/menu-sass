@@ -1,7 +1,10 @@
 "use client";
 
+
+import CartFooter from "../CartFooter";
 import { useState } from "react";
 import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone } from "lucide-react";
+
 
 export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart }: any) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -414,6 +417,7 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
           </div>
         </div>
       )}
+      
     </div>
   );
 }

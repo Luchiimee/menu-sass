@@ -618,7 +618,29 @@ const getTemplateConfig = () => {
                       </div>
                   </div>
               )}
-
+    <div className="mb-6 space-y-2"> 
+    <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest block">
+        Rubro del Negocio
+    </label>
+    <div className="grid grid-cols-2 gap-2">
+        <button 
+            type="button"
+            onClick={() => { setData({...data, business_type: 'gastronomico'}); setUnsavedChanges(true); }}
+            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${data.business_type === 'gastronomico' ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm' : 'border-gray-100 text-gray-400 hover:border-gray-200 bg-white'}`}
+        >
+            <Utensils size={16} />
+            <span className="text-[10px] font-black uppercase">Gastronomía</span>
+        </button>
+        <button 
+            type="button"
+            onClick={() => { setData({...data, business_type: 'comercio'}); setUnsavedChanges(true); }}
+            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${data.business_type === 'comercio' ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-gray-100 text-gray-400 hover:border-gray-200 bg-white'}`}
+        >
+            <Store size={16} />
+            <span className="text-[10px] font-black uppercase">Tienda / Kiosco</span>
+        </button>
+    </div>
+</div>
               <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                   <div className="grid grid-cols-1 gap-4">
                     <div>
@@ -643,25 +665,8 @@ const getTemplateConfig = () => {
                       <div className="space-y-1"><label className="text-xs font-bold text-gray-700">Nombre del Negocio</label><input value={data.name} onChange={(e) => { setData({...data, name: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl font-bold outline-none text-sm focus:ring-1 focus:ring-black" placeholder="Ej: Burger King"/></div>
                       <div className="space-y-1"><label className="text-xs font-bold text-gray-700">Descripción Corta</label><textarea value={data.description} onChange={(e) => { setData({...data, description: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-black resize-none" rows={2} placeholder="La mejor comida de la ciudad..."/></div>
                       <div className="space-y-2 pt-2">
-    <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Rubro del Negocio</label>
-    <div className="grid grid-cols-2 gap-2">
-        <button 
-            type="button"
-            onClick={() => { setData({...data, business_type: 'gastronomico'}); setUnsavedChanges(true); }}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${data.business_type === 'gastronomico' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-        >
-            <Utensils size={16} />
-            <span className="text-[10px] font-black uppercase">Gastronomía</span>
-        </button>
-        <button 
-            type="button"
-            onClick={() => { setData({...data, business_type: 'comercio'}); setUnsavedChanges(true); }}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${data.business_type === 'comercio' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
-        >
-            <Store size={16} />
-            <span className="text-[10px] font-black uppercase">Tienda / Kiosco</span>
-        </button>
-    </div>
+   
+   
 </div>
 
                       <div className="space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100"><div className="flex justify-between items-center mb-2"><label className="text-xs font-bold text-gray-700 flex items-center gap-1"><Megaphone size={12}/> Mensaje Promo (Header)</label><div className="flex items-center gap-2"><label className="text-[10px] text-gray-500 font-bold uppercase cursor-pointer" htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label><button onClick={() => { setData({...data, show_promo: !data.show_promo}); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`}></div></button></div></div>{data.show_promo && (<div className="flex gap-2 items-stretch"><input value={data.promo_message} onChange={(e) => { setData({...data, promo_message: e.target.value}); setUnsavedChanges(true); }} className="flex-1 p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" placeholder="Ej: Envío GRATIS en tu primera compra"/></div>)}</div>

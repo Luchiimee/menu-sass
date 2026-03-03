@@ -230,109 +230,132 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         return null;
     }
 
-    return (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-[120] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] rounded-t-[2.5rem] p-4 max-h-[95vh] overflow-y-auto font-sans text-black">
-            <div className="max-w-md mx-auto space-y-5 relative">
-                <div className="flex justify-between items-center">
-                    <button onClick={() => setIsVisible(false)} className="flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-widest"><ChevronDown size={20} /> Seguir pidiendo</button>
-                    <button onClick={() => setIsVisible(false)} className="bg-gray-100 p-2 rounded-full text-gray-500"><X size={20} /></button>
+  return (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-[120] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] rounded-t-[2.5rem] h-[92vh] overflow-y-auto overscroll-y-contain font-sans text-black">
+            <div className="max-w-md mx-auto relative">
+                
+                {/* --- CABEZAL STICKY (BOTONES FIJOS) --- */}
+                <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-[130] px-6 py-4 border-b border-gray-50 flex justify-between items-center rounded-t-[2.5rem]">
+                    <button 
+                        onClick={() => setIsVisible(false)} 
+                        className="flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-widest hover:text-gray-600 transition-colors"
+                    >
+                        <ChevronDown size={20} /> Seguir pidiendo
+                    </button>
+                    <button 
+                        onClick={() => setIsVisible(false)} 
+                        className="bg-gray-100 p-2 rounded-full text-gray-500 active:scale-90 transition-transform"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
-                <h2 className="text-xl font-black text-gray-800 px-1">Tu Pedido</h2>
-                <div className="space-y-4">
-                    {cart.map((item: any) => (
-                        <div key={item.uniqueId} className="bg-gray-50 rounded-3xl p-4 border border-gray-100">
-                            <div className="flex justify-between items-center mb-3">
-                                <div className="flex-1"><span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span><span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span></div>
-                                <div className="flex items-center gap-4 bg-white shadow-sm rounded-2xl p-1 border border-gray-100">
-                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-red-500 active:scale-90"><Minus size={20} strokeWidth={3}/></button>
-                                    <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-green-600 active:scale-90"><Plus size={20} strokeWidth={3}/></button>
-                                </div>
-                            </div>
-                            {item.extrasList?.map((ex: any) => (
-                                <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
-                                    <div className="flex flex-col flex-1"><span className="text-xs text-gray-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
-                                    <div className="flex items-center gap-3 mr-1">
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-90"><Minus size={16} strokeWidth={3}/></button>
-                                        <span className="text-xs font-black">{ex.quantity}</span>
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-green-600 active:scale-90"><Plus size={16} strokeWidth={3}/></button>
+
+                {/* --- CONTENIDO DEL PEDIDO --- */}
+                <div className="p-4 space-y-5">
+                    <h2 className="text-xl font-black text-gray-800 px-1">Tu Pedido</h2>
+                    
+                    <div className="space-y-4">
+                        {cart.map((item: any) => (
+                            <div key={item.uniqueId} className="bg-gray-50 rounded-3xl p-4 border border-gray-100">
+                                <div className="flex justify-between items-center mb-3">
+                                    <div className="flex-1">
+                                        <span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span>
+                                        <span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 bg-white shadow-sm rounded-2xl p-1 border border-gray-100">
+                                        <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-red-500 active:scale-90"><Minus size={20} strokeWidth={3}/></button>
+                                        <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
+                                        <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-green-600 active:scale-90"><Plus size={20} strokeWidth={3}/></button>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-                <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label><input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
-                        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono</label><input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
+                                {item.extrasList?.map((ex: any) => (
+                                    <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
+                                        <div className="flex flex-col flex-1"><span className="text-xs text-gray-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
+                                        <div className="flex items-center gap-3 mr-1">
+                                            <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-90"><Minus size={16} strokeWidth={3}/></button>
+                                            <span className="text-xs font-black">{ex.quantity}</span>
+                                            <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-green-600 active:scale-90"><Plus size={16} strokeWidth={3}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
-                        <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
-                            {['delivery', 'retiro', 'mesa'].filter(m => !(m === 'mesa' && planType === 'light')).map((m) => (
-                                <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>{m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}</button>
-                            ))}
+
+                    <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label><input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
+                            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono</label><input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
                         </div>
-                    </div>
-                    {metodoEnvio === 'delivery' && (
-                        <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100"><span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span><span className="font-black text-green-700">{formatPrice(envio)}</span></div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
-                            <input type="text" placeholder="Calle, número..." value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
-                        </div>
-                    )}
-                    {metodoEnvio === 'mesa' && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {availableTables.map((mesa: any) => (
-                                    <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
+                            <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
+                                {['delivery', 'retiro', 'mesa'].filter(m => !(m === 'mesa' && planType === 'light')).map((m) => (
+                                    <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>{m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}</button>
                                 ))}
                             </div>
                         </div>
-                    )}
-                </div>
-                <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Medio de Pago</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}><Wallet size={18} /> Efectivo</button>
-                        <button onClick={() => setMetodoPago('transferencia')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}><Landmark size={18} /> Transferencia</button>
-                    </div>
-                    {metodoPago === 'transferencia' && aliasMp && (
-                        <div className="space-y-2">
-                            <div onClick={handleCopyAlias} className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}>
-                                <div className={copied ? 'text-white' : 'text-blue-900'}><p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">{copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}</p><p className="text-sm font-black">{aliasMp}</p></div>
-                                {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
+                        {metodoEnvio === 'delivery' && (
+                            <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100"><span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span><span className="font-black text-green-700">{formatPrice(envio)}</span></div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
+                                <input type="text" placeholder="Calle, número..." value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
                             </div>
-                            {/* --- RECUPERADO: MENSAJE DEL COMPROBANTE --- */}
-                            {copied && (
-                                <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
-                                    <MessageSquare size={16} className="text-blue-500" />
-                                    <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-                <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Ej: Sin cebolla..." value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
-                <div className="pt-2 border-t border-gray-100 space-y-4">
-                    <div className="bg-gray-50 p-4 rounded-[2rem] border border-gray-100 shadow-inner">
-                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-2 block tracking-widest">¿Tenés un cupón?</label>
-                        {!appliedCoupon ? (
-                            <div className="flex gap-2"><input type="text" placeholder="CÓDIGO" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1 p-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase outline-none focus:ring-2 focus:ring-green-500 text-gray-900" /><button onClick={applyCoupon} disabled={isValidating} className="bg-gray-900 text-white px-5 rounded-2xl text-[10px] font-black uppercase active:scale-95 disabled:opacity-50">{isValidating ? <Loader2 className="animate-spin" size={16}/> : 'Aplicar'}</button></div>
-                        ) : (
-                            <div className="flex justify-between items-center bg-green-100 border border-green-200 p-3 px-5 rounded-2xl animate-in zoom-in"><div className="flex flex-col text-left leading-tight"><span className="text-[9px] font-black text-green-700 uppercase tracking-tighter">Cupón Activado</span><span className="text-sm font-black text-green-800 italic">{appliedCoupon.code} (-{appliedCoupon.discount_percent}%)</span></div><button onClick={() => {setAppliedCoupon(null); setCouponCode("");}} className="text-green-700 p-1 hover:bg-green-200 rounded-full transition-colors"><X size={20} /></button></div>
                         )}
-                        {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 ml-2 italic animate-in fade-in">{couponError}</p>}
+                        {metodoEnvio === 'mesa' && (
+                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {availableTables.map((mesa: any) => (
+                                        <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <div className="px-2 space-y-1">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                        {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
-                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
+
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Medio de Pago</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}><Wallet size={18} /> Efectivo</button>
+                            <button onClick={() => setMetodoPago('transferencia')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}><Landmark size={18} /> Transferencia</button>
+                        </div>
+                        {metodoPago === 'transferencia' && aliasMp && (
+                            <div className="space-y-2">
+                                <div onClick={handleCopyAlias} className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}>
+                                    <div className={copied ? 'text-white' : 'text-blue-900'}><p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">{copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}</p><p className="text-sm font-black">{aliasMp}</p></div>
+                                    {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
+                                </div>
+                                {copied && (
+                                    <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
+                                        <MessageSquare size={16} className="text-blue-500" />
+                                        <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    <button onClick={handleSendOrder} disabled={isSending} className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50">{isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}</button>
+
+                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Ej: Sin cebolla..." value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
+
+                    <div className="pt-2 border-t border-gray-100 space-y-4">
+                        <div className="bg-gray-50 p-4 rounded-[2rem] border border-gray-100 shadow-inner">
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-2 block tracking-widest">¿Tenés un cupón?</label>
+                            {!appliedCoupon ? (
+                                <div className="flex gap-2"><input type="text" placeholder="CÓDIGO" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="flex-1 p-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase outline-none focus:ring-2 focus:ring-green-500 text-gray-900" /><button onClick={applyCoupon} disabled={isValidating} className="bg-gray-900 text-white px-5 rounded-2xl text-[10px] font-black uppercase active:scale-95 disabled:opacity-50">{isValidating ? <Loader2 className="animate-spin" size={16}/> : 'Aplicar'}</button></div>
+                            ) : (
+                                <div className="flex justify-between items-center bg-green-100 border border-green-200 p-3 px-5 rounded-2xl animate-in zoom-in"><div className="flex flex-col text-left leading-tight"><span className="text-[9px] font-black text-green-700 uppercase tracking-tighter">Cupón Activado</span><span className="text-sm font-black text-green-800 italic">{appliedCoupon.code} (-{appliedCoupon.discount_percent}%)</span></div><button onClick={() => {setAppliedCoupon(null); setCouponCode("");}} className="text-green-700 p-1 hover:bg-green-200 rounded-full transition-colors"><X size={20} /></button></div>
+                            )}
+                            {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 ml-2 italic animate-in fade-in">{couponError}</p>}
+                        </div>
+                        <div className="px-2 space-y-1 pb-4">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                            {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
+                            <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
+                        </div>
+                        <button onClick={handleSendOrder} disabled={isSending} className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10">{isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}</button>
+                    </div>
                 </div>
             </div>
         </div>
