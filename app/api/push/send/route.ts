@@ -10,18 +10,18 @@ webpush.setVapidDetails(
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+   const webhookPayload = await req.json();
 
-    // 1. NORMALIZACIÓN DE DATOS (Acepta Supabase y Frontend)
-    const data = body.record ? body.record : body; 
+// Supabase mete los datos reales adentro de 'record'
+const record = webhookPayload.record; 
 
-    const restaurantId = data.restaurant_id || data.restaurantId;
-    const customerName = data.customer_name || data.customerName;
-    const total = data.total;
-    const orderType = data.order_type || data.orderType;
+// Extraemos los datos usando los nombres exactos de tu base de datos
+const restaurantId = record.restaurant_id;
+const customerName = record.customer_name;
+const total = record.total;
+const orderType = record.order_type;
 
     if (!restaurantId) {
-      console.error('API Error: No se encontró restaurantId en el payload', body);
       return NextResponse.json({ error: 'Missing restaurantId' }, { status: 400 });
     }
 
