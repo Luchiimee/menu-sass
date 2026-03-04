@@ -21,6 +21,35 @@ import SpotlightHero from '../../../components/templates/SpotlightHero';
 import ElegantSerif from '../../../components/templates/ElegantSerif';
 import BistroChalk from '../../../components/templates/BistroChalk';
 import MarketProTemplate from '../../../components/templates/MarketProTemplate';
+const ColorRow = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => (
+    <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors">
+        <span className="text-xs font-bold text-gray-700">{label}</span>
+        <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono text-gray-400 uppercase">{value}</span>
+            <div className="relative w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden">
+                <input 
+                    type="color" 
+                    value={value} 
+                    onChange={(e) => onChange(e.target.value)} 
+                    className="absolute inset-0 scale-150 cursor-pointer bg-transparent border-none"
+                />
+            </div>
+        </div>
+    </div>
+);
+const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
+    <div className="flex flex-col items-center gap-2">
+        <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg overflow-hidden transition-transform active:scale-90">
+            <input 
+                type="color" 
+                value={value} 
+                onChange={(e) => onChange(e.target.value)} 
+                className="absolute inset-0 scale-[2] cursor-pointer bg-transparent border-none"
+            />
+        </div>
+        <span className="text-[8px] font-black uppercase text-gray-400 text-center leading-tight px-1">{label}</span>
+    </div>
+);
 
 const MARKETPRO_ASSETS = {
   // Un logo circular de comida prolijo
@@ -35,15 +64,58 @@ const MARKETPRO_ASSETS = {
 
 // 1. COLORES POR DEFECTO
 const TEMPLATE_DEFAULTS: any = {
-  classic: { theme: '#d32f2f', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#ffebee', banner: false },
-  urban:   { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', promo: '#1E1E1E', banner: false },
-  minimal: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#222222', desc: '#999999', promo: '#fafafa', banner: false },
-  visualgrid: { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false },
-  pop:     { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', promo: '#FFD700', banner: false },
-  spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
-  elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
-  bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false },
-  marketpro: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#999999', promo: '#f3f4f6', banner: true },
+classic: { 
+    theme: '#d32f2f', // El rojo del banner
+    bg: '#ffffff', 
+    text: '#ffffff', // Nombre comercio en blanco (sobre rojo)
+    desc: '#ffffff', // Descripción comercio en blanco
+    card_name: '#000000', // Producto en negro
+    card_desc: '#666666', 
+    card_price: '#d32f2f', 
+    btn_bg: '#ffffff', 
+    btn_text: '#555555', 
+    promo_bg: '#ffebee', 
+    promo_text: '#d32f2f', 
+    banner: false 
+  },
+urban: { 
+    theme: '#ea580c',     // El naranja queda solo para los acentos (como el precio)
+    bg: '#121212', 
+    text: '#ffffff', 
+    desc: '#888888', 
+    card_name: '#ffffff', 
+    card_desc: '#888888', 
+    card_price: '#ea580c', // El precio sigue naranja como en la foto
+    btn_bg: '#ffffff',     // <--- CAMBIO: Botón "+" blanco por defecto
+    promo_bg: '#1E1E1E', 
+    promo_text: '#ffffff', // <--- CAMBIO: Texto de promo blanco por defecto
+    banner: false 
+},
+  minimal: { 
+    theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', 
+    card_name: '#222222', card_desc: '#999999', card_price: '#000000', 
+    btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false 
+  },
+  visualgrid: { 
+    theme: '#ea580c', bg: '#1a1a1a', text: '#ffffff', desc: '#bbbbbb', 
+    card_name: '#ffffff', card_desc: '#bbbbbb', card_price: '#ea580c', 
+    btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg: '#1a1a1a', promo_text: '#ea580c', banner: false 
+  },
+  pop: { 
+    theme: '#FF1493', bg: '#fffbe6', text: '#000000', desc: '#444444', 
+    card_name: '#000000', card_desc: '#444444', card_price: '#FF1493', 
+    btn_bg: '#FFD700', btn_text: '#000000', promo_bg: '#FFD700', promo_text: '#FF1493', banner: false 
+  },
+  spotlight: { 
+    theme: '#FFD700', bg: '#ffffff', text: '#000000', desc: '#666666', 
+    card_name: '#000000', card_desc: '#666666', card_price: '#000000', 
+    btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#fff3e0', promo_text: '#000000', banner: true 
+  },
+  marketpro: { 
+    theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', 
+    card_name: '#000000', card_desc: '#999999', card_price: '#059669', 
+    btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#f3f4f6', promo_text: '#000000', banner: true 
+  },
 };
 
 const CUSTOM_STYLES = `
@@ -171,20 +243,27 @@ google_maps_link: '',
              if(tId === 'pop') bg = defaults.bg;
           }
 
-          setData({
-              ...rest,
-              business_type: rest.business_type || 'gastronomico',
-              name: rest.name || '', description: rest.description || '', 
-              promo_message: rest.promo_message || '', show_promo: rest.show_promo !== false, 
-              promo_bg_color: rest.promo_bg_color || defaults.promo,
-              theme_color: theme || defaults.theme, 
-              bg_color: bg || defaults.bg, 
-              card_color: rest.card_color || defaults.card, 
-              text_color: rest.text_color || defaults.text,
-              description_color: rest.description_color || defaults.desc,
-              template_id: tId, delivery_cost: rest.delivery_cost || 0,
-              show_banner: rest.show_banner 
-          });
+         setData({
+    ...rest,
+    business_type: rest.business_type || 'gastronomico',
+    name: rest.name || '', 
+    description: rest.description || '', 
+    promo_message: rest.promo_message || '', 
+    show_promo: rest.show_promo !== false, 
+    promo_bg_color: rest.promo_bg_color || defaults.promo_bg,
+    promo_text_color: rest.promo_text_color || defaults.promo_text,
+    theme_color: rest.theme_color || defaults.theme, 
+    bg_color: rest.bg_color || defaults.bg, 
+    text_color: rest.text_color || defaults.text,
+    description_color: rest.description_color || defaults.desc,
+    card_name_color: rest.card_name_color || defaults.card_name,
+    card_desc_color: rest.card_desc_color || defaults.card_desc,
+    card_price_color: rest.card_price_color || defaults.card_price,
+    card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
+    template_id: tId, 
+    delivery_cost: rest.delivery_cost || 0,
+    show_banner: rest.show_banner 
+});
           setIsLocked(!rest.subscription_plan);
           const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
           if(prods && mounted) setProducts(prods);
@@ -206,41 +285,19 @@ google_maps_link: '',
 const getTemplateConfig = () => {
     const id = data.template_id || 'classic';
     let config = { 
-      editable: true, 
-      showCard: false, 
-      showBannerImg: false,
-      showHeroEditor: false, // 1. Agregamos el flag apagado por defecto
-      labels: { theme: 'Color Principal', bg: 'Fondo Web', card: 'Fondo Tarjeta', text: 'Títulos', desc: 'Descripciones' } 
+      editable: true,
+      group: id, 
+      showClassicBanner: id === 'classic',
+      showAccent: ['urban', 'visualgrid', 'marketpro'].includes(id),
+      showFonts: id === 'marketpro',
+      showBannerImg: ['spotlight', 'marketpro'].includes(id), // <--- FIX ERROR
+      showHeroEditor: id === 'spotlight', // <--- FIX ERROR
+      showSearch: id === 'marketpro', // <--- FIX ERROR
+      showCard: ['urban', 'visualgrid', 'pop', 'spotlight', 'marketpro'].includes(id) // <--- FIX ERROR
     };
-
-    if (id === 'elegant' || id === 'bistro') { config.editable = false; return config; }
-
-    if (id === 'classic' || id === 'minimal') {
-        config.labels.theme = id === 'classic' ? 'Banner Header' : 'Acento / Íconos';
-    } 
-    else if (id === 'urban' || id === 'visualgrid') {
-        config.showCard = true;
-        config.labels.theme = 'Acento / Precio';
-        config.labels.bg = 'Fondo Pantalla';
-        config.labels.card = 'Fondo Tarjeta';
-    } 
-    else if (id === 'pop') {
-        config.showCard = true;
-        config.labels.theme = 'Sombra / Acento';
-    }
-    else if (id === 'spotlight') {
-        config.showCard = true;
-        config.showBannerImg = true;
-        config.showHeroEditor = true; // 2. Lo activamos solo para Spotlight
-        config.labels.theme = 'Acento';
-    }
-    else if (id === 'marketpro') {
-        config.showBannerImg = true;
-        config.labels.theme = 'Botones / Acento';
-    }
+    if (id === 'elegant' || id === 'bistro') config.editable = false;
     return config;
 };
-
   const tConfig = getTemplateConfig();
 
   const applyTemplate = (templateId: string) => {
@@ -342,16 +399,28 @@ const getTemplateConfig = () => {
   const copyLink = () => { navigator.clipboard.writeText(`https://snappy.uno/${data.slug}`); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleResetClick = () => setShowRestoreModal(true);
   
-  const confirmReset = () => {
-      const defaults = TEMPLATE_DEFAULTS[data.template_id] || TEMPLATE_DEFAULTS['classic'];
-      setData((prev: any) => ({ 
-          ...prev, theme_color: defaults.theme, bg_color: defaults.bg, card_color: defaults.card, 
-          text_color: defaults.text, description_color: defaults.desc, promo_bg_color: defaults.promo, 
-          show_banner: defaults.banner, show_promo: true 
-      }));
-      setUnsavedChanges(true); setShowRestoreModal(false);
-  };
-
+const confirmReset = () => {
+    const defaults = TEMPLATE_DEFAULTS[data.template_id] || TEMPLATE_DEFAULTS['classic'];
+    
+    setData((prev: any) => ({ 
+        ...prev, 
+        theme_color: defaults.theme, 
+        bg_color: defaults.bg, 
+        text_color: defaults.text, 
+        description_color: defaults.desc, 
+        card_name_color: defaults.card_name,
+        card_desc_color: defaults.card_desc,
+        card_price_color: defaults.card_price,
+        card_btn_bg: defaults.btn_bg,
+        promo_bg_color: defaults.promo_bg,
+        promo_text_color: defaults.promo_text,
+        show_banner: defaults.banner, 
+        show_promo: true 
+    }));
+    
+    setUnsavedChanges(true); 
+    setShowRestoreModal(false);
+};
   const PhoneMockup = ({ templateId }: { templateId: string }) => {
       const activeId = templateId || 'classic';
     const displayProds = products.length > 0 ? products : [
@@ -484,140 +553,79 @@ const getTemplateConfig = () => {
 
              
            {/* SECCIÓN DE ESTILOS DINÁMICA (REESTRUCTURADA) */}
-              {showAdvanced && (
-                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 animate-in slide-in-from-top-2 space-y-8">
-                     <div className="flex justify-between items-center border-b pb-3">
-    <h3 className="font-black text-xs uppercase text-gray-900 tracking-tighter italic">Panel de Diseño Avanzado</h3>
-    
-    <div className="flex items-center gap-1.5">
-        <button 
-            onClick={handleSave} 
-            className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-all border border-emerald-200 bg-emerald-50 active:scale-95"
-        >
-            <Save size={13}/> Guardar Cambios
-        </button>
-        <button 
-            onClick={handleResetClick} 
-            className="text-[10px] font-bold text-red-500 flex items-center gap-1 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors active:scale-95"
-        >
-            <RotateCcw size={11}/> Resetear a fábrica
-        </button>
+{showAdvanced && tConfig.editable && (
+    <div className="bg-gray-50/50 p-6 rounded-[2.5rem] border border-gray-100 shadow-inner animate-in fade-in zoom-in-95 duration-300 space-y-10">
+        
+        {/* CABECERA PANEL */}
+        <div className="flex justify-between items-center px-2">
+            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-[0.2em] italic">Estilos Visuales</h3>
+            <div className="flex items-center gap-3">
+                <button onClick={handleResetClick} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><RotateCcw size={16}/></button>
+                <button onClick={handleSave} className="bg-black text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Guardar</button>
+            </div>
+        </div>
+
+        {/* --- SECCIÓN 1: EL NEGOCIO (Corregido de <p> a <div>) --- */}
+        <div className="space-y-4">
+            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+                <div className="w-1 h-3 bg-indigo-600 rounded-full"/> Identidad del Local
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({...data, bg_color: v})} />
+                <ColorBubble label="Nombre" value={data.text_color} onChange={(v) => setData({...data, text_color: v})} />
+                <ColorBubble label="Descripción" value={data.description_color} onChange={(v) => setData({...data, description_color: v})} />
+                {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({...data, theme_color: v})} />}
+                {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({...data, theme_color: v})} />}
+            </div>
+        </div>
+
+        {/* --- SECCIÓN 2: LOS PRODUCTOS (Corregido de <p> a <div>) --- */}
+        <div className="space-y-4">
+            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+                <div className="w-1 h-3 bg-orange-600 rounded-full"/> Carta de Productos
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                <ColorBubble label="Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({...data, card_name_color: v})} />
+                <ColorBubble label="Descripción" value={data.card_desc_color || '#999999'} onChange={(v) => setData({...data, card_desc_color: v})} />
+                <ColorBubble label="Precio" value={data.card_price_color || '#059669'} onChange={(v) => setData({...data, card_price_color: v})} />
+                <ColorBubble label="Botón MAS" value={data.card_btn_bg || '#000000'} onChange={(v) => setData({...data, card_btn_bg: v})} />
+            </div>
+        </div>
+
+        {/* --- SECCIÓN 3: PROMO (Corregido de <p> a <div>) --- */}
+        <div className="space-y-4">
+            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+                <div className="w-1 h-3 bg-emerald-600 rounded-full"/> Ofertas y Banners
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                <ColorBubble label="Fondo Promo" value={data.promo_bg_color} onChange={(v) => setData({...data, promo_bg_color: v})} />
+                <ColorBubble label="Texto Promo" value={data.promo_text_color} onChange={(v) => setData({...data, promo_text_color: v})} />
+            </div>
+        </div>
+
+        {/* FUENTES - Solo Market Pro */}
+        {tConfig.showFonts && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-gray-100">
+                <div className="space-y-2">
+                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Tipografía Títulos</label>
+                    <select value={data.title_font} onChange={(e) => setData({...data, title_font: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
+                        <option value="Inter">Moderna (Inter)</option>
+                        <option value="Playfair Display">Elegante (Serif)</option>
+                        <option value="Patrick Hand">Manuscrita (Chalk)</option>
+                    </select>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Tipografía Banner</label>
+                    <select value={data.promo_font} onChange={(e) => setData({...data, promo_font: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
+                        <option value="Inter">Moderna</option>
+                        <option value="Playfair Display">Elegante</option>
+                        <option value="Patrick Hand">Manuscrita</option>
+                    </select>
+                </div>
+            </div>
+        )}
     </div>
-</div>
-
-                      {/* GRUPO 1: TIPOGRAFÍAS Y CABECERA */}
-                      <div className="space-y-4">
-                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Cabecera y Textos</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Nombre del Comercio</label>
-                            <div className="flex gap-2">
-                              <input type="color" value={data.text_color} onChange={(e) => setData({...data, text_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/>
-                              <select value={data.title_font} onChange={(e) => setData({...data, title_font: e.target.value})} className="flex-1 text-xs border rounded-lg p-2 outline-none">
-                                <option value="Inter">Moderna (Inter)</option>
-                                <option value="Playfair Display">Elegante (Serif)</option>
-                                <option value="Patrick Hand">Manuscrita (Chalk)</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Descripción</label>
-                            <div className="flex gap-2">
-                              <input type="color" value={data.description_color} onChange={(e) => setData({...data, description_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/>
-                              <select value={data.desc_font} onChange={(e) => setData({...data, desc_font: e.target.value})} className="flex-1 text-xs border rounded-lg p-2 outline-none">
-                                <option value="Inter">Moderna</option>
-                                <option value="Playfair Display">Elegante</option>
-                                <option value="Patrick Hand">Manuscrita</option>
-                              </select>
-                              <select value={data.desc_size} onChange={(e) => setData({...data, desc_size: e.target.value})} className="w-16 text-xs border rounded-lg p-2 outline-none">
-                                <option value="9px">S</option>
-                                <option value="11px">M</option>
-                                <option value="13px">L</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* GRUPO 2: BUSCADOR Y CATEGORÍAS */}
-                      <div className="space-y-4 pt-4 border-t">
-                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Buscador y Navegación</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Barra Buscador</label>
-                            <div className="flex items-center gap-2"><input type="color" value={data.search_bg_color || '#f3f4f6'} onChange={(e) => setData({...data, search_bg_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Fondo</span></div>
-                            <div className="flex items-center gap-2"><input type="color" value={data.search_icon_color || '#9ca3af'} onChange={(e) => setData({...data, search_icon_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Icono/Lupa</span></div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Botones Categorías</label>
-                            <div className="flex items-center gap-2"><input type="color" value={data.cat_bg_color || '#f3f4f6'} onChange={(e) => setData({...data, cat_bg_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Fondo</span></div>
-                            <div className="flex items-center gap-2"><input type="color" value={data.cat_text_color || '#000000'} onChange={(e) => setData({...data, cat_text_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer"/><span className="text-[10px] font-mono opacity-50">Texto</span></div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Títulos Sección</label>
-                            <div className="flex items-center gap-2"><input type="color" value={data.cat_title_color || '#000000'} onChange={(e) => setData({...data, cat_title_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/></div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* GRUPO 3: PRODUCTOS (CARDS) */}
-                      <div className="space-y-4 pt-4 border-t">
-                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Tarjetas de Productos</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Fondo Card</label>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => setData({...data, card_show_bg: !data.card_show_bg})} className={`w-8 h-4 rounded-full flex items-center px-0.5 ${data.card_show_bg ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${data.card_show_bg ? 'translate-x-4' : ''}`}></div></button>
-                              <input type="color" disabled={!data.card_show_bg} value={data.card_color} onChange={(e) => setData({...data, card_color: e.target.value})} className="w-8 h-8 rounded cursor-pointer disabled:opacity-20"/>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Nombre/Precio</label>
-                            <div className="flex gap-2">
-                              <input type="color" value={data.card_name_color || '#000000'} onChange={(e) => setData({...data, card_name_color: e.target.value})} title="Nombre" className="w-8 h-8 rounded cursor-pointer"/>
-                              <input type="color" value={data.card_price_color || '#059669'} onChange={(e) => setData({...data, card_price_color: e.target.value})} title="Precio" className="w-8 h-8 rounded cursor-pointer"/>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Botón "Elegir"</label>
-                            <div className="flex gap-2">
-                              <input type="color" value={data.card_btn_bg || '#000000'} onChange={(e) => setData({...data, card_btn_bg: e.target.value})} title="Fondo Botón" className="w-8 h-8 rounded cursor-pointer"/>
-                              <input type="color" value={data.card_btn_text || '#ffffff'} onChange={(e) => setData({...data, card_btn_text: e.target.value})} title="Texto Botón" className="w-8 h-8 rounded cursor-pointer"/>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase">Fondo Web</label>
-                            <input type="color" value={data.bg_color} onChange={(e) => setData({...data, bg_color: e.target.value})} className="w-10 h-10 rounded-lg cursor-pointer border-2 border-white shadow-sm"/>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* GRUPO 4: BANNER PROMO */}
-                      <div className="space-y-4 pt-4 border-t">
-                        <h4 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Banner de Promoción</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div className="flex gap-3">
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-bold text-gray-400 uppercase">Fondo</label>
-                                <input type="color" value={data.promo_bg_color} onChange={(e) => setData({...data, promo_bg_color: e.target.value})} className="w-10 h-10 rounded-xl cursor-pointer"/>
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-bold text-gray-400 uppercase">Texto</label>
-                                <input type="color" value={data.promo_text_color} onChange={(e) => setData({...data, promo_text_color: e.target.value})} className="w-10 h-10 rounded-xl cursor-pointer"/>
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <label className="text-[9px] font-bold text-gray-400 uppercase">Tipografía</label>
-                                <select value={data.promo_font} onChange={(e) => setData({...data, promo_font: e.target.value})} className="w-full text-xs border rounded-lg p-2.5 outline-none">
-                                  <option value="Inter">Moderna</option>
-                                  <option value="Playfair Display">Elegante</option>
-                                  <option value="Patrick Hand">Manuscrita</option>
-                                </select>
-                              </div>
-                           </div>
-                        </div>
-                      </div>
-                  </div>
-              )}
+)}
     <div className="mb-6 space-y-2"> 
     <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest block">
         Rubro del Negocio

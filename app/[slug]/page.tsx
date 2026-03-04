@@ -81,7 +81,11 @@ function checkIsOpen(businessHours: any) {
 // --- 3. FUNCIÓN DE ESTILOS (MOVIDA ARRIBA PARA EVITAR EL ERROR DE INICIALIZACIÓN) ---
 const getStyles = (
   TEMPLATE: any, BG: any, THEME: any, CARD_BG: any, TEXT: any, DESC: any, PROMO_BG: any,
-  // Agregamos estos 4 parámetros nuevos:
+  // 8 al 11: Productos
+  PROD_NAME: string, PROD_DESC: string, PROD_PRICE: string, BTN_BG: string,
+  // 12: Texto de la Promo
+  PROMO_TEXT: string, 
+  // 13 al 16: Hero/Destacado
   HERO_BADGE_BG?: string, HERO_BADGE_COLOR?: string, HERO_TITLE_COLOR?: string, HERO_PRICE_COLOR?: string
 ) => {
     const common = ``;
@@ -96,12 +100,13 @@ const getStyles = (
                 .header-logo { width: 80px; height: 80px; background: white; border-radius: 50%; margin: 0 auto 10px; overflow: hidden; display: grid; place-items: center; }
                 .header-logo img { width: 100%; height: 100%; object-fit: cover; }
                 .status-badge { position: absolute; top: 15px; right: 15px; background: white; color: ${THEME}; font-size: 10px; font-weight: bold; padding: 4px 10px; border-radius: 4px; }
-                .header-title { font-weight: bold; font-size: 22px; margin: 0; }
-                .header-desc { font-size: 13px; opacity: 0.8; }
+                .header-title { font-weight: bold; font-size: 22px; margin: 0; color: ${TEXT}; }
+                .header-desc { font-size: 13px; color: ${DESC}; opacity: 0.8; }
                 .classic-item { display: flex; flex-direction: column; background: ${CARD_BG}; padding: 15px 20px; }
-                .classic-prod { font-weight: bold; font-size: 18px; color: ${TEXT}; }
-                .classic-p-desc { font-size: 13px; color: ${DESC}; margin-bottom: 5px; }
-                .classic-price { font-weight: bold; font-size: 16px; color: ${THEME}; }
+                .classic-prod { font-weight: bold; font-size: 18px; color: ${PROD_NAME || '#000000'}; }
+                .classic-p-desc { font-size: 13px; color: ${PROD_DESC || '#666666'}; margin-bottom: 5px; }
+                .classic-price { font-weight: bold; font-size: 16px; color: ${PROD_PRICE || THEME}; }
+                .add-btn-wrapper button { background-color: ${BTN_BG || '#ffffff'} !important; border: 1px solid #ddd !important; }
                 .classic-line { height: 1px; background-color: #eee; width: 90%; margin: 0 auto; }
                 .promo-box { background: ${PROMO_BG}; color: ${THEME}; text-align: center; font-size: 12px; padding: 10px; margin-bottom: 10px; font-weight: 600; }
                 .cat-title { font-size: 16px; font-weight: bold; margin: 20px 20px 10px; color: ${TEXT}; border-left: 4px solid ${THEME}; padding-left: 10px; }
@@ -114,6 +119,9 @@ const getStyles = (
             .header-sec { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; } 
             .header-logo { width: 55px; height: 55px; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid ${TEXT}; } 
             .prod-card { background: ${CARD_BG}; padding: 15px; border-radius: 24px; margin: 0 15px 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); display: block; } 
+            .prod-card .font-black { color: ${PROD_NAME}; }
+            .prod-card .text-[10px] { color: ${PROD_DESC}; }
+            .prod-card .text-lg { color: ${PROD_PRICE}; }
             .prod-main-content { display: flex; gap: 15px; align-items: center; width: 100%; }
             .prod-img { width: 90px; height: 90px; border-radius: 18px; background-size: cover; background-position: center; flex-shrink: 0; background-color: #222; } 
             .extras-container { width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
@@ -126,51 +134,32 @@ const getStyles = (
             .header-sec { padding: 40px 20px 20px; text-align: center; } 
             .header-logo { width: 60px; height: 60px; background-size: cover; margin: 0 auto 15px; border-radius: 50%; } 
             .promo-minimal { margin: 0 20px 30px; padding: 15px; background-color: #f4f4f5; border: 1px solid #eee; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: ${TEXT}; }
-            .prod-card { padding: 20px; border-bottom: 1px solid #f5f5f5; display: block; }`;
+            .prod-card { padding: 20px; border-bottom: 1px solid #f5f5f5; display: block; }
+            .prod-card .font-bold { color: ${PROD_NAME || TEXT}; }
+            .prod-card .opacity-50 { color: ${PROD_DESC || DESC}; }
+            .prod-card .font-black { color: ${PROD_PRICE || THEME}; }
+        `;
       case "visualgrid":
         return `
             ${common} 
             body { background: #121212; margin: 0; }
             .notificacion-glass { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.2); color: white; padding: 12px 24px; border-radius: 16px; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; z-index: 9999; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); display: flex; align-items: center; gap: 10px; }`;
-      default:
-        return `${common} body { background: ${BG}; }`;
-
-  case "pop":
-  return `
-      ${common}
-      body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
-      .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; }
-      
-      .pop-header-box { 
-          background: white; border: 3px solid black; border-radius: 12px; 
-          margin: 20px 15px; padding: 15px; display: flex; align-items: center; gap: 12px;
-          box-shadow: 4px 4px 0 black; position: relative;
-      }
-      .pop-status { 
-          position: absolute; top: -10px; right: 10px; background: #00CED1; 
-          border: 2px solid black; padding: 2px 8px; font-size: 8px; font-weight: 900;
-          transform: rotate(3deg); color: black;
-      }
-      .pop-promo { 
-          background: #FFD700; border: 3px solid black; margin: 0 15px 20px; 
-          padding: 10px; text-align: center; font-weight: 900; font-size: 12px;
-          box-shadow: 3px 3px 0 rgba(0,0,0,0.2); transform: rotate(-1deg);
-      }
-      .pop-card { 
-          background: white; border: 3px solid black; border-radius: 15px; 
-          margin: 0 15px 15px; padding: 15px; 
-          box-shadow: 4px 4px 0 ${THEME}; /* Usamos el color de tema para la sombra */
-      }
-      .pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: ${THEME}; }
-      .pop-price-tag { 
-          background: black; color: white; padding: 2px 8px; 
-          border-radius: 4px; font-weight: 900; transform: rotate(2deg);
-      }
-  `;
-case "spotlight":
+      case "pop":
         return `
-            body { background: #ffffff; margin: 0; font-family: 'Inter', sans-serif; }
-            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: #000000; }
+            ${common}
+            body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
+            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; }
+            .pop-header-box { background: white; border: 3px solid black; border-radius: 12px; margin: 20px 15px; padding: 15px; display: flex; align-items: center; gap: 12px; box-shadow: 4px 4px 0 black; position: relative; }
+            .pop-status { position: absolute; top: -10px; right: 10px; background: #00CED1; border: 2px solid black; padding: 2px 8px; font-size: 8px; font-weight: 900; transform: rotate(3deg); color: black; }
+            .pop-promo { background: #FFD700; border: 3px solid black; margin: 0 15px 20px; padding: 10px; text-align: center; font-weight: 900; font-size: 12px; box-shadow: 3px 3px 0 rgba(0,0,0,0.2); transform: rotate(-1deg); }
+            .pop-card { background: ${CARD_BG}; border: 3px solid black; border-radius: 15px; margin: 0 15px 15px; padding: 15px; box-shadow: 4px 4px 0 ${THEME}; }
+            .pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: ${PROD_NAME || THEME}; }
+            .pop-price-tag { background: ${PROD_PRICE || 'black'}; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 900; transform: rotate(2deg); }
+        `;
+      case "spotlight":
+        return `
+            body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
+            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; }
             .spot-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: white; }
             .spot-logo { width: 45px; height: 45px; border-radius: 50%; background-size: cover; background-position: center; border: 1px solid #eee; }
             .spot-status-pill { background: #2ecc71; color: white; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; }
@@ -178,265 +167,57 @@ case "spotlight":
             .spot-hero-img { width: 100%; height: 100%; background-size: cover; background-position: center; transition: transform 0.5s ease; }
             .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; }
             .spot-hero-content { color: white; position: relative; z-index: 2; text-align: left; width: 85%; }
-            
-            /* USAMOS LOS COLORES DINÁMICOS AQUÍ */
-            .spot-badge { 
-                background: ${HERO_BADGE_BG || THEME}; 
-                color: ${HERO_BADGE_COLOR || 'white'}; 
-                padding: 4px 10px; font-size: 10px; font-weight: 900; border-radius: 6px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; 
-            }
-            .spot-hero-title { 
-                color: ${HERO_TITLE_COLOR || 'white'}; 
-                font-size: 24px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1.1; margin-bottom: 4px; text-transform: uppercase; italic; 
-            }
-            .spot-hero-price { 
-                color: ${HERO_PRICE_COLOR || '#FFD700'}; 
-                font-size: 20px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.5); 
-            }
-            
+            .spot-badge { background: ${HERO_BADGE_BG || THEME}; color: ${HERO_BADGE_COLOR || 'white'}; padding: 4px 10px; font-size: 10px; font-weight: 900; border-radius: 6px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; }
+            .spot-hero-title { color: ${HERO_TITLE_COLOR || 'white'}; font-size: 24px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1.1; margin-bottom: 4px; text-transform: uppercase; italic; }
+            .spot-hero-price { color: ${HERO_PRICE_COLOR || '#FFD700'}; font-size: 20px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
             .spot-plus-btn { position: absolute; bottom: 20px; right: 20px; width: 45px; height: 45px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 10; transition: transform 0.2s; }
-            .spot-promo-bar { background: #fff3e0; color: #000; padding: 12px; text-align: center; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-            .spot-product-card { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #f8f8f8; }
-            .spot-product-thumb { width: 70px; height: 70px; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; }
-            .spot-product-price { font-weight: 900; font-size: 15px; margin-top: 4px; color: #111; }
+            .spot-promo-bar { background: ${PROMO_BG}; color: #000; padding: 12px; text-align: center; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+            .spot-product-card h3 { color: ${PROD_NAME || TEXT}; }
+            .spot-product-price { font-weight: 900; font-size: 15px; margin-top: 4px; color: ${PROD_PRICE || '#111'}; }
         `;
-
-
-        case "elegant":
+      case "elegant":
         return `
-            /* 1. Importamos la fuente con todos los pesos necesarios (400, 700 y 900) */
             @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
-            
-            body, h1, h2, h3, p, span, div, button { 
-                font-family: 'Playfair Display', serif !important; 
-            }
-
+            body, h1, h2, h3, p, span, div, button { font-family: 'Playfair Display', serif !important; }
             body { background: ${BG}; margin: 0; color: ${TEXT}; }
             .app-wrapper { min-height: 100vh; padding-bottom: 120px; text-align: center; }
-            
-            /* Header */
             .elegant-header { padding: 60px 20px 30px; }
             .elegant-logo { width: 90px; height: 90px; margin: 0 auto 20px; border-radius: 50%; border: 2px solid ${THEME}; padding: 4px; object-fit: cover; }
             .elegant-title { font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; font-style: italic; }
-            
-            /* Banner de Promoción */
-            .elegant-promo { 
-                background: ${PROMO_BG}; 
-                border: 1px solid ${THEME}40;
-                padding: 18px; 
-                margin: 0 25px 40px 25px;
-                font-size: 15px; 
-                font-weight: 700; /* Más negro */
-                font-style: italic;
-                color: ${TEXT};
-                border-radius: 12px;
-            }
-            
-            .elegant-cat-title { display: none; } 
-
-            /* Tarjetas de Producto */
-            .elegant-card { 
-                padding: 20px 25px; 
-                margin-bottom: 10px; 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: flex-start; 
-                text-align: left; 
-                border-bottom: 1px solid rgba(0,0,0,0.04); 
-            }
-
-            /* Nombre del producto: Más grande y bien negro */
-            .elegant-prod-name { 
-                font-size: 20px; 
-                font-weight: 900; 
-                text-transform: uppercase; 
-                letter-spacing: 0.5px; 
-                color: ${TEXT}; 
-            }
-
-            /* DESCRIPCIÓN: Subimos tamaño a 14px y oscurecemos el color */
-            .elegant-prod-desc { 
-                font-size: 14px; 
-                font-style: italic; 
-                color: ${TEXT}; 
-                opacity: 0.9; /* Casi negro total */
-                margin-top: 6px; 
-                line-height: 1.5; 
-            }
-
-            .elegant-price { 
-                font-size: 18px; 
-                font-weight: 900; 
-                color: ${THEME}; 
-                margin-top: 10px; 
-            }
+            .elegant-promo { background: ${PROMO_BG}; border: 1px solid ${THEME}40; padding: 18px; margin: 0 25px 40px 25px; font-size: 15px; font-weight: 700; font-style: italic; color: ${TEXT}; border-radius: 12px; }
+            .elegant-card { padding: 20px 25px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.04); }
+            .elegant-prod-name { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: ${PROD_NAME || TEXT}; }
+            .elegant-prod-desc { font-size: 14px; font-style: italic; color: ${PROD_DESC || TEXT}; opacity: 0.9; margin-top: 6px; line-height: 1.5; }
+            .elegant-price { font-size: 18px; font-weight: 900; color: ${PROD_PRICE || THEME}; margin-top: 10px; }
         `;
-        case "bistro":
+      case "bistro":
         return `
             @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
-            
-            body, h1, h2, h3, p, span, div, button { 
-                font-family: 'Patrick Hand', cursive !important; 
-            }
-
-            body { background: #222222; margin: 0; color: #eeeeee; }
-            
-            .app-wrapper { 
-                min-height: 100vh; 
-                display: flex; 
-                flex-direction: column; 
-                padding: 15px; 
-                padding-bottom: 40px; 
-            }
-            
-            .bistro-border { 
-                border: 2px dashed #555555; 
-                border-radius: 20px; 
-                padding: 20px 15px; 
-                flex: 1; 
-                display: flex;
-                flex-direction: column;
-                position: relative;
-            }
-
+            body, h1, h2, h3, p, span, div, button { font-family: 'Patrick Hand', cursive !important; }
+            body { background: ${BG}; margin: 0; color: #eeeeee; }
+            .app-wrapper { min-height: 100vh; display: flex; flex-direction: column; padding: 15px; padding-bottom: 40px; }
+            .bistro-border { border: 2px dashed #555555; border-radius: 20px; padding: 20px 15px; flex: 1; display: flex; flex-direction: column; position: relative; }
             .bistro-header { text-align: center; margin-bottom: 25px; }
             .bistro-logo { width: 65px; height: 65px; margin: 0 auto 12px; border-radius: 50%; border: 2px solid #e6c87e; padding: 3px; object-fit: cover; }
             .bistro-title { font-size: 30px; color: #e6c87e; line-height: 1; margin-bottom: 5px; text-transform: uppercase; }
             .bistro-desc { font-size: 15px; color: #aaaaaa; }
-
-            .bistro-promo {
-                margin-bottom: 25px;
-                padding: 12px;
-                border: 2px dashed rgba(230, 200, 126, 0.4);
-                border-radius: 12px;
-                text-align: center;
-                color: #e6c87e;
-                font-size: 14px;
-                font-weight: bold;
-                text-transform: uppercase;
-            }
-
-            /* --- ESTRUCTURA DE PRODUCTO REFORZADA --- */
-            .bistro-item-container {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                margin-bottom: 20px;
-                text-align: left;
-                border-bottom: 1px dashed rgba(255,255,255,0.05);
-                padding-bottom: 15px;
-            }
-
-            /* Nombre: se achica y opaca cuando ya está en el carrito */
-            .bistro-name { 
-                font-size: 20px; 
-                font-weight: bold;
-                color: #ffffff; 
-                line-height: 1.2;
-                transition: all 0.2s ease;
-            }
-            .bistro-name.in-cart { font-size: 16px; opacity: 0.6; }
-
-            /* Descripción: se achica si está en el carrito */
-            .bistro-prod-desc { 
-                font-size: 13px; 
-                color: #888888; 
-                margin-bottom: 8px; 
-                display: block; 
-                width: 100%;
-                line-height: 1.3;
-                transition: all 0.2s ease;
-            }
-            .bistro-prod-desc.in-cart { font-size: 11px; opacity: 0.5; }
-
-            /* Fila inferior: Precio e interfaz de carrito */
-            .bistro-footer-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-top: 5px;
-            }
-
-            .bistro-price { 
-                font-size: 18px; 
-                color: #e6c87e; 
-                font-weight: bold; 
-            }
-
-            .bistro-btn-wrapper {
-                flex-shrink: 0;
-                min-width: 45px;
-                display: flex;
-                justify-content: flex-end;
-            }
-            /* Espacio reservado para que el - 1 + no empuje el diseño */
-            .bistro-btn-wrapper.expanded {
-                min-width: 100px;
-            }
-                .bistro-extras-container {
-    margin-top: 15px;
-    padding-top: 12px;
-    border-top: 1px dashed rgba(230, 200, 126, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.bistro-extra-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(230, 200, 126, 0.1);
-}
-
-.bistro-extra-info {
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-}
-
-.bistro-extra-name {
-    font-size: 13px;
-    text-transform: uppercase;
-    color: #eeeeee;
-    font-weight: bold;
-}
-
-.bistro-extra-price {
-    font-size: 11px;
-    color: #e6c87e;
-}
-
-.bistro-extra-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: #e6c87e;
-    color: #222;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    transition: transform 0.1s;
-}
-.bistro-extra-btn:active { transform: scale(0.9); }
- 
-   `;
-        case "marketpro":
+            .bistro-promo { margin-bottom: 25px; padding: 12px; border: 2px dashed rgba(230, 200, 126, 0.4); border-radius: 12px; text-align: center; color: #e6c87e; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+            .bistro-item-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; text-align: left; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 15px; }
+            .bistro-name { font-size: 20px; font-weight: bold; color: #ffffff; line-height: 1.2; }
+            .bistro-price { font-size: 18px; color: #e6c87e; font-weight: bold; }
+            .bistro-extra-btn { width: 28px; height: 28px; border-radius: 8px; background: #e6c87e; color: #222; display: flex; align-items: center; justify-content: center; border: none; }
+        `;
+      case "marketpro":
         return `
             ${common}
             body { background: ${BG}; margin: 0; }
             .no-scrollbar::-webkit-scrollbar { display: none; }
             .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         `;
-        
+      default:
+        return `${common} body { background: ${BG}; }`;
     }
-    
 };
-
 
 // --- 4. COMPONENTE DE CONTENIDO ---
 function MenuContent({
@@ -493,6 +274,7 @@ function MenuContent({
   // ---------------------------------
 
   // Variables de diseño
+  // 1. Extraemos las variables del restaurante con sus fallbacks
   const TEMPLATE = restaurant.template_id || "classic";
   const THEME = restaurant.theme_color || "#d32f2f";
   const BG = restaurant.bg_color || "#ffffff";
@@ -500,20 +282,34 @@ function MenuContent({
   const TEXT = restaurant.text_color || "#000000";
   const DESC = restaurant.description_color || "#666666";
   const PROMO_BG = restaurant.promo_bg_color || "#ffebee";
+  
+  // VARIABLES ESPECÍFICAS DE PRODUCTOS
+  const PROD_NAME = restaurant.card_name_color || TEXT;
+  const PROD_DESC = restaurant.card_desc_color || DESC;
+  const PROD_PRICE = restaurant.card_price_color || THEME;
+  const BTN_BG = restaurant.card_btn_bg || "#ffffff";
+  const PROMO_TEXT = restaurant.promo_text_color || THEME;
   const LOGO = restaurant.logo_url;
   const BANNER = restaurant.banner_url;
   const SHOW_BANNER = restaurant.show_banner;
 
-  // --- OPTIMIZACIÓN DE ESTILOS MEMORIZADOS ---
+  // 2. Llamada a getStyles con todos los argumentos en orden
  const memoizedStyles = useMemo(() => {
   return getStyles(
-    TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG,
-    restaurant.hero_badge_bg, 
-    restaurant.hero_badge_color, 
-    restaurant.hero_title_color, 
-    restaurant.hero_price_color
+    TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, // 1 al 7
+    PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG,          // 8 al 11
+    PROMO_TEXT,                                        // 12
+    restaurant.hero_badge_bg,                          // 13
+    restaurant.hero_badge_color,                       // 14
+    restaurant.hero_title_color,                       // 15
+    restaurant.hero_price_color                        // 16
   );
-}, [TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, restaurant.hero_badge_bg, restaurant.hero_badge_color, restaurant.hero_title_color, restaurant.hero_price_color]);
+}, [
+  TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, 
+  PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG, PROMO_TEXT,
+  restaurant.hero_badge_bg, restaurant.hero_badge_color, 
+  restaurant.hero_title_color, restaurant.hero_price_color
+]);
 
  useEffect(() => {
   if (activeCardId) {
