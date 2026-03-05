@@ -408,23 +408,31 @@ const menuItems = [
 
       <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10">
     
-    {/* AVISO DÍA 10 AL 14 (Solo si no es Admin y no ha pagado) */}
-    {showWarning && !bypassBlock && (
-      <div className="mb-6 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-xl">
-            <Zap size={20} className="text-white fill-current" />
-          </div>
-          <div>
-            <p className="font-black text-xs uppercase tracking-widest">Atención: Periodo de prueba</p>
-            <p className="text-sm opacity-90">Te quedan <b>{daysRemaining} días</b>. Configura tu plan para evitar el corte.</p>
-          </div>
-        </div>
-        <Link href="/dashboard/settings" className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-orange-50 transition">
-          Configurar ahora
-        </Link>
+{/* AVISO PERIODO DE PRUEBA (Optimizado para todas las medidas) */}
+{showWarning && !bypassBlock && (
+  <div className="mt-20 lg:mt-0 mb-8 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4 gap-3 relative z-30">
+    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="bg-white/20 p-1.5 rounded-lg shrink-0">
+        <Zap size={16} className="text-white fill-current sm:w-5 sm:h-5" />
       </div>
-    )}
+      <div className="text-left min-w-0">
+        <p className="font-black text-[9px] sm:text-xs uppercase tracking-widest leading-none mb-1 truncate">
+          Atención: Prueba
+        </p>
+        <p className="text-[11px] sm:text-sm opacity-95 leading-tight truncate">
+          Te quedan <b>{daysRemaining} días</b>
+        </p>
+      </div>
+    </div>
+    
+    <Link 
+      href="/dashboard/settings" 
+      className="shrink-0 bg-white text-orange-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[10px] font-black uppercase hover:bg-orange-50 transition shadow-sm whitespace-nowrap"
+    >
+      Configurar
+    </Link>
+  </div>
+)}
 
     {/* LÓGICA DE BLOQUEO TOTAL */}
     {isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
