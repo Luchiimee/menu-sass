@@ -7,7 +7,15 @@ import Link from 'next/link';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
-  classic: { theme: '#d32f2f', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#ffebee', banner: false },
+ classic: { 
+    theme: '#d32f2f', 
+    bg: '#ffffff', 
+    card: '#ffffff', 
+    text: '#ffffff', // <-- CAMBIADO A BLANCO
+    desc: '#ffffff', // <-- CAMBIADO A BLANCO
+    promo: '#ffebee', 
+    banner: false 
+  },
   urban:   { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', promo: '#1E1E1E', banner: false },
   minimal: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#222222', desc: '#999999', promo: '#fafafa', banner: false },
   visualgrid: { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false }, // Limpio

@@ -80,15 +80,46 @@ function checkIsOpen(businessHours: any) {
 
 // --- 3. FUNCIÓN DE ESTILOS (MOVIDA ARRIBA PARA EVITAR EL ERROR DE INICIALIZACIÓN) ---
 const getStyles = (
-  TEMPLATE: any, BG: any, THEME: any, CARD_BG: any, TEXT: any, DESC: any, PROMO_BG: any,
-  // 8 al 11: Productos
-  PROD_NAME: string, PROD_DESC: string, PROD_PRICE: string, BTN_BG: string,
-  // 12: Texto de la Promo
+  TEMPLATE: any, 
+  BG: any, 
+  THEME: any, 
+  CARD_BG: any, 
+  TEXT: any, 
+  DESC: any, 
+  PROMO_BG: any,
+  PROD_NAME: string, 
+  PROD_DESC: string, 
+  PROD_PRICE: string, 
+  BTN_BG: string,
+  BTN_TEXT: string, // Posición 12: Color del símbolo +
   PROMO_TEXT: string, 
-  // 13 al 16: Hero/Destacado
-  HERO_BADGE_BG?: string, HERO_BADGE_COLOR?: string, HERO_TITLE_COLOR?: string, HERO_PRICE_COLOR?: string
+  HERO_BADGE_BG?: string, 
+  HERO_BADGE_COLOR?: string, 
+  HERO_TITLE_COLOR?: string, 
+  HERO_PRICE_COLOR?: string
 ) => {
-    const common = ``;
+    // ESTILOS GLOBALES: Bloquean el "Pull-to-Refresh" del iPhone y mejoran el scroll
+    const common = `
+      html, body { 
+        margin: 0;
+        padding: 0;
+        overscroll-behavior-y: none !important; /* BLOQUEO CLAVE PARA IPHONE */
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+      }
+
+      /* Evita el rebote elástico en contenedores principales */
+      main, .layout-container, .app-wrapper {
+        overscroll-behavior-y: none !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      /* Sincronización de bordes del botón con el editor */
+      .add-btn-wrapper button {
+        border-radius: 8px !important;
+      }
+    `;
 
     switch (TEMPLATE) {
       case "classic":
@@ -106,7 +137,22 @@ const getStyles = (
                 .classic-prod { font-weight: bold; font-size: 18px; color: ${PROD_NAME || '#000000'}; }
                 .classic-p-desc { font-size: 13px; color: ${PROD_DESC || '#666666'}; margin-bottom: 5px; }
                 .classic-price { font-weight: bold; font-size: 16px; color: ${PROD_PRICE || THEME}; }
-                .add-btn-wrapper button { background-color: ${BTN_BG || '#ffffff'} !important; border: 1px solid #ddd !important; }
+/* Reemplazá el bloque de .add-btn-wrapper button por este */
+.add-btn-wrapper button, 
+.add-btn-wrapper button *, 
+.add-btn-wrapper svg,
+.add-btn-wrapper path { 
+    background-color: ${BTN_BG} !important; 
+    color: ${BTN_TEXT} !important; 
+    stroke: ${BTN_TEXT} !important; /* Esto cambia el trazo del + */
+    fill: ${BTN_TEXT} !important;   /* Por si el icono usa relleno */
+    font-weight: 900 !important; 
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 0 !important;
+}
                 .classic-line { height: 1px; background-color: #eee; width: 90%; margin: 0 auto; }
                 .promo-box { background: ${PROMO_BG}; color: ${THEME}; text-align: center; font-size: 12px; padding: 10px; margin-bottom: 10px; font-weight: 600; }
                 .cat-title { font-size: 16px; font-weight: bold; margin: 20px 20px 10px; color: ${TEXT}; border-left: 4px solid ${THEME}; padding-left: 10px; }
@@ -228,6 +274,7 @@ function MenuContent({
   isOpen: boolean;
 }) {
   const [activeCardId, setActiveCardId] = useState<any>(null);
+  console.log("Dato del botón:", restaurant.card_btn_text);
   const { cart, addToCart, updateQuantity } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
@@ -288,6 +335,7 @@ function MenuContent({
   const PROD_DESC = restaurant.card_desc_color || DESC;
   const PROD_PRICE = restaurant.card_price_color || THEME;
   const BTN_BG = restaurant.card_btn_bg || "#ffffff";
+  const BTN_TEXT = restaurant.card_btn_text || "#000000";
   const PROMO_TEXT = restaurant.promo_text_color || THEME;
   const LOGO = restaurant.logo_url;
   const BANNER = restaurant.banner_url;
@@ -295,21 +343,22 @@ function MenuContent({
 
   // 2. Llamada a getStyles con todos los argumentos en orden
  const memoizedStyles = useMemo(() => {
-  return getStyles(
-    TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, // 1 al 7
-    PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG,          // 8 al 11
-    PROMO_TEXT,                                        // 12
-    restaurant.hero_badge_bg,                          // 13
-    restaurant.hero_badge_color,                       // 14
-    restaurant.hero_title_color,                       // 15
-    restaurant.hero_price_color                        // 16
-  );
-}, [
-  TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, 
-  PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG, PROMO_TEXT,
-  restaurant.hero_badge_bg, restaurant.hero_badge_color, 
-  restaurant.hero_title_color, restaurant.hero_price_color
-]);
+    return getStyles(
+      TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, // 1 al 7
+      PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG,          // 8 al 11
+      BTN_TEXT,   // <--- 12: CORREGIDO (Sin la 'D')
+      PROMO_TEXT,                                        // 13
+      restaurant.hero_badge_bg,                          // 14
+      restaurant.hero_badge_color,                       // 15
+      restaurant.hero_title_color,                       // 16
+      restaurant.hero_price_color                        // 17
+    );
+  }, [
+    TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, 
+    PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG, BTN_TEXT, PROMO_TEXT,
+    restaurant.hero_badge_bg, restaurant.hero_badge_color, 
+    restaurant.hero_title_color, restaurant.hero_price_color
+  ]);
 
  useEffect(() => {
   if (activeCardId) {

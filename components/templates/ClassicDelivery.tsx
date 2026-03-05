@@ -8,8 +8,8 @@ const ClassicDelivery: React.FC<Props> = ({ restaurant, products, loading }) => 
   
   // 1. Identidad del Local
   const bannerHeader = restaurant.theme_color || '#d32f2f';
-  const nombreLocal = restaurant.text_color || '#000000';
-  const descLocal = restaurant.description_color || '#666666';
+  const nombreLocal = restaurant.text_color || '#ffffff'; // <-- CAMBIADO A BLANCO
+const descLocal = restaurant.description_color || '#ffffff';
   const fondoWeb = restaurant.bg_color || '#ffffff';
 
   // 2. Carta de Productos (Ahora son independientes)
@@ -17,7 +17,7 @@ const ClassicDelivery: React.FC<Props> = ({ restaurant, products, loading }) => 
   const descProducto = restaurant.card_desc_color || '#999999';
   const precioColor = restaurant.card_price_color || bannerHeader; // Fallback al theme
   const botonBg = restaurant.card_btn_bg || '#ffffff';
-  const botonTexto = restaurant.card_btn_text || '#555555';
+ const botonTexto = restaurant.card_btn_text || '#000000';
 
   // 3. Promo
   const promoBg = restaurant.promo_bg_color || '#ffebee';
@@ -45,7 +45,21 @@ const ClassicDelivery: React.FC<Props> = ({ restaurant, products, loading }) => 
     .classic-price { font-weight: bold; font-size: 11px; color: ${precioColor}; margin-right: 8px; }
     
     /* Botón MAS */
-    .classic-btn { width: 22px; height: 22px; border: 1px solid #eee; background: ${botonBg}; color: ${botonTexto}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .classic-btn { 
+    width: 24px;      /* Un toque más grande */
+    height: 24px; 
+    border: 1px solid #ddd; 
+    background: ${botonBg}; 
+    color: ${botonTexto}; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 18px;  /* Más grande para que se vea */
+    font-weight: 900; /* EL CAMBIO CLAVE: Súper grueso */
+    border-radius: 6px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    line-height: 1;   /* Centra bien el + */
+}
   `;
 
   return (

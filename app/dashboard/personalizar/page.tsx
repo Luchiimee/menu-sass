@@ -65,19 +65,19 @@ const MARKETPRO_ASSETS = {
 // 1. COLORES POR DEFECTO
 const TEMPLATE_DEFAULTS: any = {
 classic: { 
-    theme: '#d32f2f', // El rojo del banner
+    theme: '#d32f2f', 
     bg: '#ffffff', 
-    text: '#ffffff', // Nombre comercio en blanco (sobre rojo)
-    desc: '#ffffff', // Descripción comercio en blanco
-    card_name: '#000000', // Producto en negro
+    text: '#ffffff', 
+    desc: '#ffffff', 
+    card_name: '#000000', 
     card_desc: '#666666', 
     card_price: '#d32f2f', 
     btn_bg: '#ffffff', 
-    btn_text: '#555555', 
+    btn_text: '#000000', // <--- NEGRO PURO POR DEFECTO
     promo_bg: '#ffebee', 
     promo_text: '#d32f2f', 
     banner: false 
-  },
+},
 urban: { 
     theme: '#ea580c',     // El naranja queda solo para los acentos (como el precio)
     bg: '#121212', 
@@ -146,28 +146,25 @@ export default function EditorPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const [data, setData] = useState<any>({
+const [data, setData] = useState<any>({
     id: null, 
     name: '', 
     description: '', 
     promo_message: '', 
     show_promo: true, 
-    promo_bg_color: '#f3f4f6', // Fondo inicial del banner
-    promo_text_color: '#ffffff', // Color texto banner
-    promo_font: 'Inter',
-    phone: '', 
-    delivery_cost: 0, 
-    theme_color: '#ac0c0c', 
-    bg_color: '#ffffff', 
-    card_color: '#ffffff', 
-    text_color: '#000000', 
-    description_color: '#999999',
-    slug: '', 
-    alias_mp: '', 
-    logo_url: '', 
-    banner_url: '', 
+    // COLORES POR DEFECTO (Classic Style)
+    theme_color: '#d32f2f',       // Rojo Header
+    bg_color: '#ffffff',          // Fondo Blanco
+    text_color: '#ffffff',        // Nombre Local (Sobre Rojo)
+    description_color: '#ffffff', // Descripción Local (Sobre Rojo)
+    promo_bg_color: '#ffebee',    // Rosa suave Promo
+    promo_text_color: '#d32f2f',  // Texto Promo Rojo
+    card_name_color: '#000000',   // Producto Negro
+    card_desc_color: '#666666',   // Descripción Producto Gris
+    card_price_color: '#d32f2f',  // Precio Rojo
+    card_btn_bg: '#ffffff',       // Botón MAS Blanco
     template_id: 'classic', 
-    show_banner: true,
+    show_banner: false,  
     hero_badge_text: 'DESTACADO', 
     hero_title: '', 
     hero_price: 0, 
@@ -190,10 +187,7 @@ google_maps_link: '',
     cat_text_color: '#999999',
     cat_title_color: '#000000',
     card_show_bg: true,
-    card_name_color: '#000000',
-    card_price_color: '#059669',
-    card_btn_bg: '#000000',
-    card_btn_text: '#ffffff',
+    card_btn_text: '#000000',
     business_type: 'gastronomico',
   });
 
@@ -222,7 +216,7 @@ google_maps_link: '',
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return; 
-        const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single();
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single(); 
         if(rest && mounted) {
           const tId = rest.template_id || 'classic';
           const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
@@ -260,6 +254,7 @@ google_maps_link: '',
     card_desc_color: rest.card_desc_color || defaults.card_desc,
     card_price_color: rest.card_price_color || defaults.card_price,
     card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
+    card_btn_text: rest.card_btn_text || defaults.btn_text,
     template_id: tId, 
     delivery_cost: rest.delivery_cost || 0,
     show_banner: rest.show_banner 
@@ -412,6 +407,7 @@ const confirmReset = () => {
         card_desc_color: defaults.card_desc,
         card_price_color: defaults.card_price,
         card_btn_bg: defaults.btn_bg,
+        card_btn_text: defaults.btn_text,
         promo_bg_color: defaults.promo_bg,
         promo_text_color: defaults.promo_text,
         show_banner: defaults.banner, 
@@ -580,17 +576,18 @@ const confirmReset = () => {
         </div>
 
         {/* --- SECCIÓN 2: LOS PRODUCTOS (Corregido de <p> a <div>) --- */}
-        <div className="space-y-4">
-            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-                <div className="w-1 h-3 bg-orange-600 rounded-full"/> Carta de Productos
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                <ColorBubble label="Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({...data, card_name_color: v})} />
-                <ColorBubble label="Descripción" value={data.card_desc_color || '#999999'} onChange={(v) => setData({...data, card_desc_color: v})} />
-                <ColorBubble label="Precio" value={data.card_price_color || '#059669'} onChange={(v) => setData({...data, card_price_color: v})} />
-                <ColorBubble label="Botón MAS" value={data.card_btn_bg || '#000000'} onChange={(v) => setData({...data, card_btn_bg: v})} />
-            </div>
-        </div>
+  <div className="space-y-4">
+    <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+        <div className="w-1 h-3 bg-orange-600 rounded-full"/> Carta de Productos
+    </div>
+    <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+        <ColorBubble label="Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({...data, card_name_color: v})} />
+        <ColorBubble label="Descripción" value={data.card_desc_color || '#999999'} onChange={(v) => setData({...data, card_desc_color: v})} />
+        <ColorBubble label="Precio" value={data.card_price_color || '#d32f2f'} onChange={(v) => setData({...data, card_price_color: v})} /> 
+        <ColorBubble label="Botón MAS" value={data.card_btn_bg || '#ffffff'} onChange={(v) => setData({...data, card_btn_bg: v})} />
+        <ColorBubble label="Símbolo +" value={data.card_btn_text || '#000000'} onChange={(v) => setData({...data, card_btn_text: v})} />
+    </div>
+</div>
 
         {/* --- SECCIÓN 3: PROMO (Corregido de <p> a <div>) --- */}
         <div className="space-y-4">
