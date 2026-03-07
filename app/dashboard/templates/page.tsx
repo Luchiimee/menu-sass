@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap } from 'lucide-react';
 import Link from 'next/link';
@@ -312,7 +312,7 @@ const TEMPLATES = [
   { id: 'icecream-v1', name: 'Heladería Soft', desc: 'Diseño fresco con selector de peso (kg/gr).', premium: true, type: 'icecream', category: 'completas', sale_type: 'peso' },
 ];
 
-export default function GalleryPage() {
+function GalleryContent() {
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
   const isNewlyActivated = searchParams.get('activated')
@@ -887,5 +887,17 @@ if (isInitialLoading) {
         </div>
       )}
     </div>
+  );
+}
+// Al final de tu archivo app/dashboard/templates/page.tsx
+export default function GalleryPage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center bg-white z-[300]">
+        <Loader2 className="animate-spin text-indigo-600 mb-4" size={40}/>
+      </div>
+    }>
+      <GalleryContent />
+    </Suspense>
   );
 }
