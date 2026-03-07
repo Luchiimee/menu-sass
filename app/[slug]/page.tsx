@@ -943,154 +943,154 @@ case "bistro":
           />
         );
        
-    case 'icecream-v1': return (
-  <div className="flex flex-col h-full font-sans text-left animate-in fade-in duration-500 pb-20" style={{ backgroundColor: BG }}>
-    
-    {/* 1. HEADER PREMIUM STICKY */}
-    <div className="p-6 bg-white border-b flex justify-between items-center shadow-md sticky top-0 z-30">
-      <div className="flex items-center gap-4 text-left">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg border border-white" style={{ backgroundColor: THEME }}>🍦</div>
-        <div className="flex flex-col text-left">
-          <span className="text-lg font-black uppercase tracking-tighter leading-none" style={{ color: TEXT }}>{restaurant.name}</span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.1em] mt-1 text-slate-900">{restaurant.description}</span>
-        </div>
-      </div>
-      <div className={`px-4 py-1.5 rounded-full text-[10px] font-black italic border-2 ${isOpen ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-600'}`}>
-        {isOpen ? "• ABIERTO" : "• CERRADO"}
-      </div>
-    </div>
-
-    <div className="p-5 space-y-12">
-      {/* 2. MENSAJE DE PROMO (RESTAURADO) */}
-      {restaurant.show_promo && restaurant.promo_message && (
-        <div className="p-5 rounded-[2rem] text-xs font-black text-center border-2 shadow-xl animate-pulse" style={{ backgroundColor: PROMO_BG, color: PROMO_TEXT, borderColor: THEME + '40' }}>
-          ✨ {restaurant.promo_message}
-        </div>
-      )}
-
-      {restaurant.categories?.map((cat: any) => (
-        <div key={cat.id} className="space-y-6 text-left">
-          {cat.name.toLowerCase() !== 'general' && (
-            <h2 className="text-[12px] font-black uppercase tracking-[0.3em] border-b-2 pb-3 italic" style={{ color: TEXT, borderColor: THEME }}>
-              {cat.name}
-            </h2>
-          )}
-          
-          <div className="space-y-8">
-            {cat.products?.map((prod: any) => {
-              const variations = prod.variations || [];
-              const selectedIdx = cardSelections[prod.id];
-              const isSelected = selectedIdx !== null && selectedIdx !== undefined;
-
-              return (
-                <div key={prod.id} className="bg-white p-7 rounded-[3rem] shadow-xl shadow-slate-200 border border-slate-100 transition-all">
-                  <div className="flex justify-between items-start mb-5">
-                    <div className="text-left flex-1 pr-4">
-                      {/* NOMBRE: SIN TRUNCATE PARA QUE NO SE CORTE */}
-                      <h4 className="text-xl font-black uppercase leading-tight tracking-tight mb-2" style={{ color: TEXT }}>{prod.name}</h4>
-                      {/* DESCRIPCIÓN: SIN LINE-CLAMP (SE VE TODA) */}
-                      <p className="text-[12px] font-bold leading-relaxed text-slate-800">{prod.description}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                       <span className="text-2xl font-black block leading-none" style={{ color: PROD_PRICE }}>
-                         {formatPrice(isSelected ? variations[selectedIdx].price : (variations.length > 0 ? variations[0].price : prod.price))}
-                       </span>
-                       <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest mt-1 block">
-                        {isSelected ? variations[selectedIdx].label : 'Desde'}
-                       </span>
-                    </div>
-                  </div>
-                  
-                  {/* SELECTORES DE PESO */}
-                  {variations.length > 0 && (
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest ml-1 text-left">Seleccioná cantidad:</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {variations.slice(0, 3).map((v: any, idx: number) => {
-                          const isMore = idx === 2 && variations.length > 3;
-                          const active = selectedIdx === idx;
-                          
-                          return (
-                         <button  
-  key={idx}
- 
-onClick={() => {
-    // SI ESTÁ CERRADO, DISPARAMOS EL CARTEL Y CORTAMOS ACÁ
-    if (!isOpen) {
-      setShowClosedAlert(true); 
-      return;
-    }
-    
-    // Si está abierto, sigue tu lógica normal
-    if (isMore) {
-      setSelectedProduct(prod);
-    } else {
-      setCardSelections({...cardSelections, [prod.id]: active ? null : idx});
-    }
-  }}
-  className={`border-2 rounded-2xl py-3 text-[10px] text-center font-black uppercase transition-all duration-200 ${
-    active 
-    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 scale-105 shadow-md' 
-    : 'border-slate-200 bg-slate-50 text-slate-900'
-  } ${!isOpen ? 'opacity-60 grayscale cursor-pointer' : ''}`} // Cambiamos cursor a pointer para que sepa que puede clickear
->
-  {isMore ? "VER MÁS +" : v.label}
-</button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* --- BOTONES DINÁMICOS IGUALES 50/50 --- */}
-                  <div className="flex gap-2 mt-6">
-                    {isSelected && (
-                      <button 
-                        onClick={() => {
-                          const v = variations[selectedIdx];
-                          addToCart({
-                            ...prod,
-                            id: `${prod.id}-${selectedIdx}`,
-                            name: `${prod.name} (${v.label})`,
-                            price: Number(v.price)
-                          });
-                          mostrarAviso("✅ Agregado al carrito");
-                          setCardSelections({...cardSelections, [prod.id]: null});
-                        }}
-                        className="flex-1 bg-emerald-600 text-white rounded-[1.5rem] py-4 text-[10px] font-black uppercase tracking-widest shadow-lg animate-in slide-in-from-left-2 duration-300 flex items-center justify-center gap-1 active:scale-95"
-                      >
-                        <Plus size={14} strokeWidth={4} /> Carrito
-                      </button>
-                    )}
-
-             <button  
-  
-  onClick={() => {
-    if (!isOpen) {
-      setShowClosedAlert(true); 
-      return;
-    }
-    setSelectedProduct(prod);
-  }}
-  className={`font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 py-4 ${
-    isSelected 
-    ? 'flex-1 bg-slate-900 text-white rounded-[1.5rem] text-[10px]' 
-    : 'w-full bg-white text-black border-2 border-slate-200 rounded-[2rem] text-xs'
-  } ${!isOpen ? 'bg-gray-200 text-gray-400 cursor-pointer shadow-none' : ''}`} // Cursor pointer es clave
-  style={!isSelected && isOpen ? { backgroundColor: BTN_BG, color: BTN_TEXT } : {}}
->
-  {isSelected ? "Ver más" : (isOpen ? 'Ver opciones' : 'Cerrado')}
-</button>
-                  </div>
-                </div>
-              );
-            })}
+   case 'icecream-v1': return (
+      <div className="flex flex-col h-full font-sans text-left animate-in fade-in duration-500 pb-20" style={{ backgroundColor: BG }}>
+        
+        {/* 1. HEADER PREMIUM STICKY - CON LOGO REAL */}
+        <div className="p-6 bg-white border-b flex justify-between items-center shadow-md sticky top-0 z-30">
+          <div className="flex items-center gap-4 text-left">
+            {/* CONTENEDOR DE LOGO CORREGIDO */}
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border border-white overflow-hidden bg-gray-50" style={{ backgroundColor: THEME }}>
+              {LOGO ? (
+                <img src={LOGO} className="w-full h-full object-cover" alt="Logo" />
+              ) : (
+                <span className="text-2xl">🍦</span>
+              )}
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-lg font-black uppercase tracking-tighter leading-none" style={{ color: TEXT }}>{restaurant.name}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] mt-1 text-slate-900">{restaurant.description}</span>
+            </div>
+          </div>
+          <div className={`px-4 py-1.5 rounded-full text-[10px] font-black italic border-2 ${isOpen ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-600'}`}>
+            {isOpen ? "• ABIERTO" : "• CERRADO"}
           </div>
         </div>
-      ))}
-    </div>
-  </div>
-);
+
+        <div className="p-5 space-y-12">
+          {/* 2. MENSAJE DE PROMO - SIN EMOJI ✨ FIJO */}
+          {restaurant.show_promo && restaurant.promo_message && (
+            <div className="p-5 rounded-[2rem] text-xs font-black text-center border-2 shadow-xl animate-pulse" style={{ backgroundColor: PROMO_BG, color: PROMO_TEXT, borderColor: THEME + '40' }}>
+              {restaurant.promo_message}
+            </div>
+          )}
+
+          {restaurant.categories?.map((cat: any) => (
+            <div key={cat.id} className="space-y-6 text-left">
+              {cat.name.toLowerCase() !== 'general' && (
+                <h2 className="text-[12px] font-black uppercase tracking-[0.3em] border-b-2 pb-3 italic" style={{ color: TEXT, borderColor: THEME }}>
+                  {cat.name}
+                </h2>
+              )}
+              
+              <div className="space-y-8">
+                {cat.products?.map((prod: any) => {
+                  const variations = prod.variations || [];
+                  const selectedIdx = cardSelections[prod.id];
+                  const isSelected = selectedIdx !== null && selectedIdx !== undefined;
+
+                  return (
+                    <div key={prod.id} className="bg-white p-7 rounded-[3rem] shadow-xl shadow-slate-200 border border-slate-100 transition-all">
+                      <div className="flex justify-between items-start mb-5">
+                        <div className="text-left flex-1 pr-4">
+                          <h4 className="text-xl font-black uppercase leading-tight tracking-tight mb-2" style={{ color: TEXT }}>{prod.name}</h4>
+                          <p className="text-[12px] font-bold leading-relaxed text-slate-800">{prod.description}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                           <span className="text-2xl font-black block leading-none" style={{ color: PROD_PRICE }}>
+                             {formatPrice(isSelected ? variations[selectedIdx].price : (variations.length > 0 ? variations[0].price : prod.price))}
+                           </span>
+                           <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest mt-1 block">
+                            {isSelected ? variations[selectedIdx].label : 'Desde'}
+                           </span>
+                        </div>
+                      </div>
+                      
+                      {/* SELECTORES DE PESO */}
+                      {variations.length > 0 && (
+                        <div className="space-y-3">
+                          <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest ml-1 text-left">Seleccioná cantidad:</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {variations.slice(0, 3).map((v: any, idx: number) => {
+                              const isMore = idx === 2 && variations.length > 3;
+                              const active = selectedIdx === idx;
+                              
+                              return (
+                                <button  
+                                  key={idx}
+                                  onClick={() => {
+                                    if (!isOpen) {
+                                      setShowClosedAlert(true); 
+                                      return;
+                                    }
+                                    if (isMore) {
+                                      setSelectedProduct(prod);
+                                    } else {
+                                      setCardSelections({...cardSelections, [prod.id]: active ? null : idx});
+                                    }
+                                  }}
+                                  className={`border-2 rounded-2xl py-3 text-[10px] text-center font-black uppercase transition-all duration-200 ${
+                                    active 
+                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 scale-105 shadow-md' 
+                                    : 'border-slate-200 bg-slate-50 text-slate-900'
+                                  } ${!isOpen ? 'opacity-60 grayscale cursor-pointer' : ''}`}
+                                >
+                                  {isMore ? "VER MÁS +" : v.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* BOTONES ACCIÓN */}
+                      <div className="flex gap-2 mt-6">
+                        {isSelected && (
+                          <button 
+                            onClick={() => {
+                              const v = variations[selectedIdx];
+                              addToCart({
+                                ...prod,
+                                id: `${prod.id}-${selectedIdx}`,
+                                name: `${prod.name} (${v.label})`,
+                                price: Number(v.price)
+                              });
+                              mostrarAviso("✅ Agregado al carrito");
+                              setCardSelections({...cardSelections, [prod.id]: null});
+                            }}
+                            className="flex-1 bg-emerald-600 text-white rounded-[1.5rem] py-4 text-[10px] font-black uppercase tracking-widest shadow-lg animate-in slide-in-from-left-2 duration-300 flex items-center justify-center gap-1 active:scale-95"
+                          >
+                            <Plus size={14} strokeWidth={4} /> Carrito
+                          </button>
+                        )}
+
+                        <button  
+                          onClick={() => {
+                            if (!isOpen) {
+                              setShowClosedAlert(true); 
+                              return;
+                            }
+                            setSelectedProduct(prod);
+                          }}
+                          className={`font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 py-4 ${
+                            isSelected 
+                            ? 'flex-1 bg-slate-900 text-white rounded-[1.5rem] text-[10px]' 
+                            : 'w-full bg-white text-black border-2 border-slate-200 rounded-[2rem] text-xs'
+                          } ${!isOpen ? 'bg-gray-200 text-gray-400 cursor-pointer shadow-none' : ''}`}
+                          style={!isSelected && isOpen ? { backgroundColor: BTN_BG, color: BTN_TEXT } : {}}
+                        >
+                          {isSelected ? "Ver más" : (isOpen ? 'Ver opciones' : 'Cerrado')}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
 
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;

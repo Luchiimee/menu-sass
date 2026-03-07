@@ -11,7 +11,7 @@ export default function ProductsPage() {
   const router = useRouter(); 
   const [loading, setLoading] = useState(true);
   
-  const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
+  const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
   const [products, setProducts] = useState<any[]>([]);
   const [availableExtras, setAvailableExtras] = useState<any[]>([]); 
   const [categories, setCategories] = useState<any[]>([]); 
@@ -558,37 +558,41 @@ if (loading) return (
 
                   <div className="p-6 overflow-y-auto space-y-6 bg-white">
                         
-                        {/* 1. SECCIÓN DE FOTO O MENSAJE SEGÚN PLANTILLA */}
-                        {selectedTemplate && ['minimal', 'classic', 'elegant', 'pop', 'bistro'].some(t => selectedTemplate.toLowerCase().includes(t)) ? (
-                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
-                                <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
-                                    <ImageIcon className="text-amber-500" size={24} />
-                                </div>
-                                <h4 className="text-amber-800 font-bold text-sm">Diseño sin imágenes</h4>
-                                <p className="text-amber-700/80 text-xs mt-1 leading-relaxed">
-                                    La plantilla <b>{selectedTemplate.toUpperCase()}</b> no utiliza fotos. Si querés usarlas, elegí una plantilla visual en la galería.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="flex justify-center animate-in fade-in zoom-in-95 duration-200">
-                                <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden">
-                                    {formData.image_url ? (
-                                        <>
-                                            <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Foto</p>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="text-center p-4">
-                                            <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3"><ImageIcon className="text-violet-400" size={24}/></div>
-                                            <p className="text-sm font-bold text-gray-600">Sube una foto atractiva</p>
-                                        </div>
-                                    )}
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-                                </label>
-                            </div>
-                        )}
+                      {/* 1. SECCIÓN DE FOTO O MENSAJE SEGÚN PLANTILLA */}
+{selectedTemplate && templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) ? (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+            <ImageIcon className="text-amber-500" size={24} />
+        </div>
+        <h4 className="text-amber-800 font-bold text-sm uppercase tracking-tight">Diseño de Carga Rápida</h4>
+        <p className="text-amber-700/80 text-[11px] mt-2 leading-relaxed">
+            La plantilla <b>{selectedTemplate.toUpperCase()}</b> es un diseño simplificado.<br/> 
+            No utiliza imágenes ni categorías para priorizar la velocidad de carga.
+        </p>
+    </div>
+) : (
+    <div className="flex justify-center animate-in fade-in zoom-in-95 duration-200">
+        <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden">
+            {formData.image_url ? (
+                <>
+                    <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Foto</p>
+                    </div>
+                </>
+            ) : (
+                <div className="text-center p-4">
+                    <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3">
+                        <ImageIcon className="text-violet-400" size={24}/>
+                    </div>
+                    <p className="text-sm font-bold text-gray-600">Sube una foto atractiva</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Recomendado: 800x800px</p>
+                </div>
+            )}
+            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+        </label>
+    </div>
+)}
 
              {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
 <div className="space-y-4">

@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -18,6 +18,7 @@ function GoogleAuthHandler() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const hasCode = searchParams.has('code');
+
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     if (hasCode || hasHash) console.log("Procesando login social...");
   }, [searchParams]);
@@ -142,10 +143,10 @@ setRestaurant({
       }
     });
     
-    const handleRefresh = () => {
-  console.log("Recibido aviso de actualización, recargando...");
-  loadData(); 
-};
+   const handleRefresh = () => {
+      setIsLoading(true); // <--- ESTO APAGA LOS BANNERS MIENTRAS RECARGA (Arregla el parpadeo)
+      loadData(); 
+    };
 
 // Escuchamos el evento que mandamos desde Settings
 window.addEventListener('profile-updated', handleRefresh);
@@ -459,26 +460,35 @@ const menuItems = [
 )}
 
 
+{/* 1. BLOQUEO SI NO TIENE PLAN (Efecto Vidrio) */}
+{!isLoading && needsPlan && pathname !== '/dashboard' && pathname !== '/dashboard/settings' ? (
+  <div className="fixed inset-0 z-[1000] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
+      
+      {/* Contenedor del Cartel - Agregamos 'relative' para ubicar la X */}
+      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
+          
+          {/* BOTÓN X PARA VOLVER AL INICIO */}
+          <button 
+            onClick={() => router.push('/dashboard')}
+            className="absolute top-6 right-8 p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition-all cursor-pointer"
+          >
+            <X size={20} />
+          </button>
 
-{/* 1. BLOQUEO SI NO TIENE PLAN: Bloquea TODO excepto Configuración (Para que vea el efecto vidrio) */}
-    {needsPlan && pathname !== '/dashboard/settings' ? (
-      <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-          <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md">
-              <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <Zap size={40} />
-              </div>
-              <h2 className="text-3xl font-black mb-4 uppercase italic leading-none">¡Bienvenido!</h2>
-              <p className="text-gray-500 mb-8 font-medium">Para comenzar a crear tu menú, primero debes activar un plan (tenés 14 días gratis).</p>
-              <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">
-                  Ver Planes Disponibles <ArrowRight size={18} className="inline ml-2" />
-              </Link>
+          <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Zap size={40} />
           </div>
+          <h2 className="text-3xl font-black mb-4 uppercase italic leading-none">¡Bienvenido!</h2>
+          <p className="text-gray-500 mb-8 font-medium">Para comenzar a crear tu menú, primero debes activar un plan (tenés 14 días gratis).</p>
+          <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">
+              Ver Planes Disponibles <ArrowRight size={18} className="inline ml-2" />
+          </Link>
       </div>
-    ) 
-    
+  </div>
+)  
     // 2. BLOQUEO SI TIENE PLAN PERO NO RUBRO: Bloquea todo excepto Plantillas y Configuración
-    : needsRubro && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' ? (
-      <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
+    : !isLoading && needsRubro && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' ? (
+      <div className="fixed inset-0 z-[1000] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
           <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-indigo-50 max-w-md">
               <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <Store size={40} />
@@ -496,7 +506,7 @@ const menuItems = [
     // 3. BLOQUEO DE EXPIRACIÓN (Igual que antes)
     : isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
        /* ... Tu bloque de Servicio Pausado ... */
-       <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center">
+      <div className="fixed inset-0 z-[1000] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
           {/* (Dejá el contenido que ya tenías para el vencimiento) */}
        </div>
     ) : (

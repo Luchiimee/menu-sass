@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -316,7 +316,7 @@ function GalleryContent() {
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
   const isNewlyActivated = searchParams.get('activated')
-  
+  const [isOnboardingMandatory, setIsOnboardingMandatory] = useState(true);
 const router = useRouter();
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState('classic');
@@ -341,23 +341,24 @@ useEffect(() => {
         if(session) {
             const { data } = await supabase
                 .from('restaurants')
-                .select('template_id, subscription_plan, sale_type, is_open') // <--- UN SOLO SELECT
+               .select('template_id, subscription_plan, sale_type, is_open, onboarding_completed') // <--- UN SOLO SELECT // <--- UN SOLO SELECT
                 .eq('user_id', session.user.id)
                 .maybeSingle();
-
-            if(data) {
+if(data) {
                 setCurrentTemplate(data.template_id || 'classic');
                 setUserPlan(data.subscription_plan ? 'paid' : 'free');
-                setIsOpen(data.is_open ?? true); // <--- GUARDAMOS EL ESTADO REAL
-                
-                if (data.sale_type === 'unidad' || data.sale_type === 'peso') {
-                    setSaleType(data.sale_type);
-                    setStep(3); 
-                    setShowOnboarding(false);
-                } else {
-                    setStep(1);
-                    setShowOnboarding(true);
-                }
+                setIsOpen(data.is_open ?? true);
+                setSaleType(data.sale_type); // Guardamos el rubro actual si existe
+
+if (data.onboarding_completed) {
+    setShowOnboarding(false);
+    setIsOnboardingMandatory(false); // <--- AGREGÁ ESTO: Ya no es obligatorio
+    setStep(3); 
+} else {
+    setStep(1);
+    setShowOnboarding(true);
+    setIsOnboardingMandatory(true); // <--- AGREGÁ ESTO: Es la primera vez
+}
             }
         }
         setIsInitialLoading(false); 
@@ -370,11 +371,12 @@ const handleSaveBusinessInfo = async (subType: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user && tempType) {
+        // Guardamos que ya completó el paso inicial
         const { error } = await supabase.from('restaurants').update({ 
             business_type: tempType === 'unidad' ? 'gastronomico' : 'fraccionado',
             business_subtype: subType,
             sale_type: tempType, 
-            onboarding_completed: true // <--- ESTA ES LA MARCA DE "YA PASÉ POR AQUÍ"
+            onboarding_completed: true // <--- Marcamos como terminado
         }).eq('user_id', user.id);
 
         if (error) {
@@ -383,10 +385,13 @@ const handleSaveBusinessInfo = async (subType: string) => {
             return;
         }
         
-        // Refrescamos para que el Layout se entere que ya no tiene que bloquear
+        // Actualizamos estados locales para que React dibuje la galería
         setSaleType(tempType);
-        setStep(3); 
         setShowOnboarding(false);
+        setStep(3); 
+        
+        // Avisamos al Layout para que refresque si hay bloqueos
+        window.dispatchEvent(new Event('profile-updated'));
         router.refresh(); 
     }
     setIsUpdatingType(false);
@@ -651,245 +656,152 @@ const filteredTemplates = TEMPLATES.filter(t => {
   if (activeFilter === 'premium') return t.premium;
   return t.category === activeFilter;
 })
-if (isInitialLoading) {
-    return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[300]">
-            <Loader2 className="animate-spin text-indigo-600 mb-4" size={40}/>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Sincronizando configuración...</p>
+// --- LÓGICA DE RENDERIZADO DIVIDIDA (PARA PANTALLA LIMPIA) ---
+
+  if (!isInitialLoading && userPlan !== 'free' && showOnboarding) {
+  return (
+    <div className="fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center p-6 overflow-y-auto">
+      
+      {/* BOTÓN X: Solo aparece si NO es obligatorio (o sea, si ya lo eligió antes) */}
+      {!isOnboardingMandatory && (
+        <button 
+          onClick={() => setShowOnboarding(false)}
+          className="absolute top-10 right-10 p-3 text-gray-400 hover:text-black transition-all cursor-pointer z-[200]"
+        >
+          <X size={30} strokeWidth={3} />
+        </button>
+      )}
+        <style>{GALLERY_STYLES}</style>
+        <div className="max-w-2xl w-full space-y-12 py-10 text-center">
+          
+          {/* PASO 1: ¿QUÉ VAS A VENDER? */}
+          {step === 1 && (
+            <div className="space-y-10 animate-in zoom-in-95 duration-300">
+              <div className="text-center space-y-2">
+                <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 01</span>
+                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Qué vas a vender?</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <button onClick={() => { setTempType('unidad'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-violet-500 transition-all text-left shadow-xl hover:shadow-violet-100">
+                  <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">🍔</div>
+                  <h3 className="text-2xl font-black uppercase italic leading-none">Gastronomía</h3>
+                  <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Platos, combos y bebidas</p>
+                </button>
+                <button onClick={() => { setTempType('peso'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-cyan-500 transition-all text-left shadow-xl hover:shadow-cyan-100">
+                  <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">⚖️</div>
+                  <h3 className="text-2xl font-black uppercase italic leading-none text-cyan-600">Venta por Peso</h3>
+                  <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Dietéticas y Heladerías</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* PASO 2: SELECCIÓN DE SUB-RUBRO */}
+          {step === 2 && (
+            <div className="space-y-10 animate-in slide-in-from-right-5 duration-300">
+              <div className="text-center space-y-2">
+                <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 02</span>
+                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Un paso más...</h2>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Elegí la categoría que mejor defina tu negocio</p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {(tempType === 'unidad' 
+                  ? ['Hamburguesería', 'Pizzería', 'Restaurante', 'Food Truck', 'Panchería', 'Sushi']
+                  : ['Dietética', 'Heladería', 'Fiambrería', 'Carnicería', 'Kiosco', 'Otros']
+                ).map(item => (
+                  <button key={item} onClick={() => handleSaveBusinessInfo(item.toLowerCase())} className={`p-4 rounded-2xl border-2 border-slate-100 hover:border-black font-black text-[10px] uppercase tracking-widest transition-all bg-slate-50/50 hover:bg-white active:scale-95 shadow-sm ${tempType === 'peso' ? 'text-cyan-700 hover:border-cyan-500' : ''}`}>
+                    {item}
+                  </button>
+                ))}
+              </div>
+              
+              <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-slate-400 hover:text-black mt-8 block mx-auto">
+                ← Volver atrás
+              </button>
+            </div>
+          )}
+
+          {isUpdatingType && (
+            <div className="flex flex-col items-center gap-2 mt-8 animate-in fade-in">
+              <Loader2 className="animate-spin text-indigo-600"/>
+              <span className="text-[10px] font-black uppercase text-slate-400 animate-pulse">Configurando tu panel...</span>
+            </div>
+          )}
         </div>
+      </div>
     );
-}
- return (
-    /* pt-0 para no sumar espacio al layout principal */
+  }
+
+  // 2. SI YA COMPLETÓ EL ONBOARDING: Mostramos la Galería normal (Imagen 2)
+  return (
     <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50">
       <style>{GALLERY_STYLES}</style>
       
-    {/* --- NUEVO ONBOARDING MULTI-PASO --- */}
-     {!isInitialLoading && userPlan !== 'free' && (showOnboarding || !saleType) && (
-        <div className="fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center p-6 animate-in fade-in duration-500 overflow-y-auto">
-          <div className="max-w-2xl w-full space-y-12 py-10">
-            
-            {/* PASO 1: ELEGIR RUBRO PRINCIPAL */}
-            {step === 1 && (
-              <div className="space-y-10 animate-in zoom-in-95 duration-300">
-                <div className="text-center space-y-2">
-                  <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 01</span>
-                  <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Qué vas a vender?</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <button onClick={() => { setTempType('unidad'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-violet-500 transition-all text-left shadow-xl hover:shadow-violet-100">
-                    <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">🍔</div>
-                    <h3 className="text-2xl font-black uppercase italic leading-none">Gastronomía</h3>
-                    <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Platos, combos y bebidas</p>
-                  </button>
-                  <button onClick={() => { setTempType('peso'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-cyan-500 transition-all text-left shadow-xl hover:shadow-cyan-100">
-                    <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">⚖️</div>
-                    <h3 className="text-2xl font-black uppercase italic leading-none text-cyan-600">Venta por Peso</h3>
-                    <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Dietéticas y Heladerías</p>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* PASO 2: ELEGIR SUB-RUBRO (OPCIONES QUE PEDISTE) */}
-            {step === 2 && (
-              <div className="space-y-8 animate-in slide-in-from-right-5 duration-300">
-
-              {saleType && (
-      <button 
-        onClick={() => setStep(1)} 
-        className="text-[10px] font-black uppercase text-slate-400 hover:text-black mb-4 flex items-center gap-1"
-      >
-        ← Volver
-      </button>
-    )}
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {tempType === 'unidad' ? (
-                    // OPCIONES GASTRONOMÍA
-                    ['Hamburguesería', 'Pizzería', 'Restaurante', 'Food Truck', 'Panchería', 'Sushi'].map(item => (
-                      <button key={item} onClick={() => handleSaveBusinessInfo(item.toLowerCase())} className="p-4 rounded-2xl border-2 border-slate-100 hover:border-black font-black text-[10px] uppercase tracking-widest transition-all bg-slate-50/50 hover:bg-white active:scale-95 shadow-sm">
-                        {item}
-                      </button>
-                    ))
-                  ) : (
-                    // OPCIONES POR PESO
-                    ['Dietética', 'Heladería', 'Fiambrería', 'Carnicería', 'Kiosco', 'Otros'].map(item => (
-                      <button key={item} onClick={() => handleSaveBusinessInfo(item.toLowerCase())} className="p-4 rounded-2xl border-2 border-slate-100 hover:border-cyan-500 font-black text-[10px] uppercase tracking-widest transition-all bg-slate-50/50 hover:bg-white active:scale-95 shadow-sm text-cyan-700">
-                        {item}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-            {isUpdatingType && <div className="flex flex-col items-center gap-2"><Loader2 className="animate-spin text-indigo-600"/><span className="text-[10px] font-black uppercase text-slate-400 animate-pulse">Configurando tu panel...</span></div>}
-          </div>
-        </div>
-      )}
-
-      {/* --- HEADER PRINCIPAL --- 
-          -mt-5 en mobile para eliminar el hueco con el cartel naranja 
-      */}
       <header className="mb-8 pt-20 lg:pt-0 text-left relative z-10">
-  <div className="flex flex-col gap-1">
-    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">
-      Galería de Diseños
-    </h1>
-    <p className="text-gray-500 text-xs font-medium leading-tight max-w-[280px] sm:max-w-none">
-      Elegí la base para tu menú digital. Todas son personalizables.
-    </p>
-  </div>
-  
-<button 
-  onClick={() => {
-    setStep(1);        // Volvemos al inicio del proceso (🍔 vs ⚖️)
-    setTempType(null); // Limpiamos la elección temporal
-    setShowOnboarding(true); // Abrimos el cartel
-  }}
-  className="mt-5 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
->
-  <ShoppingBag size={14}/> 
-  RUBRO: {
-    saleType === 'unidad' 
-      ? 'GASTRONOMÍA' 
-      : saleType === 'peso' 
-        ? 'VENTA POR PESO' 
-        : 'CARGANDO...'
-  } (CAMBIAR)
-</button>
-</header>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Galería de Diseños</h1>
+          <p className="text-gray-500 text-xs font-medium leading-tight">Elegí la base para tu menú digital. Todas son personalizables.</p>
+        </div>
+        
+        <button 
+          onClick={() => { setStep(1); setTempType(null); setShowOnboarding(true); }}
+          className="mt-5 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
+        >
+          <ShoppingBag size={14}/> RUBRO: {saleType === 'unidad' ? 'GASTRONOMÍA' : 'VENTA POR PESO'} (CAMBIAR)
+        </button>
+      </header>
 
-
-      {/* --- BARRA DE FILTROS --- */}
+      {/* --- RESTO DE TU GRILLA DE PLANTILLAS (Filtros y Grid) --- */}
       <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
         {['todas', 'minimal', 'basicas', 'completas'].map((f) => (
-          <button
-            key={f}
-            onClick={() => setActiveFilter(f)}
-            className={`px-4 sm:px-6 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all border-2 ${
-              activeFilter === f ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'
-            }`}
-          >
+          <button key={f} onClick={() => setActiveFilter(f)} className={`px-4 sm:px-6 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all border-2 ${activeFilter === f ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'}`}>
             {f}
           </button>
         ))}
-        <button
-          onClick={() => setActiveFilter('premium')}
-          className={`px-4 sm:px-6 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all border-2 flex items-center gap-2 ${
-            activeFilter === 'premium' ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-white text-yellow-600 border-yellow-100 hover:border-yellow-200'
-          }`}
-        >
-          <Crown size={12} /> Premium
-        </button>
       </div>
 
-      {/* --- GRILLA DE PLANTILLAS --- */}
       <div className="templates-grid">
-        {filteredTemplates.length > 0 ? (
-          filteredTemplates.map((t) => {
-            const isSelected = currentTemplate === t.id;
-            const isLocked = t.premium && userPlan === 'free';
-
-            return (
-              <article key={t.id} className={`template-card ${isSelected ? 'active-card' : ''}`}>
-                <div className="tags-container">
-                  {t.premium && <span className="tag premium">Premium</span>}
-                  {t.type === 'fresh' && <span className="tag new">Nuevo</span>}
-                </div>
-
-                {isSelected && <div className="badge-selected"><Check size={10} strokeWidth={4} /> Seleccionado</div>}
-
-                <div className="phone-preview">
-                  <div className="preview-content">
-                    <div className="status-bar-fake" style={{ color: ['urban', 'fresh', 'bistro'].includes(t.type) ? 'white' : 'black' }}>
-                      <span>9:41</span><span>📶</span>
-                    </div>
-                    {!isOpen && (
-            <div className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-[2px] flex items-end justify-center pb-10 p-4">
-                <div className="bg-white w-full p-4 rounded-2xl shadow-2xl border border-gray-100 text-center scale-90 sm:scale-100">
-                    <div className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                        <Lock size={20} />
-                    </div>
-                    <h4 className="text-[11px] font-black uppercase text-gray-900">Local Cerrado</h4>
-                    <p className="text-[9px] text-gray-500 font-medium mt-1">
-                        No estamos recibiendo pedidos.
-                    </p>
-                </div>
-            </div>
-        )}
-                    {renderPreview(t.type)}
-                  </div>
-                  {isLocked && (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
-                      <Lock size={24} className="mb-2 opacity-80" />
-                      <span className="font-bold text-xs">Diseño Premium</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="card-info">
-                  <h3 className="card-title">
-                    {t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500" />}
-                  </h3>
-                  <p className="card-desc">{t.desc}</p>
-                  <button
-                    onClick={() => handleSelect(t.id, t.premium)}
-                    disabled={savingId === t.id || isSelected}
-                    className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
-                  >
-                    {savingId === t.id
-                      ? <Loader2 className="animate-spin" size={14} />
-                      : isSelected
-                        ? 'En uso'
-                        : isLocked
-                          ? <><Lock size={12} /> Usar Plantilla</>
-                          : 'Usar Plantilla'}
-                  </button>
-                  {isSelected && <Link href="/dashboard/personalizar" className="btn-personalize">Ir a Personalizar →</Link>}
-                </div>
-              </article>
-            );
-          })
-        ) : (
-          <div className="col-span-full py-20 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100 shadow-sm animate-in fade-in zoom-in-95 duration-500">
-            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShoppingBag size={24} />
-            </div>
-            <h3 className="font-black uppercase italic text-gray-900 tracking-tighter text-xl">Próximamente</h3>
-            <p className="text-sm text-gray-400 max-w-xs mx-auto mt-2 font-medium">
-              Estamos terminando de hornear las plantillas exclusivas para <b>Venta por Peso</b>. ¡Vuelve en unas horas!
-            </p>
-          </div>
-        )}
-      </div>
-  {/* --- TU MODAL PRÓXIMAMENTE ORIGINAL --- */}
-      {showUpcomingModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-100 rounded-full opacity-50 blur-3xl"></div>
-            <div className="relative z-10">
-              <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
-                <span className="text-4xl">🚀</span>
+        {filteredTemplates.map((t) => {
+          const isSelected = currentTemplate === t.id;
+          const isLocked = t.premium && userPlan === 'free';
+          return (
+            <article key={t.id} className={`template-card ${isSelected ? 'active-card' : ''}`}>
+              <div className="phone-preview">
+                <div className="preview-content">{renderPreview(t.type)}</div>
+                {isLocked && <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30"><Lock size={24} className="mb-2 opacity-80" /><span className="font-bold text-xs">Diseño Premium</span></div>}
               </div>
-              <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight">¡Casi listo!</h3>
-              <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                Estamos puliendo los últimos detalles de este diseño para que tu menú se vea increíble. <b>¡Estará disponible muy pronto!</b>
-              </p>
-              <button 
-                onClick={() => setShowUpcomingModal(false)}
-                className="w-full bg-black text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-gray-200 hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="card-info">
+                <h3 className="card-title">{t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500" />}</h3>
+             <button
+    onClick={() => handleSelect(t.id, t.premium)}
+    disabled={savingId === t.id || isSelected}
+    className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
+  >
+    {savingId === t.id
+      ? <Loader2 className="animate-spin" size={14} />
+      : isSelected
+        ? 'En uso'
+        : 'Usar Plantilla'}
+  </button>
+  
+  {/* BOTÓN RECUPERADO: Solo aparece si la plantilla está seleccionada */}
+  {isSelected && (
+    <Link 
+      href="/dashboard/personalizar" 
+      className="btn-personalize block text-center mt-3 text-[10px] font-black uppercase text-indigo-600 hover:underline"
+    >
+      Ir a Personalizar →
+    </Link>
+  )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
-// Al final de tu archivo app/dashboard/templates/page.tsx
 export default function GalleryPage() {
   return (
     <Suspense fallback={

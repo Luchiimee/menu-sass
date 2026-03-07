@@ -158,28 +158,29 @@ const saveProfileData = async (newData: any) => {
       else toast.success("Email enviado");
   };
 
-  // --- ACTIVAR TRIAL 14 DÍAS ---
+// --- ACTIVAR TRIAL 14 DÍAS (CORREGIDO PARA NO RESETEAR RUBRO) ---
 const handleActivateTrial = async (planType: 'light' | 'plus') => {
-  if (!userId) {
-    toast.error("No se encontró la sesión de usuario.");
-    return;
-  }
-
+  if (!userId) return;
   setProcessingPlan(planType);
   
+  // Guardamos si el usuario ya tenía un plan antes de esta acción
+  const isChangingPlan = !!restaurant.subscription_plan;
+
   try {
     const autoSlug = `snappy-${Math.random().toString(36).substring(2, 7)}`;
 
+    // Usamos upsert para que funcione tanto para nuevos como para cambios de plan
     const { data, error } = await supabase
       .from('restaurants')
       .upsert({ 
-        ...(restaurant?.id ? { id: restaurant.id } : {}),
         user_id: userId, 
         subscription_plan: planType,
         subscription_status: 'trialing',
         trial_start_date: new Date().toISOString(),
         name: restaurant?.name || 'Mi Restaurante',
-        slug: restaurant?.slug || autoSlug 
+        slug: restaurant?.slug || autoSlug,
+        // CLAVE: Mantenemos el rubro si ya existía
+        onboarding_completed: restaurant?.onboarding_completed || false 
       }, {
         onConflict: 'user_id' 
       })
@@ -187,13 +188,19 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
       .single();
 
     if (error) throw error;
-
     if (data) {
       setRestaurant(data);
-      // CAMBIO CLAVE: Activamos el modal de éxito
-      setShowPlanSuccessModal(true);
+      // Avisamos al Layout para que actualice los permisos
+      window.dispatchEvent(new Event('profile-updated')); 
+
+      if (isChangingPlan) {
+        // Si ya tenía plan, solo avisamos con un toast y NO mostramos el modal
+        toast.success(`Plan actualizado a ${planType.toUpperCase()} con éxito`);
+      } else {
+        // Si es la primerísima vez, mostramos el modal de bienvenida
+        setShowPlanSuccessModal(true);
+      }
     }
-    
   } catch (error: any) { 
     console.error("Error al activar:", error.message);
     toast.error("Error al activar el plan"); 
@@ -452,12 +459,17 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
           Ahora, para terminar la configuración, elegí el rubro de tu negocio.
         </p>
 
-        <button 
-          onClick={() => router.push('/dashboard/templates')}
-          className="w-full bg-black text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          Elegir mi rubro <ArrowRight size={18} />
-        </button>
+      <button 
+  onClick={() => {
+    window.dispatchEvent(new Event('profile-updated')); 
+    // Si ya completó el onboarding antes, lo mandamos a la galería directo (sin pantalla blanca)
+    // Si es nuevo, lo mandamos a elegir rubro
+    router.push('/dashboard/templates');
+  }}
+  className="w-full bg-black text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+>
+  {restaurant?.onboarding_completed ? 'Ir a mis plantillas' : 'Elegir mi rubro'} <ArrowRight size={18} />
+</button>
       </div>
     </div>
   </div>

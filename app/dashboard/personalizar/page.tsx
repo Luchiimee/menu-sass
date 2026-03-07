@@ -153,7 +153,7 @@ export default function EditorPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
-  const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro'];
+ const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -527,12 +527,18 @@ const confirmReset = () => {
                       case 'bistro': return <BistroChalk {...props} />;
                       default: return <ClassicDelivery {...props} />;
                       case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
-         case 'icecream-v1': return (
+        case 'icecream-v1': return (
   <div className="flex flex-col h-full font-sans text-left" style={{ backgroundColor: renderData.bg_color }}>
-    {/* Header */}
+    {/* Header - AHORA CON TU LOGO REAL */}
     <div className="p-4 bg-white border-b flex justify-between items-center shadow-sm">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: renderData.theme_color }}>🍦</div>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm overflow-hidden bg-gray-50" style={{ backgroundColor: renderData.theme_color }}>
+          {renderData.logo_url ? (
+            <img src={renderData.logo_url} className="w-full h-full object-cover" />
+          ) : (
+            <Store size={14} className="opacity-20 text-black" />
+          )}
+        </div>
         <div className="flex flex-col">
           <span className="text-[10px] font-black uppercase tracking-tighter leading-none" style={{ color: renderData.text_color }}>{renderData.name || 'Tu Negocio'}</span>
           <span className="text-[7px] font-bold uppercase tracking-widest mt-1" style={{ color: renderData.description_color }}>{renderData.description || 'Venta Fraccionada'}</span>
@@ -541,16 +547,16 @@ const confirmReset = () => {
     </div>
 
     <div className="p-4 space-y-4">
-      {/* Banner Promo */}
+      {/* Banner Promo - YA SIN EL EMOJI ✨ */}
       {renderData.show_promo && (
-        <div className="p-3 rounded-xl text-[8px] font-black text-center border animate-pulse" style={{ backgroundColor: renderData.promo_bg_color, color: renderData.promo_text_color, borderColor: renderData.theme_color + '40' }}>
-          ✨ {renderData.promo_message || '¡Bienvenidos a nuestra tienda!'}
+        <div className="p-3 rounded-xl text-[8px] font-black text-center border" style={{ backgroundColor: renderData.promo_bg_color, color: renderData.promo_text_color, borderColor: renderData.theme_color + '40' }}>
+          {renderData.promo_message || '¡Bienvenidos a nuestra tienda!'}
         </div>
       )}
 
-      {/* --- LISTA DINÁMICA DE PRODUCTOS REALES --- */}
+      {/* --- LISTA DE PRODUCTOS --- */}
       {displayProds.map((p: any) => (
-        <div key={p.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div key={p.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex justify-between items-start mb-3">
             <div className="text-left flex-1 pr-2">
               <h4 className="text-[11px] font-black uppercase leading-tight" style={{ color: renderData.card_name_color }}>{p.name}</h4>
@@ -558,25 +564,13 @@ const confirmReset = () => {
             </div>
             <div className="text-right">
                <span className="text-[11px] font-black block leading-none" style={{ color: renderData.card_price_color }}>
-                 {/* Si tiene variantes muestra la primera, sino el precio normal */}
                  ${p.variations?.length > 0 ? p.variations[0].price : p.price}
                </span>
                <span className="text-[6px] text-gray-400 uppercase font-bold tracking-tighter">Desde</span>
             </div>
           </div>
           
-          {/* Muestra los Pesos/Medidas si existen */}
-          {p.variations?.length > 0 && (
-            <div className="grid grid-cols-3 gap-1.5 mt-2">
-              {p.variations.map((v: any, idx: number) => (
-                <div key={idx} className="border border-gray-100 rounded-lg py-1 text-[7px] text-center font-bold text-gray-500 bg-gray-50/50">
-                  {v.label}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <button className="w-full mt-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md transition-transform active:scale-95" style={{ backgroundColor: renderData.card_btn_bg, color: renderData.card_btn_text }}>
+          <button className="w-full mt-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md" style={{ backgroundColor: renderData.card_btn_bg, color: renderData.card_btn_text }}>
               Ver opciones
           </button>
         </div>
@@ -943,7 +937,7 @@ const confirmReset = () => {
                         <div className="flex gap-2">
                             {/* --- CARGA RÁPIDA DE PLATOS CON EXPLICACIÓN --- */}
 {!templatesSinFoto.some(t => data.template_id?.toLowerCase().includes(t)) ? (
-    // Si la plantilla permite fotos, mostramos el cargador de siempre
+    // Si la plantilla PERMITE fotos
     <div className="w-12 h-12 bg-white border border-dashed border-gray-200 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0 group">
         <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
         {newProd.image_url ? (
@@ -953,10 +947,10 @@ const confirmReset = () => {
         )}
     </div>
 ) : (
-    // Si NO permite fotos (Bistro, Minimal, etc.), mostramos el aviso al hacer click
+    // Si la plantilla es BÁSICA (Aviso Naranja)
     <button 
         type="button"
-        onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" es un estilo minimalista enfocado en la velocidad y el texto. Por eso, no utiliza imágenes de productos. Si prefieres mostrar fotos, elige una plantilla de tipo 'Visual' o 'Urbano' en la galería.`)}
+        onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" es un estilo de carga rápida. No utiliza imágenes de productos para priorizar la velocidad. Si quieres usar fotos, elige una plantilla 'Visual' o 'Urbano' en la galería.`)}
         className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-amber-100 transition-colors shadow-sm"
         title="¿Por qué no puedo subir fotos?"
     >
