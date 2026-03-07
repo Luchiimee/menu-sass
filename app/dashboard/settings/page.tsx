@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { 
   Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, 
   CalendarDays, Mail, AlertTriangle, LogOut, Trash2, MessageCircle,
-  QrCode, Smartphone, BarChart3, Bell, Globe, ChevronDown, ChevronUp, Layout, Store
+  QrCode, Smartphone, BarChart3, Bell, Globe, ChevronDown, ChevronUp, Layout, Store,ArrowRight
 } from 'lucide-react';
 
 const DAYS = [
@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showHours, setShowHours] = useState(false);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showPlanSuccessModal, setShowPlanSuccessModal] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +39,7 @@ export default function SettingsPage() {
   const [restaurant, setRestaurant] = useState<any>({ id: null, business_hours: {}, subscription_plan: null, created_at: null });
 
  useEffect(() => {
-    const loadData = async () => {
+   const loadData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
@@ -46,56 +47,38 @@ export default function SettingsPage() {
         const user = session.user;
         setUserId(user.id);
 
-        // 1. Intentamos traer datos de la tabla 'profiles'
+        // 1. Traemos lo que hay en la DB
         const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .maybeSingle();
 
-        if (profileData) {
-            // Si ya existe en la DB, usamos eso
-            setProfile({ 
-                first_name: profileData.first_name || '', 
-                last_name: profileData.last_name || '', 
-                phone: profileData.phone || '',
-                email: user.email || '' 
-            });
-        } else {
-            // 2. Si NO existe en la DB (primer ingreso), rescatamos de Metadata (Gmail o Registro Manual)
-            const meta = user.user_metadata || {};
-            let firstName = meta.first_name || '';
-            let lastName = meta.last_name || '';
-            let phone = meta.phone || '';
+        // 2. Sacamos los datos de Google como "respaldo"
+        const meta = user.user_metadata || {};
+        const firstNameMeta = meta.first_name || meta.given_name || meta.full_name?.split(' ')[0] || meta.name || '';
+        const lastNameMeta = meta.last_name || meta.family_name || meta.full_name?.split(' ').slice(1).join(' ') || '';
 
-            // Si se registró con Google, el nombre viene en 'full_name'
-            if (meta.full_name && !firstName) {
-                const parts = meta.full_name.split(' ');
-                firstName = parts[0];
-                lastName = parts.slice(1).join(' ');
-            } else if (meta.name && !firstName) {
-                firstName = meta.name;
-            }
+        // 3. PRIORIDAD: Si está en la DB se usa eso, si no, se usa lo de Google
+        const finalFirstName = profileData?.first_name || firstNameMeta;
+        const finalLastName = profileData?.last_name || lastNameMeta;
 
-            const newProfile = { 
-                first_name: firstName, 
-                last_name: lastName, 
-                email: user.email || '',
-                phone: phone 
-            };
+        setProfile({ 
+            first_name: finalFirstName, 
+            last_name: finalLastName, 
+            phone: profileData?.phone || '',
+            email: user.email || '' 
+        });
 
-            setProfile(newProfile);
-            
-            // 3. Guardado automático inicial para que ya quede creado en la DB
-            await supabase.from('profiles').upsert({
-                id: user.id,
-                first_name: firstName,
-                last_name: lastName,
-                phone: phone
-            });
+        // 4. Si la DB estaba vacía pero Google tenía el nombre, lo guardamos ahora mismo
+        if (profileData && (!profileData.first_name || !profileData.last_name) && finalFirstName) {
+            await supabase.from('profiles').update({
+                first_name: finalFirstName,
+                last_name: finalLastName
+            }).eq('id', user.id);
         }
 
-        // 4. Cargar datos del restaurante
+        // 5. Cargar datos del restaurante (Igual que antes)
         const { data: restData } = await supabase
             .from('restaurants')
             .select('*')
@@ -176,7 +159,7 @@ const saveProfileData = async (newData: any) => {
   };
 
   // --- ACTIVAR TRIAL 14 DÍAS ---
- const handleActivateTrial = async (planType: 'light' | 'plus') => {
+const handleActivateTrial = async (planType: 'light' | 'plus') => {
   if (!userId) {
     toast.error("No se encontró la sesión de usuario.");
     return;
@@ -185,8 +168,6 @@ const saveProfileData = async (newData: any) => {
   setProcessingPlan(planType);
   
   try {
-    // 1. Creamos un slug automático (ej: snappy-a1b2c) por si el restaurante es nuevo
-    // Esto evita el error de "null value in column slug"
     const autoSlug = `snappy-${Math.random().toString(36).substring(2, 7)}`;
 
     const { data, error } = await supabase
@@ -198,7 +179,7 @@ const saveProfileData = async (newData: any) => {
         subscription_status: 'trialing',
         trial_start_date: new Date().toISOString(),
         name: restaurant?.name || 'Mi Restaurante',
-        slug: restaurant?.slug || autoSlug // <--- AGREGAMOS ESTA LÍNEA CLAVE
+        slug: restaurant?.slug || autoSlug 
       }, {
         onConflict: 'user_id' 
       })
@@ -206,9 +187,12 @@ const saveProfileData = async (newData: any) => {
       .single();
 
     if (error) throw error;
-    if (data) setRestaurant(data);
 
-    toast.success(`¡Plan ${planType.toUpperCase()} activado! 14 días gratis.`);
+    if (data) {
+      setRestaurant(data);
+      // CAMBIO CLAVE: Activamos el modal de éxito
+      setShowPlanSuccessModal(true);
+    }
     
   } catch (error: any) { 
     console.error("Error al activar:", error.message);
@@ -447,6 +431,37 @@ const saveProfileData = async (newData: any) => {
             </section>
         </div>
       </div>
+      {/* --- MODAL DE PLAN ACTIVADO EXITOSAMENTE --- */}
+{showPlanSuccessModal && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
+      {/* Decoración de fondo */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-100 rounded-full opacity-50 blur-3xl"></div>
+      
+      <div className="relative z-10">
+        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3 shadow-lg">
+          <Zap size={40} fill="currentColor" />
+        </div>
+        
+        <h3 className="text-3xl font-black text-gray-900 mb-2 leading-tight uppercase italic tracking-tighter">
+          ¡Plan Activado!
+        </h3>
+        
+        <p className="text-gray-500 text-sm mb-8 font-medium leading-relaxed">
+          ¡Genial! Tu prueba de <span className="text-emerald-600 font-bold">14 días gratis</span> ya está activa. 🚀 <br/><br/>
+          Ahora, para terminar la configuración, elegí el rubro de tu negocio.
+        </p>
+
+        <button 
+          onClick={() => router.push('/dashboard/templates')}
+          className="w-full bg-black text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          Elegir mi rubro <ArrowRight size={18} />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

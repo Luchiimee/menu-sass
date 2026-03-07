@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
@@ -314,6 +314,8 @@ const TEMPLATES = [
 
 export default function GalleryPage() {
   const [isOpen, setIsOpen] = useState(true);
+  const searchParams = useSearchParams();
+  const isNewlyActivated = searchParams.get('activated')
   
 const router = useRouter();
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
@@ -362,28 +364,26 @@ useEffect(() => {
     };
     load();
 }, [supabase]);
+
 const handleSaveBusinessInfo = async (subType: string) => {
     setIsUpdatingType(true);
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user && tempType) {
-        // 1. Intentamos guardar en la base de datos
         const { error } = await supabase.from('restaurants').update({ 
             business_type: tempType === 'unidad' ? 'gastronomico' : 'fraccionado',
             business_subtype: subType,
             sale_type: tempType, 
-            onboarding_completed: true 
+            onboarding_completed: true // <--- ESTA ES LA MARCA DE "YA PASÉ POR AQUÍ"
         }).eq('user_id', user.id);
 
-        // 2. Si hubo error (ej: permisos), avisamos y no cerramos el cartel
         if (error) {
             console.error("Error DB:", error);
-            alert("No se pudo guardar en la base de datos. Revisá tu conexión.");
             setIsUpdatingType(false);
             return;
         }
         
-        // 3. Si guardó bien, recién ahí actualizamos la pantalla
+        // Refrescamos para que el Layout se entere que ya no tiene que bloquear
         setSaleType(tempType);
         setStep(3); 
         setShowOnboarding(false);
@@ -694,11 +694,15 @@ if (isInitialLoading) {
             {/* PASO 2: ELEGIR SUB-RUBRO (OPCIONES QUE PEDISTE) */}
             {step === 2 && (
               <div className="space-y-8 animate-in slide-in-from-right-5 duration-300">
-                <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-slate-400 hover:text-black">← Volver</button>
-                <div className="text-center space-y-2">
-                  <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 02</span>
-                  <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Elegí tu especialidad</h2>
-                </div>
+
+              {saleType && (
+      <button 
+        onClick={() => setStep(1)} 
+        className="text-[10px] font-black uppercase text-slate-400 hover:text-black mb-4 flex items-center gap-1"
+      >
+        ← Volver
+      </button>
+    )}
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {tempType === 'unidad' ? (
@@ -755,6 +759,7 @@ if (isInitialLoading) {
   } (CAMBIAR)
 </button>
 </header>
+
 
       {/* --- BARRA DE FILTROS --- */}
       <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">

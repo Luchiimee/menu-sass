@@ -38,17 +38,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isCollapsed, setIsCollapsed] = useState(false); 
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileData, setProfileData] = useState<any>(null); // Tu estado centralizado
-  const [restaurant, setRestaurant] = useState<{
+const [restaurant, setRestaurant] = useState<{
     id?: string,
     name: string,
     plan: string | null,
     status: string,
-    logo_url: string | null
+    logo_url: string | null,
+    sale_type: string | null,
+    onboarding_completed: boolean // <--- AGREGÁ ESTO
   }>({
     name: '',      
     plan: null,    
     status: 'active',
-    logo_url: null
+    logo_url: null,
+    sale_type: null,
+    onboarding_completed: false // <--- AGREGÁ ESTO
   });
     
   useEffect(() => {
@@ -67,42 +71,60 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const { data: rest } = await supabase
           .from('restaurants')
-         .select('id, name, subscription_plan, subscription_status, logo_url')
+          
+       .select('id, name, subscription_plan, subscription_status, logo_url, sale_type, onboarding_completed') 
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, phone, created_at, payment_configured')
-          .eq('id', session.user.id)
-          .maybeSingle();
+   const { data: profile } = await supabase
+  .from('profiles')
+  .select('first_name, last_name, phone, created_at, payment_configured')
+  .eq('id', session.user.id)
+  .maybeSingle();
+
+if (mounted) {
+    const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+    
+    // --- NUEVA LÓGICA DE SINCRONIZACIÓN DE NOMBRE ---
+    let firstName = profile?.first_name;
+    let lastName = profile?.last_name;
+
+    // Si la base de datos está vacía, sacamos los datos de Google/Sesión
+    if (!firstName && session.user.user_metadata) {
+        const meta = session.user.user_metadata;
+        firstName = meta.first_name || meta.given_name || meta.full_name?.split(' ')[0] || meta.name || '';
+        lastName = meta.last_name || meta.family_name || meta.full_name?.split(' ').slice(1).join(' ') || '';
         
-        if (mounted) {
-            const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
-            console.log("🔍 DEBUG - Datos del Restaurante:", rest);
-            
-            // 1. Guardamos los datos en el estado para que TODO el componente los vea
-            setProfileData(profile); 
-            setIsAdmin(isSuperAdmin);
+        // Guardamos en la base de datos automáticamente para que Settings ya lo tenga
+        await supabase.from('profiles').upsert({
+            id: session.user.id,
+            first_name: firstName,
+            last_name: lastName
+        });
+    }
 
-            setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
+    setProfileData({ ...profile, first_name: firstName, last_name: lastName }); 
+    setIsAdmin(isSuperAdmin);
+    setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
 
-            let displayName = "Bienvenido";
-            if (profile?.first_name) {
-                const initial = profile.last_name ? ` ${profile.last_name[0]}.` : '';
-                displayName = `${profile.first_name}${initial}`;
-            } else if (rest?.name) {
-                displayName = rest.name;
-            }
+    // Definimos el nombre a mostrar en el sidebar
+    let displayName = "Bienvenido";
+    if (firstName) {
+        const initial = lastName ? ` ${lastName[0]}.` : '';
+        displayName = `${firstName}${initial}`;
+    } else if (rest?.name) {
+        displayName = rest.name;
+    }
 
-            setRestaurant({
-    id: rest?.id, // <--- AGREGÁ ESTA LÍNEA
+setRestaurant({
+    id: rest?.id, 
     name: displayName, 
     plan: isSuperAdmin ? 'max' : (rest?.subscription_plan || null),
     status: isSuperAdmin ? 'active' : (rest?.subscription_status || 'active'),
-    logo_url: rest?.logo_url || null
-});
-            
+    logo_url: rest?.logo_url || null,
+    sale_type: rest?.sale_type || null,
+    onboarding_completed: rest?.onboarding_completed || false
+});      
             setIsLoading(false);
         }
       } catch (error) {
@@ -172,7 +194,7 @@ useEffect(() => {
   let daysRemaining = 14;
   let isExpired = false;
   let showWarning = false;
-
+ const isMandatoryOnboarding = restaurant.plan && !restaurant.onboarding_completed;
   // Solo calculamos si ya terminó de cargar y tenemos los datos del perfil
   if (!isLoading && profileData?.created_at) {
     const createdAt = new Date(profileData.created_at);
@@ -434,8 +456,27 @@ const menuItems = [
   </div>
 )}
 
-    {/* LÓGICA DE BLOQUEO TOTAL */}
-    {isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
+{/* LÓGICA DE BLOQUEO TOTAL (ONBOARDING) */}
+{isMandatoryOnboarding && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' ? (
+    <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
+        <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-indigo-50 max-w-md">
+            <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Store size={40} />
+            </div>
+            <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.3em] mb-2 block">Paso Final</span>
+            <h2 className="text-3xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
+            <p className="text-gray-500 mb-8 font-medium">
+                ¡Ya tenés tu plan activo! Tu prueba de 14 días comenzó. Ahora elegí tu rubro para activar las herramientas de venta.
+            </p>
+            <Link 
+                href="/dashboard/templates" 
+                className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-indigo-700 transition shadow-xl shadow-indigo-100"
+            >
+                Elegir Rubro y Diseño <ArrowRight size={18} className="inline ml-2" />
+            </Link>
+        </div>
+    </div>
+) : isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
         <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-red-50 max-w-md">
           <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
