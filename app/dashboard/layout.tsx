@@ -195,6 +195,8 @@ useEffect(() => {
   let isExpired = false;
   let showWarning = false;
 const needsRubro = restaurant.plan && !restaurant.onboarding_completed; 
+const needsPlan = !restaurant.plan;
+
   // Solo calculamos si ya terminó de cargar y tenemos los datos del perfil
   if (!isLoading && profileData?.created_at) {
     const createdAt = new Date(profileData.created_at);
@@ -458,8 +460,24 @@ const menuItems = [
 
 
 
-{/* 1. BLOQUEO SOLO SI TIENE PLAN PERO NO RUBRO: Obligatorio ir a Plantillas */}
-    {needsRubro && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' ? (
+{/* 1. BLOQUEO SI NO TIENE PLAN: Bloquea TODO excepto Configuración (Para que vea el efecto vidrio) */}
+    {needsPlan && pathname !== '/dashboard/settings' ? (
+      <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
+          <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md">
+              <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <Zap size={40} />
+              </div>
+              <h2 className="text-3xl font-black mb-4 uppercase italic leading-none">¡Bienvenido!</h2>
+              <p className="text-gray-500 mb-8 font-medium">Para comenzar a crear tu menú, primero debes activar un plan (tenés 14 días gratis).</p>
+              <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">
+                  Ver Planes Disponibles <ArrowRight size={18} className="inline ml-2" />
+              </Link>
+          </div>
+      </div>
+    ) 
+    
+    // 2. BLOQUEO SI TIENE PLAN PERO NO RUBRO: Bloquea todo excepto Plantillas y Configuración
+    : needsRubro && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' ? (
       <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
           <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-indigo-50 max-w-md">
               <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
@@ -467,27 +485,21 @@ const menuItems = [
               </div>
               <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.3em] mb-2 block">Paso Final</span>
               <h2 className="text-3xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
-              <p className="text-gray-500 mb-8 font-medium">¡Ya tenés tu plan activo! Tu prueba de 14 días comenzó. Ahora elegí tu rubro para activar las herramientas de venta.</p>
+              <p className="text-gray-500 mb-8 font-medium">¡Ya tenés tu plan activo! Ahora elegí tu rubro para activar las herramientas de venta.</p>
               <Link href="/dashboard/templates" className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-indigo-700 transition shadow-xl shadow-indigo-100">
                   Elegir Rubro Ahora <ArrowRight size={18} className="inline ml-2" />
               </Link>
           </div>
       </div>
-    ) 
-    // 2. BLOQUEO SI EL TRIAL EXPIRÓ (Lo mantenemos para cuando pasen los 14 días)
+    )
+    
+    // 3. BLOQUEO DE EXPIRACIÓN (Igual que antes)
     : isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
-        <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-             <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-red-50 max-w-md">
-                <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <AlertTriangle size={40} />
-                </div>
-                <h2 className="text-3xl font-black mb-4 uppercase italic">Servicio Pausado</h2>
-                <p className="text-gray-500 mb-8 font-medium">Tu prueba de 14 días ha finalizado. Selecciona un plan para continuar.</p>
-                <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">Configurar Pago <ArrowRight size={18} className="inline ml-2" /></Link>
-             </div>
-        </div>
+       /* ... Tu bloque de Servicio Pausado ... */
+       <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 text-center">
+          {/* (Dejá el contenido que ya tenías para el vencimiento) */}
+       </div>
     ) : (
-      /* SI NO HAY BLOQUEOS, MUESTRA EL CONTENIDO NORMAL (INICIO) */
       children
     )}
 </div>

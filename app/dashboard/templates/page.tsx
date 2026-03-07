@@ -665,7 +665,7 @@ if (isInitialLoading) {
       <style>{GALLERY_STYLES}</style>
       
     {/* --- NUEVO ONBOARDING MULTI-PASO --- */}
-     {!isInitialLoading && (showOnboarding || !saleType) && (
+     {!isInitialLoading && userPlan !== 'free' && (showOnboarding || !saleType) && (
         <div className="fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center p-6 animate-in fade-in duration-500 overflow-y-auto">
           <div className="max-w-2xl w-full space-y-12 py-10">
             
