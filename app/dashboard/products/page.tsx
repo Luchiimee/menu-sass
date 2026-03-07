@@ -702,27 +702,27 @@ if (loading) return (
         </div>
     </div>
 
-    {/* CATEGORÍA */}
-    {(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight' || selectedTemplate?.includes('icecream')) && (
-        <div className="pt-2">
-            <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
-            <div className="relative">
-                <select 
-                    value={formData.category_id || ''} 
-                    onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all appearance-none cursor-pointer"
-                >
-                    <option value="">Seleccionar categoría...</option>
-                    {categories.filter(c => c.name.toLowerCase() !== 'general').map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <Layers size={14}/>
-                </div>
+ {/* CATEGORÍA: Oculto para diseños de carga rápida (Classic, Minimal, Icecream, etc.) */}
+{selectedTemplate && !templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) && (
+    <div className="pt-2">
+        <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
+        <div className="relative">
+            <select 
+                value={formData.category_id || ''} 
+                onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all appearance-none cursor-pointer"
+            >
+                <option value="">Seleccionar categoría...</option>
+                {categories.filter(c => c.name.toLowerCase() !== 'general').map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <Layers size={14}/>
             </div>
         </div>
-    )}
+    </div>
+)}
 </div>
 
                         {/* 3. SECCIÓN DE ADICIONALES (EXTRAS) */}
