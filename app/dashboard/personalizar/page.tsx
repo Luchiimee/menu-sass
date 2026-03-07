@@ -116,6 +116,20 @@ urban: {
     card_name: '#000000', card_desc: '#999999', card_price: '#059669', 
     btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#f3f4f6', promo_text: '#000000', banner: true 
   },
+  'icecream-v1': { 
+    theme: '#00bcd4', 
+    bg: '#f0faff', 
+    text: '#000000', 
+    desc: '#666666', 
+    card_name: '#000000', 
+    card_desc: '#666666', 
+    card_price: '#00bcd4', 
+    btn_bg: '#00bcd4', 
+    btn_text: '#ffffff', 
+    promo_bg: '#e0f7fa', 
+    promo_text: '#00838f', 
+    banner: false
+  },
 };
 
 const CUSTOM_STYLES = `
@@ -192,6 +206,29 @@ google_maps_link: '',
   });
 
   const [products, setProducts] = useState<any[]>([]);
+  useEffect(() => {
+  const fetchProducts = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    // Traemos el ID del restaurante primero
+    const { data: rest } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (rest) {
+      const { data: prods } = await supabase
+        .from('products')
+        .select('*')
+        .eq('restaurant_id', rest.id);
+      
+      if (prods) setProducts(prods);
+    }
+  };
+  fetchProducts();
+}, []);
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
   // --- LÓGICA DE AUTOGUARDADO ---
@@ -283,13 +320,15 @@ const getTemplateConfig = () => {
       editable: true,
       group: id, 
       showClassicBanner: id === 'classic',
-      showAccent: ['urban', 'visualgrid', 'marketpro'].includes(id),
+      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1'].includes(id),
       showFonts: id === 'marketpro',
-      showBannerImg: ['spotlight', 'marketpro'].includes(id), // <--- FIX ERROR
-      showHeroEditor: id === 'spotlight', // <--- FIX ERROR
-      showSearch: id === 'marketpro', // <--- FIX ERROR
-      showCard: ['urban', 'visualgrid', 'pop', 'spotlight', 'marketpro'].includes(id) // <--- FIX ERROR
+      showBannerImg: ['spotlight', 'marketpro',].includes(id), 
+      // Juntamos todo en un solo showCard para que no se repita
+      showCard: ['urban', 'visualgrid', 'pop', 'spotlight', 'marketpro', 'icecream-v1'].includes(id),
+      showHeroEditor: id === 'spotlight',
+      showSearch: id === 'marketpro'
     };
+    
     if (id === 'elegant' || id === 'bistro') config.editable = false;
     return config;
 };
@@ -488,6 +527,63 @@ const confirmReset = () => {
                       case 'bistro': return <BistroChalk {...props} />;
                       default: return <ClassicDelivery {...props} />;
                       case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
+         case 'icecream-v1': return (
+  <div className="flex flex-col h-full font-sans text-left" style={{ backgroundColor: renderData.bg_color }}>
+    {/* Header */}
+    <div className="p-4 bg-white border-b flex justify-between items-center shadow-sm">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: renderData.theme_color }}>🍦</div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black uppercase tracking-tighter leading-none" style={{ color: renderData.text_color }}>{renderData.name || 'Tu Negocio'}</span>
+          <span className="text-[7px] font-bold uppercase tracking-widest mt-1" style={{ color: renderData.description_color }}>{renderData.description || 'Venta Fraccionada'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="p-4 space-y-4">
+      {/* Banner Promo */}
+      {renderData.show_promo && (
+        <div className="p-3 rounded-xl text-[8px] font-black text-center border animate-pulse" style={{ backgroundColor: renderData.promo_bg_color, color: renderData.promo_text_color, borderColor: renderData.theme_color + '40' }}>
+          ✨ {renderData.promo_message || '¡Bienvenidos a nuestra tienda!'}
+        </div>
+      )}
+
+      {/* --- LISTA DINÁMICA DE PRODUCTOS REALES --- */}
+      {displayProds.map((p: any) => (
+        <div key={p.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="flex justify-between items-start mb-3">
+            <div className="text-left flex-1 pr-2">
+              <h4 className="text-[11px] font-black uppercase leading-tight" style={{ color: renderData.card_name_color }}>{p.name}</h4>
+              <p className="text-[8px] mt-1 line-clamp-2" style={{ color: renderData.card_desc_color }}>{p.description}</p>
+            </div>
+            <div className="text-right">
+               <span className="text-[11px] font-black block leading-none" style={{ color: renderData.card_price_color }}>
+                 {/* Si tiene variantes muestra la primera, sino el precio normal */}
+                 ${p.variations?.length > 0 ? p.variations[0].price : p.price}
+               </span>
+               <span className="text-[6px] text-gray-400 uppercase font-bold tracking-tighter">Desde</span>
+            </div>
+          </div>
+          
+          {/* Muestra los Pesos/Medidas si existen */}
+          {p.variations?.length > 0 && (
+            <div className="grid grid-cols-3 gap-1.5 mt-2">
+              {p.variations.map((v: any, idx: number) => (
+                <div key={idx} className="border border-gray-100 rounded-lg py-1 text-[7px] text-center font-bold text-gray-500 bg-gray-50/50">
+                  {v.label}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <button className="w-full mt-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md transition-transform active:scale-95" style={{ backgroundColor: renderData.card_btn_bg, color: renderData.card_btn_text }}>
+              Ver opciones
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+);
                   }
                })()}
             </div>
@@ -623,29 +719,7 @@ const confirmReset = () => {
         )}
     </div>
 )}
-    <div className="mb-6 space-y-2"> 
-    <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest block">
-        Rubro del Negocio
-    </label>
-    <div className="grid grid-cols-2 gap-2">
-        <button 
-            type="button"
-            onClick={() => { setData({...data, business_type: 'gastronomico'}); setUnsavedChanges(true); }}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${data.business_type === 'gastronomico' ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm' : 'border-gray-100 text-gray-400 hover:border-gray-200 bg-white'}`}
-        >
-            <Utensils size={16} />
-            <span className="text-[10px] font-black uppercase">Gastronomía</span>
-        </button>
-        <button 
-            type="button"
-            onClick={() => { setData({...data, business_type: 'comercio'}); setUnsavedChanges(true); }}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${data.business_type === 'comercio' ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-gray-100 text-gray-400 hover:border-gray-200 bg-white'}`}
-        >
-            <Store size={16} />
-            <span className="text-[10px] font-black uppercase">Tienda / Kiosco</span>
-        </button>
-    </div>
-</div>
+  
               <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                   <div className="grid grid-cols-1 gap-4">
                     <div>
@@ -861,7 +935,9 @@ const confirmReset = () => {
   </section>
 )}
               <section className="pt-4 border-t">
-                  <h3 className="font-bold flex items-center gap-2 text-sm mb-3"><Utensils size={16}/> Carga Rápida de Platos</h3>
+                <h3 className="font-bold flex items-center gap-2 text-sm mb-3">
+  <Utensils size={16}/> Carga rápida
+</h3>
                   {products.length < 2 ? (
                     <div className="bg-gray-50 border p-3 rounded-xl space-y-2">
                         <div className="flex gap-2">

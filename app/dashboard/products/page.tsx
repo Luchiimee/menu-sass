@@ -33,8 +33,17 @@ const [categoryFormData, setCategoryFormData] = useState({ name: '' });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [businessType, setBusinessType] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', image_url: '',category_id: '' });
+ const [formData, setFormData] = useState({ 
+  name: '', 
+  description: '', 
+  price: '', 
+  image_url: '', 
+  category_id: '',
+  // Usamos "label" para que sirva para "100g", "Atado", "Cajón", etc.
+  variations: [] as { label: string, price: string }[] 
+});
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
   const supabase = createBrowserClient(
@@ -62,17 +71,18 @@ const [categoryFormData, setCategoryFormData] = useState({ name: '' });
         const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
         setIsAdmin(isSuperAdmin);
 
-        const { data: rest, error: restError } = await supabase
-            .from('restaurants')
-            .select('id, subscription_plan, subscription_status, template_id')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
+      const { data: rest, error: restError } = await supabase
+    .from('restaurants')
+    .select('id, business_type, subscription_plan, subscription_status, template_id') 
+    .eq('user_id', session.user.id)
+    .maybeSingle();
 
-        if (restError) throw restError;
+if (restError) throw restError;
 
-        if (rest) {
-            setRestaurantId(rest.id);
-            setCurrentPlan(rest.subscription_plan);
+if (rest) {
+    setRestaurantId(rest.id);
+    setBusinessType(rest.business_type); // <--- IMPORTANTE: Esto es lo que activa el modo "Kilos"
+    setCurrentPlan(rest.subscription_plan);
             if (rest.template_id) setSelectedTemplate(rest.template_id);
 
             // 2. Lógica de Bloqueo: Si no tiene plan y NO es admin, se bloquea la pantalla
@@ -115,34 +125,36 @@ if (cats) setCategories(cats);
   }, [supabase]);
 
 const openCreateModal = () => {
-    // Si es plan light, no es admin y ya tiene 15 o más, bloqueamos
     if (currentPlan === 'light' && !isAdmin && products.length >= 15) {
          if (confirm("🚀 Límite de 15 productos alcanzado. ¿Pasar al plan Plus para productos ilimitados?")) {
              router.push('/dashboard/settings');
          }
          return; 
     }
-    // Si no, abrimos el modal normal
     setEditingId(null);
-    setFormData({ name: '', description: '', price: '', image_url: '', category_id: '' });
+    setFormData({ 
+      name: '', description: '', price: '', image_url: '', category_id: '',
+      variations: [] // Reseteamos variaciones
+    });
     setSelectedExtras([]); 
     setShowModal(true);
 };
-  const openEditModal = async (product: any) => {
-      setEditingId(product.id);
-      setFormData({
-          name: product.name,
-          description: product.description || '',
-          price: product.price,
-          image_url: product.image_url || '',
-          category_id: product.category_id || ''
-      });
-      setSelectedExtras([]); 
-      const { data: rels } = await supabase.from('product_extras').select('extra_id').eq('product_id', product.id);
-      if (rels) setSelectedExtras(rels.map(r => r.extra_id));
-      setShowModal(true);
-  };
 
+const openEditModal = async (product: any) => {
+    setEditingId(product.id);
+    setFormData({
+        name: product.name,
+        description: product.description || '',
+        price: product.price || '',
+        image_url: product.image_url || '',
+        category_id: product.category_id || '',
+        variations: product.variations || [] // Cargamos variaciones existentes
+    });
+    setSelectedExtras([]); 
+    const { data: rels } = await supabase.from('product_extras').select('extra_id').eq('product_id', product.id);
+    if (rels) setSelectedExtras(rels.map(r => r.extra_id));
+    setShowModal(true);
+};
   const toggleExtra = (extraId: string) => {
       if (selectedExtras.includes(extraId)) setSelectedExtras(selectedExtras.filter(id => id !== extraId));
       else setSelectedExtras([...selectedExtras, extraId]);
@@ -160,60 +172,76 @@ const openCreateModal = () => {
       } catch (error) { alert('Error al subir imagen'); } finally { setUploading(false); }
   };
 
-  const handleSaveProduct = async () => {
-      if (!formData.name || !formData.price) return alert("Nombre y Precio son obligatorios");
-      if (!restaurantId) return;
-      setSaving(true);
-      try {
-          let productId = editingId;
-          const productData = {
-              name: formData.name,
-              description: formData.description,
-              price: Number(formData.price),
-              image_url: formData.image_url,
-              category_id: formData.category_id || null
-          };
+ const handleSaveProduct = async () => {
+    // 1. VALIDACIÓN INTELIGENTE
+    const hasVariations = formData.variations && formData.variations.length > 0;
+    
+    // Si no hay nombre, o si no hay precio único NI variaciones, tira error
+    if (!formData.name || (!formData.price && !hasVariations)) {
+        return alert("Faltan datos: Nombre y Precio (o al menos una Opción de Venta) son obligatorios.");
+    }
 
-          if (editingId) {
-              await supabase.from('products').update(productData).eq('id', editingId);
-              setProducts(products.map(p => p.id === editingId ? { ...p, ...productData } : p));
-          } else {
-              // 1. Calculamos la categoría a usar (la seleccionada o la de respaldo)
-              let categoryIdToUse = formData.category_id;
+    if (!restaurantId) return;
+    setSaving(true);
 
-              if (!categoryIdToUse) {
-                  const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', restaurantId).limit(1);
-                  if (cats && cats.length > 0) {
-                      categoryIdToUse = cats[0].id;
-                  } else {
-                      const { data: newCat } = await supabase.from('categories').insert({ 
-                          restaurant_id: restaurantId, 
-                          name: 'General', 
-                          sort_order: 1 
-                      }).select().single();
-                      if (newCat) categoryIdToUse = newCat.id;
-                  }
-              }
+    try {
+        let productId = editingId;
+        
+        // 2. PREPARAMOS LOS DATOS (Incluyendo las nuevas variaciones)
+        const productData: any = {
+            name: formData.name,
+            description: formData.description,
+            // Si no hay precio único, guardamos 0 o null
+            price: formData.price ? Number(formData.price) : 0, 
+            image_url: formData.image_url,
+            category_id: formData.category_id || null,
+            variations: formData.variations // <--- AGREGAMOS LAS VARIANTES AQUÍ
+        };
 
-              // 2. Insertamos usando el categoryIdToUse calculado
-              const { data: inserted } = await supabase.from('products').insert({ 
-                  ...productData, // Trae nombre, desc, precio, img
-                  restaurant_id: restaurantId, 
-                  category_id: categoryIdToUse // Aquí pasamos el valor final
-              }).select().single();
+        if (editingId) {
+            const { error } = await supabase.from('products').update(productData).eq('id', editingId);
+            if (error) throw error;
+            setProducts(products.map(p => p.id === editingId ? { ...p, ...productData } : p));
+        } else {
+            // Lógica de categoría por defecto (la misma que ya tenías)
+            let categoryIdToUse = formData.category_id;
+            if (!categoryIdToUse) {
+                const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', restaurantId).limit(1);
+                if (cats && cats.length > 0) {
+                    categoryIdToUse = cats[0].id;
+                } else {
+                    const { data: newCat } = await supabase.from('categories').insert({ 
+                        restaurant_id: restaurantId, name: 'General', sort_order: 1 
+                    }).select().single();
+                    if (newCat) categoryIdToUse = newCat.id;
+                }
+            }
 
-              if (inserted) { productId = inserted.id; setProducts([inserted, ...products]); }
-          }
+            const { data: inserted, error } = await supabase.from('products').insert({ 
+                ...productData, 
+                restaurant_id: restaurantId, 
+                category_id: categoryIdToUse 
+            }).select().single();
 
-          if (productId) {
-              await supabase.from('product_extras').delete().eq('product_id', productId);
-              if (selectedExtras.length > 0) {
-                  await supabase.from('product_extras').insert(selectedExtras.map(extraId => ({ product_id: productId, extra_id: extraId })));
-              }
-          }
-          setShowModal(false);
-      } catch (error: any) { alert("Error: " + error.message); } finally { setSaving(false); }
-  };
+            if (error) throw error;
+            if (inserted) { productId = inserted.id; setProducts([inserted, ...products]); }
+        }
+
+        // Lógica de extras (la misma que ya tenías)
+        if (productId) {
+            await supabase.from('product_extras').delete().eq('product_id', productId);
+            if (selectedExtras.length > 0) {
+                await supabase.from('product_extras').insert(selectedExtras.map(extraId => ({ product_id: productId, extra_id: extraId })));
+            }
+        }
+        
+        setShowModal(false);
+    } catch (error: any) { 
+        alert("Error al guardar: " + error.message); 
+    } finally { 
+        setSaving(false); 
+    }
+};
 
   const handleDeleteProduct = async (id: string) => {
       if(!confirm("¿Eliminar producto?")) return;
@@ -268,7 +296,12 @@ const handleDeleteCategory = async (id: string) => {
       setAvailableExtras(availableExtras.filter(e => e.id !== id));
   };
 
-  if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-violet-600"/></div>;
+if (loading) return (
+  <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[200]">
+    <Loader2 className="animate-spin text-violet-600 mb-4" size={40}/>
+    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Cargando catálogo...</p>
+  </div>
+);
 
   return (
     <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-24 md:pt-0 font-sans">
@@ -287,43 +320,53 @@ const handleDeleteCategory = async (id: string) => {
             </div>
         )}
 
-   {/* --- REEMPLAZÁ DESDE AQUÍ --- */}
-   <div className={`space-y-8 transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60' : ''}`}>
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 tracking-tight">
-            <span className="p-2 bg-violet-100 text-violet-600 rounded-lg"><UtensilsCrossed size={24}/></span>
-            Menú Digital
-            
-            {/* CONTADOR DINÁMICO: Solo aparece en Plan Light y si no sos Admin */}
-          {currentPlan === 'light' && !isAdmin && (
-            <span className={`ml-2 px-2 py-0.5 rounded-md text-xs font-bold border transition-colors duration-300 ${
-                products.length >= 15 
-                ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' 
-                : 'bg-gray-100 text-gray-500 border-gray-200'
-            }`}>
-                {products.length} / 15
-            </span>
+ <div className={`space-y-8 transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60' : ''}`}>
+  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div>
+      <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 tracking-tight">
+        <span className="p-2 bg-violet-100 text-violet-600 rounded-lg"><UtensilsCrossed size={24}/></span>
+        Menú Digital
+        
+        {currentPlan === 'light' && !isAdmin && (
+          <span className={`ml-2 px-2 py-0.5 rounded-md text-xs font-bold border ${
+              products.length >= 15 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500'
+          }`}>
+              {products.length} / 15
+          </span>
         )}
-          </h1>
-          <p className="text-gray-500 mt-1 ml-1">Administra tus productos y opciones extra.</p>
-        </div>
+      </h1>
 
-        <div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto shadow-inner">
-          <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-            <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
-          </button>
-          <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-            <Layers size={16} className="inline mr-2"/> Adicionales
-          </button>
-          {/* DESPUÉS DE: Adicionales */}
-{(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight') && (
+      {/* --- BADGE DE RUBRO ACTUALIZADO --- */}
+      <div className="mt-4 flex items-center gap-2">
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest shadow-sm ${
+          businessType === 'fraccionado' 
+          ? 'bg-cyan-50 border-cyan-100 text-cyan-700' 
+          : 'bg-violet-50 border-violet-100 text-violet-700'
+        }`}>
+          <Check size={12} strokeWidth={3}/>
+          Catálogo adaptado para: {businessType === 'fraccionado' ? 'Venta por Peso / Fraccionado' : 'Venta por Unidad'}
+        </div>
+      </div>
+      <p className="text-slate-500 mt-3 ml-1 text-sm font-medium">Administra tus productos y opciones de tu negocio.</p>
+    </div>
+
+    {/* NAVEGACIÓN DE TABS */}
+<div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto shadow-inner">
+  <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+    <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
+  </button>
+  <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+    <Layers size={16} className="inline mr-2"/> Adicionales
+  </button>
+  
+  {/* SOLO MOSTRAMOS CATEGORÍAS EN MARKETPRO Y SPOTLIGHT (Heladería NO) */}
+  {(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight') && (
     <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
         <List size={16} className="inline mr-2"/> Categorías
     </button>
-)}
-        </div>
-      </div>
+  )}
+</div>
+  </div>
       {/* --- EL RESTO DE TU CÓDIGO (Buscador, Tabla, etc.) SIGUE ABAJO --- */}
 
            <div className="flex flex-wrap items-center justify-between gap-4">
@@ -377,23 +420,34 @@ const handleDeleteCategory = async (id: string) => {
                                     <tbody className="divide-y">
                                         {products.map((p) => (
                                             <tr key={p.id} className="hover:bg-gray-50 group transition">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden">
-                                                            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="p-2 text-gray-300 w-full h-full"/>}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-gray-900">{p.name}</p>
-                                                            <p className="text-[10px] text-gray-400 line-clamp-1">{p.description}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 font-bold text-violet-600">${p.price}</td>
+                                <td className="px-6 py-4">
+    <div className="flex items-center gap-3 text-left">
+        <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100">
+            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="p-2 text-gray-300 w-full h-full"/>}
+        </div>
+        <div className="flex flex-col">
+            {/* NOMBRE SIN TRUNCATE Y BIEN NEGRO */}
+            <p className="font-black text-slate-900 uppercase leading-tight mb-1">{p.name}</p>
+            {/* DESCRIPCIÓN OSCURA Y COMPLETA */}
+            <p className="text-[11px] text-slate-600 font-medium leading-relaxed max-w-[250px]">{p.description}</p>
+        </div>
+    </div>
+</td>
+                                                <td className="px-6 py-4 font-bold text-violet-600">
+  {p.variations && p.variations.length > 0
+    ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
+    : `$ ${p.price || 0}`}
+</td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <button onClick={() => openEditModal(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={14}/></button>
-                                                        <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14}/></button>
-                                                    </div>
+    {/* Botón Editar: Se queda siempre igual */}
+    <button onClick={() => openEditModal(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={14}/></button>
+    
+    {/* Botón Borrar: Agregamos 'hidden md:flex' para que solo se vea en PC */}
+    <button onClick={() => handleDeleteProduct(p.id)} className="hidden md:flex p-2 text-red-500 hover:bg-red-50 rounded-lg">
+        <Trash2 size={14}/>
+    </button>
+</div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -413,7 +467,11 @@ const handleDeleteCategory = async (id: string) => {
                                         </div>
                                         <div className="p-3">
                                             <p className="font-bold text-sm truncate">{p.name}</p>
-                                            <p className="text-violet-600 font-bold text-xs mt-1">${p.price}</p>
+                                            <p className="font-bold text-violet-600 text-sm">
+  {p.variations && p.variations.length > 0
+    ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
+    : `$ ${p.price || 0}`}
+</p>
                                         </div>
                                     </div>
                                 ))}
@@ -532,60 +590,136 @@ const handleDeleteCategory = async (id: string) => {
                             </div>
                         )}
 
-                 {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Nombre del Producto</label>
-                                <div className="relative">
-                                    <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="Ej: Pizza Napolitana"/>
-                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                                </div>
-                            </div>
+             {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
+<div className="space-y-4">
+    {/* NOMBRE */}
+    <div>
+        <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Nombre del Producto</label>
+        <div className="relative">
+            <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="Ej: Pizza Napolitana"/>
+            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+        </div>
+    </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Precio</label>
-                                <div className="relative">
-                                    <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                                </div>
-                            </div>
+  {/* LÓGICA DE PRECIO DINÁMICA (PESO/UNIDAD) */}
+{businessType === 'fraccionado' || isAdmin ? ( // Podés sumar más condiciones aquí
+  <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-500 text-left">
+    <div className="flex items-center justify-between mb-2">
+      <div>
+        <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+          <Layers size={14} className="text-violet-500"/> Opciones de Venta
+        </label>
+        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Fraccionado / Pesos / Medidas</p>
+      </div>
+      <button 
+        type="button"
+        onClick={() => setFormData({
+          ...formData, 
+          variations: [...formData.variations, { label: '', price: '' }]
+        })}
+        className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-black transition-all flex items-center gap-1 shadow-md"
+      >
+        <Plus size={12}/> Agregar
+      </button>
+    </div>
+    
+    <div className="space-y-2">
+      {formData.variations.length === 0 ? (
+        <div className="text-center py-6 bg-white/50 rounded-xl border border-dashed border-slate-200">
+          <p className="text-[10px] text-slate-400 font-medium italic">No hay opciones. Ej: "100g", "Por KG", "Atado".</p>
+        </div>
+      ) : (
+        formData.variations.map((v, index) => (
+          <div key={index} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm animate-in zoom-in-95 duration-200">
+           <input 
+  type="text" 
+  placeholder="Ej: 100g" 
+  value={v.label} // <--- AGREGÁ ESTO
+  onChange={(e) => {
+    const newVars = [...formData.variations];
+    newVars[index].label = e.target.value;
+    setFormData({...formData, variations: newVars});
+  }}
+  className="flex-1 bg-slate-50 p-2 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-violet-200"
+/>
 
-                            {/* BLOQUE DESCRIPCIÓN */}
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Descripción</label>
-                                <div className="relative">
-                                    <textarea 
-                                        value={formData.description} 
-                                        onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all min-h-[80px] resize-none" 
-                                        placeholder="Ingredientes, tamaño..."
-                                    />
-                                    <AlignLeft className="absolute left-3 top-4 text-gray-400" size={18}/>
-                                </div>
-                            </div>
+{/* 2. Input del Precio */}
+<div className="w-24 relative">
+  <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" size={12}/>
+  <input 
+    type="number" 
+    placeholder="Precio" 
+    value={v.price} // <--- AGREGÁ ESTO
+    onChange={(e) => {
+      const newVars = [...formData.variations];
+      newVars[index].price = e.target.value;
+      setFormData({...formData, variations: newVars});
+    }}
+    className="w-full pl-6 p-2 bg-slate-50 rounded-lg text-[10px] font-black outline-none" 
+  />
+</div>
+            <button 
+              type="button"
+              onClick={() => {
+                const newVars = formData.variations.filter((_, i) => i !== index);
+                setFormData({...formData, variations: newVars});
+              }}
+              className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+            >
+              <X size={14}/>
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+) : (
+  /* PRECIO ÚNICO (ESTÁNDAR) */
+  <div>
+    <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Precio</label>
+    <div className="relative">
+      <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
+      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+    </div>
+  </div>
+)}
 
-                            {/* BLOQUE CATEGORÍA (Solo si la plantilla es compatible) */}
-                            {(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight') && (
-                                <div className="pt-2 animate-in slide-in-from-top-2 duration-200">
-                                    <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
-                                    <div className="relative">
-                                        <select 
-                                            value={formData.category_id || ''} 
-                                            onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">Seleccionar categoría...</option>
-                                            {categories.filter(c => c.name.toLowerCase() !== 'general').map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                            <Layers size={14}/>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div> {/* CIERRE DE space-y-4 */}
+    {/* DESCRIPCIÓN */}
+    <div>
+        <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Descripción</label>
+        <div className="relative">
+            <textarea 
+                value={formData.description} 
+                onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all min-h-[80px] resize-none" 
+                placeholder="Ingredientes, tamaño..."
+            />
+            <AlignLeft className="absolute left-3 top-4 text-gray-400" size={18}/>
+        </div>
+    </div>
+
+    {/* CATEGORÍA */}
+    {(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight' || selectedTemplate?.includes('icecream')) && (
+        <div className="pt-2">
+            <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
+            <div className="relative">
+                <select 
+                    value={formData.category_id || ''} 
+                    onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all appearance-none cursor-pointer"
+                >
+                    <option value="">Seleccionar categoría...</option>
+                    {categories.filter(c => c.name.toLowerCase() !== 'general').map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <Layers size={14}/>
+                </div>
+            </div>
+        </div>
+    )}
+</div>
 
                         {/* 3. SECCIÓN DE ADICIONALES (EXTRAS) */}
                         <div className="pt-2 border-t border-gray-50">
@@ -622,11 +756,27 @@ const handleDeleteCategory = async (id: string) => {
                         </div>
                     </div>
 
-                    <div className="p-6 border-t bg-gray-50">
-                        <button onClick={handleSaveProduct} disabled={saving} className="w-full bg-violet-600 text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 transition active:scale-[0.98] disabled:opacity-50 shadow-xl">
-                            {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20}/> Guardar Cambios</>}
-                        </button>
-                    </div>
+                   <div className="p-6 border-t bg-gray-50 flex gap-3">
+    {/* BOTÓN BORRAR DENTRO DEL MODAL (Solo en mobile y cuando editamos) */}
+    {editingId && (
+        <button 
+            type="button"
+            onClick={() => {
+                handleDeleteProduct(editingId);
+                setShowModal(false); // Cerramos el modal después de borrar
+            }} 
+            className="md:hidden p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition active:scale-95 flex items-center justify-center"
+            title="Eliminar producto"
+        >
+            <Trash2 size={20}/>
+        </button>
+    )}
+
+    {/* BOTÓN GUARDAR (Agregamos 'flex-1' para que ocupe el resto del espacio) */}
+    <button onClick={handleSaveProduct} disabled={saving} className="flex-1 bg-violet-600 text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 transition active:scale-[0.98] disabled:opacity-50 shadow-xl">
+        {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20}/> Guardar Cambios</>}
+    </button>
+</div>
                 </div>
             </div>
         )}

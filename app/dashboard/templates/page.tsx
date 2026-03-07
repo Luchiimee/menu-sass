@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
@@ -23,7 +24,16 @@ const TEMPLATE_DEFAULTS: any = {
   spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
   bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false },
-  marketpro: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#999999', promo: '#f3f4f6', banner: true }
+  marketpro: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#999999', promo: '#f3f4f6', banner: true },
+  'icecream-v1': { 
+    theme: '#00bcd4', 
+    bg: '#f0faff', 
+    card: '#ffffff', 
+    text: '#000000', 
+    desc: '#666666', 
+    promo: '#e0f7fa', 
+    banner: true 
+  }
 };
 
 // --- CSS IDÉNTICO A TU HTML DE REFERENCIA ---
@@ -283,7 +293,10 @@ const GALLERY_STYLES = `
   .market-name { font-size: 6px; font-weight: 800; line-height: 1.1; color: #333; }
   .market-price { font-size: 6px; font-weight: 900; color: #999; }
   
-`;
+`
+
+
+;
 
 // --- DATA ---
 const TEMPLATES = [
@@ -296,49 +309,88 @@ const TEMPLATES = [
   { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant', category: 'minimal', sale_type: 'unidad' },
   { id: 'bistro', name: 'Bistro Chalk', desc: 'Estilo pizarra.', premium: true, type: 'bistro', category: 'minimal', sale_type: 'unidad' },
   { id: 'marketpro', name: 'Market Pro', desc: 'Diseño estilo Tienda App.', premium: true, type: 'marketpro', category: 'completas', sale_type: 'unidad' },
+  { id: 'icecream-v1', name: 'Heladería Soft', desc: 'Diseño fresco con selector de peso (kg/gr).', premium: true, type: 'icecream', category: 'completas', sale_type: 'peso' },
 ];
 
 export default function GalleryPage() {
+  const [isOpen, setIsOpen] = useState(true);
+  
+const router = useRouter();
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState('classic');
   const [userPlan, setUserPlan] = useState('free');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('todas');
-  const [saleType, setSaleType] = useState<string | null>(null); // 'unidad' o 'peso'
+  const [saleType, setSaleType] = useState<string | null>(null); 
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  const [step, setStep] = useState(1); 
+  const [tempType, setTempType] = useState<string | null>(null); 
   const [isUpdatingType, setIsUpdatingType] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  useEffect(() => {
+useEffect(() => {
     const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if(session) {
-        const { data } = await supabase.from('restaurants').select('template_id, subscription_plan').eq('user_id', session.user.id).single();
-        if(data) {
-          setCurrentTemplate(data.template_id || 'classic');
-          setUserPlan(data.subscription_plan ? 'paid' : 'free');
+        const { data: { session } } = await supabase.auth.getSession();
+        if(session) {
+            const { data } = await supabase
+                .from('restaurants')
+                .select('template_id, subscription_plan, sale_type, is_open') // <--- UN SOLO SELECT
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+
+            if(data) {
+                setCurrentTemplate(data.template_id || 'classic');
+                setUserPlan(data.subscription_plan ? 'paid' : 'free');
+                setIsOpen(data.is_open ?? true); // <--- GUARDAMOS EL ESTADO REAL
+                
+                if (data.sale_type === 'unidad' || data.sale_type === 'peso') {
+                    setSaleType(data.sale_type);
+                    setStep(3); 
+                    setShowOnboarding(false);
+                } else {
+                    setStep(1);
+                    setShowOnboarding(true);
+                }
+            }
         }
-      }
+        setIsInitialLoading(false); 
     };
     load();
-  }, []);
- const handleSetSaleType = async (type: string) => {
+}, [supabase]);
+const handleSaveBusinessInfo = async (subType: string) => {
     setIsUpdatingType(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from('restaurants').update({ 
-        sale_type: type,
-        onboarding_completed: true 
-      }).eq('user_id', user.id);
-      
-      setSaleType(type);
-      setShowOnboarding(false);
+    
+    if (user && tempType) {
+        // 1. Intentamos guardar en la base de datos
+        const { error } = await supabase.from('restaurants').update({ 
+            business_type: tempType === 'unidad' ? 'gastronomico' : 'fraccionado',
+            business_subtype: subType,
+            sale_type: tempType, 
+            onboarding_completed: true 
+        }).eq('user_id', user.id);
+
+        // 2. Si hubo error (ej: permisos), avisamos y no cerramos el cartel
+        if (error) {
+            console.error("Error DB:", error);
+            alert("No se pudo guardar en la base de datos. Revisá tu conexión.");
+            setIsUpdatingType(false);
+            return;
+        }
+        
+        // 3. Si guardó bien, recién ahí actualizamos la pantalla
+        setSaleType(tempType);
+        setStep(3); 
+        setShowOnboarding(false);
+        router.refresh(); 
     }
     setIsUpdatingType(false);
-  };
+};
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
  const handleSelect = async (id: string, premium: boolean) => {
     
@@ -521,68 +573,153 @@ export default function GalleryPage() {
       </div>
     </div>
   );
+case 'icecream': return (
+  <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative">
+    <div className="p-3 bg-white border-b flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px] shadow-sm">
+          🍦
+        </div>
+        <div className="flex flex-col text-left">
+          <span className="text-[9px] font-black uppercase tracking-tighter text-gray-800 leading-none">
+            Frozen Dreams
+          </span>
+          <span className="text-[6px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+            Heladería Artesanal
+          </span>
+        </div>
+      </div>
 
+      {/* Cartel Dinámico: Verde si abre, Rojo si cierra */}
+      <div className={`${isOpen ? 'bg-green-500' : 'bg-red-500'} text-white text-[5px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest transition-colors`}>
+        {isOpen ? 'Abierto' : 'Cerrado'}
+      </div>
+    </div>
+    
+    <div className="p-3">
+      <div className="bg-cyan-100 p-2 rounded-lg text-[7px] text-cyan-800 font-bold mb-3 text-center border border-cyan-200">
+          🍦 PROMO: 1/4kg de regalo comprando 1kg
+      </div>
+      
+      <div className="bg-white p-3 rounded-xl shadow-sm border border-cyan-50">
+        <div className="flex justify-between items-start mb-2">
+          <div className="text-left">
+            <h4 className="text-[10px] font-black uppercase leading-tight text-gray-900">Pote de Helado</h4>
+            <p className="text-[7px] text-gray-400">Hasta 3 sabores a elección</p>
+          </div>
+          <div className="text-right">
+             <span className="text-[10px] font-black text-cyan-600 block leading-none">$12.500</span>
+             <span className="text-[5px] text-gray-400 uppercase font-bold tracking-tighter">precio por kg</span>
+          </div>
+        </div>
+        
+        <p className="text-[6px] font-black uppercase text-gray-400 mb-1">Seleccionar cantidad:</p>
+        <div className="grid grid-cols-3 gap-1">
+          {/* Los selectores de peso también cambian de color si está cerrado */}
+          <div className={`border-2 rounded-md py-1 text-[7px] text-center font-black tracking-tighter ${isOpen ? 'border-cyan-500 bg-cyan-50 text-cyan-600' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>1/4 KG</div>
+          <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold tracking-tighter">1/2 KG</div>
+          <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold tracking-tighter">1 KG</div>
+        </div>
+        
+        {/* Botón: Se bloquea y se pone gris si está cerrado */}
+        <button 
+          disabled={!isOpen}
+          className={`w-full mt-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md transition-all ${
+            isOpen 
+              ? 'bg-cyan-500 text-white active:scale-95 shadow-cyan-100' 
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {isOpen ? 'Agregar al carrito' : 'Local Cerrado'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
       default: return null;
     }
   };
 const filteredTemplates = TEMPLATES.filter(t => {
+  // Si todavía no hay rubro (porque está en el paso 1 o 2), no mostramos ninguna plantilla todavía
+  if (!saleType) return false;
+
   // 1. Solo mostrar plantillas que coincidan con el tipo de venta elegido
   if (t.sale_type !== saleType) return false;
 
-  // 2. Aplicar los filtros de categoría
+  // 2. Aplicar los filtros de categoría (Lo que ya tenías)
   if (activeFilter === 'todas') return true;
   if (activeFilter === 'premium') return t.premium;
   return t.category === activeFilter;
-});
+})
+if (isInitialLoading) {
+    return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[300]">
+            <Loader2 className="animate-spin text-indigo-600 mb-4" size={40}/>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Sincronizando configuración...</p>
+        </div>
+    );
+}
  return (
     /* pt-0 para no sumar espacio al layout principal */
     <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50">
       <style>{GALLERY_STYLES}</style>
       
-      {/* --- PANTALLA DE ONBOARDING OBLIGATORIO --- */}
-      {showOnboarding && (
-        <div className="fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
-          <div className="max-w-md w-full space-y-8">
-            <div className="space-y-2">
-              <span className="text-blue-600 font-black text-xs uppercase tracking-[0.3em]">Paso 1 de 2</span>
-              <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">¿Qué vas a vender?</h2>
-              <p className="text-gray-500 font-medium text-sm">Configuraremos tu catálogo y botones según tu respuesta.</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              <button 
-                onClick={() => handleSetSaleType('unidad')}
-                disabled={isUpdatingType}
-                className="group relative bg-white border-2 border-gray-100 p-6 rounded-[2rem] hover:border-black transition-all text-left shadow-sm hover:shadow-xl active:scale-95"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-900 text-white rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform">
-                    <ShoppingBag size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-black uppercase italic text-base sm:text-lg leading-none">Venta por Unidad</h3>
-                    <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase leading-tight">Burgers, Ropa, Café</p>
-                  </div>
+    {/* --- NUEVO ONBOARDING MULTI-PASO --- */}
+     {!isInitialLoading && (showOnboarding || !saleType) && (
+        <div className="fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center p-6 animate-in fade-in duration-500 overflow-y-auto">
+          <div className="max-w-2xl w-full space-y-12 py-10">
+            
+            {/* PASO 1: ELEGIR RUBRO PRINCIPAL */}
+            {step === 1 && (
+              <div className="space-y-10 animate-in zoom-in-95 duration-300">
+                <div className="text-center space-y-2">
+                  <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 01</span>
+                  <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Qué vas a vender?</h2>
                 </div>
-              </button>
-
-              <button 
-                onClick={() => handleSetSaleType('peso')}
-                disabled={isUpdatingType}
-                className="group relative bg-white border-2 border-gray-100 p-6 rounded-[2rem] hover:border-black transition-all text-left shadow-sm hover:shadow-xl active:scale-95"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform">
-                    <ShoppingBag size={24} className="scale-x-[-1]" />
-                  </div>
-                  <div>
-                    <h3 className="font-black uppercase italic text-base sm:text-lg leading-none text-blue-600">Venta por Peso</h3>
-                    <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase leading-tight">Heladerías, Fiambrerías, Carnes</p>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <button onClick={() => { setTempType('unidad'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-violet-500 transition-all text-left shadow-xl hover:shadow-violet-100">
+                    <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">🍔</div>
+                    <h3 className="text-2xl font-black uppercase italic leading-none">Gastronomía</h3>
+                    <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Platos, combos y bebidas</p>
+                  </button>
+                  <button onClick={() => { setTempType('peso'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-cyan-500 transition-all text-left shadow-xl hover:shadow-cyan-100">
+                    <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">⚖️</div>
+                    <h3 className="text-2xl font-black uppercase italic leading-none text-cyan-600">Venta por Peso</h3>
+                    <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Dietéticas y Heladerías</p>
+                  </button>
                 </div>
-              </button>
-            </div>
-            {isUpdatingType && <Loader2 className="animate-spin mx-auto text-gray-300" />}
+              </div>
+            )}
+
+            {/* PASO 2: ELEGIR SUB-RUBRO (OPCIONES QUE PEDISTE) */}
+            {step === 2 && (
+              <div className="space-y-8 animate-in slide-in-from-right-5 duration-300">
+                <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-slate-400 hover:text-black">← Volver</button>
+                <div className="text-center space-y-2">
+                  <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 02</span>
+                  <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Elegí tu especialidad</h2>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {tempType === 'unidad' ? (
+                    // OPCIONES GASTRONOMÍA
+                    ['Hamburguesería', 'Pizzería', 'Restaurante', 'Food Truck', 'Panchería', 'Sushi'].map(item => (
+                      <button key={item} onClick={() => handleSaveBusinessInfo(item.toLowerCase())} className="p-4 rounded-2xl border-2 border-slate-100 hover:border-black font-black text-[10px] uppercase tracking-widest transition-all bg-slate-50/50 hover:bg-white active:scale-95 shadow-sm">
+                        {item}
+                      </button>
+                    ))
+                  ) : (
+                    // OPCIONES POR PESO
+                    ['Dietética', 'Heladería', 'Fiambrería', 'Carnicería', 'Kiosco', 'Otros'].map(item => (
+                      <button key={item} onClick={() => handleSaveBusinessInfo(item.toLowerCase())} className="p-4 rounded-2xl border-2 border-slate-100 hover:border-cyan-500 font-black text-[10px] uppercase tracking-widest transition-all bg-slate-50/50 hover:bg-white active:scale-95 shadow-sm text-cyan-700">
+                        {item}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+            {isUpdatingType && <div className="flex flex-col items-center gap-2"><Loader2 className="animate-spin text-indigo-600"/><span className="text-[10px] font-black uppercase text-slate-400 animate-pulse">Configurando tu panel...</span></div>}
           </div>
         </div>
       )}
@@ -590,22 +727,34 @@ const filteredTemplates = TEMPLATES.filter(t => {
       {/* --- HEADER PRINCIPAL --- 
           -mt-5 en mobile para eliminar el hueco con el cartel naranja 
       */}
-      <header className="-mt-5 sm:mt-0 mb-6 text-left">
-        <h1 className="text-xl sm:text-3xl font-black mb-1 text-gray-900 uppercase italic tracking-tighter leading-none">
-            Galería de Diseños
-        </h1>
-        <p className="text-gray-500 text-xs font-medium leading-tight">
-            Elige la base para tu menú digital. Todas son personalizables.
-        </p>
-        
-        <button 
-          onClick={() => setShowOnboarding(true)}
-          className="mt-4 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
-        >
-          <ShoppingBag size={14}/> 
-          CONFIGURACIÓN: {saleType === 'unidad' ? 'VENTA POR UNIDAD' : 'VENTA POR PESO'} (CAMBIAR)
-        </button>
-      </header>
+      <header className="mb-8 pt-20 lg:pt-0 text-left relative z-10">
+  <div className="flex flex-col gap-1">
+    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">
+      Galería de Diseños
+    </h1>
+    <p className="text-gray-500 text-xs font-medium leading-tight max-w-[280px] sm:max-w-none">
+      Elegí la base para tu menú digital. Todas son personalizables.
+    </p>
+  </div>
+  
+<button 
+  onClick={() => {
+    setStep(1);        // Volvemos al inicio del proceso (🍔 vs ⚖️)
+    setTempType(null); // Limpiamos la elección temporal
+    setShowOnboarding(true); // Abrimos el cartel
+  }}
+  className="mt-5 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
+>
+  <ShoppingBag size={14}/> 
+  RUBRO: {
+    saleType === 'unidad' 
+      ? 'GASTRONOMÍA' 
+      : saleType === 'peso' 
+        ? 'VENTA POR PESO' 
+        : 'CARGANDO...'
+  } (CAMBIAR)
+</button>
+</header>
 
       {/* --- BARRA DE FILTROS --- */}
       <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
@@ -651,6 +800,19 @@ const filteredTemplates = TEMPLATES.filter(t => {
                     <div className="status-bar-fake" style={{ color: ['urban', 'fresh', 'bistro'].includes(t.type) ? 'white' : 'black' }}>
                       <span>9:41</span><span>📶</span>
                     </div>
+                    {!isOpen && (
+            <div className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-[2px] flex items-end justify-center pb-10 p-4">
+                <div className="bg-white w-full p-4 rounded-2xl shadow-2xl border border-gray-100 text-center scale-90 sm:scale-100">
+                    <div className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                        <Lock size={20} />
+                    </div>
+                    <h4 className="text-[11px] font-black uppercase text-gray-900">Local Cerrado</h4>
+                    <p className="text-[9px] text-gray-500 font-medium mt-1">
+                        No estamos recibiendo pedidos.
+                    </p>
+                </div>
+            </div>
+        )}
                     {renderPreview(t.type)}
                   </div>
                   {isLocked && (

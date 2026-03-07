@@ -12,7 +12,7 @@ import {
   Utensils,
   Star,
   Clock,
-  Zap, Ticket
+  Zap, Ticket, Lock
 } from "lucide-react";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
@@ -28,7 +28,7 @@ const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 async function getRestaurant(slug: string) {
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select(`*, categories (id, name, products (id, name, description, price, image_url))`)
+    .select(`*, categories (id, name, products (id, name, description, price, image_url, variations))`)
     .eq("slug", slug)
     .single();
 
@@ -274,13 +274,16 @@ function MenuContent({
   isOpen: boolean;
 }) {
   const [activeCardId, setActiveCardId] = useState<any>(null);
+  const [showClosedAlert, setShowClosedAlert] = useState(false);
   console.log("Dato del botón:", restaurant.card_btn_text);
   const { cart, addToCart, updateQuantity } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
   const [notificacion, setNotificacion] = useState<string | null>(null);
-  const [showHeroModal, setShowHeroModal] = useState(false); // Controla si el modal está abierto
+  const [showHeroModal, setShowHeroModal] = useState(false); 
   const [heroQty, setHeroQty] = useState(1);
+  const [variationsQuantities, setVariationsQuantities] = useState<{[key: number]: number}>({});
+  const [cardSelections, setCardSelections] = useState<{[key: string]: number | null}>({});
 
   const handleAddHeroToCart = () => {
     if (!restaurant.hero_title || !restaurant.hero_price) return;
@@ -939,10 +942,163 @@ case "bistro":
             }}
           />
         );
+       
+    case 'icecream-v1': return (
+  <div className="flex flex-col h-full font-sans text-left animate-in fade-in duration-500 pb-20" style={{ backgroundColor: BG }}>
+    
+    {/* 1. HEADER PREMIUM STICKY */}
+    <div className="p-6 bg-white border-b flex justify-between items-center shadow-md sticky top-0 z-30">
+      <div className="flex items-center gap-4 text-left">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg border border-white" style={{ backgroundColor: THEME }}>🍦</div>
+        <div className="flex flex-col text-left">
+          <span className="text-lg font-black uppercase tracking-tighter leading-none" style={{ color: TEXT }}>{restaurant.name}</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] mt-1 text-slate-900">{restaurant.description}</span>
+        </div>
+      </div>
+      <div className={`px-4 py-1.5 rounded-full text-[10px] font-black italic border-2 ${isOpen ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-600'}`}>
+        {isOpen ? "• ABIERTO" : "• CERRADO"}
+      </div>
+    </div>
+
+    <div className="p-5 space-y-12">
+      {/* 2. MENSAJE DE PROMO (RESTAURADO) */}
+      {restaurant.show_promo && restaurant.promo_message && (
+        <div className="p-5 rounded-[2rem] text-xs font-black text-center border-2 shadow-xl animate-pulse" style={{ backgroundColor: PROMO_BG, color: PROMO_TEXT, borderColor: THEME + '40' }}>
+          ✨ {restaurant.promo_message}
+        </div>
+      )}
+
+      {restaurant.categories?.map((cat: any) => (
+        <div key={cat.id} className="space-y-6 text-left">
+          {cat.name.toLowerCase() !== 'general' && (
+            <h2 className="text-[12px] font-black uppercase tracking-[0.3em] border-b-2 pb-3 italic" style={{ color: TEXT, borderColor: THEME }}>
+              {cat.name}
+            </h2>
+          )}
+          
+          <div className="space-y-8">
+            {cat.products?.map((prod: any) => {
+              const variations = prod.variations || [];
+              const selectedIdx = cardSelections[prod.id];
+              const isSelected = selectedIdx !== null && selectedIdx !== undefined;
+
+              return (
+                <div key={prod.id} className="bg-white p-7 rounded-[3rem] shadow-xl shadow-slate-200 border border-slate-100 transition-all">
+                  <div className="flex justify-between items-start mb-5">
+                    <div className="text-left flex-1 pr-4">
+                      {/* NOMBRE: SIN TRUNCATE PARA QUE NO SE CORTE */}
+                      <h4 className="text-xl font-black uppercase leading-tight tracking-tight mb-2" style={{ color: TEXT }}>{prod.name}</h4>
+                      {/* DESCRIPCIÓN: SIN LINE-CLAMP (SE VE TODA) */}
+                      <p className="text-[12px] font-bold leading-relaxed text-slate-800">{prod.description}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                       <span className="text-2xl font-black block leading-none" style={{ color: PROD_PRICE }}>
+                         {formatPrice(isSelected ? variations[selectedIdx].price : (variations.length > 0 ? variations[0].price : prod.price))}
+                       </span>
+                       <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest mt-1 block">
+                        {isSelected ? variations[selectedIdx].label : 'Desde'}
+                       </span>
+                    </div>
+                  </div>
+                  
+                  {/* SELECTORES DE PESO */}
+                  {variations.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest ml-1 text-left">Seleccioná cantidad:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {variations.slice(0, 3).map((v: any, idx: number) => {
+                          const isMore = idx === 2 && variations.length > 3;
+                          const active = selectedIdx === idx;
+                          
+                          return (
+                         <button  
+  key={idx}
+ 
+onClick={() => {
+    // SI ESTÁ CERRADO, DISPARAMOS EL CARTEL Y CORTAMOS ACÁ
+    if (!isOpen) {
+      setShowClosedAlert(true); 
+      return;
+    }
+    
+    // Si está abierto, sigue tu lógica normal
+    if (isMore) {
+      setSelectedProduct(prod);
+    } else {
+      setCardSelections({...cardSelections, [prod.id]: active ? null : idx});
+    }
+  }}
+  className={`border-2 rounded-2xl py-3 text-[10px] text-center font-black uppercase transition-all duration-200 ${
+    active 
+    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 scale-105 shadow-md' 
+    : 'border-slate-200 bg-slate-50 text-slate-900'
+  } ${!isOpen ? 'opacity-60 grayscale cursor-pointer' : ''}`} // Cambiamos cursor a pointer para que sepa que puede clickear
+>
+  {isMore ? "VER MÁS +" : v.label}
+</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* --- BOTONES DINÁMICOS IGUALES 50/50 --- */}
+                  <div className="flex gap-2 mt-6">
+                    {isSelected && (
+                      <button 
+                        onClick={() => {
+                          const v = variations[selectedIdx];
+                          addToCart({
+                            ...prod,
+                            id: `${prod.id}-${selectedIdx}`,
+                            name: `${prod.name} (${v.label})`,
+                            price: Number(v.price)
+                          });
+                          mostrarAviso("✅ Agregado al carrito");
+                          setCardSelections({...cardSelections, [prod.id]: null});
+                        }}
+                        className="flex-1 bg-emerald-600 text-white rounded-[1.5rem] py-4 text-[10px] font-black uppercase tracking-widest shadow-lg animate-in slide-in-from-left-2 duration-300 flex items-center justify-center gap-1 active:scale-95"
+                      >
+                        <Plus size={14} strokeWidth={4} /> Carrito
+                      </button>
+                    )}
+
+             <button  
+  
+  onClick={() => {
+    if (!isOpen) {
+      setShowClosedAlert(true); 
+      return;
+    }
+    setSelectedProduct(prod);
+  }}
+  className={`font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 py-4 ${
+    isSelected 
+    ? 'flex-1 bg-slate-900 text-white rounded-[1.5rem] text-[10px]' 
+    : 'w-full bg-white text-black border-2 border-slate-200 rounded-[2rem] text-xs'
+  } ${!isOpen ? 'bg-gray-200 text-gray-400 cursor-pointer shadow-none' : ''}`} // Cursor pointer es clave
+  style={!isSelected && isOpen ? { backgroundColor: BTN_BG, color: BTN_TEXT } : {}}
+>
+  {isSelected ? "Ver más" : (isOpen ? 'Ver opciones' : 'Cerrado')}
+</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
+
+    
   };
+  
 return (
 <main className="min-h-screen bg-[#0a0a0a]">
     {/* Agregamos flex y flex-col aquí */}
@@ -969,9 +1125,12 @@ return (
 )}
 
       {/* ENVOLVEMOS EL CONTENIDO EN UN DIV QUE CRECE */}
-      <div className="flex-1">
-        {renderTemplate()}
-      </div>
+ <div className="flex-1 relative">
+  {/* --- ESCUDO GLOBAL DE CIERRE --- */}
+
+
+  {renderTemplate()}
+</div>
 
       {/* EL FOOTER DE SNAPPY AHORA SIEMPRE QUEDARÁ ABAJO */}
       <a href="https://snappy.uno" target="_blank" rel="noreferrer" className="block w-full py-8 text-center bg-gray-900/50 hover:bg-black transition-colors cursor-pointer no-underline">
@@ -1029,7 +1188,119 @@ return (
           </div>
         </div>
       )}
+      {/* --- MODAL DE SELECCIÓN PARA VENTA FRACCIONADA (DIETÉTICA/HELADERÍA) --- */}
+     {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => { setSelectedProduct(null); setVariationsQuantities({}); }}></div>
+          
+          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[3rem] relative z-10 overflow-hidden animate-in slide-in-from-bottom-10 shadow-2xl max-h-[90vh] flex flex-col">
+            
+            {/* CABECERA */}
+            <div className="p-6 pb-4 flex justify-between items-start border-b border-gray-50">
+              <div className="text-left flex-1">
+                <h3 className="text-2xl font-black uppercase italic tracking-tighter leading-none text-gray-900">{selectedProduct.name}</h3>
+                <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-widest leading-relaxed">{selectedProduct.description}</p>
+              </div>
+              <button onClick={() => { setSelectedProduct(null); setVariationsQuantities({}); }} className="w-10 h-10 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center active:scale-90"><X size={20} strokeWidth={3}/></button>
+            </div>
+
+            {/* CUERPO: LISTA DE VARIANTES CON CONTADORES INDEPENDIENTES */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-4">Elegí las cantidades:</p>
+              
+              {selectedProduct.variations?.map((v: any, idx: number) => {
+                const qty = variationsQuantities[idx] || 0;
+                return (
+                  <div key={idx} className={`flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${qty > 0 ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-100 bg-gray-50'}`}>
+                    <div className="flex flex-col text-left">
+                      <span className={`font-black text-sm uppercase ${qty > 0 ? 'text-indigo-900' : 'text-gray-500'}`}>{v.label}</span>
+                      <span className={`font-bold text-xs ${qty > 0 ? 'text-indigo-600' : 'text-gray-400'}`}>{formatPrice(v.price)}</span>
+                    </div>
+
+                    {/* SELECTOR +/- POR CADA PESO */}
+                    <div className="flex items-center gap-4 bg-white rounded-full p-1 shadow-sm border border-gray-100">
+                      <button 
+                        onClick={() => setVariationsQuantities({...variationsQuantities, [idx]: Math.max(0, qty - 1)})}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-lg transition-colors ${qty > 0 ? 'text-indigo-600 bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}`}
+                      >
+                        -
+                      </button>
+                      <span className={`font-black text-sm w-4 text-center ${qty > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{qty}</span>
+                      <button 
+                        onClick={() => setVariationsQuantities({...variationsQuantities, [idx]: qty + 1})}
+                        className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-md active:scale-90"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* BOTÓN FINAL DE CONFIRMACIÓN */}
+            <div className="p-6 bg-gray-50 border-t border-gray-100">
+              <button 
+                disabled={Object.values(variationsQuantities).every(q => q === 0)}
+                onClick={() => {
+                  // Agregamos cada variante que tenga cantidad > 0 al carrito
+                  Object.entries(variationsQuantities).forEach(([idx, qty]) => {
+                    if (qty > 0) {
+                      const variation = selectedProduct.variations[Number(idx)];
+                      for(let i=0; i < qty; i++) {
+                        addToCart({
+                          ...selectedProduct,
+                          id: `${selectedProduct.id}-${idx}`,
+                          name: `${selectedProduct.name} (${variation.label})`,
+                          price: Number(variation.price)
+                        });
+                      }
+                    }
+                  });
+                  
+                  mostrarAviso("✅ Agregado al pedido");
+                  setSelectedProduct(null);
+                  setVariationsQuantities({});
+                }}
+                className="w-full py-5 rounded-2xl font-black text-white text-center uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-3" 
+                style={{ backgroundColor: THEME }}
+              >
+                  Confirmar y Sumar
+                  <div className="h-4 w-[1px] bg-white/20"/>
+                  {formatPrice(
+                    Object.entries(variationsQuantities).reduce((acc, [idx, qty]) => {
+                      return acc + (Number(selectedProduct.variations[Number(idx)].price) * qty);
+                    }, 0)
+                  )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* --- MODAL DE AVISO LOCAL CERRADO --- */}
+{/* --- PEGÁ ESTO JUSTO ARRIBA DE </main> --- */}
+      {showClosedAlert && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xs p-8 rounded-[3rem] shadow-2xl text-center animate-in zoom-in-95 duration-300 relative">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <Clock size={32} />
+            </div>
+            <h2 className="text-xl font-black uppercase italic tracking-tighter text-gray-900">Local Cerrado</h2>
+            <p className="text-gray-500 text-[10px] font-bold mt-2 leading-relaxed uppercase tracking-widest">
+              ¡Hola! Estamos fuera de <br/> nuestro horario de atención.
+            </p>
+            <button 
+              onClick={() => setShowClosedAlert(false)} 
+              className="mt-6 w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </main>
+
 );
 }
 
@@ -1061,7 +1332,10 @@ export default function MenuPage({ params }: { params: Promise<{ slug: string }>
 
   return (
     <CartProvider>
-      <MenuContent restaurant={restaurant} isOpen={checkIsOpen(restaurant.business_hours)} />
+    <MenuContent 
+  restaurant={restaurant} 
+  isOpen={restaurant.is_open && checkIsOpen(restaurant.business_hours)} 
+/>
     </CartProvider>
   );
 }
