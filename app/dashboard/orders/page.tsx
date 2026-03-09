@@ -64,29 +64,26 @@ function OrdersContent() {
  const [selectedDate, setSelectedDate] = useState(getArgentinaDate());
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [businessType, setBusinessType] = useState<string | null>(null);
 
   // --- FUNCIONES DE APOYO UI (Se mantienen igual) ---
-  const getStatusBadge = (status: string, orderType?: string) => {
+const getStatusBadge = (status: string, orderType?: string) => {
+    const isRetail = businessType === 'fraccionado' || businessType === 'unidad';
+
     switch (status) {
-      case "pendiente":
-        return <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock size={10} /> Pendiente</span>;
-      case "en_proceso":
-        return <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><ChefHat size={10} /> Cocina</span>;
-      case "en_camino":
-        return (
-          <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-            <Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : 'En camino'}
-          </span>
-        );
-      case "entregado":
-      case "completado":
-        return <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Check size={10} /> Finalizado</span>;
-      case "cancelado":
-        return <span className="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><XCircle size={10} /> Cancelado</span>;
-      default:
-        return <span className="bg-gray-100 text-gray-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{status}</span>;
+        case "pendiente":
+            return <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock size={10} /> {isRetail ? 'Pedido Recibido' : 'Pendiente'}</span>;
+        case "en_proceso":
+            return <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">{isRetail ? <ShoppingBag size={10} /> : <ChefHat size={10} />} {isRetail ? 'Preparando' : 'Cocina'}</span>;
+        case "en_camino":
+            return <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : isRetail ? 'Pedido Enviado' : 'En camino'}</span>;
+        case "entregado":
+        case "completado":
+            return <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Check size={10} /> {isRetail ? 'Entregado' : 'Finalizado'}</span>;
+        default:
+            return <span className="bg-gray-100 text-gray-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{status}</span>;
     }
-  };
+};
 
   const getWhatsAppLink = (phone: string, type: "notify" | "chat") => {
     let message = type === "notify" ? `Hola! 🛵 Tu pedido de *${restaurantName}* está en camino.` : "";
@@ -296,6 +293,7 @@ const loadOrders = async () => {
         setRestaurantId(rest.id); 
         setRestaurantPhone(rest.phone);
         setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+        setBusinessType(rest.business_type);
         setIsLocked(rest.subscription_plan === "light" && user.email !== 'luchiimee2@gmail.com');
       }
 
@@ -631,34 +629,52 @@ useEffect(() => {
                             </div>
                         )}
 
-                        <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
-                            <button onClick={() => handlePrint(order)} className="w-full bg-gray-50 text-gray-500 hover:bg-gray-100 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all"><Printer size={14} /> Ticket</button>
-                            {order.status === "pendiente" && (
-                                <div className="flex gap-2">
-                                    <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
-                                    <button onClick={() => updateStatus(order.id, "en_proceso")} className="bg-gray-900 text-white hover:bg-black px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2"><ChefHat size={14} /> Cocinar</button>
-                                </div>
-                            )}
-                            {order.status === "en_proceso" && (
-                                <button onClick={() => updateStatus(order.id, "en_camino")} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-xl text-xs font-black uppercase w-full">{order.order_type === 'mesa' ? 'Listo para servir' : 'Enviar Pedido'}</button>
-                            )}
-                            {order.status === "en_camino" && (
-                                <div className="flex flex-col gap-2">
-                                    {order.customer_phone && order.order_type !== 'mesa' && (
-                                        <a href={getWhatsAppLink(order.customer_phone, "notify")} className="w-full bg-green-500 text-white hover:bg-green-600 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-md no-underline"><MessageCircle size={14} fill="currentColor" /> Notificar Salida</a>
-                                    )}
-                                    <button onClick={() => updateStatus(order.id, "entregado")} className="w-full bg-orange-500 text-white hover:bg-orange-600 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-md"><CheckCircle size={14} /> Pedido Finalizado</button>
-                                </div>
-                            )}
-                            {(order.status === "completado" || order.status === "entregado" || order.status === "cancelado") && (
-                                <div className="flex gap-2">
-                                    {order.customer_phone && (
-                                        <a href={getWhatsAppLink(order.customer_phone, "chat")} className="flex-1 bg-green-50 text-green-700 border border-green-100 px-3 py-3 rounded-xl hover:bg-green-100 transition-all flex items-center justify-center gap-2 font-black text-[10px] no-underline uppercase">Chat Directo</a>
-                                    )}
-                                    <button onClick={() => deleteOrder(order.id)} className="text-gray-400 hover:text-red-500 p-3 bg-gray-50 rounded-xl border border-gray-100"><Trash2 size={16} /></button>
-                                </div>
-                            )}
-                        </div>
+                   <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
+    <button onClick={() => handlePrint(order)} className="w-full bg-gray-50 text-gray-400 hover:bg-gray-100 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all"><Printer size={14} /> Ticket</button>
+    
+    {/* 1. PENDIENTE -> PREPARAR */}
+    {order.status === "pendiente" && (
+        <div className="flex gap-2">
+            <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
+            <button onClick={() => updateStatus(order.id, "en_proceso")} className="bg-gray-900 text-white hover:bg-black px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
+                {businessType === 'fraccionado' || businessType === 'unidad' ? (
+                    <><ShoppingBag size={14} /> Preparar</>
+                ) : (
+                    <><ChefHat size={14} /> Cocinar</>
+                )}
+            </button>
+        </div>
+    )}
+
+    {/* 2. EN PROCESO -> ENVIAR */}
+    {order.status === "en_proceso" && (
+        <button onClick={() => updateStatus(order.id, "en_camino")} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-xl text-xs font-black uppercase w-full">
+            {order.order_type === 'mesa' ? 'Listo para servir' : (businessType === 'fraccionado' || businessType === 'unidad' ? 'Pedido Enviado' : 'Enviar Pedido')}
+        </button>
+    )}
+
+    {/* 3. EN CAMINO -> ENTREGADO */}
+    {order.status === "en_camino" && (
+        <div className="flex flex-col gap-2">
+            {order.customer_phone && order.order_type !== 'mesa' && (
+                <a href={getWhatsAppLink(order.customer_phone, "notify")} className="w-full bg-green-500 text-white hover:bg-green-600 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-md no-underline"><MessageCircle size={14} fill="currentColor" /> Notificar Salida</a>
+            )}
+            <button onClick={() => updateStatus(order.id, "entregado")} className="w-full bg-orange-500 text-white hover:bg-orange-600 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-md">
+                <CheckCircle size={14} /> {(businessType === 'fraccionado' || businessType === 'unidad' ? 'Entregado' : 'Pedido Finalizado')}
+            </button>
+        </div>
+    )}
+
+    {/* 4. FINALIZADOS */}
+    {(order.status === "completado" || order.status === "entregado" || order.status === "cancelado") && (
+        <div className="flex gap-2">
+            {order.customer_phone && (
+                <a href={getWhatsAppLink(order.customer_phone, "chat")} className="flex-1 bg-green-50 text-green-700 border border-green-100 px-3 py-3 rounded-xl hover:bg-green-100 transition-all flex items-center justify-center gap-2 font-black text-[10px] no-underline uppercase">Chat Directo</a>
+            )}
+            <button onClick={() => deleteOrder(order.id)} className="text-gray-400 hover:text-red-500 p-3 bg-gray-50 rounded-xl border border-gray-100"><Trash2 size={16} /></button>
+        </div>
+    )}
+</div>
                     </div>
                 ))}
         </div>

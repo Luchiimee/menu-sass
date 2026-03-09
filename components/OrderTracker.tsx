@@ -43,21 +43,29 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
     }, [orderId, supabase, onStatusChange]);
 
 
-
 const stepsConfig: any = {
+    // 1. RUBRO GASTRONÓMICO (RESTAURANTES)
     gastronomico: [
         { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
         { id: 'en_proceso', label: 'Cocinando 🔥', subLabel: '¡El fuego está prendido!', icon: ChefHat, color: 'bg-orange-500', lightColor: 'bg-orange-50/50', textColor: 'text-orange-600' },
         { id: 'en_camino', label: 'En Camino 🛵', subLabel: 'Tu pedido está llegando', icon: Bike, color: 'bg-blue-600', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
         { id: 'completado', label: '¡Disfrutalo! 🎉', subLabel: 'Pedido entregado con éxito', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
     ],
-comercio: [
-            { id: 'pendiente', label: 'Recibido ✅', subLabel: 'Estamos procesando tu compra', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
-            { id: 'en_proceso', label: 'Preparando 📦', subLabel: 'Estamos armando tu paquete', icon: Package, color: 'bg-blue-500', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
-            { id: 'en_camino', label: 'Despachado 🚚', subLabel: 'Tu pedido salió del local', icon: Truck, color: 'bg-purple-600', lightColor: 'bg-purple-50/50', textColor: 'text-purple-600' },
-            { id: 'completado', label: '¡Entregado! 🛍️', subLabel: 'Gracias por tu compra', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
-        ]
-    };
+    // 2. RUBRO PESO (DIETÉTICAS, HELADERÍAS)
+    fraccionado: [
+        { id: 'pendiente', label: 'Recibido ✅', subLabel: 'Estamos procesando tu compra', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
+        { id: 'en_proceso', label: 'Pedido Recibido 📦', subLabel: 'Estamos armando tu paquete', icon: Package, color: 'bg-orange-500', lightColor: 'bg-orange-50/50', textColor: 'text-orange-600' },
+        { id: 'en_camino', label: 'Pedido Enviado 🚚', subLabel: 'Tu pedido salió del local', icon: Truck, color: 'bg-blue-600', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
+        { id: 'completado', label: '¡Entregado! 🛍️', subLabel: 'Gracias por tu compra', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
+    ],
+    // 3. RUBRO UNIDAD (TIENDAS GENERALES)
+    unidad: [
+        { id: 'pendiente', label: 'Recibido ✅', subLabel: 'Estamos procesando tu compra', icon: Clock, color: 'bg-yellow-500', lightColor: 'bg-yellow-50/50', textColor: 'text-yellow-600' },
+        { id: 'en_proceso', label: 'Pedido Recibido 📦', subLabel: 'Estamos armando tu paquete', icon: Package, color: 'bg-orange-500', lightColor: 'bg-orange-50/50', textColor: 'text-orange-600' },
+        { id: 'en_camino', label: 'Pedido Enviado 🚚', subLabel: 'Tu pedido salió del local', icon: Truck, color: 'bg-blue-600', lightColor: 'bg-blue-50/50', textColor: 'text-blue-600' },
+        { id: 'completado', label: '¡Entregado! 🛍️', subLabel: 'Gracias por tu compra', icon: Check, color: 'bg-green-600', lightColor: 'bg-green-50/50', textColor: 'text-green-600' },
+    ]
+};
 
     const steps = stepsConfig[businessType] || stepsConfig.gastronomico;
     const normalizedStatus = status === 'entregado' ? 'completado' : status;
