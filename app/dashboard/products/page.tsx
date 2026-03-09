@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag } from 'lucide-react';
+import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductsPage() {
@@ -21,7 +21,9 @@ const [categoryFormData, setCategoryFormData] = useState({ name: '' });
 
   const [activeTab, setActiveTab] = useState<'products' | 'extras' | 'categories'>('products');
   const [view, setView] = useState('list'); 
-  const [isLocked, setIsLocked] = useState(true); 
+  const [isLocked, setIsLocked] = useState(true);
+  const [showBestSellers, setShowBestSellers] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -71,9 +73,9 @@ const [categoryFormData, setCategoryFormData] = useState({ name: '' });
         const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
         setIsAdmin(isSuperAdmin);
 
-      const { data: rest, error: restError } = await supabase
+   const { data: rest, error: restError } = await supabase
     .from('restaurants')
-    .select('id, business_type, subscription_plan, subscription_status, template_id') 
+    .select('id, business_type, subscription_plan, subscription_status, template_id, show_best_sellers, best_sellers_activated_at, card_name_bg')
     .eq('user_id', session.user.id)
     .maybeSingle();
 
@@ -83,6 +85,7 @@ if (rest) {
     setRestaurantId(rest.id);
     setBusinessType(rest.business_type); // <--- IMPORTANTE: Esto es lo que activa el modo "Kilos"
     setCurrentPlan(rest.subscription_plan);
+    
             if (rest.template_id) setSelectedTemplate(rest.template_id);
 
             // 2. Lógica de Bloqueo: Si no tiene plan y NO es admin, se bloquea la pantalla
@@ -351,6 +354,7 @@ if (loading) return (
     </div>
 
     {/* NAVEGACIÓN DE TABS */}
+{/* NAVEGACIÓN DE TABS */}
 <div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto shadow-inner">
   <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
     <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
@@ -359,8 +363,8 @@ if (loading) return (
     <Layers size={16} className="inline mr-2"/> Adicionales
   </button>
   
-  {/* SOLO MOSTRAMOS CATEGORÍAS EN MARKETPRO Y SPOTLIGHT (Heladería NO) */}
-  {(selectedTemplate === 'marketpro' || selectedTemplate === 'spotlight') && (
+  {/* AGREGAMOS ESTO PARA QUE APAREZCA LA PESTAÑA CATEGORÍAS */}
+  {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight') && (
     <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
         <List size={16} className="inline mr-2"/> Categorías
     </button>
@@ -369,37 +373,116 @@ if (loading) return (
   </div>
       {/* --- EL RESTO DE TU CÓDIGO (Buscador, Tabla, etc.) SIGUE ABAJO --- */}
 
-           <div className="flex flex-wrap items-center justify-between gap-4">
-               {/* BOTONES PARA PRODUCTOS */}
-               {activeTab === 'products' && (
-                   <>
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-                            <input placeholder="Buscar producto..." className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-violet-500 transition shadow-sm"/>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                             <div className="bg-white border border-gray-200 rounded-xl p-1 flex items-center shadow-sm">
-                                <button onClick={() => changeView('list')} className={`p-2 rounded-lg ${view === 'list' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><List size={20}/></button>
-                                <button onClick={() => changeView('grid')} className={`p-2 rounded-lg ${view === 'grid' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><LayoutGrid size={20}/></button>
-                            </div>
-                            <button onClick={openCreateModal} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
-                                <Plus size={20}/> Nuevo Producto
-                            </button>
-                        </div>
-                   </>
-               )}
-
-               {/* BOTÓN SOLO PARA ADICIONALES */}
-               {activeTab === 'extras' && (
-                   <div className="flex justify-end w-full">
-                       <button onClick={openCreateExtra} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
-                            <Plus size={20}/> Crear Adicional
-                        </button>
-                   </div>
-               )}
+       {/* --- BARRA DE HERRAMIENTAS Y BÚSQUEDA --- */}
+      <div className="mt-8 flex flex-col gap-6">
+       {activeTab === 'products' && (
+    <div className="flex flex-wrap items-center justify-between gap-4 animate-in fade-in duration-300">
+        <div className="relative flex-1 max-w-xl flex items-center gap-3">
+            
+            {/* Buscador */}
+            <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                <input 
+                    placeholder="Buscar producto..." 
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-violet-500 transition shadow-sm"
+                />
             </div>
 
+         {/* BOTÓN INTELIGENTE "MÁS PEDIDOS" */}
+            {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro') && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                        onClick={async () => {
+                            if (!restaurantId) return;
+                            const newValue = !showBestSellers;
+                            
+                            // DETERMINAMOS LA FECHA: Si activa, hoy. Si desactiva, null.
+                            const activatedDate = newValue ? new Date().toISOString().split('T')[0] : null;
+
+                            // Actualización en la base de datos (Ambas columnas)
+                            const { error } = await supabase
+                                .from('restaurants')
+                                .update({ 
+                                    show_best_sellers: newValue,
+                                    best_sellers_activated_at: activatedDate // <--- FECHA DE INICIO
+                                })
+                                .eq('id', restaurantId);
+                            
+                            if (!error) {
+                                setShowBestSellers(newValue);
+                                
+                                if (newValue) {
+                                    setToast("🚀 ¡Sección activada! Aparecerá en tu menú en 30 días calculando tus ventas reales.");
+                                    setTimeout(() => setToast(null), 6000);
+                                }
+                            } else {
+                                setToast("❌ Error al actualizar la configuración.");
+                                setTimeout(() => setToast(null), 4000);
+                            }
+                        }}
+                        className={`shrink-0 px-4 py-3 rounded-2xl border transition-all flex items-center gap-2 shadow-sm active:scale-95 ${
+                            showBestSellers 
+                            ? 'bg-amber-50 border-amber-400 text-amber-700 font-black' 
+                            : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Zap size={16} fill={showBestSellers ? "currentColor" : "none"}/>
+                        <span className="hidden sm:inline text-[10px] font-black uppercase tracking-tighter">Más Pedidos</span>
+                    </button>
+
+                    {/* Icono de Info con gris fuerte */}
+                    <div className="group relative hidden sm:block">
+                        <div className="p-2 text-slate-800 hover:text-violet-600 cursor-help transition-colors">
+                            <Info size={18} strokeWidth={2.5} />
+                        </div>
+                        {/* Tooltip explicativo */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-5 bg-slate-900 text-white rounded-[2rem] opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 shadow-2xl z-[100] border border-white/10 text-left">
+                            <p className="text-[10px] leading-relaxed font-medium">
+                                <b className="text-amber-400 block mb-1 uppercase tracking-widest text-[11px]">¿Cómo funciona?</b>
+                                El sistema analizará tus pedidos reales. Una vez pasados **30 días** desde la activación, creará automáticamente la sección destacada para tus clientes.
+                            </p>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+
+        {/* Botones de Vista y Nuevo Producto */}
+        <div className="flex items-center gap-3">
+            <div className="bg-white border border-gray-200 rounded-2xl p-1 flex items-center shadow-sm">
+                <button onClick={() => changeView('list')} className={`p-2 rounded-xl ${view === 'list' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><List size={20}/></button>
+                <button onClick={() => changeView('grid')} className={`p-2 rounded-xl ${view === 'grid' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><LayoutGrid size={20}/></button>
+            </div>
+            <button onClick={openCreateModal} className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
+                <Plus size={20}/> <span className="hidden lg:inline">Nuevo Producto</span>
+            </button>
+        </div>
+    </div>
+)}
+
+        {/* --- BOTÓN PARA ADICIONALES (Mantenido) --- */}
+        {activeTab === 'extras' && (
+          <div className="flex justify-end w-full animate-in fade-in duration-300">
+            <button onClick={openCreateExtra} className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
+              <Plus size={20}/> Crear Adicional
+            </button>
+          </div>
+        )}
+
+        {/* --- BOTÓN PARA CATEGORÍAS (Mantenido) --- */}
+        {activeTab === 'categories' && (
+          <div className="flex justify-end w-full animate-in fade-in duration-300">
+            <button onClick={() => setShowCategoryModal(true)} className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg">
+              <Plus size={16} className="inline mr-1"/> Nueva Categoría
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* --- LISTADO (Mantené tu código de la tabla aquí abajo) --- */}
+
+      {/* --- LISTADO (Mantené tu código de la tabla aquí abajo) --- */}
             {activeTab === 'products' && (
                 <div className="mt-6">
                     {products.length === 0 ? (
@@ -504,31 +587,38 @@ if (loading) return (
                 </div>
             )}
 
-            {activeTab === 'categories' && (
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-300">
-                    <div className="p-6 border-b bg-gray-50 flex justify-between items-center">
-                        <div>
-                            <h3 className="font-bold text-gray-900">Mis Categorías</h3>
-                            <p className="text-xs text-gray-400">Organiza tu menú por secciones (Burgers, Bebidas, etc.)</p>
-                        </div>
-                        <button onClick={() => setShowCategoryModal(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition shadow-lg">
-                            <Plus size={16} className="inline mr-1"/> Nueva Categoría
-                        </button>
-                    </div>
-                    <table className="w-full text-left text-sm">
-                        <tbody className="divide-y">
-                            {categories.filter(c => c.name.toLowerCase() !== 'general').map((c) => (
-                                <tr key={c.id} className="hover:bg-gray-50 transition">
-                                    <td className="px-6 py-4 font-bold text-gray-700 uppercase tracking-tighter italic">{c.name}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+{activeTab === 'categories' && (
+    <div className="space-y-6 animate-in fade-in duration-300">
+        
+    
+       
+
+        {/* --- TABLA DE CATEGORÍAS (MANTENIDA) --- */}
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-6 border-b bg-gray-50 flex justify-between items-center">
+                <div>
+                    <h3 className="font-bold text-gray-900">Mis Categorías</h3>
+                    <p className="text-xs text-gray-400">Organiza tu menú por secciones (Burgers, Bebidas, etc.)</p>
                 </div>
-            )}
+                <button onClick={() => setShowCategoryModal(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition shadow-lg">
+                    <Plus size={16} className="inline mr-1"/> Nueva Categoría
+                </button>
+            </div>
+            <table className="w-full text-left text-sm">
+                <tbody className="divide-y">
+                    {categories.filter(c => c.name.toLowerCase() !== 'general').map((c) => (
+                        <tr key={c.id} className="hover:bg-gray-50 transition">
+                            <td className="px-6 py-4 font-bold text-gray-700 uppercase tracking-tighter italic">{c.name}</td>
+                            <td className="px-6 py-4 text-right">
+                                <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    </div>
+)}
         </div>
       
         {/* MODAL PRODUCTO */}
@@ -829,6 +919,29 @@ if (loading) return (
         </div>
     </div>
 )}
+{/* --- NOTIFICACIÓN PREMIUM (TOAST) --- */}
+   
+      {toast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-4 animate-in fade-in slide-in-from-top-10 duration-500">
+          <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 p-5 rounded-[2.5rem] shadow-2xl flex items-start gap-4">
+            <div className="bg-amber-400 p-2.5 rounded-2xl shadow-lg shrink-0 animate-pulse">
+              <Zap size={20} fill="white" className="text-white"/>
+            </div>
+            <div className="flex-1 pt-1 text-left">
+              <p className="text-white text-xs font-bold leading-relaxed">
+                {toast}
+              </p>
+              <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                {/* Barra de tiempo: se vacía en 6 segundos */}
+                <div className="h-full bg-amber-400 animate-progress-shrink" style={{ animationDuration: '6s' }} />
+              </div>
+            </div>
+            <button onClick={() => setToast(null)} className="text-white/40 hover:text-white p-1 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

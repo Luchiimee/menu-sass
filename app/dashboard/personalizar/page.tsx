@@ -21,6 +21,8 @@ import SpotlightHero from '../../../components/templates/SpotlightHero';
 import ElegantSerif from '../../../components/templates/ElegantSerif';
 import BistroChalk from '../../../components/templates/BistroChalk';
 import MarketProTemplate from '../../../components/templates/MarketProTemplate';
+import AlternaPro from '../../../components/templates/AlternaPro';
+
 const ColorRow = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => (
     <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors">
         <span className="text-xs font-bold text-gray-700">{label}</span>
@@ -130,6 +132,21 @@ urban: {
     promo_text: '#00838f', 
     banner: false
   },
+// Buscá TEMPLATE_DEFAULTS y reemplazá 'alterna-pro' por esto:
+'alterna-pro': { 
+    theme: '#ea580c',        // Naranja Eco
+    bg: '#fafaf9',           // Crema suave (NO NEGRO)
+    text: '#111827',         // Nombre local
+    desc: '#94a3b8', 
+    card_name: '#111827',    // Texto del producto (Visible)
+    card_desc: '#94a3b8', 
+    card_price: '#ea580c',   // Botón precio
+    btn_bg: '#ea580c', 
+    btn_text: '#ffffff', 
+    promo_bg: '#ffffff', 
+    promo_text: '#ea580c', 
+    banner: false 
+},
 };
 
 const CUSTOM_STYLES = `
@@ -203,6 +220,7 @@ google_maps_link: '',
     card_show_bg: true,
     card_btn_text: '#000000',
     business_type: 'gastronomico',
+    card_name_bg: '#ffffff',
   });
 
   const [products, setProducts] = useState<any[]>([]);
@@ -294,7 +312,8 @@ google_maps_link: '',
     card_btn_text: rest.card_btn_text || defaults.btn_text,
     template_id: tId, 
     delivery_cost: rest.delivery_cost || 0,
-    show_banner: rest.show_banner 
+    show_banner: rest.show_banner,
+    card_name_bg: rest.card_name_bg || defaults.card_name_bg || '#ffffff',
 });
           setIsLocked(!rest.subscription_plan);
           const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
@@ -313,24 +332,23 @@ google_maps_link: '',
     loadData();
     return () => { mounted = false; };
   }, []);
+// app/dashboard/personalizar/page.tsx
 
 const getTemplateConfig = () => {
     const id = data.template_id || 'classic';
-    let config = { 
+    return { 
       editable: true,
       group: id, 
-      showClassicBanner: id === 'classic',
-      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1'].includes(id),
-      showFonts: id === 'marketpro',
-      showBannerImg: ['spotlight', 'marketpro',].includes(id), 
-      // Juntamos todo en un solo showCard para que no se repita
-      showCard: ['urban', 'visualgrid', 'pop', 'spotlight', 'marketpro', 'icecream-v1'].includes(id),
+      showClassicBanner: id === 'classic', 
+      showBannerImg: ['spotlight', 'marketpro', 'classic'].includes(id),
+      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro'].includes(id),
+      showCard: ['urban', 'visualgrid', 'pop', 'spotlight', 'marketpro', 'icecream-v1', 'alterna-pro'].includes(id),
       showHeroEditor: id === 'spotlight',
-      showSearch: id === 'marketpro'
+      showSearch: id === 'marketpro',
+      showFonts: id === 'marketpro',
+      // ESTA ES LA CLAVE: Habilita la sección de categorías en el panel
+      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id) 
     };
-    
-    if (id === 'elegant' || id === 'bistro') config.editable = false;
-    return config;
 };
   const tConfig = getTemplateConfig();
 
@@ -456,135 +474,129 @@ const confirmReset = () => {
     setUnsavedChanges(true); 
     setShowRestoreModal(false);
 };
-  const PhoneMockup = ({ templateId }: { templateId: string }) => {
-      const activeId = templateId || 'classic';
+ 
+const PhoneMockup = ({ templateId }: { templateId: string }) => {
+    const activeId = templateId || 'classic';
+    
     const displayProds = products.length > 0 ? products : [
-          { 
-            id: 1, 
-            name: 'Hamburguesa Doble Black', 
-            description: 'Doble carne 180g, cheddar y bacon.', 
-            price: 8500, 
-            image_url: MARKETPRO_ASSETS.burger 
-          },
-         { 
-  id: 2, 
-  name: 'Papas Fritas XL', 
-  description: 'Porción abundante para compartir.', 
-  price: 4000, 
-  image_url: MARKETPRO_ASSETS.fries, // <-- Usás la variable en vez del link largo
-},
-          { 
-            id: 3, 
-            name: 'Gaseosa Línea Coca', 
-            description: 'Sabor original 500ml.', 
-            price: 2500, 
-            image_url: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&w=150&q=80' 
-          }
-      ];
-      
-     const isPreviewMode = !!previewTemplateId;
-      const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
-      
-      const renderData = isPreviewMode ? {
-          ...data,
-          theme_color: defaults.theme, bg_color: defaults.bg, card_color: defaults.card,
-          text_color: defaults.text, description_color: defaults.desc, promo_bg_color: defaults.promo,
-          show_banner: defaults.banner
-      } : data;
+      { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
+      { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
+      { id: 3, name: 'Granola de Coco', price: 3900, image_url: 'https://images.unsplash.com/photo-1517093602195-b40af9688b46?w=400' }
+    ];
 
-      // --- LÓGICA DE FALLBACKS (Para que no se vea vacío) ---
-      const finalPreviewData = activeId === 'marketpro' ? {
-        ...renderData,
-        logo_url: renderData.logo_url || MARKETPRO_ASSETS.logo,
-        banner_url: renderData.banner_url || MARKETPRO_ASSETS.banner,
-        description: renderData.description || 'Bienvenidos a nuestra tienda digital. Pedí online de forma rápida y segura.',
-        name: renderData.name || 'Tu Negocio Pro',
-        hero_title: renderData.hero_title || 'Bacon Burger XL',
-        hero_description: renderData.hero_description || 'Nuestra especialidad con doble cheddar y panceta.',
-        hero_price: renderData.hero_price || 9500,
-        hero_badge_text: renderData.hero_badge_text || 'DESTACADO'
-      } : renderData;
+    const isPreviewMode = !!previewTemplateId;
+    const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
 
-      // ESTA ES LA LÍNEA QUE MANDA LA INFO AL CELULAR
-      const props = { restaurant: finalPreviewData, products: displayProds };
-      
-      const isDarkTheme = ['urban', 'fresh', 'bistro'].includes(activeId);
-      const statusColor = isDarkTheme ? 'white' : 'black';
+   const renderData = isPreviewMode ? {
+  ...data,
+  theme_color: defaults.theme, 
+  bg_color: defaults.bg,
+  text_color: defaults.text, 
+  description_color: defaults.desc,
+  card_name_color: defaults.card_name, 
+  card_price_color: defaults.card_price,
+  card_btn_text: defaults.btn_text, 
+  promo_bg_color: defaults.promo_bg,
+  promo_text_color: defaults.promo_text,
+  // NUEVOS CAMPOS:
+  cat_bg_color: data.cat_bg_color,
+  cat_text_color: data.cat_text_color,
+  card_name_bg: data.card_name_bg,
+} : data;
 
-      return (
-        <div className="relative w-full h-full bg-white flex flex-col">
-            <div className="status-bar-fixed" style={{ color: statusColor }}><span>9:41</span><span>📶</span></div>
-            <div className="preview-scroll" style={{ backgroundColor: renderData.bg_color }}>
-               {(() => {
-                  switch (activeId) {
-                      case 'urban': return <UrbanoDark {...props} />;
-                      case 'pop': return <PopVibrant {...props} />;
-                      case 'visualgrid': return <VisualGrid {...props} />; 
-                      case 'classic': return <ClassicDelivery {...props} />;
-                      case 'minimal': return <MinimalWhite {...props} />;
-                      case 'spotlight': return <SpotlightHero {...props} />;
-                      case 'elegant': return <ElegantSerif {...props} />;
-                      case 'bistro': return <BistroChalk {...props} />;
-                      default: return <ClassicDelivery {...props} />;
-                      case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
-        case 'icecream-v1': return (
-  <div className="flex flex-col h-full font-sans text-left" style={{ backgroundColor: renderData.bg_color }}>
-    {/* Header - AHORA CON TU LOGO REAL */}
-    <div className="p-4 bg-white border-b flex justify-between items-center shadow-sm">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm overflow-hidden bg-gray-50" style={{ backgroundColor: renderData.theme_color }}>
-          {renderData.logo_url ? (
-            <img src={renderData.logo_url} className="w-full h-full object-cover" />
-          ) : (
-            <Store size={14} className="opacity-20 text-black" />
-          )}
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-black uppercase tracking-tighter leading-none" style={{ color: renderData.text_color }}>{renderData.name || 'Tu Negocio'}</span>
-          <span className="text-[7px] font-bold uppercase tracking-widest mt-1" style={{ color: renderData.description_color }}>{renderData.description || 'Venta Fraccionada'}</span>
+    const props = { 
+      restaurant: { ...renderData, categories: categories }, 
+      products: displayProds 
+    };
+
+    return (
+      <div className="relative w-full h-full bg-white flex flex-col">
+        <div className="status-bar-fixed" style={{ color: 'black' }}><span>9:41</span><span>📶</span></div>
+        <div className="preview-scroll" style={{ backgroundColor: renderData.bg_color }}>
+          {(() => {
+            switch (activeId) {
+              case 'urban': return <UrbanoDark {...props} />;
+              case 'pop': return <PopVibrant {...props} />;
+              case 'visualgrid': return <VisualGrid {...props} />;
+              case 'classic': return <ClassicDelivery {...props} />;
+              case 'minimal': return <MinimalWhite {...props} />;
+              case 'spotlight': return <SpotlightHero {...props} />;
+              case 'elegant': return <ElegantSerif {...props} />;
+              case 'bistro': return <BistroChalk {...props} />;
+              case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => { }} />;
+               case 'alterna-pro':
+  return (
+    <AlternaPro
+      // Inyectamos categorías de ejemplo si no hay reales para que no se vea vacío
+      restaurant={{ 
+        ...renderData, 
+        categories: categories.length > 0 ? categories : [{name: 'Semillas'}, {name: 'Aceites'}] 
+      }}
+      products={displayProds}
+      onAddToCart={() => {}}
+      setSelectedProduct={(p: any) => console.log("Click:", p.name)}
+      isMockup={true}
+    />
+  );
+              case 'icecream-v1':
+  return (
+    <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative overflow-hidden">
+      {/* Header Mini */}
+      <div className="p-3 bg-white border-b flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px] shadow-sm">🍦</div>
+          <div className="flex flex-col text-left">
+            <span className="text-[9px] font-black uppercase tracking-tighter text-gray-800 leading-none">
+              {renderData.name || 'Frozen Dreams'}
+            </span>
+            <span className="text-[6px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+              Abierto ahora
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-
-    <div className="p-4 space-y-4">
-      {/* Banner Promo - YA SIN EL EMOJI ✨ */}
-      {renderData.show_promo && (
-        <div className="p-3 rounded-xl text-[8px] font-black text-center border" style={{ backgroundColor: renderData.promo_bg_color, color: renderData.promo_text_color, borderColor: renderData.theme_color + '40' }}>
-          {renderData.promo_message || '¡Bienvenidos a nuestra tienda!'}
+      
+      <div className="p-3 overflow-y-auto no-scrollbar">
+        <div className="bg-cyan-100 p-2 rounded-lg text-[7px] text-cyan-800 font-bold mb-3 text-center border border-cyan-200 uppercase">
+             🍦 PROMO: 1/4kg de regalo comprando 1kg
         </div>
-      )}
-
-      {/* --- LISTA DE PRODUCTOS --- */}
-      {displayProds.map((p: any) => (
-        <div key={p.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-start mb-3">
-            <div className="text-left flex-1 pr-2">
-              <h4 className="text-[11px] font-black uppercase leading-tight" style={{ color: renderData.card_name_color }}>{p.name}</h4>
-              <p className="text-[8px] mt-1 line-clamp-2" style={{ color: renderData.card_desc_color }}>{p.description}</p>
+        
+        {/* Producto de Ejemplo usando los productos reales o de mockup */}
+        {displayProds.slice(0, 2).map((p: any) => (
+          <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-cyan-50 mb-3">
+            <div className="flex justify-between items-start mb-2">
+              <div className="text-left">
+                <h4 className="text-[9px] font-black uppercase text-gray-900 leading-tight">{p.name}</h4>
+                <p className="text-[6px] text-gray-400">Hasta 3 sabores a elección</p>
+              </div>
+              <div className="text-right">
+                 <span className="text-[9px] font-black text-cyan-600 block leading-none">${p.price}</span>
+                 <span className="text-[5px] text-gray-400 uppercase font-bold tracking-tighter">precio por kg</span>
+              </div>
             </div>
-            <div className="text-right">
-               <span className="text-[11px] font-black block leading-none" style={{ color: renderData.card_price_color }}>
-                 ${p.variations?.length > 0 ? p.variations[0].price : p.price}
-               </span>
-               <span className="text-[6px] text-gray-400 uppercase font-bold tracking-tighter">Desde</span>
+            
+            <p className="text-[6px] font-black uppercase text-gray-400 mb-1">Seleccionar cantidad:</p>
+            <div className="grid grid-cols-3 gap-1">
+              <div className="border-2 border-cyan-500 bg-cyan-50 rounded-md py-1 text-[7px] text-center font-black text-cyan-600">1/4 KG</div>
+              <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold">1/2 KG</div>
+              <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold">1 KG</div>
             </div>
+            
+            <button className="w-full mt-3 py-1.5 rounded-lg text-[8px] font-black uppercase bg-cyan-500 text-white shadow-md active:scale-95 transition-all">
+              Agregar al carrito
+            </button>
           </div>
-          
-          <button className="w-full mt-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md" style={{ backgroundColor: renderData.card_btn_bg, color: renderData.card_btn_text }}>
-              Ver opciones
-          </button>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
-                  }
-               })()}
-            </div>
+  );
+              default: return <ClassicDelivery {...props} />;
+            }
+          })()}
         </div>
-      );
+      </div>
+    );
   };
-
   if (loading) return <div className="p-10 text-center flex items-center justify-center h-[80vh]"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
 
   return (
@@ -651,33 +663,60 @@ const confirmReset = () => {
             </div>
         </div>
 
-        {/* --- SECCIÓN 1: EL NEGOCIO (Corregido de <p> a <div>) --- */}
-        <div className="space-y-4">
+       {/* --- SECCIÓN 1: EL NEGOCIO --- */}
+          <div className="space-y-4">
             <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-                <div className="w-1 h-3 bg-indigo-600 rounded-full"/> Identidad del Local
+              <div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({...data, bg_color: v})} />
-                <ColorBubble label="Nombre" value={data.text_color} onChange={(v) => setData({...data, text_color: v})} />
-                <ColorBubble label="Descripción" value={data.description_color} onChange={(v) => setData({...data, description_color: v})} />
-                {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({...data, theme_color: v})} />}
-                {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({...data, theme_color: v})} />}
-            </div>
-        </div>
+            {/* Ajustamos el grid para que sea máximo 4 columnas y bajen los que sobran, manteniendo la forma circular */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
+              <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
+              <ColorBubble label="Nombre" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
+              <ColorBubble label="Descripción" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
+              
+              {/* ACENTO: Solo para bordes de fotos */}
+              {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
 
-        {/* --- SECCIÓN 2: LOS PRODUCTOS (Corregido de <p> a <div>) --- */}
-  <div className="space-y-4">
-    <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-        <div className="w-1 h-3 bg-orange-600 rounded-full"/> Carta de Productos
-    </div>
-    <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
-        <ColorBubble label="Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({...data, card_name_color: v})} />
-        <ColorBubble label="Descripción" value={data.card_desc_color || '#999999'} onChange={(v) => setData({...data, card_desc_color: v})} />
-        <ColorBubble label="Precio" value={data.card_price_color || '#d32f2f'} onChange={(v) => setData({...data, card_price_color: v})} /> 
-        <ColorBubble label="Botón MAS" value={data.card_btn_bg || '#ffffff'} onChange={(v) => setData({...data, card_btn_bg: v})} />
-        <ColorBubble label="Símbolo +" value={data.card_btn_text || '#000000'} onChange={(v) => setData({...data, card_btn_text: v})} />
-    </div>
-</div>
+              {/* CATEGORÍAS: Aparecen abajo prolijamente si es Alterna Pro */}
+              {data.template_id === 'alterna-pro' && (
+                <>
+                  <ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#ea580c'} onChange={(v) => setData({ ...data, cat_bg_color: v })} />
+                  <ColorBubble label="Texto Cat." value={data.cat_text_color || '#ffffff'} onChange={(v) => setData({ ...data, cat_text_color: v })} />
+                </>
+              )}
+              
+              {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
+            </div>
+          </div>
+
+        {/* --- SECCIÓN 2: LOS PRODUCTOS --- */}
+          <div className="space-y-4">
+            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+              <div className="w-1 h-3 bg-orange-600 rounded-full" /> Carta de Productos
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
+              {/* Color del texto del nombre */}
+              <ColorBubble label="Texto Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({ ...data, card_name_color: v })} />
+
+              {/* NUEVO: Fondo de la cápsula del nombre */}
+              <ColorBubble label="Fondo Nombre" value={data.card_name_bg || '#ffffff'} onChange={(v) => setData({ ...data, card_name_bg: v })} />
+
+              {/* OCULTAMOS DESCRIPCIÓN PARA ALTERNA-PRO */}
+              {data.template_id !== 'alterna-pro' && (
+                <ColorBubble label="Descripción" value={data.card_desc_color || '#999999'} onChange={(v) => setData({ ...data, card_desc_color: v })} />
+              )}
+
+              <ColorBubble label="Fondo Precio" value={data.card_price_color || '#d32f2f'} onChange={(v) => setData({ ...data, card_price_color: v })} />
+
+              {/* TEXTO PRECIO */}
+              <ColorBubble
+                label={data.template_id === 'alterna-pro' ? "Texto Precio" : "Símbolo +"}
+                value={data.card_btn_text || '#ffffff'}
+                onChange={(v) => setData({ ...data, card_btn_text: v })}
+              />
+            </div>
+          </div>
+          
 
         {/* --- SECCIÓN 3: PROMO (Corregido de <p> a <div>) --- */}
         <div className="space-y-4">

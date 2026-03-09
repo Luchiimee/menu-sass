@@ -33,7 +33,16 @@ const TEMPLATE_DEFAULTS: any = {
     desc: '#666666', 
     promo: '#e0f7fa', 
     banner: true 
-  }
+  },
+ 'alterna-pro': { 
+    theme: '#ea580c', 
+    bg: '#fafaf9',  // <--- CAMBIADO DE NEGRO A CREMA
+    card: '#ffffff', 
+    text: '#111827', 
+    desc: '#94a3b8', 
+    promo: '#ffffff', 
+    banner: false 
+}
 };
 
 // --- CSS IDÉNTICO A TU HTML DE REFERENCIA ---
@@ -309,7 +318,26 @@ const TEMPLATES = [
   { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant', category: 'minimal', sale_type: 'unidad' },
   { id: 'bistro', name: 'Bistro Chalk', desc: 'Estilo pizarra.', premium: true, type: 'bistro', category: 'minimal', sale_type: 'unidad' },
   { id: 'marketpro', name: 'Market Pro', desc: 'Diseño estilo Tienda App.', premium: true, type: 'marketpro', category: 'completas', sale_type: 'unidad' },
-  { id: 'icecream-v1', name: 'Heladería Soft', desc: 'Diseño fresco con selector de peso (kg/gr).', premium: true, type: 'icecream', category: 'completas', sale_type: 'peso' },
+ { 
+    id: 'icecream-v1', 
+    name: 'Heladería Soft', 
+    desc: 'Diseño fresco con selector de peso (kg/gr).', 
+    premium: true, 
+    type: 'icecream', 
+    category: ['basicas'], 
+    sale_type: 'peso' 
+  },
+  {
+    id: 'alterna-pro',
+    name: 'Alterna Pro',
+    desc: 'Diseño Zig-Zag premium con foco en imágenes circulares y burbujas de impacto.',
+    premium: true,
+    type: 'alterna-pro', 
+    category: ['completas'], 
+   
+    sale_type: ['unidad', 'peso'],  
+    preview: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80',
+  },
 ];
 
 function GalleryContent() {
@@ -640,22 +668,105 @@ case 'icecream': return (
       </div>
     </div>
   </div>
+  
 );
+case 'alterna-pro':
+  return (
+    <div className="w-full h-full bg-[#fafaf9] flex flex-col overflow-hidden relative font-sans select-none">
+      
+      {/* 1. HEADER REALISTA */}
+      <div className="pt-3 px-2 pb-1 bg-white relative flex-shrink-0">
+        <div className="absolute top-2 right-2 px-1 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-0.5">
+          <div className="w-1 h-1 rounded-full bg-emerald-500" />
+          <span className="text-[3px] font-black text-emerald-600 uppercase">Abierto</span>
+        </div>
+        
+        <div className="w-6 h-6 rounded-full bg-orange-100 border border-orange-200 mx-auto mb-1 flex items-center justify-center overflow-hidden shadow-sm">
+           <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=50" className="object-cover w-full h-full" />
+        </div>
+        <div className="text-[6px] font-black uppercase text-gray-900 leading-none text-center">Eco Nature</div>
+        <div className="text-[4px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter text-center leading-none">Productos Orgánicos</div>
+      </div>
+
+      {/* 2. BANNER DE PROMOS */}
+      <div className="px-2 py-1 flex-shrink-0">
+        <div className="bg-orange-50 border border-dashed border-orange-200 rounded-lg p-1 text-center">
+          <span className="text-[4px] font-black text-orange-700 uppercase tracking-widest leading-none block">
+             Envío Gratis — Compras +$20.000
+          </span>
+        </div>
+      </div>
+
+      {/* 3. BOTONES DE CATEGORÍA */}
+      <div className="flex gap-1 px-2 py-1 justify-center flex-shrink-0 border-b border-gray-50">
+        {['Mixes', 'Mieles', 'Harinas'].map((cat, i) => (
+          <div key={i} className={`px-1.5 py-0.5 rounded-full text-[4px] font-black uppercase border ${i === 0 ? 'bg-orange-600 text-white border-orange-600' : 'bg-white text-gray-400 border-gray-100 shadow-sm'}`}>
+            {cat}
+          </div>
+        ))}
+      </div>
+
+      {/* 4. LISTADO ZIG-ZAG (Precios pegados ABAJO sin pise) */}
+      <div className="p-2 space-y-4 overflow-hidden">
+        
+        {/* PRODUCTO 1 */}
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full border-2 border-orange-600 shrink-0 overflow-hidden shadow-md">
+             <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=80" className="object-cover w-full h-full" />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col items-start space-y-0.5">
+            <div className="leading-none">
+              <span className="inline-block bg-white px-1.5 py-0.5 rounded-lg border border-gray-100 shadow-sm text-[5px] font-black text-gray-900 uppercase">
+                 Mix Frutos Secos
+              </span>
+            </div>
+            <div className="inline-block bg-orange-600 text-white text-[5px] font-black px-2 py-0.5 rounded-full shadow-sm leading-none border border-white/20">
+              $8.500
+            </div>
+          </div>
+        </div>
+
+        {/* PRODUCTO 2 (INVERTIDO) */}
+        <div className="flex items-center gap-2 flex-row-reverse">
+          <div className="w-9 h-9 rounded-full border-2 border-orange-600 shrink-0 overflow-hidden shadow-md">
+             <img src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80" className="object-cover w-full h-full" />
+          </div>
+          <div className="flex-1 text-right min-w-0 flex flex-col items-end space-y-0.5">
+            <div className="leading-none">
+              <span className="inline-block bg-white px-1.5 py-0.5 rounded-lg border border-gray-100 shadow-sm text-[5px] font-black text-gray-900 uppercase">
+                 Miel Orgánica
+              </span>
+            </div>
+            <div className="inline-block bg-orange-600 text-white text-[5px] font-black px-2 py-0.5 rounded-full shadow-sm leading-none border border-white/20">
+              $4.200
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
       default: return null;
     }
   };
 const filteredTemplates = TEMPLATES.filter(t => {
-  // Si todavía no hay rubro (porque está en el paso 1 o 2), no mostramos ninguna plantilla todavía
   if (!saleType) return false;
 
-  // 1. Solo mostrar plantillas que coincidan con el tipo de venta elegido
-  if (t.sale_type !== saleType) return false;
+  // 1. Verificamos Rubro (Soporta si es texto simple o array)
+  const typeMatch = Array.isArray(t.sale_type) 
+    ? t.sale_type.includes(saleType) 
+    : t.sale_type === saleType;
 
-  // 2. Aplicar los filtros de categoría (Lo que ya tenías)
+  if (!typeMatch) return false;
+
+  // 2. Verificamos Filtro de Pestaña (Soporta si es texto simple o array)
   if (activeFilter === 'todas') return true;
   if (activeFilter === 'premium') return t.premium;
-  return t.category === activeFilter;
-})
+
+  return Array.isArray(t.category)
+    ? t.category.includes(activeFilter)
+    : t.category === activeFilter;
+});
 // --- LÓGICA DE RENDERIZADO DIVIDIDA (PARA PANTALLA LIMPIA) ---
 
   if (!isInitialLoading && userPlan !== 'free' && showOnboarding) {
