@@ -104,16 +104,34 @@ export default function SettingsPage() {
     router.refresh();
   };
 
-  const handleDeleteAccount = async () => {
-    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nAl eliminar tu cuenta se borrarán tus datos de forma permanente.");
+ const handleDeleteAccount = async () => {
+    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nAl eliminar tu cuenta se borrará tu menú, tus productos y se CANCELARÁ cualquier suscripción activa de forma permanente.");
     if (!confirm1) return;
+
+    const confirm2 = confirm("ESTA ACCIÓN NO SE PUEDE DESHACER. ¿Eliminar definitivamente?");
+    if (!confirm2) return;
+
+    setLoading(true); // Usamos el loader para que no toque nada mientras borramos
     try {
-        if (restaurant.id) await supabase.from('restaurants').delete().eq('id', restaurant.id);
-        if (userId) await supabase.from('profiles').delete().eq('id', userId);
-        await supabase.auth.signOut();
-        router.push('/login');
-    } catch (error: any) { toast.error("Error al eliminar"); }
-  };
+        const response = await fetch('/api/user/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+
+        if (response.ok) {
+            toast.success("Cuenta eliminada con éxito");
+            await supabase.auth.signOut();
+            router.push('/login');
+        } else {
+            throw new Error("Error en el servidor");
+        }
+    } catch (error: any) { 
+        toast.error("No se pudo eliminar la cuenta por completo. Contactate con soporte."); 
+    } finally {
+        setLoading(false);
+    }
+};
 
 
   // --- AUTO-GUARDADO DE PERFIL (CON REFRESH) ---
@@ -320,19 +338,36 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
     )}
 </div>
           {/* MAX */}
-          <div className="p-8 rounded-[2rem] border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col opacity-70">
-              <div className="mb-6 text-center">
-                  <h3 className="font-bold text-purple-600 text-[10px] uppercase tracking-widest">Escalabilidad</h3>
-                  <p className="text-3xl font-black text-gray-900 mt-1">Max <span className="text-xl text-gray-400 font-bold">$28.600</span></p>
-              </div>
-              <ul className="space-y-3 flex-1 mb-8">
-                  <li className="flex gap-3 text-xs font-bold text-gray-500"><Check size={16} className="text-purple-400 shrink-0"/> Todo lo del plan Plus</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-500"><Layout size={16} className="text-purple-400 shrink-0"/> Panel Pro para Caja</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-500"><CreditCard size={16} className="text-purple-400 shrink-0"/> Integración Mercado Pago</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-500"><Store size={16} className="text-purple-400 shrink-0"/> Gestión de hasta 2 sucursales</li>
-              </ul>
-              <button disabled className="w-full py-3.5 rounded-2xl font-black text-xs bg-gray-200 text-gray-400 cursor-not-allowed uppercase">Muy Pronto</button>
-          </div>
+        <div className="p-8 rounded-[2rem] border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col opacity-70">
+    <div className="mb-6 text-center">
+        <h3 className="font-bold text-purple-600 text-[10px] uppercase tracking-widest">Escalabilidad</h3>
+        
+        {/* Cambiamos <p> por <div> para evitar el error de hidratación */}
+        <div className="text-3xl font-black text-gray-900 mt-1 flex items-center justify-center gap-2">
+            Max 
+            <div className="relative inline-flex items-center">
+                {/* El precio con un blur de 6px que lo hace ilegible pero con estilo */}
+                <span className="text-xl text-gray-400 font-bold select-none blur-[6px] tracking-tight">
+                    $28.600
+                </span>
+                
+                {/* Capa de brillo opcional para dar efecto de 'vidrio' por encima */}
+                <div className="absolute inset-0 bg-white/10 rounded-md pointer-events-none border border-white/20"></div>
+            </div>
+        </div>
+    </div>
+
+    <ul className="space-y-3 flex-1 mb-8">
+        <li className="flex gap-3 text-xs font-bold text-gray-500"><Check size={16} className="text-purple-400 shrink-0"/> Todo lo del plan Plus</li>
+        <li className="flex gap-3 text-xs font-bold text-gray-500"><Layout size={16} className="text-purple-400 shrink-0"/> Panel Pro para Caja</li>
+        <li className="flex gap-3 text-xs font-bold text-gray-500"><CreditCard size={16} className="text-purple-400 shrink-0"/> Integración Mercado Pago</li>
+        <li className="flex gap-3 text-xs font-bold text-gray-500"><Store size={16} className="text-purple-400 shrink-0"/> Gestión de hasta 2 sucursales</li>
+    </ul>
+    
+    <button disabled className="w-full py-3.5 rounded-2xl font-black text-xs bg-gray-200 text-gray-400 cursor-not-allowed uppercase">
+        Muy Pronto
+    </button>
+</div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -367,15 +402,32 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
             />
         </div>
 
-        <div className="pt-2 flex flex-col gap-3">
-             <button onClick={handlePasswordReset} className="w-full py-3 text-xs font-bold text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">Cambiar Contraseña</button>
-             <button onClick={handleLogout} className="md:hidden w-full py-3 text-xs font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 tracking-widest uppercase">
-                <LogOut size={16}/> Cerrar sesión
-             </button>
-             <button onClick={handleDeleteAccount} className="w-full py-3 text-[10px] font-black text-red-400/50 hover:text-red-600 transition flex items-center justify-center gap-2 uppercase tracking-widest">
-                <Trash2 size={14}/> Eliminar mi cuenta
-             </button>
-        </div>
+       <div className="pt-2 flex flex-col gap-3">
+    <button onClick={handlePasswordReset} className="w-full py-3 text-xs font-bold text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">
+        Cambiar Contraseña
+    </button>
+    
+    <button onClick={handleLogout} className="md:hidden w-full py-3 text-xs font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 tracking-widest uppercase">
+        <LogOut size={16}/> Cerrar sesión
+    </button>
+
+    {/* --- CARTEL DE AVISO DE CANCELACIÓN --- */}
+    <div className="mt-4 p-4 bg-red-50/50 border border-red-100 rounded-2xl text-left">
+        <p className="text-[11px] font-bold text-red-800 leading-relaxed">
+            <span className="flex items-center gap-1.5 mb-1 uppercase tracking-tighter">
+                <AlertTriangle size={14} /> ¿Deseas cancelar tu plan?
+            </span>
+            Al eliminar tu cuenta, tu suscripción en <b>Mercado Pago se cancelará automáticamente</b> y todos tus datos se borrarán de forma permanente.
+        </p>
+    </div>
+
+    <button 
+        onClick={handleDeleteAccount} 
+        className="w-full py-3 text-[10px] font-black text-red-400 hover:text-red-600 transition flex items-center justify-center gap-2 uppercase tracking-widest"
+    >
+        <Trash2 size={14}/> Eliminar mi cuenta definitivamente
+    </button>
+</div>
     </div>
 </section>
         </div>

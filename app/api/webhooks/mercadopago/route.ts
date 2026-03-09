@@ -31,6 +31,7 @@ export async function POST(request: Request) {
                 .from('restaurants')
                 .update({ 
                     subscription_status: 'active',
+                    mp_preapproval_id: id,
                     updated_at: new Date().toISOString()
                 })
                 .eq('user_id', userId);
