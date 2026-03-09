@@ -191,7 +191,18 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
         if (metodoEnvio === 'mesa') mensaje += `🍽️ *Mesa:* ${nroMesa}\n`;
         mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
-        cart.forEach((item: any) => { mensaje += `✅ ${item.quantity}x ${item.name}`; if (item.extrasList?.length > 0) item.extrasList.forEach((ex: any) => mensaje += ` (+ ${ex.name})`); mensaje += `\n`; });
+        cart.forEach((item: any) => { 
+    // Nombre del producto principal en negrita
+    mensaje += `✅ *${item.quantity}x ${item.name}*\n`; 
+
+    // Si tiene adicionales, los listamos con el formato que pediste
+    if (item.extrasList?.length > 0) {
+        item.extrasList.forEach((ex: any) => {
+            // Usamos formatPrice para que el precio del extra salga lindo (ej: $ 500)
+            mensaje += `      _Extra: ${ex.name} (${formatPrice(ex.price)})_\n`; 
+        });
+    }
+});
         if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
         mensaje += `\n------------------\n💰 *Subtotal:* ${formatPrice(subtotal)}\n`;
         if (appliedCoupon) { mensaje += `🎟️ *Cupón:* ${appliedCoupon.code} (-${appliedCoupon.discount_percent}%)\n➖ *Descuento:* -${formatPrice(montoDescuento)}\n`; }

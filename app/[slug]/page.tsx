@@ -285,7 +285,7 @@ function MenuContent({
   const [heroQty, setHeroQty] = useState(1);
   const [variationsQuantities, setVariationsQuantities] = useState<{[key: number]: number}>({});
   const [cardSelections, setCardSelections] = useState<{[key: string]: number | null}>({});
-
+ const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
   const handleAddHeroToCart = () => {
     if (!restaurant.hero_title || !restaurant.hero_price) return;
 
@@ -1238,43 +1238,97 @@ return (
                 );
               })}
             </div>
+{/* --- SECCIÓN EXTRAS (PEGAR ABAJO DE LA SECCIÓN KG) --- */}
+<div className="mt-8 space-y-3 pb-4 px-1">
+  <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">¿Querés sumar algo más?</p>
+  <div className="grid grid-cols-1 gap-2">
+    {restaurant.fetched_extras
+      ?.filter((ex: any) => ex.product_extras?.some((re: any) => String(re.product_id) === String(selectedProduct.id)))
+      .map((ex: any) => {
+        const isSelected = selectedExtras.some(s => s.id === ex.id);
+        
+        // --- ESTA LÍNEA ES LA QUE BLOQUEA: ---
+        const hasMainQty = Object.values(variationsQuantities).some(q => q > 0);
 
-            {/* BOTÓN FINAL DE CONFIRMACIÓN */}
-            <div className="p-6 bg-gray-50 border-t border-gray-100">
-              <button 
-                disabled={Object.values(variationsQuantities).every(q => q === 0)}
-                onClick={() => {
-                  // Agregamos cada variante que tenga cantidad > 0 al carrito
-                  Object.entries(variationsQuantities).forEach(([idx, qty]) => {
-                    if (qty > 0) {
-                      const variation = selectedProduct.variations[Number(idx)];
-                      for(let i=0; i < qty; i++) {
-                        addToCart({
-                          ...selectedProduct,
-                          id: `${selectedProduct.id}-${idx}`,
-                          name: `${selectedProduct.name} (${variation.label})`,
-                          price: Number(variation.price)
-                        });
-                      }
-                    }
-                  });
-                  
-                  mostrarAviso("✅ Agregado al pedido");
-                  setSelectedProduct(null);
-                  setVariationsQuantities({});
-                }}
-                className="w-full py-5 rounded-2xl font-black text-white text-center uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-3" 
-                style={{ backgroundColor: THEME }}
-              >
-                  Confirmar y Sumar
-                  <div className="h-4 w-[1px] bg-white/20"/>
-                  {formatPrice(
-                    Object.entries(variationsQuantities).reduce((acc, [idx, qty]) => {
-                      return acc + (Number(selectedProduct.variations[Number(idx)].price) * qty);
-                    }, 0)
-                  )}
-              </button>
+        return (
+          <button 
+            key={ex.id}
+            type="button"
+            disabled={!hasMainQty} // <-- NO DEJA MARCAR SI NO HAY KILOS/UNIDADES
+            onClick={() => setSelectedExtras(prev => isSelected ? prev.filter(s => s.id !== ex.id) : [...prev, ex])}
+            className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
+              !hasMainQty 
+                ? 'opacity-30 grayscale cursor-not-allowed border-gray-100' // DISEÑO BLOQUEADO
+                : isSelected ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 bg-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200'}`}>
+                {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
+              </div>
+              <span className={`text-[10px] font-black uppercase ${isSelected ? 'text-emerald-900' : 'text-gray-400'}`}>{ex.name}</span>
             </div>
+            <span className="text-[10px] font-bold text-gray-400">+{formatPrice(ex.price)}</span>
+          </button>
+        );
+      })}
+  </div>
+</div>
+            {/* BOTÓN FINAL DE CONFIRMACIÓN */}
+           <div className="p-6 bg-gray-50 border-t border-gray-100">
+  <button 
+    disabled={Object.values(variationsQuantities).every(q => q === 0)}
+   onClick={() => {
+  // 1. Recorremos las cantidades elegidas (Kilos/Unidades)
+  Object.entries(variationsQuantities).forEach(([idx, qty]) => {
+    if (qty > 0) {
+      const variation = selectedProduct.variations[Number(idx)];
+      const parentId = `${selectedProduct.id}-${idx}`; // Creamos un ID único para esta versión
+
+      // Agregamos al carrito en un bucle según la cantidad elegida
+      for (let i = 0; i < qty; i++) {
+        
+        // A. Sumamos el producto principal
+        addToCart({
+          ...selectedProduct,
+          id: parentId, // Importante: mismo ID para agrupar
+          name: `${selectedProduct.name} (${variation.label})`,
+          price: Number(variation.price)
+        });
+
+        // B. Sumamos cada extra elegido vinculado a ese ID
+        selectedExtras.forEach(extra => {
+          addToCart({
+            id: parentId,     // <--- MISMO ID QUE EL PADRE (Clave para que se anide)
+            extraId: extra.id, // ID propio del adicional
+            name: extra.name, 
+            price: Number(extra.price)
+          });
+        });
+      }
+    }
+  });
+
+  mostrarAviso("✅ Agregado al pedido");
+  
+  // Reseteamos todo para el próximo producto
+  setSelectedProduct(null);
+  setVariationsQuantities({});
+  setSelectedExtras([]); 
+}}
+    className="w-full py-5 rounded-2xl font-black text-white text-center uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-3" 
+    style={{ backgroundColor: THEME }}
+  >
+      Confirmar y Sumar
+      <div className="h-4 w-[1px] bg-white/20"/>
+      {/* MOSTRAMOS EL TOTAL: Kilos + Extras */}
+      {formatPrice(
+        Object.entries(variationsQuantities).reduce((acc, [idx, qty]) => {
+          return acc + (Number(selectedProduct.variations[Number(idx)].price) * qty);
+        }, 0) + selectedExtras.reduce((acc, e) => acc + Number(e.price), 0)
+      )}
+  </button>
+</div>
           </div>
         </div>
       )}

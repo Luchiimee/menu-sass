@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -785,53 +785,81 @@ const filteredTemplates = TEMPLATES.filter(t => {
         <style>{GALLERY_STYLES}</style>
         <div className="max-w-2xl w-full space-y-12 py-10 text-center">
           
-          {/* PASO 1: ¿QUÉ VAS A VENDER? */}
-          {step === 1 && (
-            <div className="space-y-10 animate-in zoom-in-95 duration-300">
-              <div className="text-center space-y-2">
-                <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 01</span>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Qué vas a vender?</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <button onClick={() => { setTempType('unidad'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-violet-500 transition-all text-left shadow-xl hover:shadow-violet-100">
-                  <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">🍔</div>
-                  <h3 className="text-2xl font-black uppercase italic leading-none">Gastronomía</h3>
-                  <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Platos, combos y bebidas</p>
-                </button>
-                <button onClick={() => { setTempType('peso'); setStep(2); }} className="group bg-white border-4 border-slate-100 p-8 rounded-[3rem] hover:border-cyan-500 transition-all text-left shadow-xl hover:shadow-cyan-100">
-                  <div className="text-5xl mb-6 group-hover:scale-110 transition-transform">⚖️</div>
-                  <h3 className="text-2xl font-black uppercase italic leading-none text-cyan-600">Venta por Peso</h3>
-                  <p className="text-slate-400 text-xs mt-3 font-bold uppercase tracking-widest">Dietéticas y Heladerías</p>
-                </button>
-              </div>
-            </div>
-          )}
+        {/* PASO 1: DISEÑO PREMIUM MEJORADO */}
+{step === 1 && (
+  <div className="space-y-10 animate-in zoom-in-95 duration-300">
+    <div className="text-center space-y-2">
+      <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full mb-2">
+        <span className="text-indigo-600 font-black text-[9px] uppercase tracking-[0.3em]">Paso 01</span>
+      </div>
+      <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Cómo vendés?</h2>
+      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Seleccioná el formato de tu catálogo</p>
+    </div>
 
-          {/* PASO 2: SELECCIÓN DE SUB-RUBRO */}
-          {step === 2 && (
-            <div className="space-y-10 animate-in slide-in-from-right-5 duration-300">
-              <div className="text-center space-y-2">
-                <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.4em]">Paso 02</span>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Un paso más...</h2>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Elegí la categoría que mejor defina tu negocio</p>
-              </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* BOTÓN UNIDAD */}
+      <button 
+        onClick={() => { setTempType('unidad'); setStep(2); }} 
+        className="group bg-white border-2 border-slate-100 p-8 rounded-[3rem] hover:border-indigo-600 transition-all text-left shadow-lg hover:shadow-indigo-100 relative overflow-hidden"
+      >
+        <div className="absolute -right-4 -top-4 text-8xl opacity-5 group-hover:scale-110 transition-transform">🍔</div>
+        <div className="text-5xl mb-6 relative z-10">🍔</div>
+        <h3 className="text-2xl font-black uppercase italic leading-none relative z-10 text-slate-900">Venta por Unidad</h3>
+        <p className="text-slate-400 text-[10px] mt-3 font-bold uppercase tracking-widest relative z-10">Burgers, Pizzas, Kioscos y más</p>
+      </button>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {(tempType === 'unidad' 
-                  ? ['Hamburguesería', 'Pizzería', 'Restaurante', 'Food Truck', 'Panchería', 'Sushi']
-                  : ['Dietética', 'Heladería', 'Fiambrería', 'Carnicería', 'Kiosco', 'Otros']
-                ).map(item => (
-                  <button key={item} onClick={() => handleSaveBusinessInfo(item.toLowerCase())} className={`p-4 rounded-2xl border-2 border-slate-100 hover:border-black font-black text-[10px] uppercase tracking-widest transition-all bg-slate-50/50 hover:bg-white active:scale-95 shadow-sm ${tempType === 'peso' ? 'text-cyan-700 hover:border-cyan-500' : ''}`}>
-                    {item}
-                  </button>
-                ))}
-              </div>
-              
-              <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-slate-400 hover:text-black mt-8 block mx-auto">
-                ← Volver atrás
-              </button>
-            </div>
-          )}
+      {/* BOTÓN PESO */}
+      <button 
+        onClick={() => { setTempType('peso'); setStep(2); }} 
+        className="group bg-white border-2 border-slate-100 p-8 rounded-[3rem] hover:border-cyan-500 transition-all text-left shadow-lg hover:shadow-cyan-100 relative overflow-hidden"
+      >
+        <div className="absolute -right-4 -top-4 text-8xl opacity-5 group-hover:scale-110 transition-transform">⚖️</div>
+        <div className="text-5xl mb-6 relative z-10">⚖️</div>
+        <h3 className="text-2xl font-black uppercase italic leading-none relative z-10 text-cyan-600">Venta por Peso</h3>
+        <p className="text-slate-400 text-[10px] mt-3 font-bold uppercase tracking-widest relative z-10">Dietéticas, Heladerías y Fraccionados</p>
+      </button>
+    </div>
+  </div>
+)}
+
+     {/* PASO 2: SELECCIÓN DE RUBRO ESPECÍFICO */}
+{step === 2 && (
+  <div className="space-y-10 animate-in slide-in-from-right-8 duration-500">
+    <div className="text-center space-y-3">
+      <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
+        <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+        <span className="text-indigo-600 font-black text-[9px] uppercase tracking-[0.2em]">Configuración Final</span>
+      </div>
+      <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Cuál es tu rubro?</h2>
+      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Ayudanos a optimizar tu experiencia</p>
+    </div>
+
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {(tempType === 'unidad' 
+        ? ['Hamburguesería', 'Pizzería', 'Restaurante', 'Sushi', 'Cafetería', 'Otros']
+        : ['Dietética', 'Heladería', 'Fiambrería', 'Carnicería', 'Verdulería', 'Otros']
+      ).map(item => (
+        <button 
+          key={item} 
+          onClick={() => handleSaveBusinessInfo(item.toLowerCase())} 
+          className="group p-5 rounded-[2rem] border-2 border-slate-100 hover:border-slate-900 font-black text-[10px] uppercase tracking-widest transition-all bg-white hover:shadow-xl active:scale-95 flex flex-col items-center gap-2 text-slate-900"
+        >
+          <span className="text-xl group-hover:scale-125 transition-transform">
+            {item === 'Heladería' ? '🍦' : item === 'Cafetería' ? '☕' : item === 'Sushi' ? '🍣' : '✨'}
+          </span>
+          {item}
+        </button>
+      ))}
+    </div>
+    
+    <button 
+      onClick={() => setStep(1)} 
+      className="text-[10px] font-black uppercase text-slate-300 hover:text-slate-900 mt-8 flex items-center justify-center gap-2 mx-auto transition-colors"
+    >
+      <RotateCcw size={12}/> Volver atrás
+    </button>
+  </div>
+)}
 
           {isUpdatingType && (
             <div className="flex flex-col items-center gap-2 mt-8 animate-in fade-in">

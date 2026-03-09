@@ -1,9 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
-// AGREGAMOS 'Star' e 'Info' a las importaciones para borrar el error
-import { ShoppingBag, Store, Star, Zap, Info } from 'lucide-react'; 
+import { ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check } from 'lucide-react';
 
-export default function AlternaPro({ restaurant = {}, products = [], setSelectedProduct, isMockup = false }: any) {
+export default function AlternaPro({ restaurant = {}, products = [], setSelectedProduct, onAddToCart, isMockup = false }: any) {
   const [selectedCategory, setSelectedCategory] = useState("todos");
 
   // --- CONFIGURACIÓN DE COLORES ---
@@ -17,6 +16,27 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
   const PROMO_BG = restaurant?.promo_bg_color || (THEME + '15');
   const PROMO_TEXT = restaurant?.promo_text_color || THEME;
   const PROD_NAME_BG = restaurant?.card_name_bg || '#ffffff';
+  const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
+  const [variationCounts, setVariationCounts] = useState<{ [key: string]: number }>({});
+
+  // Filtramos los adicionales que pertenecen a este producto específico
+  const productExtras = useMemo(() => {
+    if (!restaurant?.fetched_extras || !products) return [];
+    // Buscamos el producto que está abierto en el modal (lo detectamos por el estado del padre)
+    // Nota: Si usas setSelectedProduct del padre, asegúrate de que el padre te pase el producto activo.
+    return []; 
+  }, [restaurant?.fetched_extras]);
+
+  const handleUpdateCount = (label: string, delta: number) => {
+    setVariationCounts(prev => ({ ...prev, [label]: Math.max(0, (prev[label] || 0) + delta) }));
+  };
+
+  // Esta función es la que "limpia" todo al cerrar
+  const closeModal = () => {
+    setSelectedProduct(null);
+    setVariationCounts({});
+    setSelectedExtras([]);
+  };
   
   // 1. CATEGORÍAS PARA BOTONES (Filtramos "General" para que la barra quede limpia)
   const rawCats = restaurant?.categories || [];
@@ -259,7 +279,72 @@ const isReady = useMemo(() => {
           );
         })()}
       </div>
-      
+      {restaurant.selectedProduct && (
+        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative w-full max-w-sm rounded-[2.5rem] bg-white overflow-hidden shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95">
+            <button onClick={closeModal} className="absolute top-4 right-8 z-[210] bg-white/90 p-1.5 rounded-full shadow-lg border border-gray-100"><X size={18} /></button>
+            
+            <div className="overflow-y-auto no-scrollbar flex-1 p-6 text-left">
+              <img src={restaurant.selectedProduct.image_url} className="w-full aspect-video object-cover rounded-2xl mb-4" />
+              <h2 className="text-xl font-black uppercase text-gray-900 italic tracking-tighter">{restaurant.selectedProduct.name}</h2>
+              
+              {/* SECCIÓN KG */}
+              <div className="mt-8 space-y-3">
+                <p className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-1">Elegí cantidades:</p>
+                {(restaurant.selectedProduct.variations?.length > 0 ? restaurant.selectedProduct.variations : [{ label: 'Unidad', price: restaurant.selectedProduct.price }]).map((v: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-4 rounded-3xl bg-gray-50 border border-gray-100">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black uppercase italic text-gray-900">{v.label}</span>
+                      <span className="text-[10px] font-bold text-gray-400 mt-1">${v.price}</span>
+                    </div>
+                    <div className="flex items-center gap-4 bg-white px-2 py-1.5 rounded-2xl shadow-sm border border-gray-100">
+                      <button onClick={() => handleUpdateCount(v.label, -1)} className="text-red-500 active:scale-75 transition-transform"><Minus size={16} /></button>
+                      <span className="font-black text-sm w-4 text-center">{variationCounts[v.label] || 0}</span>
+                      <button onClick={() => handleUpdateCount(v.label, 1)} className="text-indigo-600 active:scale-75 transition-transform"><Plus size={16} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* SECCIÓN ADICIONALES (EXTRA) */}
+              <div className="mt-8 space-y-3 pb-4">
+                <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1">¿Querés sumar algo más?</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Aquí mapeamos los extras reales del restaurante */}
+                  {restaurant.fetched_extras?.filter((ex: any) => ex.product_extras?.some((re: any) => String(re.product_id) === String(restaurant.selectedProduct.id))).map((ex: any) => {
+                    const isSelected = selectedExtras.some(s => s.id === ex.id);
+                    return (
+                      <button 
+                        key={ex.id}
+                        onClick={() => setSelectedExtras(prev => isSelected ? prev.filter(s => s.id !== ex.id) : [...prev, ex])}
+                        className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${isSelected ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 bg-white'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200'}`}>
+                            {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
+                          </div>
+                          <span className={`text-[10px] font-black uppercase ${isSelected ? 'text-emerald-900' : 'text-gray-400'}`}>{ex.name}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400">+$ {ex.price}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 pt-2 bg-white border-t border-gray-50">
+              <button 
+                onClick={() => { /* Aquí va la lógica de onAddToCart */ closeModal(); }}
+                className="w-full py-4 rounded-2xl font-black text-[12px] text-white shadow-xl active:scale-95" 
+                style={{ backgroundColor: '#3f1a0b' }}
+              >
+                CONFIRMAR Y SUMAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
