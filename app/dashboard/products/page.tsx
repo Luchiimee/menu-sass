@@ -480,90 +480,113 @@ if (loading) return (
         )}
       </div>
 
-      {/* --- LISTADO (Mantené tu código de la tabla aquí abajo) --- */}
-
-      {/* --- LISTADO (Mantené tu código de la tabla aquí abajo) --- */}
-            {activeTab === 'products' && (
-                <div className="mt-6">
-                    {products.length === 0 ? (
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center text-gray-500">
-                             No hay productos aún.
-                        </div>
-                    ) : (
-                        view === 'list' ? (
-                            <div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 border-b text-gray-400 uppercase text-[10px] font-bold tracking-widest">
-                                        <tr>
-                                            <th className="px-6 py-4">Producto</th>
-                                            <th className="px-6 py-4">Precio</th>
-                                            <th className="px-6 py-4 text-right">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {products.map((p) => (
-                                            <tr key={p.id} className="hover:bg-gray-50 group transition">
-                                <td className="px-6 py-4">
-    <div className="flex items-center gap-3 text-left">
-        <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100">
-            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="p-2 text-gray-300 w-full h-full"/>}
-        </div>
-        <div className="flex flex-col">
-            {/* NOMBRE SIN TRUNCATE Y BIEN NEGRO */}
-            <p className="font-black text-slate-900 uppercase leading-tight mb-1">{p.name}</p>
-            {/* DESCRIPCIÓN OSCURA Y COMPLETA */}
-            <p className="text-[11px] text-slate-600 font-medium leading-relaxed max-w-[250px]">{p.description}</p>
-        </div>
-    </div>
-</td>
-                                                <td className="px-6 py-4 font-bold text-violet-600">
-  {p.variations && p.variations.length > 0
-    ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
-    : `$ ${p.price || 0}`}
-</td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-    {/* Botón Editar: Se queda siempre igual */}
-    <button onClick={() => openEditModal(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={14}/></button>
-    
-    {/* Botón Borrar: Agregamos 'hidden md:flex' para que solo se vea en PC */}
-    <button onClick={() => handleDeleteProduct(p.id)} className="hidden md:flex p-2 text-red-500 hover:bg-red-50 rounded-lg">
-        <Trash2 size={14}/>
-    </button>
-</div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {products.map((p) => (
-                                    <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
-                                        <div className="aspect-square bg-gray-100 relative">
-                                            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover"/> : <ImageIcon className="p-10 text-gray-200 w-full h-full"/>}
-                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                                <button onClick={() => openEditModal(p)} className="bg-white p-2 rounded-full shadow text-blue-500"><Edit2 size={12}/></button>
-                                                <button onClick={() => handleDeleteProduct(p.id)} className="bg-white p-2 rounded-full shadow text-red-500"><Trash2 size={12}/></button>
+{/* --- LISTADO DE PRODUCTOS CORREGIDO --- */}
+{activeTab === 'products' && (
+    <div className="mt-6">
+        {products.length === 0 ? (
+            <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center text-gray-500">
+                 No hay productos aún.
+            </div>
+        ) : (
+            view === 'list' ? (
+                /* 1. CONTENEDOR CON SCROLL HORIZONTAL PARA MOBILE */
+                <div className="bg-white border rounded-2xl overflow-x-auto shadow-sm no-scrollbar">
+                    {/* 2. MIN-WIDTH PARA QUE NO SE AMONTONE EN EL CELU */}
+                    <table className="w-full text-left text-sm min-w-[550px]">
+                        <thead className="bg-gray-50 border-b text-gray-400 uppercase text-[10px] font-bold tracking-widest">
+                            <tr>
+                                <th className="px-6 py-4">Producto</th>
+                                <th className="px-6 py-4">Precio</th>
+                                <th className="px-6 py-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {products.map((p) => (
+                                <tr key={p.id} className="hover:bg-slate-50/50 group transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3 text-left">
+                                            <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100">
+                                                {p.image_url ? (
+                                                    <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
+                                                ) : (
+                                                    <ImageIcon className="p-3 text-gray-300 w-full h-full"/>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                {/* NOMBRE NEGRITA Y COMPACTO */}
+                                                <p className="font-black text-slate-900 uppercase leading-tight text-xs truncate max-w-[180px]">
+                                                    {p.name}
+                                                </p>
+                                                {/* 3. DESCRIPCIÓN TRUNCADA (SOLO UN POCO) */}
+                                                <p className="text-[10px] text-slate-400 font-bold truncate max-w-[220px]">
+                                                    {p.description}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="p-3">
-                                            <p className="font-bold text-sm truncate">{p.name}</p>
-                                            <p className="font-bold text-violet-600 text-sm">
-  {p.variations && p.variations.length > 0
-    ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
-    : `$ ${p.price || 0}`}
-</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )
-                    )}
-                </div>
-            )}
+                                    </td>
 
+                                    <td className="px-6 py-4">
+                                        <p className="font-black text-violet-600 whitespace-nowrap text-xs bg-violet-50 px-2 py-1 rounded-lg w-fit">
+                                            {p.variations && p.variations.length > 0
+                                                ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
+                                                : `$ ${p.price || 0}`}
+                                        </p>
+                                    </td>
+
+                                    {/* ACCIONES AL FINAL DEL SCROLL DERECHO */}
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button 
+                                                onClick={() => openEditModal(p)} 
+                                                className="p-2.5 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-transform shadow-sm"
+                                            >
+                                                <Edit2 size={18}/>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteProduct(p.id)} 
+                                                className="hidden md:flex p-2.5 bg-red-50 text-red-500 rounded-xl"
+                                            >
+                                                <Trash2 size={18}/>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                /* VISTA EN CUADRICULA (GRID) */
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {products.map((p) => (
+                        <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
+                            <div className="aspect-square bg-gray-100 relative">
+                                {p.image_url ? (
+                                    <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
+                                ) : (
+                                    <ImageIcon className="p-10 text-gray-200 w-full h-full"/>
+                                )}
+                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                    <button onClick={() => openEditModal(p)} className="bg-white p-2 rounded-full shadow text-blue-500 hover:scale-110 transition"><Edit2 size={12}/></button>
+                                    <button onClick={() => handleDeleteProduct(p.id)} className="bg-white p-2 rounded-full shadow text-red-500 hover:scale-110 transition"><Trash2 size={12}/></button>
+                                </div>
+                            </div>
+                            <div className="p-3">
+                                <p className="font-bold text-sm truncate uppercase text-slate-800">{p.name}</p>
+                                <p className="font-black text-violet-600 text-sm mt-1">
+                                    {p.variations && p.variations.length > 0
+                                        ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
+                                        : `$ ${p.price || 0}`}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )
+        )}
+    </div>
+)}
+     
             {activeTab === 'extras' && (
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                     <div className="p-6 border-b bg-gray-50">
