@@ -340,10 +340,11 @@ google_maps_link: '',
     const tConfig = getTemplateConfig();
 
     // --- 3. CAMBIO DE PLANTILLA (BOTÓN "USAR ESTE DISEÑO") ---
- const applyTemplate = (templateId: string) => {
+const applyTemplate = (templateId: string) => {
+    // 1. Buscamos los colores oficiales de esa plantilla
     const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
-    const isUrban = templateId === 'urban';
     
+    // 2. Aplicamos un "BORRÓN Y CUENTA NUEVA" total
     setData({
         ...data, 
         template_id: templateId,
@@ -352,13 +353,15 @@ google_maps_link: '',
         text_color: defaults.text,
         description_color: defaults.desc,
         promo_bg_color: defaults.promo,
-        promo_text_color: isUrban ? '#ffffff' : (defaults.promo_text || defaults.theme),
-        card_name_color: isUrban ? '#ffffff' : '#000000',
-        card_color: isUrban ? '#1E1E1E' : '#ffffff',
-        card_desc_color: isUrban ? '#888888' : '#666666', // <--- AGREGADO AQUÍ TAMBIÉN
-        card_price_color: defaults.theme,
+        promo_text_color: defaults.promo_text || defaults.theme,
+        // Variables de producto sincronizadas
+        card_name_color: defaults.card_name || (templateId === 'urban' ? '#ffffff' : '#000000'),
+        card_color: defaults.card || defaults.bg,
+        card_desc_color: defaults.card_desc || (templateId === 'urban' ? '#888888' : '#666666'),
+        card_price_color: defaults.card_price || defaults.theme,
+        card_btn_bg: defaults.btn_bg || '#ffffff',
+        card_btn_text: defaults.btn_text || '#000000',
         show_banner: defaults.banner,
-        description: data.description || (isUrban ? 'Elegancia y sabor en cada detalle.' : 'Disfrutá de los mejores sabores en la comodidad de tu casa.'),
     });
 
     setUnsavedChanges(true);
@@ -468,6 +471,11 @@ const confirmReset = () => {
         card_color: isUrban ? '#1E1E1E' : (defaults.bg || '#ffffff'), 
         card_desc_color: isUrban ? '#888888' : '#666666',
         card_price_color: isUrban ? '#ea580c' : (defaults.theme || '#d32f2f'), 
+        
+        /* --- ESTAS DOS LÍNEAS ARREGLAN EL RESET DEL BOTÓN --- */
+        card_btn_bg: defaults.btn_bg || '#ffffff',
+        card_btn_text: defaults.btn_text || '#000000',
+
         promo_bg_color: defaults.promo_bg || defaults.promo || '#1E1E1E',
         promo_text_color: defaults.promo_text || '#ffffff',
         show_banner: defaults.banner || false, 
@@ -665,65 +673,57 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
             </div>
         </div>
 
-       {/* --- SECCIÓN 1: EL NEGOCIO --- */}
-          <div className="space-y-4">
-            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-              <div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local
-            </div>
-            {/* Ajustamos el grid para que sea máximo 4 columnas y bajen los que sobran, manteniendo la forma circular */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
-              <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
-              <ColorBubble label="Nombre" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
-              <ColorBubble label="Descripción" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
-              
-              {/* ACENTO: Solo para bordes de fotos */}
-              {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-
-              {/* CATEGORÍAS: Aparecen abajo prolijamente si es Alterna Pro */}
-              {data.template_id === 'alterna-pro' && (
-                <>
-                  <ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#ea580c'} onChange={(v) => setData({ ...data, cat_bg_color: v })} />
-                  <ColorBubble label="Texto Cat." value={data.cat_text_color || '#ffffff'} onChange={(v) => setData({ ...data, cat_text_color: v })} />
-                </>
-              )}
-              
-              {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-            </div>
-          </div>
-{/* --- SECCIÓN 1: EL NEGOCIO --- */}
-     <div className="space-y-4">
+        {/* --- SECCIÓN 1: IDENTIDAD DEL LOCAL --- */}
+        <div className="space-y-4">
             <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2">
                 <div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
                 <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
-                <ColorBubble label="Nombre" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
-                <ColorBubble label="Descripción" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
-                <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />
+                <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
+                <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
+                
+                {/* ACENTO (Solo si la plantilla lo usa) */}
+                {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
+
+                {/* CATEGORÍAS (Solo Alterna Pro) */}
+                {data.template_id === 'alterna-pro' && (
+                    <>
+                        <ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#ea580c'} onChange={(v) => setData({ ...data, cat_bg_color: v })} />
+                        <ColorBubble label="Texto Cat." value={data.cat_text_color || '#ffffff'} onChange={(v) => setData({ ...data, cat_text_color: v })} />
+                    </>
+                )}
+                
+                {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
             </div>
         </div>
 
-        {/* --- SECCIÓN 2: LOS PRODUCTOS --- */}
+        {/* --- SECCIÓN 2: CARTA DE PRODUCTOS --- */}
         <div className="space-y-4">
             <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
                 <div className="w-1 h-3 bg-orange-600 rounded-full" /> Carta de Productos
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
-                <ColorBubble label="Texto Nombre" value={data.card_name_color || '#ffffff'} onChange={(v) => setData({ ...data, card_name_color: v })} />
-                <ColorBubble label="Fondo Card" value={data.card_color || '#1E1E1E'} onChange={(v) => setData({ ...data, card_color: v })} />
-                <ColorBubble label="Texto Desc." value={data.card_desc_color || '#888888'} onChange={(v) => setData({ ...data, card_desc_color: v })} />
-                <ColorBubble label="Color Precio" value={data.card_price_color || '#ea580c'} onChange={(v) => setData({ ...data, card_price_color: v })} />
-                <ColorBubble label="Fondo Botón +" value={data.card_btn_bg || '#ffffff'} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
+                <ColorBubble label="Texto Nombre" value={data.card_name_color} onChange={(v) => setData({ ...data, card_name_color: v })} />
+                <ColorBubble label="Fondo Card" value={data.card_color} onChange={(v) => setData({ ...data, card_color: v })} />
+                
+                {/* OCULTAMOS DESCRIPCIÓN PARA ALTERNA-PRO SI ES NECESARIO */}
+                {data.template_id !== 'alterna-pro' && (
+                    <ColorBubble label="Texto Desc." value={data.card_desc_color} onChange={(v) => setData({ ...data, card_desc_color: v })} />
+                )}
+
+                <ColorBubble label="Color Precio" value={data.card_price_color} onChange={(v) => setData({ ...data, card_price_color: v })} />
+                <ColorBubble label="Fondo Botón +" value={data.card_btn_bg} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
+                <ColorBubble label="Símbolo +" value={data.card_btn_text} onChange={(v) => setData({ ...data, card_btn_text: v })} />
             </div>
         </div>
-          
 
-        {/* --- SECCIÓN 3: PROMO (Corregido de <p> a <div>) --- */}
+        {/* --- SECCIÓN 3: OFERTAS Y BANNERS --- */}
         <div className="space-y-4">
             <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-2 flex items-center gap-2">
                 <div className="w-1 h-3 bg-emerald-600 rounded-full"/> Ofertas y Banners
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 justify-items-center">
                 <ColorBubble label="Fondo Promo" value={data.promo_bg_color} onChange={(v) => setData({...data, promo_bg_color: v})} />
                 <ColorBubble label="Texto Promo" value={data.promo_text_color} onChange={(v) => setData({...data, promo_text_color: v})} />
             </div>

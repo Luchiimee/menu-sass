@@ -211,18 +211,52 @@ const getStyles = (
             .urbano-extra-price { font-size: 9px; color: ${PROD_PRICE}; font-weight: 700; }
             .urbano-extra-add { width: 22px; height: 22px; border-radius: 6px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; }
         `;
-      case "minimal":
+   case "minimal":
         return `
             ${common} 
             body { background: ${BG}; margin: 0; font-family: 'Lato', sans-serif; } 
             .app-wrapper { min-height: 100vh; padding: 0 0 120px; color: ${TEXT}; } 
             .header-sec { padding: 40px 20px 20px; text-align: center; } 
-            .header-logo { width: 60px; height: 60px; background-size: cover; margin: 0 auto 15px; border-radius: 50%; } 
-            .promo-minimal { margin: 0 20px 30px; padding: 15px; background-color: #f4f4f5; border: 1px solid #eee; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: ${TEXT}; }
-            .prod-card { padding: 20px; border-bottom: 1px solid #f5f5f5; display: block; }
-            .prod-card .font-bold { color: ${PROD_NAME || TEXT}; }
-            .prod-card .opacity-50 { color: ${PROD_DESC || DESC}; }
-            .prod-card .font-black { color: ${PROD_PRICE || THEME}; }
+            .header-logo { width: 60px; height: 60px; background-size: cover; margin: 0 auto 15px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.05); } 
+            
+            .promo-minimal { margin: 0 20px 30px; padding: 15px; background-color: ${PROMO_BG}; border: 1px solid rgba(0,0,0,0.05); text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: ${PROMO_TEXT}; }
+            
+            .prod-card { 
+                padding: 22px 20px; 
+                border-bottom: 1px solid rgba(0,0,0,0.05); 
+                display: flex !important; 
+                justify-content: space-between !important; 
+                align-items: center !important; 
+                background: ${CARD_BG}; 
+            }
+            .prod-info-group { text-align: left; flex: 1; padding-right: 15px; }
+
+            /* --- TEXTOS AGRANDADOS --- */
+            .prod-card .font-bold { color: ${PROD_NAME} !important; font-size: 16px !important; line-height: 1.2; }
+            .prod-card .opacity-50 { color: ${PROD_DESC} !important; font-size: 11px !important; margin-top: 4px; opacity: 0.7 !important; line-height: 1.4; }
+            .prod-card .font-black { color: ${PROD_PRICE} !important; font-size: 15px !important; margin-top: 6px; }
+
+            /* --- BOTÓN + MÁS GRANDE --- */
+            .add-btn-wrapper button { 
+                background-color: ${BTN_BG} !important; 
+                color: ${BTN_TEXT} !important; 
+                border-radius: 50% !important; 
+                width: 32px !important; /* De 24px a 32px */
+                height: 32px !important; /* De 24px a 32px */
+                display: flex !important; 
+                align-items: center !important; 
+                justify-content: center !important; 
+                border: none !important;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+                font-size: 20px !important;
+                font-weight: 900 !important;
+            }
+            .add-btn-wrapper svg { 
+                color: ${BTN_TEXT} !important; 
+                width: 18px !important; /* De 14px a 18px */
+                height: 18px !important; 
+                stroke-width: 3.5;
+            }
         `;
       case "visualgrid":
         return `
@@ -592,50 +626,36 @@ function MenuContent({
             ))}
           </div>
         );
-      case "minimal":
+     case "minimal":
         return (
-          <div className="app-wrapper" style={{ backgroundColor: BG, minHeight: '100vh', paddingBottom: '120px' }}>
-            <div className="header-sec relative" style={{ padding: '60px 20px 20px', textAlign: 'center' }}>
-              <div className="absolute top-6 right-5">
-                <span className={`text-[10px] font-bold px-2 py-0.5 border uppercase tracking-widest bg-white ${isOpen ? 'border-black text-black' : 'border-red-500 text-red-600'}`}>
-                  {isOpen ? "ABIERTO" : "CERRADO"}
-                </span>
-              </div>
-              <div className="header-logo" style={{ backgroundImage: `url('${LOGO || ""}')`, width: '60px', height: '60px', borderRadius: '50%', backgroundSize: 'cover', margin: '0 auto 15px', border: `1px solid ${TEXT}` }}></div>
+          <div className="app-wrapper">
+            <div className="header-sec relative">
+              <div className="header-logo" style={{ backgroundImage: `url('${LOGO || ""}')` }}></div>
               <h1 className="text-xl font-black uppercase tracking-widest mb-1" style={{ color: TEXT }}>{restaurant.name}</h1>
               <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{restaurant.description}</p>
             </div>
-            {restaurant.show_promo && restaurant.promo_message && <div className="promo-minimal">{restaurant.promo_message}</div>}
+
+            {restaurant.show_promo && restaurant.promo_message && (
+                <div className="promo-minimal">{restaurant.promo_message}</div>
+            )}
+
             {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id} className="mb-6 px-4">
-                {cat.products?.map((prod: any) => {
-                  const extras = getExtrasForProduct(prod.id);
-                  const principalEnCarrito = cart.some(item => item.id === prod.id);
-                  return (
-                    <div key={prod.id} className="prod-card" style={{ padding: '20px', borderBottom: '1px solid #f5f5f5' }}>
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1 text-left pr-4">
-                          <div className="font-bold text-sm mb-1" style={{ color: TEXT }}>{prod.name}</div>
-                          <div className="text-[10px] opacity-50 mb-1" style={{ color: TEXT }}>{prod.description}</div>
-                          <div className="text-xs font-black" style={{ color: THEME }}>{formatPrice(prod.price)}</div>
-                        </div>
-                        <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
-                          <AddToCartBtn product={prod} variant="icon" disabled={!isOpen} />
-                        </div>
-                      </div>
-                      {principalEnCarrito && extras && extras.length > 0 && (
-                        <div className="mt-3 pl-2 space-y-2 border-l-2 border-gray-100 ml-1">
-                          {extras.map((ex: any) => (
-                            <div key={ex.id} className="flex justify-between items-center py-1">
-                              <span className="text-[11px] font-medium opacity-70">+ {ex.name} <span style={{ color: THEME }}>({formatPrice(ex.price)})</span></span>
-                              <button onClick={() => { addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Extra sumado"); }} className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-white active:bg-gray-50"><Plus size={12} strokeWidth={3} /></button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+              <div key={cat.id} className="mb-6">
+                {cat.products?.map((prod: any) => (
+                  <div key={prod.id} className="prod-card">
+                    {/* GRUPO IZQUIERDA: TEXTO */}
+                    <div className="prod-info-group">
+                      <div className="font-bold">{prod.name}</div>
+                      <div className="opacity-50">{prod.description}</div>
+                      <div className="font-black">{formatPrice(prod.price)}</div>
                     </div>
-                  );
-                })}
+
+                    {/* GRUPO DERECHA: BOTÓN */}
+                    <div className="add-btn-wrapper" onClick={() => mostrarAviso("✅ Producto agregado")}>
+                      <AddToCartBtn product={prod} variant="icon" disabled={!isOpen} />
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>

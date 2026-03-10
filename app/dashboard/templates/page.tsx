@@ -9,23 +9,54 @@ import { toast } from 'sonner';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
- classic: { 
+classic: { 
     theme: '#d32f2f', 
     bg: '#ffffff', 
     card: '#ffffff', 
-    text: '#ffffff', // <-- CAMBIADO A BLANCO
-    desc: '#ffffff', // <-- CAMBIADO A BLANCO
+    text: '#ffffff', 
+    desc: '#ffffff', 
+    card_name: '#000000',
+    card_desc: '#666666',
+    card_price: '#d32f2f',
+    btn_bg: '#ffffff',
+    btn_text: '#000000',
     promo: '#ffebee', 
+    promo_text: '#d32f2f',
     banner: false 
   },
-  urban:   { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', promo: '#1E1E1E', banner: false },
-  minimal: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#222222', desc: '#999999', promo: '#fafafa', banner: false },
-  visualgrid: { theme: '#ea580c', bg: '#1a1a1a', card: '#2a2a2a', text: '#ffffff', desc: '#bbbbbb', promo: '#1a1a1a', banner: false }, // Limpio
-  pop:     { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', promo: '#FFD700', banner: false },
-  spotlight:{ theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', promo: '#fff3e0', banner: true },
-  elegant: { theme: '#D4AF37', bg: '#f9f5f0', card: '#f9f5f0', text: '#333333', desc: '#777777', promo: '#f0e8dc', banner: false },
-  bistro:  { theme: '#e6c87e', bg: '#222222', card: '#222222', text: '#eeeeee', desc: '#aaaaaa', promo: '#333333', banner: false },
-  marketpro: { theme: '#000000', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#999999', promo: '#f3f4f6', banner: true },
+ 
+  urban: { 
+    theme: '#ea580c', 
+    bg: '#121212', 
+    card: '#1E1E1E', 
+    text: '#ffffff', 
+    desc: '#888888', 
+    card_name: '#ffffff',
+    card_desc: '#888888',
+    card_price: '#ea580c',
+    btn_bg: '#ffffff',
+    btn_text: '#121212',
+    promo: '#1E1E1E', 
+    promo_text: '#ffffff',
+    banner: false 
+  },
+
+minimal: { 
+    theme: '#000000', 
+    bg: '#ffffff', 
+    card: '#ffffff', 
+    text: '#111111', 
+    desc: '#777777', 
+    card_name: '#111111',
+    card_desc: '#999999',
+    card_price: '#111111',
+    btn_bg: '#111111',
+    btn_text: '#ffffff',
+    promo: '#fafafa', 
+    promo_text: '#111111',
+    banner: false 
+},
+
   'icecream-v1': { 
     theme: '#00bcd4', 
     bg: '#f0faff', 
@@ -435,30 +466,29 @@ const handleSaveBusinessInfo = async (subType: string) => {
     if (user) {
       const defaults = TEMPLATE_DEFAULTS[id] || TEMPLATE_DEFAULTS['classic'];
 
-      // --- CONFIGURACIÓN INTELIGENTE DE CARTA ---
-      // Si es Urban, el nombre es blanco y la card oscura. Si no, al revés.
-      const isUrban = id === 'urban';
-
-      await supabase.from('restaurants').update({ 
+      // HARD RESET: Mandamos todos los colores por defecto de la galería a la DB
+    await supabase.from('restaurants').update({ 
           template_id: id,
           theme_color: defaults.theme,
           bg_color: defaults.bg,
           text_color: defaults.text,
           description_color: defaults.desc,
+          card_color: defaults.card || defaults.bg,
+          card_name_color: defaults.card_name,
+          card_desc_color: defaults.card_desc,
+          card_price_color: defaults.card_price,
+          card_btn_bg: defaults.btn_bg,
+          card_btn_text: defaults.btn_text,
           promo_bg_color: defaults.promo,
-          show_banner: defaults.banner,
-          // --- CORRECCIÓN AQUÍ ---
-          card_name_color: isUrban ? '#ffffff' : '#000000',
-          card_name_bg: isUrban ? '#1E1E1E' : '#ffffff',
-          card_price_color: defaults.theme,
-          card_btn_bg: '#ffffff'
+          promo_text_color: defaults.promo_text || defaults.theme,
+          show_banner: defaults.banner
       }).eq('user_id', user.id);
       
       setCurrentTemplate(id);
-      toast.success("¡Diseño actualizado con sus colores originales!");
+      toast.success(`¡Diseño ${id.toUpperCase()} activado con sus colores originales!`);
     }
     setSavingId(null);
-};
+  };
 
   const renderPreview = (type: string) => {
     switch (type) {
