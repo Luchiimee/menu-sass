@@ -20,6 +20,7 @@ import ClearCartLogic from "@/components/ClearCartLogic";
 import { CartProvider, useCart } from "@/context/CartContext";
 import MarketProTemplate from "@/components/templates/MarketProTemplate";
 import AlternaPro from "@/components/templates/AlternaPro";
+import UrbanoDark from "@/components/templates/UrbanoDark";
 
 
 
@@ -160,21 +161,55 @@ const getStyles = (
                 .promo-box { background: ${PROMO_BG}; color: ${THEME}; text-align: center; font-size: 12px; padding: 10px; margin-bottom: 10px; font-weight: 600; }
                 .cat-title { font-size: 16px; font-weight: bold; margin: 20px 20px 10px; color: ${TEXT}; border-left: 4px solid ${THEME}; padding-left: 10px; }
             `;
-      case "urban":
+    case "urban":
         return `
             ${common} 
             body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } 
-            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; } 
-            .header-sec { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; } 
-            .header-logo { width: 55px; height: 55px; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid ${TEXT}; } 
-            .prod-card { background: ${CARD_BG}; padding: 15px; border-radius: 24px; margin: 0 15px 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); display: block; } 
-            .prod-card .font-black { color: ${PROD_NAME}; }
-            .prod-card .text-[10px] { color: ${PROD_DESC}; }
-            .prod-card .text-lg { color: ${PROD_PRICE}; }
-            .prod-card .text-lg { color: ${PROD_PRICE} !important; }
-            .prod-main-content { display: flex; gap: 15px; align-items: center; width: 100%; }
-            .prod-img { width: 90px; height: 90px; border-radius: 18px; background-size: cover; background-position: center; flex-shrink: 0; background-color: #222; } 
-            .extras-container { width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+            .app-wrapper { padding: 12px; display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 120px; } 
+
+            /* --- HEADER (Alineación perfecta) --- */
+            .urbano-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
+            .urbano-brand { display: flex; gap: 10px; align-items: center; text-align: left; }
+            .urbano-logo { width: 45px; height: 45px; border-radius: 50%; border: 2px solid ${TEXT}; background-size: cover; background-position: center; flex-shrink: 0; }
+            .urbano-names h4 { font-size: 14px; font-weight: 800; margin: 0; line-height: 1.1; color: ${TEXT}; }
+            .urbano-names span { font-size: 10px; color: ${DESC}; opacity: 0.8; }
+            .urbano-status { color: #000; font-size: 9px; font-weight: 900; padding: 4px 8px; border-radius: 8px; height: fit-content; text-transform: uppercase; }
+            
+            /* --- PROMO --- */
+            .urbano-msg { background: ${PROMO_BG}; padding: 10px; border-radius: 10px; font-size: 10px; color: ${PROMO_TEXT}; margin-bottom: 20px; border-left: 4px solid ${THEME}; font-weight: 700; text-align: left; }
+            
+            /* --- PRODUCTOS --- */
+            .urbano-card { background: ${CARD_BG}; padding: 10px; border-radius: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; }
+            .urbano-item-main { display: flex; gap: 12px; position: relative; }
+            .urbano-img { width: 75px; height: 75px; background-size: cover; border-radius: 12px; background-position: center; flex-shrink: 0; background-color: #222; }
+            .urbano-info { flex: 1; padding-right: 25px; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+            .urbano-tit { font-weight: 800; font-size: 13px; margin-bottom: 2px; color: ${PROD_NAME}; }
+            .urbano-desc { font-size: 9px; color: ${PROD_DESC}; line-height: 1.3; opacity: 0.7; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            .urbano-price { color: ${PROD_PRICE} !important; font-weight: 900; font-size: 13px; margin-top: 5px; }
+            
+            /* BOTÓN + */
+           .add-btn-wrapper { position: absolute; bottom: 0; right: 0; z-index: 10; }
+            .add-btn-wrapper button { 
+                min-width: 28px !important; 
+                height: 28px !important; 
+                background: ${BTN_BG} !important; 
+                color: ${BG} !important; 
+                border-radius: 20px !important; 
+                padding: 0 8px !important; 
+                display: flex !important; 
+                align-items: center !important; 
+                justify-content: center !important; 
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                border: none !important;
+                font-weight: 900 !important;
+            }
+
+            /* --- EXTRAS URBAN --- */
+            .urbano-extras-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+            .urbano-extra-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 12px; margin-bottom: 6px; }
+            .urbano-extra-name { font-size: 10px; font-weight: 800; color: #fff; text-transform: uppercase; }
+            .urbano-extra-price { font-size: 9px; color: ${PROD_PRICE}; font-weight: 700; }
+            .urbano-extra-add { width: 22px; height: 22px; border-radius: 6px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; }
         `;
       case "minimal":
         return `
@@ -441,66 +476,75 @@ function MenuContent({
       : [{ name: 'Semillas' }, { name: 'Frutos' }, { name: 'Aceites' }];
     switch (TEMPLATE) {
       
-      case "urban":
+    case "urban":
         return (
-          <div className="app-wrapper" style={{ backgroundColor: BG, minHeight: '100vh', paddingBottom: '120px', color: TEXT }}>
-            <div className="header-sec" style={{ padding: '25px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="flex gap-3 items-center text-left">
-                <div className="header-logo" style={{ backgroundImage: `url('${LOGO || ""}')`, width: '55px', height: '55px', borderRadius: '50%', backgroundSize: 'cover', border: `2px solid ${TEXT}` }}></div>
-                <div>
-                  <h1 className="text-xl font-black italic uppercase tracking-tighter">{restaurant.name}</h1>
-                  <p className="text-[11px] opacity-60 font-bold">{restaurant.description}</p>
+          <div className="app-wrapper">
+            {/* 1. HEADER (Logo/Nombre a la izq, Status a la der) */}
+            <div className="urbano-top">
+              <div className="urbano-brand">
+                <div className="urbano-logo" style={{ backgroundImage: `url('${LOGO || ""}')` }}></div>
+                <div className="urbano-names">
+                  <h4>{restaurant.name}</h4>
+                  <span>{restaurant.description}</span>
                 </div>
               </div>
-              <div className="status-badge bg-[#2ecc71] text-black px-3 py-1 rounded-full text-[10px] font-black italic">
+              <div className="urbano-status" style={{ backgroundColor: isOpen ? '#22c55e' : '#ef4444' }}>
                 {isOpen ? "ABIERTO" : "CERRADO"}
               </div>
             </div>
+
+            {/* 2. PROMO */}
             {restaurant.show_promo && restaurant.promo_message && (
-              <div className="mx-4 mb-6 p-4 bg-[#1a1a1a] rounded-xl border-l-4 border-orange-600 flex items-center gap-3 shadow-lg text-left">
-                <p className="text-xs font-black uppercase tracking-tight text-white/90">{restaurant.promo_message}</p>
-              </div>
+              <div className="urbano-msg">{restaurant.promo_message}</div>
             )}
-            {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id}>
-                {cat.products?.map((prod: any) => {
-                  const extras = getExtrasForProduct(prod.id);
-                  const principalEnCarrito = cart.some(item => item.id === prod.id);
-                  return (
-                    <div key={prod.id} className="prod-card">
-                      <div className="prod-main-content">
-                        <div className="prod-img" style={{ backgroundImage: `url('${prod.image_url || ""}')` }}></div>
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="font-black text-base mb-1 truncate">{prod.name}</div>
-                          <div className="text-[10px] opacity-50 mb-2 line-clamp-2">{prod.description}</div>
-                          <div className="flex justify-between items-center">
-                            <div className="font-black text-lg italic" style={{ color: THEME }}>{formatPrice(prod.price)}</div>
-                            <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
-                              <AddToCartBtn product={prod} variant="icon" isDark={true} disabled={!isOpen} />
-                            </div>
+
+            {/* 3. LISTA */}
+            <div className="flex-1 overflow-y-auto">
+              {restaurant.categories?.map((cat: any) => (
+                <div key={cat.id}>
+                  {cat.products?.map((prod: any) => {
+                    const extras = getExtrasForProduct(prod.id);
+                    const principalEnCarrito = cart.some(item => item.id === prod.id);
+                    return (
+                      <div key={prod.id} className="urbano-card">
+                        <div className="urbano-item-main">
+                          <div className="urbano-img" style={{ backgroundImage: `url('${prod.image_url || ""}')` }}></div>
+                          <div className="urbano-info">
+                            <div className="urbano-tit">{prod.name}</div>
+                            <div className="urbano-desc">{prod.description}</div>
+                            <div className="urbano-price">{formatPrice(prod.price)}</div>
+                          </div>
+                          {/* El botón ahora es un "pill" que crece si hay cantidad */}
+                          <div className="add-btn-wrapper" onClick={() => !principalEnCarrito && mostrarAviso("✅ Agregado")}>
+                            <AddToCartBtn product={prod} variant="icon" isDark={true} disabled={!isOpen} />
                           </div>
                         </div>
-                      </div>
-                      {principalEnCarrito && extras && extras.length > 0 && (
-                        <div className="extras-container">
-                          <div className="grid grid-cols-1 gap-2">
+
+                        {/* SECCIÓN EXTRAS */}
+                        {principalEnCarrito && extras && extras.length > 0 && (
+                          <div className="urbano-extras-box animate-in fade-in slide-in-from-top-2 duration-300">
                             {extras.map((ex: any) => (
-                              <div key={ex.id} className="flex justify-between items-center bg-black/40 p-3 rounded-2xl border border-white/5">
+                              <div key={ex.id} className="urbano-extra-row">
                                 <div className="text-left">
-                                  <div className="text-[11px] font-black uppercase text-white">{ex.name}</div>
-                                  <div className="text-[10px] font-bold text-orange-500">+{formatPrice(ex.price)}</div>
+                                  <div className="urbano-extra-name">{ex.name}</div>
+                                  <div className="urbano-extra-price">+{formatPrice(ex.price)}</div>
                                 </div>
-                                <button onClick={() => { addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Extra sumado"); }} className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center active:scale-90"><Plus size={18} strokeWidth={3} /></button>
+                                <button 
+                                  onClick={() => { addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Extra sumado"); }} 
+                                  className="urbano-extra-add"
+                                >
+                                  <Plus size={14} strokeWidth={3} />
+                                </button>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         );
       case "classic":

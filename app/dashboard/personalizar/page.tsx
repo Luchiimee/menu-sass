@@ -31,7 +31,7 @@ const ColorRow = ({ label, value, onChange }: { label: string, value: string, on
             <div className="relative w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden">
                 <input 
                     type="color" 
-                    value={value} 
+                    value={value || '#000000'} // <--- FALLBACK AGREGADO
                     onChange={(e) => onChange(e.target.value)} 
                     className="absolute inset-0 scale-150 cursor-pointer bg-transparent border-none"
                 />
@@ -39,12 +39,13 @@ const ColorRow = ({ label, value, onChange }: { label: string, value: string, on
         </div>
     </div>
 );
+
 const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
     <div className="flex flex-col items-center gap-2">
         <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg overflow-hidden transition-transform active:scale-90">
             <input 
                 type="color" 
-                value={value} 
+                value={value || '#000000'} // <--- FALLBACK AGREGADO
                 onChange={(e) => onChange(e.target.value)} 
                 className="absolute inset-0 scale-[2] cursor-pointer bg-transparent border-none"
             />
@@ -459,17 +460,17 @@ const confirmReset = () => {
     
     setData((prev: any) => ({ 
         ...prev, 
-        theme_color: defaults.theme, 
-        bg_color: defaults.bg, 
-        text_color: defaults.text, 
-        description_color: defaults.desc, 
-        card_name_color: isUrban ? '#ffffff' : '#000000',
-        card_color: isUrban ? '#1E1E1E' : '#ffffff', 
+        theme_color: defaults.theme || '#ea580c', 
+        bg_color: defaults.bg || '#ffffff', 
+        text_color: defaults.text || '#000000', 
+        description_color: defaults.desc || '#666666', 
+        card_name_color: isUrban ? '#ffffff' : (defaults.card_name || '#000000'),
+        card_color: isUrban ? '#1E1E1E' : (defaults.bg || '#ffffff'), 
         card_desc_color: isUrban ? '#888888' : '#666666',
-        card_price_color: isUrban ? '#ea580c' : '#d32f2f', 
-        promo_bg_color: defaults.promo,
-        promo_text_color: '#ffffff',
-        show_banner: defaults.banner, 
+        card_price_color: isUrban ? '#ea580c' : (defaults.theme || '#d32f2f'), 
+        promo_bg_color: defaults.promo_bg || defaults.promo || '#1E1E1E',
+        promo_text_color: defaults.promo_text || '#ffffff',
+        show_banner: defaults.banner || false, 
         show_promo: true 
     }));
     
@@ -689,38 +690,32 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
               {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
             </div>
           </div>
-
-        {/* --- SECCIÓN 2: LOS PRODUCTOS --- */}
-          <div className="space-y-4">
-            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-              <div className="w-1 h-3 bg-orange-600 rounded-full" /> Carta de Productos
+{/* --- SECCIÓN 1: EL NEGOCIO --- */}
+     <div className="space-y-4">
+            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+                <div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
-              {/* Color del texto del nombre */}
-              <ColorBubble label="Texto Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({ ...data, card_name_color: v })} />
-
-              {/* NUEVO: Fondo de la cápsula del nombre */}
-              <ColorBubble 
-    label="Fondo Card" 
-    value={data.card_color || '#ffffff'} 
-    onChange={(v) => setData({ ...data, card_color: v })} 
-/>
-
-              {/* OCULTAMOS DESCRIPCIÓN PARA ALTERNA-PRO */}
-              {data.template_id !== 'alterna-pro' && (
-                <ColorBubble label="Descripción" value={data.card_desc_color || '#999999'} onChange={(v) => setData({ ...data, card_desc_color: v })} />
-              )}
-
-              <ColorBubble label="Fondo Precio" value={data.card_price_color || '#d32f2f'} onChange={(v) => setData({ ...data, card_price_color: v })} />
-
-              {/* TEXTO PRECIO */}
-              <ColorBubble
-                label={data.template_id === 'alterna-pro' ? "Texto Precio" : "Símbolo +"}
-                value={data.card_btn_text || '#ffffff'}
-                onChange={(v) => setData({ ...data, card_btn_text: v })}
-              />
+                <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
+                <ColorBubble label="Nombre" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
+                <ColorBubble label="Descripción" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
+                <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />
             </div>
-          </div>
+        </div>
+
+        {/* --- SECCIÓN 2: LOS PRODUCTOS --- */}
+        <div className="space-y-4">
+            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
+                <div className="w-1 h-3 bg-orange-600 rounded-full" /> Carta de Productos
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
+                <ColorBubble label="Texto Nombre" value={data.card_name_color || '#ffffff'} onChange={(v) => setData({ ...data, card_name_color: v })} />
+                <ColorBubble label="Fondo Card" value={data.card_color || '#1E1E1E'} onChange={(v) => setData({ ...data, card_color: v })} />
+                <ColorBubble label="Texto Desc." value={data.card_desc_color || '#888888'} onChange={(v) => setData({ ...data, card_desc_color: v })} />
+                <ColorBubble label="Color Precio" value={data.card_price_color || '#ea580c'} onChange={(v) => setData({ ...data, card_price_color: v })} />
+                <ColorBubble label="Fondo Botón +" value={data.card_btn_bg || '#ffffff'} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
+            </div>
+        </div>
           
 
         {/* --- SECCIÓN 3: PROMO (Corregido de <p> a <div>) --- */}
