@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
@@ -426,30 +427,38 @@ const handleSaveBusinessInfo = async (subType: string) => {
 };
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
  const handleSelect = async (id: string, premium: boolean) => {
-    
-   if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
+    if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
     
     setSavingId(id);
-    
     const { data: { user } } = await supabase.auth.getUser();
+    
     if (user) {
       const defaults = TEMPLATE_DEFAULTS[id] || TEMPLATE_DEFAULTS['classic'];
+
+      // --- CONFIGURACIÓN INTELIGENTE DE CARTA ---
+      // Si es Urban, el nombre es blanco y la card oscura. Si no, al revés.
+      const isUrban = id === 'urban';
 
       await supabase.from('restaurants').update({ 
           template_id: id,
           theme_color: defaults.theme,
           bg_color: defaults.bg,
-          card_color: defaults.card,
           text_color: defaults.text,
           description_color: defaults.desc,
           promo_bg_color: defaults.promo,
-          show_banner: defaults.banner
+          show_banner: defaults.banner,
+          // --- CORRECCIÓN AQUÍ ---
+          card_name_color: isUrban ? '#ffffff' : '#000000',
+          card_name_bg: isUrban ? '#1E1E1E' : '#ffffff',
+          card_price_color: defaults.theme,
+          card_btn_bg: '#ffffff'
       }).eq('user_id', user.id);
       
       setCurrentTemplate(id);
+      toast.success("¡Diseño actualizado con sus colores originales!");
     }
     setSavingId(null);
-  };
+};
 
   const renderPreview = (type: string) => {
     switch (type) {

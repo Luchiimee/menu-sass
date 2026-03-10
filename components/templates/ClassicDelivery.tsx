@@ -8,19 +8,31 @@ const ClassicDelivery: React.FC<Props> = ({ restaurant, products, loading }) => 
   
   // 1. Identidad del Local
   const bannerHeader = restaurant.theme_color || '#d32f2f';
-  const nombreLocal = restaurant.text_color || '#ffffff'; // <-- CAMBIADO A BLANCO
-const descLocal = restaurant.description_color || '#ffffff';
+  const nombreLocal = (!restaurant.text_color || restaurant.text_color === '#000000') 
+    ? '#ffffff' 
+    : restaurant.text_color;
+const descLocal = (!restaurant.description_color || restaurant.description_color === '#000000') 
+    ? '#ffffff' 
+    : restaurant.description_color;
   const fondoWeb = restaurant.bg_color || '#ffffff';
 
   // 2. Carta de Productos (Ahora son independientes)
   const nombreProducto = restaurant.card_name_color || '#000000';
+  
   const descProducto = restaurant.card_desc_color || '#999999';
-  const precioColor = restaurant.card_price_color || bannerHeader; // Fallback al theme
+  const precioColor = (!restaurant.card_price_color || restaurant.card_price_color === '#10B981') 
+    ? bannerHeader 
+    : restaurant.card_price_color;
   const botonBg = restaurant.card_btn_bg || '#ffffff';
  const botonTexto = restaurant.card_btn_text || '#000000';
 
   // 3. Promo
-  const promoBg = restaurant.promo_bg_color || '#ffebee';
+ const promoBg = (!restaurant.promo_bg_color || 
+                 restaurant.promo_bg_color === '#fffbe6' || 
+                 restaurant.promo_bg_color === '#FFFBE6' || 
+                 restaurant.promo_bg_color === '#FFD700') // <--- AGREGAMOS ESTE AMARILLO TAMBIÉN
+    ? '#ffebee' 
+    : restaurant.promo_bg_color;
   const promoTexto = restaurant.promo_text_color || bannerHeader;
   const showPromo = restaurant.show_promo !== false;
   const promoMessage = restaurant.promo_message || '🛵 Envío GRATIS en tu primera compra';

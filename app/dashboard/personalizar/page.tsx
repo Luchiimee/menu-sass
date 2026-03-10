@@ -250,143 +250,119 @@ google_maps_link: '',
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
   // --- LÓGICA DE AUTOGUARDADO ---
-  useEffect(() => {
+ // --- 1. FUNCIÓN DE CARGA INICIAL (SOLUCIONA EL "ENVENENAMIENTO") ---
+ useEffect(() => {
     if (unsavedChanges && data.id) {
       const timeout = setTimeout(() => {
         handleSave();
-      }, 2000); // Guarda después de 2 segundos de inactividad
+      }, 2000); 
       return () => clearTimeout(timeout);
     }
-  }, [data]);
+  }, [data, unsavedChanges]);
+    useEffect(() => {
+        let mounted = true;
+        const loadData = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.user) return; 
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => { if (unsavedChanges) { e.preventDefault(); e.returnValue = ''; return ''; } };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [unsavedChanges]);
+                const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single(); 
+                
+              if(rest && mounted) {
+                    const tId = rest.template_id || 'classic';
+                    const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
 
-  useEffect(() => {
-    let mounted = true;
-    const loadData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return; 
-        const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single(); 
-        if(rest && mounted) {
-          const tId = rest.template_id || 'classic';
-          const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
+                    // 1. DECLARAMOS VARIABLES INDEPENDIENTES
+                    let theme, bg, text, desc, pBg, pText, cName, cBg, cPrice, cDesc;
 
-          let bg = rest.bg_color;
-          let theme = rest.theme_color;
-          
-          if ((tId === 'urban' || tId === 'visualgrid' || tId === 'bistro') && bg === '#ffffff') {
-             bg = defaults.bg;
-             rest.card_color = defaults.card;
-             rest.text_color = defaults.text;
-             rest.description_color = defaults.desc;
-             rest.promo_bg_color = defaults.promo;
-             theme = defaults.theme;
-          }
-          if ((tId === 'classic' || tId === 'spotlight' || tId === 'pop') && theme === '#000000') {
-             theme = defaults.theme;
-             if(tId === 'pop') bg = defaults.bg;
-          }
+                    theme = rest.theme_color || defaults.theme;
+                    bg = rest.bg_color || defaults.bg;
+                    text = rest.text_color || defaults.text;
+                    desc = rest.description_color || defaults.desc;
+                    pBg = rest.promo_bg_color || defaults.promo;
+                    pText = rest.promo_text_color || '#ffffff';
+                    
+                    cName = rest.card_name_color || (tId === 'urban' ? '#ffffff' : '#000000');
+                    cBg = rest.card_color || (tId === 'urban' ? '#1E1E1E' : '#ffffff');
+                    
+                    // --- AQUÍ ESTÁ EL ARREGLO: Precio con default fijo, no el theme ---
+                    cPrice = rest.card_price_color || (tId === 'urban' ? '#ea580c' : '#d32f2f'); 
+                    cDesc = rest.card_desc_color || (tId === 'urban' ? '#888888' : '#666666');
 
-         setData({
-    ...rest,
-    business_type: rest.business_type || 'gastronomico',
-    name: rest.name || '', 
-    description: rest.description || '', 
-    promo_message: rest.promo_message || '', 
-    show_promo: rest.show_promo !== false, 
-    promo_bg_color: rest.promo_bg_color || defaults.promo_bg,
-    promo_text_color: rest.promo_text_color || defaults.promo_text,
-    theme_color: rest.theme_color || defaults.theme, 
-    bg_color: rest.bg_color || defaults.bg, 
-    text_color: rest.text_color || defaults.text,
-    description_color: rest.description_color || defaults.desc,
-    card_name_color: rest.card_name_color || defaults.card_name,
-    card_desc_color: rest.card_desc_color || defaults.card_desc,
-    card_price_color: rest.card_price_color || defaults.card_price,
-    card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
-    card_btn_text: rest.card_btn_text || defaults.btn_text,
-    template_id: tId, 
-    delivery_cost: rest.delivery_cost || 0,
-    show_banner: rest.show_banner,
-    card_name_bg: rest.card_name_bg || defaults.card_name_bg || '#ffffff',
-});
-          setIsLocked(!rest.subscription_plan);
-          const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
-          if(prods && mounted) setProducts(prods);
+                    setData({
+                        ...rest,
+                        template_id: tId,
+                        theme_color: theme,
+                        bg_color: bg,
+                        text_color: text,
+                        description_color: desc,
+                        promo_bg_color: pBg,
+                        promo_text_color: pText,
+                        card_name_color: cName,
+                        card_color: cBg,
+                        card_price_color: cPrice,
+                        card_desc_color: cDesc,
+                        card_btn_bg: '#ffffff',
+                        card_btn_text: '#000000',
+                        name: rest.name || 'Mi Restaurante',
+                        description: rest.description || (tId === 'urban' ? 'Elegancia y sabor en cada detalle.' : 'Disfrutá de los mejores sabores en la comodidad de tu casa.'),
+                    });
+                    setIsLocked(!rest.subscription_plan);
+                    const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
+                    if(prods && mounted) setProducts(prods);
 
-          const { data: cats } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('restaurant_id', rest.id)
-            .order('sort_order', { ascending: true });
-          
-          if(cats && mounted) setCategories(cats);
-        } else if(mounted) setIsLocked(true);
-      } catch (error) { console.error(error); } finally { if(mounted) setLoading(false); }
-    };
-    loadData();
-    return () => { mounted = false; };
-  }, []);
-// app/dashboard/personalizar/page.tsx
-
-const getTemplateConfig = () => {
-    const id = data.template_id || 'classic';
-    return { 
-      editable: true,
-      group: id, 
-      showClassicBanner: id === 'classic', 
-      showBannerImg: ['spotlight', 'marketpro', 'classic'].includes(id),
-      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro'].includes(id),
-      showCard: ['urban', 'visualgrid', 'pop', 'spotlight', 'marketpro', 'icecream-v1', 'alterna-pro'].includes(id),
-      showHeroEditor: id === 'spotlight',
-      showSearch: id === 'marketpro',
-      showFonts: id === 'marketpro',
-      // ESTA ES LA CLAVE: Habilita la sección de categorías en el panel
-      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id) 
-    };
-};
-  const tConfig = getTemplateConfig();
-
-  const applyTemplate = (templateId: string) => {
-      const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
-      
-      let newData = {
-          ...data, 
-          template_id: templateId,
-          theme_color: defaults.theme,
-          bg_color: defaults.bg,
-          card_color: defaults.card,
-          text_color: defaults.text,
-          description_color: defaults.desc,
-          promo_bg_color: defaults.promo,
-          show_banner: defaults.banner
-      };
-
-      // Inyectamos datos en el estado real solo si están vacíos
-      if (templateId === 'marketpro') {
-        newData = {
-          ...newData,
-          logo_url: data.logo_url || MARKETPRO_ASSETS.logo,
-          banner_url: data.banner_url || MARKETPRO_ASSETS.banner,
-          description: data.description || 'Bienvenidos a nuestra tienda digital. Pedí online de forma rápida y segura.',
-          hero_title: data.hero_title || 'Bacon Burger XL',
-          hero_description: data.hero_description || 'Nuestra especialidad con doble cheddar.',
-          hero_price: data.hero_price || 9500,
-          address: data.address || 'Av. Principal 123',
-          opening_hours: data.opening_hours || 'Lunes a Sábados: 19 a 23:30hs'
+                    const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', rest.id).order('sort_order', { ascending: true });
+                    if(cats && mounted) setCategories(cats);
+                }
+            } catch (error) { console.error(error); } finally { if(mounted) setLoading(false); }
         };
-      }
+        loadData();
+        return () => { mounted = false; };
+    }, []);
 
-      setData(newData);
-      setUnsavedChanges(true);
-      setPreviewTemplateId(null);
-  };
+    // --- 2. CONFIGURACIÓN DINÁMICA DEL PANEL (QUITA EL BANNER INNECESARIO) ---
+    const getTemplateConfig = () => {
+        const id = data.template_id || 'classic';
+        return { 
+          editable: true,
+          group: id, 
+          showClassicBanner: id === 'classic', 
+          showBannerImg: ['spotlight', 'marketpro'].includes(id), 
+          showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro'].includes(id),
+          showCard: true,
+          showHeroEditor: id === 'spotlight',
+          showSearch: id === 'marketpro',
+          showFonts: id === 'marketpro',
+          showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id) 
+        };
+    };
+    const tConfig = getTemplateConfig();
 
+    // --- 3. CAMBIO DE PLANTILLA (BOTÓN "USAR ESTE DISEÑO") ---
+ const applyTemplate = (templateId: string) => {
+    const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
+    const isUrban = templateId === 'urban';
+    
+    setData({
+        ...data, 
+        template_id: templateId,
+        theme_color: defaults.theme,
+        bg_color: defaults.bg,
+        text_color: defaults.text,
+        description_color: defaults.desc,
+        promo_bg_color: defaults.promo,
+        promo_text_color: isUrban ? '#ffffff' : (defaults.promo_text || defaults.theme),
+        card_name_color: isUrban ? '#ffffff' : '#000000',
+        card_color: isUrban ? '#1E1E1E' : '#ffffff',
+        card_desc_color: isUrban ? '#888888' : '#666666', // <--- AGREGADO AQUÍ TAMBIÉN
+        card_price_color: defaults.theme,
+        show_banner: defaults.banner,
+        description: data.description || (isUrban ? 'Elegancia y sabor en cada detalle.' : 'Disfrutá de los mejores sabores en la comodidad de tu casa.'),
+    });
+
+    setUnsavedChanges(true);
+    setPreviewTemplateId(null);
+};
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.length) return;
     setUploading(true);
@@ -412,17 +388,42 @@ const getTemplateConfig = () => {
     } catch (error) { alert('Error subiendo imagen de producto'); } finally { setUploading(false); }
   };
 
-  const handleSave = async () => {
-    const { id, created_at, ...updates } = data; 
-    const { error } = await supabase.from('restaurants').update(updates).eq('id', data.id);
-    if (error) console.error("Error al guardar: " + error.message);
-    else { 
+const handleSave = async () => {
+    if (!data.id) return;
+    
+    try {
+      // 1. Limpiamos: Sacamos TODO lo que no sea de la tabla 'restaurants'
+      // Esto evita que Supabase rechace el guardado
+      const { 
+        id, 
+        created_at, 
+        categories, 
+        products, 
+        fetched_extras, 
+        ...updates 
+      } = data; 
+
+      const { error } = await supabase
+        .from('restaurants')
+        .update(updates)
+        .eq('id', data.id);
+
+      if (error) {
+        console.error("Error Supabase:", error.message);
+      } 
+      
+      // 2. Apagamos el parpadeo SIEMPRE (aunque haya error, para que no quede tildado)
       setUnsavedChanges(false); 
-      setShowSuccessModal(true); 
-      setTimeout(() => setShowSuccessModal(false), 2000); 
+
+      if (!error) {
+        setShowSuccessModal(true); 
+        setTimeout(() => setShowSuccessModal(false), 2000); 
+      }
+    } catch (err) {
+      console.error("Error crítico:", err);
+      setUnsavedChanges(false);
     }
   };
-
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Faltan datos");
     try {
@@ -452,7 +453,9 @@ const getTemplateConfig = () => {
   const handleResetClick = () => setShowRestoreModal(true);
   
 const confirmReset = () => {
-    const defaults = TEMPLATE_DEFAULTS[data.template_id] || TEMPLATE_DEFAULTS['classic'];
+    const tId = data.template_id;
+    const isUrban = tId === 'urban';
+    const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
     
     setData((prev: any) => ({ 
         ...prev, 
@@ -460,13 +463,12 @@ const confirmReset = () => {
         bg_color: defaults.bg, 
         text_color: defaults.text, 
         description_color: defaults.desc, 
-        card_name_color: defaults.card_name,
-        card_desc_color: defaults.card_desc,
-        card_price_color: defaults.card_price,
-        card_btn_bg: defaults.btn_bg,
-        card_btn_text: defaults.btn_text,
-        promo_bg_color: defaults.promo_bg,
-        promo_text_color: defaults.promo_text,
+        card_name_color: isUrban ? '#ffffff' : '#000000',
+        card_color: isUrban ? '#1E1E1E' : '#ffffff', 
+        card_desc_color: isUrban ? '#888888' : '#666666',
+        card_price_color: isUrban ? '#ea580c' : '#d32f2f', 
+        promo_bg_color: defaults.promo,
+        promo_text_color: '#ffffff',
         show_banner: defaults.banner, 
         show_promo: true 
     }));
@@ -474,7 +476,6 @@ const confirmReset = () => {
     setUnsavedChanges(true); 
     setShowRestoreModal(false);
 };
- 
 const PhoneMockup = ({ templateId }: { templateId: string }) => {
     const activeId = templateId || 'classic';
     
@@ -699,7 +700,11 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
               <ColorBubble label="Texto Nombre" value={data.card_name_color || '#000000'} onChange={(v) => setData({ ...data, card_name_color: v })} />
 
               {/* NUEVO: Fondo de la cápsula del nombre */}
-              <ColorBubble label="Fondo Nombre" value={data.card_name_bg || '#ffffff'} onChange={(v) => setData({ ...data, card_name_bg: v })} />
+              <ColorBubble 
+    label="Fondo Card" 
+    value={data.card_color || '#ffffff'} 
+    onChange={(v) => setData({ ...data, card_color: v })} 
+/>
 
               {/* OCULTAMOS DESCRIPCIÓN PARA ALTERNA-PRO */}
               {data.template_id !== 'alterna-pro' && (
@@ -772,16 +777,42 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
                   </div>
               </section>
 
-              <section className="space-y-4">
-                  <div className="space-y-3">
-                      <div className="space-y-1"><label className="text-xs font-bold text-gray-700">Nombre del Negocio</label><input value={data.name} onChange={(e) => { setData({...data, name: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl font-bold outline-none text-sm focus:ring-1 focus:ring-black" placeholder="Ej: Burger King"/></div>
-                      <div className="space-y-1"><label className="text-xs font-bold text-gray-700">Descripción Corta</label><textarea value={data.description} onChange={(e) => { setData({...data, description: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-black resize-none" rows={2} placeholder="La mejor comida de la ciudad..."/></div>
-                      <div className="space-y-2 pt-2">
+        <section className="space-y-4">
+    <div className="space-y-3">
+        {/* NOMBRE DEL NEGOCIO */}
+        <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-700">Nombre del Negocio</label>
+            <input 
+                value={data.name || ''} 
+                onChange={(e) => { setData({...data, name: e.target.value}); setUnsavedChanges(true); }} 
+                className="w-full p-3 border rounded-xl font-bold outline-none text-sm focus:ring-1 focus:ring-black" 
+                placeholder="Ej: Pizzería Los Tíos"
+            />
+        </div>
+
+        {/* DESCRIPCIÓN CORTA */}
+        <div className="space-y-1">
+            <label className="text-xs font-bold text-gray-700">Descripción Corta</label>
+            <textarea 
+                value={data.description || ''} 
+                onChange={(e) => { setData({...data, description: e.target.value}); setUnsavedChanges(true); }} 
+                className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-black resize-none" 
+                rows={2} 
+                placeholder="La mejor comida de la ciudad..."
+            />
+        </div>
+        
+        <div className="space-y-2 pt-2">
    
    
 </div>
 
-                      <div className="space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100"><div className="flex justify-between items-center mb-2"><label className="text-xs font-bold text-gray-700 flex items-center gap-1"><Megaphone size={12}/> Mensaje Promo (Header)</label><div className="flex items-center gap-2"><label className="text-[10px] text-gray-500 font-bold uppercase cursor-pointer" htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label><button onClick={() => { setData({...data, show_promo: !data.show_promo}); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`}></div></button></div></div>{data.show_promo && (<div className="flex gap-2 items-stretch"><input value={data.promo_message} onChange={(e) => { setData({...data, promo_message: e.target.value}); setUnsavedChanges(true); }} className="flex-1 p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" placeholder="Ej: Envío GRATIS en tu primera compra"/></div>)}</div>
+                      <div className="space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100"><div className="flex justify-between items-center mb-2"><label className="text-xs font-bold text-gray-700 flex items-center gap-1"><Megaphone size={12}/> Mensaje Promo (Header)</label><div className="flex items-center gap-2"><label className="text-[10px] text-gray-500 font-bold uppercase cursor-pointer" htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label><button onClick={() => { setData({...data, show_promo: !data.show_promo}); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`}></div></button></div></div>{data.show_promo && (<div className="flex gap-2 items-stretch"><input 
+  value={data.promo_message || ''} 
+  onChange={(e) => { setData({...data, promo_message: e.target.value}); setUnsavedChanges(true); }} 
+  className="flex-1 p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" 
+  placeholder="Ej: Envío GRATIS en tu primera compra"
+/></div>)}</div>
                   </div>
               </section>
 

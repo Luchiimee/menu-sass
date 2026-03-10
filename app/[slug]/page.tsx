@@ -21,6 +21,8 @@ import { CartProvider, useCart } from "@/context/CartContext";
 import MarketProTemplate from "@/components/templates/MarketProTemplate";
 import AlternaPro from "@/components/templates/AlternaPro";
 
+
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createBrowserClient(supabaseUrl, supabaseKey);
@@ -169,6 +171,7 @@ const getStyles = (
             .prod-card .font-black { color: ${PROD_NAME}; }
             .prod-card .text-[10px] { color: ${PROD_DESC}; }
             .prod-card .text-lg { color: ${PROD_PRICE}; }
+            .prod-card .text-lg { color: ${PROD_PRICE} !important; }
             .prod-main-content { display: flex; gap: 15px; align-items: center; width: 100%; }
             .prod-img { width: 90px; height: 90px; border-radius: 18px; background-size: cover; background-position: center; flex-shrink: 0; background-color: #222; } 
             .extras-container { width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
@@ -324,33 +327,41 @@ function MenuContent({
   }, []);
   // ---------------------------------
 
-  // Variables de diseño
-  // 1. Extraemos las variables del restaurante con sus fallbacks
+  // --- 1. VARIABLES DE DISEÑO (SINCRONIZADAS CON EL EDITOR) ---
   const TEMPLATE = restaurant.template_id || "classic";
-  const THEME = restaurant.theme_color || "#d32f2f";
-  const BG = restaurant.bg_color || "#ffffff";
-  const CARD_BG = restaurant.card_color || "#ffffff";
-  const TEXT = restaurant.text_color || "#000000";
-  const DESC = restaurant.description_color || "#666666";
-  const PROMO_BG = restaurant.promo_bg_color || "#ffebee";
+  const isUrban = TEMPLATE === "urban";
+
+  // Identidad
+  const THEME = restaurant.theme_color || (isUrban ? "#ea580c" : "#d32f2f");
+  const BG = restaurant.bg_color || (isUrban ? "#121212" : "#ffffff");
+  const TEXT = restaurant.text_color || "#ffffff";
+  const DESC = restaurant.description_color || (isUrban ? "#888888" : "#ffffff");
+
+  // Productos (Variables que coinciden con UrbanoDark.tsx)
+  const CARD_BG = restaurant.card_color || (isUrban ? "#1E1E1E" : "#ffffff");
+  const PROD_NAME = restaurant.card_name_color || (isUrban ? "#ffffff" : "#000000");
+  const PROD_DESC = restaurant.card_desc_color || (isUrban ? "#888888" : "#666666");
   
-  // VARIABLES ESPECÍFICAS DE PRODUCTOS
-  const PROD_NAME = restaurant.card_name_color || TEXT;
-  const PROD_DESC = restaurant.card_desc_color || DESC;
-  const PROD_PRICE = restaurant.card_price_color || THEME;
+  // ARREGLO CLAVE: Si es Urban, el precio NO sigue al acento por defecto
+  const PROD_PRICE = restaurant.card_price_color || (isUrban ? "#ea580c" : THEME);
+  
   const BTN_BG = restaurant.card_btn_bg || "#ffffff";
   const BTN_TEXT = restaurant.card_btn_text || "#000000";
-  const PROMO_TEXT = restaurant.promo_text_color || THEME;
+
+  // Promo
+  const PROMO_BG = restaurant.promo_bg_color || (isUrban ? "#1E1E1E" : "#ffebee");
+  const PROMO_TEXT = restaurant.promo_text_color || "#ffffff";
+  
   const LOGO = restaurant.logo_url;
   const BANNER = restaurant.banner_url;
   const SHOW_BANNER = restaurant.show_banner;
 
-  // 2. Llamada a getStyles con todos los argumentos en orden
- const memoizedStyles = useMemo(() => {
+  // --- 2. LLAMADA A GETSTYLES (ARGUMENTOS EN ORDEN) ---
+  const memoizedStyles = useMemo(() => {
     return getStyles(
       TEMPLATE, BG, THEME, CARD_BG, TEXT, DESC, PROMO_BG, // 1 al 7
       PROD_NAME, PROD_DESC, PROD_PRICE, BTN_BG,          // 8 al 11
-      BTN_TEXT,   // <--- 12: CORREGIDO (Sin la 'D')
+      BTN_TEXT,   // 12
       PROMO_TEXT,                                        // 13
       restaurant.hero_badge_bg,                          // 14
       restaurant.hero_badge_color,                       // 15
@@ -363,7 +374,6 @@ function MenuContent({
     restaurant.hero_badge_bg, restaurant.hero_badge_color, 
     restaurant.hero_title_color, restaurant.hero_price_color
   ]);
-
  useEffect(() => {
   if (activeCardId) {
     // Verificamos si el producto activo ya está en el carrito
