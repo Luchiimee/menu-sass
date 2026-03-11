@@ -114,10 +114,21 @@ urban: {
     promo_text: '#ea580c',
     banner: false 
   },
-  pop: { 
-    theme: '#FF1493', bg: '#fffbe6', text: '#000000', desc: '#444444', 
-    card_name: '#000000', card_desc: '#444444', card_price: '#FF1493', 
-    btn_bg: '#FFD700', btn_text: '#000000', promo_bg: '#FFD700', promo_text: '#FF1493', banner: false 
+pop: { 
+    theme: '#FF1493', 
+    bg: '#fffbe6', 
+    card: '#ffffff', 
+    text: '#000000', 
+    desc: '#444444', 
+    card_name: '#FF1493', 
+    card_desc: '#444444', 
+    card_price: '#000000', 
+    card_shadow_color: '#000000', // <--- IMPORTANTE: Aseguramos que los bordes sean negros por defecto
+    btn_bg: '#ffffff', 
+    btn_text: '#FF1493', 
+    promo_bg: '#FFD700', 
+    promo_text: '#000000', 
+    banner: false 
   },
   spotlight: { 
     theme: '#FFD700', bg: '#ffffff', text: '#000000', desc: '#666666', 
@@ -218,6 +229,7 @@ instagram: '',
 facebook: '',
 tiktok: '',
 google_maps_link: '',
+card_shadow_color: '#000000',
     
     // --- NUEVOS CAMPOS PARA EL CONTROL PRO ---
     title_font: 'Inter',
@@ -405,8 +417,7 @@ const handleSave = async () => {
     if (!data.id) return;
     
     try {
-      // 1. Limpiamos: Sacamos TODO lo que no sea de la tabla 'restaurants'
-      // Esto evita que Supabase rechace el guardado
+      // Limpiamos solo lo que NO pertenece a la tabla restaurants
       const { 
         id, 
         created_at, 
@@ -418,25 +429,18 @@ const handleSave = async () => {
 
       const { error } = await supabase
         .from('restaurants')
-        .update(updates)
+        .update(updates) // Aquí ahora viaja 'card_shadow_color'
         .eq('id', data.id);
 
-      if (error) {
-        console.error("Error Supabase:", error.message);
-      } 
-      
-      // 2. Apagamos el parpadeo SIEMPRE (aunque haya error, para que no quede tildado)
+      if (error) { console.error("Error Supabase:", error.message); } 
       setUnsavedChanges(false); 
 
       if (!error) {
         setShowSuccessModal(true); 
         setTimeout(() => setShowSuccessModal(false), 2000); 
       }
-    } catch (err) {
-      console.error("Error crítico:", err);
-      setUnsavedChanges(false);
-    }
-  };
+    } catch (err) { setUnsavedChanges(false); }
+};
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Faltan datos");
     try {
@@ -467,26 +471,23 @@ const handleSave = async () => {
   
 const confirmReset = () => {
     const tId = data.template_id;
-    const isUrban = tId === 'urban';
     const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
     
     setData((prev: any) => ({ 
         ...prev, 
-        theme_color: defaults.theme || '#ea580c', 
-        bg_color: defaults.bg || '#ffffff', 
-        text_color: defaults.text || '#000000', 
-        description_color: defaults.desc || '#666666', 
-        card_name_color: isUrban ? '#ffffff' : (defaults.card_name || '#000000'),
-        card_color: isUrban ? '#1E1E1E' : (defaults.bg || '#ffffff'), 
-        card_desc_color: isUrban ? '#888888' : '#666666',
-        card_price_color: isUrban ? '#ea580c' : (defaults.theme || '#d32f2f'), 
-        
-        /* --- ESTAS DOS LÍNEAS ARREGLAN EL RESET DEL BOTÓN --- */
-        card_btn_bg: defaults.btn_bg || '#ffffff',
-        card_btn_text: defaults.btn_text || '#000000',
-
-        promo_bg_color: defaults.promo_bg || defaults.promo || '#1E1E1E',
-        promo_text_color: defaults.promo_text || '#ffffff',
+        theme_color: defaults.theme, 
+        bg_color: defaults.bg, 
+        text_color: defaults.text, 
+        description_color: defaults.desc, 
+        card_name_color: defaults.card_name,
+        card_color: defaults.card, 
+        card_desc_color: defaults.card_desc,
+        card_price_color: defaults.card_price, 
+        card_shadow_color: defaults.card_shadow_color || '#000000', // <--- AGREGADO PARA POP
+        card_btn_bg: defaults.btn_bg,
+        card_btn_text: defaults.btn_text,
+        promo_bg_color: defaults.promo_bg || defaults.promo,
+        promo_text_color: defaults.promo_text,
         show_banner: defaults.banner || false, 
         show_promo: true 
     }));
@@ -722,6 +723,10 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
                 )}
 
                 <ColorBubble label="Color Precio" value={data.card_price_color} onChange={(v) => setData({ ...data, card_price_color: v })} />
+                {/* NUEVO BOTÓN PARA POP VIBRANT */}
+    {data.template_id === 'pop' && (
+        <ColorBubble label="Color Sombra" value={data.card_shadow_color || '#000000'} onChange={(v) => setData({ ...data, card_shadow_color: v })} />
+    )}
                 <ColorBubble label="Fondo Botón +" value={data.card_btn_bg} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
                 <ColorBubble label="Símbolo +" value={data.card_btn_text} onChange={(v) => setData({ ...data, card_btn_text: v })} />
             </div>

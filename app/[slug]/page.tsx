@@ -326,18 +326,23 @@ const getStyles = (
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         `;
         
-      case "pop":
+  case "pop":
         return `
             ${common}
             body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
-            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; }
-            .pop-header-box { background: white; border: 3px solid black; border-radius: 12px; margin: 20px 15px; padding: 15px; display: flex; align-items: center; gap: 12px; box-shadow: 4px 4px 0 black; position: relative; }
-            .pop-status { position: absolute; top: -10px; right: 10px; background: #00CED1; border: 2px solid black; padding: 2px 8px; font-size: 8px; font-weight: 900; transform: rotate(3deg); color: black; }
-            .pop-promo { background: #FFD700; border: 3px solid black; margin: 0 15px 20px; padding: 10px; text-align: center; font-weight: 900; font-size: 12px; box-shadow: 3px 3px 0 rgba(0,0,0,0.2); transform: rotate(-1deg); }
-            .pop-card { background: ${CARD_BG}; border: 3px solid black; border-radius: 15px; margin: 0 15px 15px; padding: 15px; box-shadow: 4px 4px 0 ${THEME}; }
-            .pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: ${PROD_NAME || THEME}; }
-            .pop-price-tag { background: ${PROD_PRICE || 'black'}; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 900; transform: rotate(2deg); }
+            .app-wrapper { min-height: 100vh; padding: 15px 15px 120px; color: ${TEXT}; }
+            .pop-header-box { background: ${CARD_BG}; border: 3px solid ${TEXT}; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 12px; box-shadow: 5px 5px 0 ${TEXT}; position: relative; margin-bottom: 25px; }
+            .pop-status { position: absolute; top: -12px; right: 10px; background: #00CED1; border: 2px solid ${TEXT}; padding: 3px 10px; font-size: 9px; font-weight: 900; transform: rotate(3deg); color: black; z-index: 10; }
+            .pop-promo { background: ${PROMO_BG}; color: ${PROMO_TEXT}; border: 3px solid ${TEXT}; margin-bottom: 25px; padding: 12px; text-align: center; font-weight: 900; font-size: 13px; box-shadow: 4px 4px 0 rgba(0,0,0,0.1); transform: rotate(-1deg); }
+            
+            .pop-card { background: ${CARD_BG}; border: 3px solid ${TEXT}; border-radius: 18px; padding: 18px; margin-bottom: 20px; box-shadow: 6px 6px 0 ${THEME}; transition: all 0.2s; position: relative; overflow: hidden; }
+            .pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: ${PROD_NAME}; line-height: 1.1; }
+            .pop-price-tag { background: ${PROD_PRICE}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; transform: rotate(3deg); font-size: 14px; }
+            
+            /* BOTÓN VIDEO STYLE */
+            .pop-btn-full { width: 100%; background: ${BTN_BG} !important; color: ${BTN_TEXT} !important; border: 3px solid ${BTN_TEXT} !important; padding: 12px !important; border-radius: 15px !important; font-weight: 900 !important; text-transform: uppercase !important; box-shadow: 4px 4px 0 ${TEXT} !important; }
         `;
+
       case "spotlight":
         return `
             body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
@@ -821,71 +826,121 @@ case "visualgrid":
             </div>
           </div>
         );
-        case "pop":
-  return (
-    <div className="app-wrapper">
-      {/* Encabezado Estilo Cómic */}
-      <div className="pop-header-box">
-        <div className="pop-status">{isOpen ? "OPEN" : "CLOSED"}</div>
-        <div className="w-16 h-16 rounded-full border-4 border-black overflow-hidden flex-shrink-0 bg-white">
-          <img src={LOGO} className="w-full h-full object-cover" alt="logo" />
-        </div>
-        <div>
-          <h1 className="text-xl font-black uppercase leading-none">{restaurant.name}</h1>
-          <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-tight">{restaurant.description}</p>
-        </div>
-      </div>
-
-      {/* Mensaje Promo */}
-     {restaurant.show_promo && restaurant.promo_message && (
-  <div className="pop-promo">
-    {restaurant.promo_message} 
-  </div>
-)}
-
-      {/* Lista de Productos */}
-      {restaurant.categories?.map((cat: any) => (
-        <div key={cat.id}>
+   case "pop":
+        // Usamos la nueva columna de la DB para los bordes y sombras rígidas
+        const shadow = restaurant.card_shadow_color || "#000000"; 
         
-          {cat.products?.map((prod: any) => {
-            const extras = getExtrasForProduct(prod.id);
-            const principalEnCarrito = cart.some(item => item.id === prod.id);
-            return (
-              <div key={prod.id} className="pop-card text-left">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <h3 className="pop-prod-title">{prod.name}</h3>
-                    <p className="text-xs font-bold text-gray-500 mb-2 leading-tight">{prod.description}</p>
-                    <span className="pop-price-tag inline-block">{formatPrice(prod.price)}</span>
-                  </div>
-                  <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
-                    <AddToCartBtn product={prod} variant="icon" isDark={true} disabled={!isOpen} />
-                  </div>
-                </div>
-
-                {/* Extras para Pop */}
-                {principalEnCarrito && extras && extras.length > 0 && (
-                  <div className="mt-4 pt-3 border-t-2 border-black/5 space-y-2">
-                    {extras.map((ex: any) => (
-                      <div key={ex.id} className="flex justify-between items-center bg-gray-50 p-2 border-2 border-black rounded-lg">
-                        <span className="text-[10px] font-black uppercase">{ex.name} (+{formatPrice(ex.price)})</span>
-                        <button 
-                          onClick={() => { addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Extra sumado"); }}
-                          className="w-8 h-8 bg-black text-white rounded-md flex items-center justify-center active:scale-90"
-                        >
-                          <Plus size={14} strokeWidth={4} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        return (
+          /* Agregamos px-5 (padding horizontal) para que la sombra rígida de 6px no se corte */
+          <div className="app-wrapper" style={{ backgroundColor: BG, minHeight: '100vh', padding: '0 20px 120px' }}>
+            
+            {/* 1. Header Pop - Borde y Sombra sincronizados con 'shadow' */}
+            <div className="pop-header-box" style={{ 
+              border: `3px solid ${shadow}`, 
+              boxShadow: `5px 5px 0 ${shadow}`, 
+              backgroundColor: CARD_BG,
+              marginTop: '20px' 
+            }}>
+              <div className="pop-status" style={{ border: `2px solid ${shadow}`, backgroundColor: '#00CED1', color: 'black' }}>
+                {isOpen ? "OPEN" : "CLOSED"}
               </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
+              <div className="w-16 h-16 rounded-full border-4 overflow-hidden flex-shrink-0 bg-white shadow-inner" style={{ borderColor: shadow }}>
+                <img src={LOGO || ""} className="w-full h-full object-cover" alt="logo" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-xl font-black uppercase leading-none" style={{ color: TEXT }}>{restaurant.name}</h1>
+                <p className="text-[10px] font-bold opacity-70 mt-1 uppercase tracking-tight" style={{ color: DESC }}>{restaurant.description}</p>
+              </div>
+            </div>
+
+            {/* 2. Promo - Borde sincronizado */}
+            {restaurant.show_promo && restaurant.promo_message && (
+              <div className="pop-promo" style={{ 
+                border: `3px solid ${shadow}`, 
+                backgroundColor: PROMO_BG, 
+                color: PROMO_TEXT,
+                boxShadow: `4px 4px 0 rgba(0,0,0,0.1)` 
+              }}>
+                {restaurant.promo_message}
+              </div>
+            )}
+
+            {/* 3. Grilla de Productos */}
+            {restaurant.categories?.map((cat: any) => (
+              <div key={cat.id} style={{ display: 'contents' }}>
+                {cat.products?.map((prod: any) => {
+                  const extras = getExtrasForProduct(prod.id);
+                  const principalEnCarrito = cart.some(item => item.id === prod.id);
+                  const isActive = activeCardId === prod.id;
+
+                  return (
+                    <div key={prod.id} className="pop-card" 
+                      style={{ 
+                        border: `3px solid ${shadow}`, 
+                        /* CORRECCIÓN: La sombra de la card ahora usa 'shadow' (Azul), no THEME */
+                        boxShadow: isActive ? `3px 3px 0 ${shadow}` : `6px 6px 0 ${shadow}`, 
+                        backgroundColor: CARD_BG,
+                        transform: isActive ? 'translate(3px, 3px)' : 'none',
+                        transition: 'all 0.2s'
+                      }} 
+                      onClick={() => setActiveCardId(isActive ? null : prod.id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="text-left flex-1 pr-4">
+                          <h3 className="pop-prod-title" style={{ color: PROD_NAME }}>{prod.name}</h3>
+                          {!isActive && <p className="text-xs font-bold opacity-60 mt-2" style={{ color: DESC }}>{prod.description}</p>}
+                        </div>
+                        
+                        {/* El precio usa PROD_PRICE (Independiente de la sombra) */}
+                        <div className="pop-price-tag" style={{ backgroundColor: PROD_PRICE, border: `2px solid ${shadow}`, color: 'white' }}>
+                          {formatPrice(prod.price)}
+                        </div>
+                      </div>
+
+                      {isActive && (
+                        <div className="mt-6 animate-in fade-in zoom-in-95 duration-200">
+                          <p className="text-sm font-bold text-left mb-6" style={{ color: DESC }}>{prod.description}</p>
+                          
+                          {/* BOTÓN PRINCIPAL: Envoltura corregida para evitar error TS */}
+                          <div className="mb-6" onClick={(e) => e.stopPropagation()}>
+                            <div style={{ 
+                                backgroundColor: BTN_BG, 
+                                color: BTN_TEXT, 
+                                border: `3px solid ${shadow}`, 
+                                boxShadow: `4px 4px 0 ${shadow}`, 
+                                borderRadius: '15px', 
+                                padding: '5px' 
+                            }}>
+                                <AddToCartBtn product={prod} variant="full" disabled={!isOpen} />
+                            </div>
+                          </div>
+
+                          {/* 4. Extras con estilo Pop sincronizado */}
+                          {principalEnCarrito && extras && extras.length > 0 && (
+                            <div className="space-y-3 pt-4 border-t-4 border-black/5 text-left">
+                              {extras.map((ex: any) => (
+                                <div key={ex.id} className="flex justify-between items-center bg-white p-3 border-2 rounded-xl" 
+                                  style={{ borderColor: shadow, boxShadow: `3px 3px 0 ${shadow}` }}>
+                                  <span className="text-xs font-black uppercase text-black">{ex.name} (+{formatPrice(ex.price)})</span>
+                                  <button onClick={(e) => { e.stopPropagation(); addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("Agregado"); }}
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center active:scale-90"
+                                    style={{ backgroundColor: BTN_BG, color: BTN_TEXT, border: `2px solid ${shadow}` }}
+                                  >
+                                    <Plus size={16} strokeWidth={4} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        );
  case "spotlight":
   return (
     <div className="app-wrapper">

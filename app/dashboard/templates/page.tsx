@@ -71,6 +71,22 @@ visualgrid: {
     promo_text: '#ea580c',
     banner: false 
   },
+pop: { 
+    theme: '#FF1493',      // El rosa de las sombras y nombres
+    bg: '#fffbe6',         // Fondo crema de la web
+    card: '#ffffff',       // Fondo blanco de las tarjetas
+    text: '#000000',       // Color de los bordes y nombre local
+    desc: '#444444',       // Descripción local
+    card_name: '#FF1493',  // Nombre del producto en rosa
+    card_desc: '#444444', 
+    card_price: '#000000', // Fondo negro de la etiqueta de precio
+    card_shadow_color: '#000000', // Bordes negros rígidos
+    btn_bg: '#ffffff',     // Fondo del botón agregar
+    btn_text: '#FF1493',   // Texto del botón agregar
+    promo: '#FFD700',      // Fondo amarillo de la promo
+    promo_text: '#000000', // Texto negro de la promo
+    banner: false 
+  },
   'icecream-v1': { 
     theme: '#00bcd4', 
     bg: '#f0faff', 
