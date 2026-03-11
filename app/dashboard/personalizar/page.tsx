@@ -99,10 +99,20 @@ urban: {
     card_name: '#222222', card_desc: '#999999', card_price: '#000000', 
     btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false 
   },
-  visualgrid: { 
-    theme: '#ea580c', bg: '#1a1a1a', text: '#ffffff', desc: '#bbbbbb', 
-    card_name: '#ffffff', card_desc: '#bbbbbb', card_price: '#ea580c', 
-    btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg: '#1a1a1a', promo_text: '#ea580c', banner: false 
+ visualgrid: { 
+    theme: '#ea580c', 
+    bg: '#1a1a1a', 
+    card: '#2a2a2a', 
+    text: '#ffffff', 
+    desc: '#bbbbbb', 
+    card_name: '#ffffff',
+    card_desc: '#bbbbbb',
+    card_price: '#ea580c',
+    btn_bg: '#ea580c',
+    btn_text: '#ffffff',
+    promo: '#1a1a1a', 
+    promo_text: '#ea580c',
+    banner: false 
   },
   pop: { 
     theme: '#FF1493', bg: '#fffbe6', text: '#000000', desc: '#444444', 
@@ -289,25 +299,27 @@ google_maps_link: '',
                     // --- AQUÍ ESTÁ EL ARREGLO: Precio con default fijo, no el theme ---
                     cPrice = rest.card_price_color || (tId === 'urban' ? '#ea580c' : '#d32f2f'); 
                     cDesc = rest.card_desc_color || (tId === 'urban' ? '#888888' : '#666666');
-
-                    setData({
-                        ...rest,
-                        template_id: tId,
-                        theme_color: theme,
-                        bg_color: bg,
-                        text_color: text,
-                        description_color: desc,
-                        promo_bg_color: pBg,
-                        promo_text_color: pText,
-                        card_name_color: cName,
-                        card_color: cBg,
-                        card_price_color: cPrice,
-                        card_desc_color: cDesc,
-                        card_btn_bg: '#ffffff',
-                        card_btn_text: '#000000',
-                        name: rest.name || 'Mi Restaurante',
-                        description: rest.description || (tId === 'urban' ? 'Elegancia y sabor en cada detalle.' : 'Disfrutá de los mejores sabores en la comodidad de tu casa.'),
-                    });
+setData({
+    ...rest,
+    template_id: tId,
+    theme_color: rest.theme_color || defaults.theme,
+    bg_color: rest.bg_color || defaults.bg,
+    text_color: rest.text_color || defaults.text,
+    description_color: rest.description_color || defaults.desc,
+    promo_bg_color: rest.promo_bg_color || defaults.promo,
+    promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
+    
+    // Variables de producto sincronizadas
+    card_name_color: rest.card_name_color || defaults.card_name,
+    card_color: rest.card_color || defaults.card || defaults.bg,
+    card_desc_color: rest.card_desc_color || defaults.card_desc,
+    card_price_color: rest.card_price_color || defaults.card_price,
+    card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
+    card_btn_text: rest.card_btn_text || defaults.btn_text,
+    
+    name: rest.name || 'Mi Restaurante',
+    description: rest.description || 'Disfrutá de los mejores sabores.',
+});
                     setIsLocked(!rest.subscription_plan);
                     const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
                     if(prods && mounted) setProducts(prods);
@@ -341,10 +353,8 @@ google_maps_link: '',
 
     // --- 3. CAMBIO DE PLANTILLA (BOTÓN "USAR ESTE DISEÑO") ---
 const applyTemplate = (templateId: string) => {
-    // 1. Buscamos los colores oficiales de esa plantilla
     const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
     
-    // 2. Aplicamos un "BORRÓN Y CUENTA NUEVA" total
     setData({
         ...data, 
         template_id: templateId,
@@ -354,13 +364,12 @@ const applyTemplate = (templateId: string) => {
         description_color: defaults.desc,
         promo_bg_color: defaults.promo,
         promo_text_color: defaults.promo_text || defaults.theme,
-        // Variables de producto sincronizadas
-        card_name_color: defaults.card_name || (templateId === 'urban' ? '#ffffff' : '#000000'),
+        card_name_color: defaults.card_name,
         card_color: defaults.card || defaults.bg,
-        card_desc_color: defaults.card_desc || (templateId === 'urban' ? '#888888' : '#666666'),
-        card_price_color: defaults.card_price || defaults.theme,
-        card_btn_bg: defaults.btn_bg || '#ffffff',
-        card_btn_text: defaults.btn_text || '#000000',
+        card_desc_color: defaults.card_desc,
+        card_price_color: defaults.card_price,
+        card_btn_bg: defaults.btn_bg,
+        card_btn_text: defaults.btn_text,
         show_banner: defaults.banner,
     });
 

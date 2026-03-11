@@ -1,48 +1,131 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { X } from 'lucide-react'; // Importamos la X para cerrar el detalle
 
 export default function VisualGrid({ restaurant, products }: any) {
-  const bg = restaurant.bg_color || '#1a1a1a';
-  const cardBg = restaurant.card_color || '#2a2a2a';
-  const accent = restaurant.theme_color || '#ea580c';
-  const text = restaurant.text_color || '#ffffff';
-  const desc = restaurant.description_color || '#bbbbbb';
-  const showPromo = restaurant.show_promo !== false;
-  const promoMessage = restaurant.promo_message || '🍣 Happy Hour: 2x1 en Rolls';
+  // --- ESTADO PARA SABER CUÁL ESTÁ ABIERTO (Como en el video) ---
+  const [activeId, setActiveId] = useState<any>(null);
 
-  const styles = `
-    .sushi-visual { background: ${bg}; color: ${text}; padding: 12px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; }
-    .sushi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-shrink: 0; }
-    .sushi-brand { display: flex; align-items: center; gap: 8px; }
-    .sushi-logo { width: 34px; height: 34px; border-radius: 50%; background-size: cover; border: 2px solid ${accent}; flex-shrink: 0; background-color: #333; }
-    .sushi-info-col { display: flex; flex-direction: column; justify-content: center; }
-    .sushi-name { font-size: 12px; font-weight: 800; line-height: 1.2; color: ${text}; }
-    .sushi-desc-local { font-size: 8px; color: ${desc}; }
-    .sushi-status { font-size: 7px; font-weight: bold; background: #22c55e; color: black; padding: 2px 5px; border-radius: 4px; margin-top: 2px; }
-    .sushi-msg { font-size: 9px; color: ${desc}; margin-bottom: 12px; border-left: 2px solid ${accent}; padding-left: 6px; flex-shrink: 0; }
-    .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; overflow-y: auto; padding-bottom: 10px; }
-    .sushi-item { height: 120px; border-radius: 10px; position: relative; overflow: hidden; background-size: cover; background-position: center; cursor: pointer; background-color: ${cardBg}; }
-    .sushi-overlay { position: absolute; bottom: 0; left: 0; width: 100%; height: 45%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 8px; display: flex; flex-direction: column; justify-content: flex-end; transition: all 0.3s ease; }
-    .sushi-title { font-weight: bold; font-size: 10px; text-shadow: 0 1px 2px black; margin-bottom: 2px; color: white; }
-    .sushi-price { color: ${accent}; font-size: 10px; font-weight: bold; text-shadow: 0 1px 2px black; }
-    .sushi-desc { font-size: 8px; color: #ddd; margin: 4px 0; display: none; text-align: center; line-height: 1.2; }
-    .sushi-btn { background: ${accent}; color: white; border: none; padding: 4px 12px; border-radius: 12px; font-size: 8px; font-weight: bold; margin-top: 4px; display: none; align-self: center; }
-    .sushi-item:hover .sushi-overlay { height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; }
-    .sushi-item:hover .sushi-desc, .sushi-item:hover .sushi-btn { display: block; }
-  `;
+  // --- 1. IDENTIDAD DEL LOCAL ---
+  const BG_WEB = restaurant.bg_color || '#1a1a1a';
+  const L_NAME = restaurant.text_color || '#ffffff';
+  const L_DESC = restaurant.description_color || '#bbbbbb';
+  const ACENTO = restaurant.theme_color || '#ea580c';
+
+  // --- 2. CARTA DE PRODUCTOS ---
+  const CARD_BG = restaurant.card_color || '#2a2a2a';
+  const P_NAME = restaurant.card_name_color || '#ffffff';
+  const P_PRICE = restaurant.card_price_color || ACENTO;
+  const BTN_BG = restaurant.card_btn_bg || ACENTO;
+  const BTN_TXT = restaurant.card_btn_text || '#ffffff';
+
+  // --- 3. OFERTAS Y BANNERS (PROMO) ---
+  const PROMO_BG = restaurant.promo_bg_color || 'transparent'; 
+  const PROMO_TXT = restaurant.promo_text_color || '#ffffff';
 
   return (
-    <div className="sushi-visual">
-      <style>{styles}</style>
-      <div className="sushi-header">
-        <div className="sushi-brand"><div className="sushi-logo" style={{ backgroundImage: `url('${restaurant.logo_url || ''}')` }}></div><div className="sushi-info-col"><div className="sushi-name">{restaurant.name}</div><div className="sushi-desc-local">{restaurant.description}</div></div></div><div className="sushi-status">ABIERTO</div>
-      </div>
-      {showPromo && <div className="sushi-msg">{promoMessage}</div>}
-      <div className="sushi-grid">
-        {products.map((p: any, i: number) => (
-          <div key={i} className="sushi-item" style={{ backgroundImage: `url('${p.image_url || 'https://placehold.co/200'}' )` }}>
-             <div className="sushi-overlay"><div className="sushi-title">{p.name}</div><div className="sushi-price">${p.price}</div><div className="sushi-desc">{p.description}</div><button className="sushi-btn">AGREGAR</button></div>
+    <div style={{ 
+      background: BG_WEB, height: '100%', display: 'flex', flexDirection: 'column', 
+      padding: '12px', fontFamily: 'Inter, sans-serif', overflow: 'hidden', textAlign: 'left' 
+    }}>
+      
+      {/* HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ 
+            width: '36px', height: '36px', borderRadius: '50%', 
+            backgroundImage: `url('${restaurant.logo_url || ""}')`, 
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            border: `2px solid ${ACENTO}`, backgroundColor: '#333', flexShrink: 0 
+          }}></div>
+          <div>
+            <h4 style={{ fontSize: '11px', fontWeight: '900', margin: 0, color: L_NAME, lineHeight: 1.1, textTransform: 'uppercase' }}>
+                {restaurant.name || 'MI NEGOCIO'}
+            </h4>
+            <span style={{ fontSize: '7px', color: L_DESC, display: 'block', marginTop: '2px' }}>
+                {restaurant.description || 'Menú Digital'}
+            </span>
           </div>
-        ))}
+        </div>
+        <div style={{ fontSize: '6px', fontWeight: '900', background: '#22c55e', color: 'black', padding: '2px 6px', borderRadius: '4px' }}>OPEN</div>
+      </div>
+
+      {/* BANNER PROMO */}
+      {restaurant.show_promo && (
+        <div style={{ 
+          background: PROMO_BG,
+          color: PROMO_TXT,
+          fontSize: '9px', marginBottom: '12px', 
+          borderLeft: `3px solid ${ACENTO}`, padding: '6px 8px', 
+          fontWeight: '700', flexShrink: 0 
+        }}>
+          {restaurant.promo_message || '🍣 Happy Hour: 2x1 en Rolls'}
+        </div>
+      )}
+
+      {/* GRILLA DE 2 COLUMNAS INTERACTIVA */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1, overflowY: 'auto' }} className="no-scrollbar">
+        {products.map((p: any, i: number) => {
+          const isActive = activeId === p.id;
+          
+          return (
+            <div 
+              key={i} 
+              onClick={() => setActiveId(isActive ? null : p.id)}
+              style={{ 
+                aspectRatio: '1 / 1.2', borderRadius: '15px', position: 'relative', overflow: 'hidden',
+                backgroundImage: `url('${p.image_url || 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200'}')`,
+                backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: CARD_BG,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {/* --- 1. MODO EXPANDIDO (Al tocar, como en el video) --- */}
+              {isActive ? (
+                <div style={{ 
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', 
+                  display: 'flex', flexDirection: 'column', padding: '10px', 
+                  justifyContent: 'center', alignItems: 'center', textAlign: 'center',
+                  animation: 'fadeIn 0.2s ease'
+                }}>
+                  <div style={{ position: 'absolute', top: 8, right: 8, color: 'white', opacity: 0.6 }}><X size={14}/></div>
+                  
+                  <div style={{ fontWeight: '900', fontSize: '11px', color: 'white', marginBottom: '4px', textTransform: 'uppercase' }}>{p.name}</div>
+                  <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px', lineHeight: 1.2 }}>{p.description || 'Sin descripción'}</div>
+                  <div style={{ color: P_PRICE, fontSize: '11px', fontWeight: '900', marginBottom: '10px' }}>${p.price}</div>
+                  
+                  {/* BOTÓN LARGO Y CENTRADO (MOCKUP) */}
+                  <div style={{ 
+                    width: '100%', background: BTN_BG, color: BTN_TXT, 
+                    padding: '6px 0', borderRadius: '10px', fontSize: '8px', 
+                    fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.5px'
+                  }}>
+                    Sumar al pedido
+                  </div>
+                </div>
+              ) : (
+                /* --- 2. MODO NORMAL (Grilla simple) --- */
+                <>
+                  {/* Botón flotante chiquito + (como el de tu diseño) */}
+                  <div style={{ 
+                    position: 'absolute', top: '8px', right: '8px', width: '18px', height: '18px', 
+                    background: BTN_BG, color: BTN_TXT, 
+                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                    fontSize: '12px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.4)', zIndex: 10
+                  }}>+</div>
+
+                  <div style={{ 
+                    position: 'absolute', inset: 0, 
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 60%)', 
+                    padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
+                  }}>
+                    <div style={{ fontWeight: '800', fontSize: '10px', color: P_NAME, textShadow: '0 1px 2px black', lineHeight: 1.1 }}>{p.name}</div>
+                    <div style={{ color: P_PRICE, fontSize: '10px', fontWeight: '900', textShadow: '0 1px 2px black', marginTop: '2px' }}>${p.price}</div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

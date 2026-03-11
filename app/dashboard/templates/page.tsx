@@ -56,7 +56,21 @@ minimal: {
     promo_text: '#111111',
     banner: false 
 },
-
+visualgrid: { 
+    theme: '#ea580c', 
+    bg: '#1a1a1a', 
+    card: '#2a2a2a', 
+    text: '#ffffff', 
+    desc: '#bbbbbb', 
+    card_name: '#ffffff',
+    card_desc: '#bbbbbb',
+    card_price: '#ea580c',
+    btn_bg: '#ea580c',
+    btn_text: '#ffffff',
+    promo: '#1a1a1a', 
+    promo_text: '#ea580c',
+    banner: false 
+  },
   'icecream-v1': { 
     theme: '#00bcd4', 
     bg: '#f0faff', 

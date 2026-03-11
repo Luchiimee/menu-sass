@@ -258,11 +258,74 @@ const getStyles = (
                 stroke-width: 3.5;
             }
         `;
-      case "visualgrid":
+  
+    case "visualgrid":
         return `
             ${common} 
-            body { background: #121212; margin: 0; }
-            .notificacion-glass { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.2); color: white; padding: 12px 24px; border-radius: 16px; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; z-index: 9999; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); display: flex; align-items: center; gap: 10px; }`;
+            body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; color: ${TEXT}; } 
+            .app-wrapper { min-height: 100vh; padding: 0 0 120px; }
+            
+            /* HEADER */
+            .sushi-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 20px; }
+            .sushi-logo { width: 50px; height: 50px; border-radius: 50%; border: 2px solid ${THEME}; background-size: cover; background-position: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+            
+            /* PROMO SINCRONIZADA */
+            .sushi-msg-box { 
+                margin: 0 20px 20px; 
+                background-color: ${PROMO_BG}; 
+                color: ${PROMO_TEXT}; 
+                border-left: 3px solid ${THEME}; 
+                padding: 10px 15px; 
+                font-size: 11px; 
+                font-weight: 700; 
+                text-align: left; 
+                border-radius: 0 10px 10px 0;
+            }
+            
+            .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 15px; }
+            
+            /* CARD INTERACTIVA */
+            .sushi-item { 
+                position: relative; 
+                aspect-ratio: 3 / 4; 
+                border-radius: 20px; 
+                overflow: hidden; 
+                background-color: ${CARD_BG}; 
+                border: 1px solid rgba(255,255,255,0.05);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            }
+            
+            .sushi-overlay-norm { 
+                position: absolute; inset: 0; 
+                background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.2) 50%, transparent 80%); 
+                padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; text-align: left; 
+            }
+            .sushi-title-norm { font-weight: 800; font-size: 13px; color: ${PROD_NAME}; margin-bottom: 2px; text-shadow: 0 1px 2px black; }
+            .sushi-price-norm { color: ${PROD_PRICE}; font-size: 13px; font-weight: 900; text-shadow: 0 1px 2px black; }
+
+            /* BOTÓN FLOTANTE */
+            .add-btn-wrapper-grid { position: absolute; top: 10px; right: 10px; z-index: 10; }
+            .add-btn-wrapper-grid button { 
+                background-color: ${BTN_BG} !important; 
+                color: ${BTN_TEXT} !important; 
+                border-radius: 50% !important; 
+                width: 30px !important; height: 30px !important; 
+                display: flex !important; align-items: center !important; justify-content: center !important; 
+                border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            }
+            .add-btn-wrapper-grid svg { width: 16px !important; height: 16px !important; stroke-width: 3.5; color: ${BTN_TEXT} !important; }
+
+            /* PANEL ACTIVO (BLUR) */
+            .sushi-active-panel {
+                position: absolute; inset: 0; padding: 15px; 
+                display: flex; flex-direction: column; 
+                background: rgba(0,0,0,0.7); backdrop-blur: 10px;
+                animation: fadeIn 0.2s ease;
+            }
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        `;
+        
       case "pop":
         return `
             ${common}
@@ -660,65 +723,89 @@ function MenuContent({
             ))}
           </div>
         );
-      case "visualgrid":
+   
+case "visualgrid":
         return (
-          <div className="app-wrapper" style={{ backgroundColor: '#121212', minHeight: '100vh', paddingBottom: '120px' }}>
-           <div className="absolute top-4 right-4 z-[100]">
-              <span className={`text-[10px] font-black px-2 py-1 rounded border uppercase tracking-widest shadow-2xl ${isOpen ? 'bg-white text-black border-white' : 'border-red-500 text-red-500 bg-black/80'}`}>
+          <div className="app-wrapper" style={{ backgroundColor: BG, minHeight: '100vh', paddingBottom: '120px' }}>
+            {/* Status Pill */}
+            <div className="absolute top-6 right-6 z-[100]">
+              <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest shadow-2xl ${isOpen ? 'bg-emerald-500 text-white border-emerald-400' : 'border-red-500 text-red-500 bg-black/80'}`}>
                 {isOpen ? "ABIERTO" : "CERRADO"}
               </span>
             </div>
-            <div className="relative pt-10 px-6 pb-4">
-              <div className="flex items-center gap-4 text-left">
-                <div className="w-14 h-14 rounded-full border-2 border-white/10 bg-cover bg-center shadow-lg shrink-0" style={{ backgroundImage: `url('${LOGO || ""}')` }}></div>
-                <div>
-                  <h1 className="text-3xl font-black uppercase italic leading-none text-white tracking-tighter">{restaurant.name}</h1>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{restaurant.description}</p>
+
+            {/* Header Sushi */}
+            <div className="sushi-header">
+              <div className="flex items-center gap-4">
+                <div className="sushi-logo" style={{ backgroundImage: `url('${LOGO || ""}')` }}></div>
+                <div className="text-left">
+                  <h1 className="text-2xl font-black uppercase italic leading-none tracking-tighter" style={{ color: TEXT }}>{restaurant.name}</h1>
+                  <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest mt-1" style={{ color: DESC }}>{restaurant.description}</p>
                 </div>
               </div>
-              {restaurant.show_promo && restaurant.promo_message && (
-                <div className="mt-6 flex items-center gap-3 px-1">
-                  <div className="w-[3px] h-5 bg-orange-600 rounded-full shrink-0" />
-                  <p className="text-[12px] text-gray-300 font-medium leading-none">{restaurant.promo_message}</p>
-                </div>
-              )}
             </div>
-            {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id} className="mb-4">
-                <div className="grid grid-cols-2 gap-3 px-4">
+
+            {/* Promo con tus colores recuperados */}
+            {restaurant.show_promo && restaurant.promo_message && (
+              <div className="sushi-msg-box">
+                {restaurant.promo_message}
+              </div>
+            )}
+
+            {/* Grilla Interactiva */}
+            <div className="sushi-grid">
+              {restaurant.categories?.map((cat: any) => (
+                <div key={cat.id} style={{ display: 'contents' }}>
                   {cat.products?.map((prod: any) => {
                     const extras = getExtrasForProduct(prod.id);
                     const principalEnCarrito = cart.some(item => item.id === prod.id);
                     const isActive = activeCardId === prod.id; 
+                    
                     return (
-                      <div key={prod.id} className={`relative rounded-[2rem] overflow-hidden aspect-[3/4] transition-all duration-300 ${isActive ? 'z-20 ring-2 ring-white/20 scale-[1.02]' : 'z-0'}`} onClick={() => setActiveCardId(prod.id)}>
-                        <div className="absolute inset-0 bg-cover bg-center transition-all duration-500" style={{ backgroundImage: `url('${prod.image_url || ""}')`, filter: isActive ? 'brightness(0.15) blur(2px)' : 'brightness(0.8)', }} />
+                      <div key={prod.id} className={`sushi-item ${isActive ? 'z-20 scale-[1.05]' : 'z-0'}`} onClick={() => setActiveCardId(prod.id)}>
+                        {/* Imagen con desenfoque al tocar (Video Flow) */}
+                        <div className="absolute inset-0 bg-cover bg-center transition-all duration-500" style={{ backgroundImage: `url('${prod.image_url || ""}')`, filter: isActive ? 'brightness(0.2) blur(8px)' : 'none' }} />
+                        
+                        {/* Vista Normal */}
                         {!isActive && (
-                          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col justify-end p-4 text-left">
-                             <div className="text-white font-bold text-sm leading-tight drop-shadow-md">{prod.name}</div>
-                             <div className="text-white/60 font-black text-xs mt-1">{formatPrice(prod.price)}</div>
+                          <div className="sushi-overlay-norm">
+                             <div className="font-bold text-sm text-white leading-tight mb-1">{prod.name}</div>
+                             <div className="font-black text-xs" style={{ color: THEME }}>{formatPrice(prod.price)}</div>
                           </div>
                         )}
+
+                        {/* Vista Activa (Detalle centrado como en el video) */}
                         {isActive && (
-                            <div id={`scroll-panel-${prod.id}`} className="absolute inset-0 p-4 flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-y-auto no-scrollbar scroll-smooth">
+                            <div id={`scroll-panel-${prod.id}`} className="sushi-active-panel no-scrollbar overflow-y-auto">
                               <div className="flex justify-end mb-2">
-                                <button onClick={(e) => { e.stopPropagation(); setActiveCardId(null); }} className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/10 active:scale-90"><X size={18} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); setActiveCardId(null); }} className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-90"><X size={18} /></button>
                               </div>
-                              <div className="text-left">
-                                <div className="text-white font-black text-xl leading-none mb-1">{prod.name}</div>
-                                <div className="text-white/50 text-[11px] leading-snug mb-3">{prod.description}</div>
-                                <div className="text-orange-400 font-black text-sm mb-4">{formatPrice(prod.price)}</div>
-                                <div className="mb-4" onClick={(e) => e.stopPropagation()}><AddToCartBtn product={prod} variant="full" disabled={!isOpen} /></div>
+                              <div className="text-left flex-1 flex flex-col justify-center">
+                                <div className="font-black text-white text-xl leading-none mb-1 uppercase italic">{prod.name}</div>
+                                <div className="text-[11px] text-white/50 mb-4 leading-snug">{prod.description}</div>
+                                <div className="font-black text-lg mb-6" style={{ color: THEME }}>{formatPrice(prod.price)}</div>
+                                
+                                {/* BOTÓN LARGO Y CENTRADO */}
+                                <div className="add-btn-full-width mb-6" onClick={(e) => e.stopPropagation()}>
+                                    <AddToCartBtn product={prod} variant="full" disabled={!isOpen} />
+                                </div>
+
+                                {/* EXTRAS CON SCROLL AUTOMÁTICO */}
                                 {principalEnCarrito && extras && extras.length > 0 && (
-                                  <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300 pb-4">
-                                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest border-b border-white/10 pb-1 mb-2">Opcionales</p>
+                                  <div className="space-y-2 pb-6 animate-in slide-in-from-bottom-2">
+                                    <p className="text-[9px] font-black text-white/30 uppercase tracking-widest border-b border-white/10 pb-1 mb-2">Adicionales</p>
                                     {extras.map((ex: any) => (
-                                      <div key={ex.id} className="flex justify-between items-center bg-black/40 p-2 rounded-xl border border-white/5">
+                                      <div key={ex.id} className="flex justify-between items-center bg-black/40 p-3 rounded-2xl border border-white/5">
                                         <div className="text-left leading-none">
-                                          <div className="text-[10px] font-bold text-white">{ex.name}</div>
-                                          <div className="text-[9px] text-orange-400 mt-1">+{formatPrice(ex.price)}</div>
+                                          <div className="text-[11px] font-bold text-white">{ex.name}</div>
+                                          <div className="text-[10px] mt-1" style={{ color: THEME }}>+{formatPrice(ex.price)}</div>
                                         </div>
-                                        <button onClick={(e) => { e.stopPropagation(); addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("Extra sumado"); }} className="w-8 h-8 bg-white text-black rounded-xl flex items-center justify-center active:scale-90 shadow-lg"><Plus size={16} strokeWidth={3} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }); mostrarAviso("✅ Extra sumado"); }} 
+                                          className="w-8 h-8 rounded-xl flex items-center justify-center active:scale-90 shadow-lg"
+                                          style={{ backgroundColor: BTN_BG, color: BTN_TEXT }}
+                                        >
+                                          <Plus size={16} strokeWidth={3} />
+                                        </button>
                                       </div>
                                     ))}
                                   </div>
@@ -730,8 +817,8 @@ function MenuContent({
                     );
                   })}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         );
         case "pop":
