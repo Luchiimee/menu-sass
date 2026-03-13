@@ -343,24 +343,57 @@ const getStyles = (
             .pop-btn-full { width: 100%; background: ${BTN_BG} !important; color: ${BTN_TEXT} !important; border: 3px solid ${BTN_TEXT} !important; padding: 12px !important; border-radius: 15px !important; font-weight: 900 !important; text-transform: uppercase !important; box-shadow: 4px 4px 0 ${TEXT} !important; }
         `;
 
-      case "spotlight":
+    case "spotlight":
         return `
-            body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; }
-            .app-wrapper { min-height: 100vh; padding-bottom: 120px; color: ${TEXT}; }
-            .spot-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: white; }
-            .spot-logo { width: 45px; height: 45px; border-radius: 50%; background-size: cover; background-position: center; border: 1px solid #eee; }
+            ${common}
+            body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; color: ${TEXT}; }
+            .app-wrapper { min-height: 100vh; padding-bottom: 120px; }
+            
+            /* HEADER */
+            .spot-header-pub { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: ${BG}; border-bottom: 1px solid rgba(0,0,0,0.05); }
+            .spot-logo-pub { width: 65px; height: 65px; border-radius: 50%; background-size: cover; background-position: center; border: 1px solid rgba(0,0,0,0.1); background-color: #000; flex-shrink: 0; }
             .spot-status-pill { background: #2ecc71; color: white; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; }
-            .spot-banner-container { position: relative; height: 260px; width: 100%; overflow: hidden; }
+            
+            /* BANNER HERO */
+            .spot-banner-container { position: relative; height: 280px; width: 100%; overflow: hidden; background-color: #eee; }
             .spot-hero-img { width: 100%; height: 100%; background-size: cover; background-position: center; transition: transform 0.5s ease; }
-            .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; }
-            .spot-hero-content { color: white; position: relative; z-index: 2; text-align: left; width: 85%; }
-            .spot-badge { background: ${HERO_BADGE_BG || THEME}; color: ${HERO_BADGE_COLOR || 'white'}; padding: 4px 10px; font-size: 10px; font-weight: 900; border-radius: 6px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; }
-            .spot-hero-title { color: ${HERO_TITLE_COLOR || 'white'}; font-size: 24px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1.1; margin-bottom: 4px; text-transform: uppercase; italic; }
-            .spot-hero-price { color: ${HERO_PRICE_COLOR || '#FFD700'}; font-size: 20px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-            .spot-plus-btn { position: absolute; bottom: 20px; right: 20px; width: 45px; height: 45px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 10; transition: transform 0.2s; }
-            .spot-promo-bar { background: ${PROMO_BG}; color: #000; padding: 12px; text-align: center; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-            .spot-product-card h3 { color: ${PROD_NAME || TEXT}; }
-            .spot-product-price { font-weight: 900; font-size: 15px; margin-top: 4px; color: ${PROD_PRICE || '#111'}; }
+            .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 70%); display: flex; flex-direction: column; justify-content: flex-end; padding: 25px; }
+            
+            .spot-badge { 
+                background: ${HERO_BADGE_BG || THEME}; 
+                color: ${HERO_BADGE_COLOR || 'white'}; 
+                padding: 4px 12px; font-size: 10px; font-weight: 900; border-radius: 8px; display: inline-block; margin-bottom: 8px; text-transform: uppercase; 
+            }
+            .spot-hero-title { 
+                color: ${HERO_TITLE_COLOR || 'white'}; 
+                font-size: 28px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1; margin-bottom: 6px; text-transform: uppercase; font-style: italic; 
+            }
+            .spot-hero-price { 
+                color: ${HERO_PRICE_COLOR || THEME}; 
+                font-size: 22px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+            }
+            
+            .spot-plus-btn { position: absolute; bottom: 25px; right: 25px; width: 48px; height: 48px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 10; border: none; }
+
+            /* PROMO BAR */
+            .spot-promo-bar { background: ${PROMO_BG}; color: ${PROMO_TEXT || '#000'}; padding: 14px; text-align: center; font-size: 12px; font-weight: 700; border-bottom: 1px solid rgba(0,0,0,0.05); }
+            
+            /* PRODUCT LIST */
+            .spot-product-card { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid rgba(0,0,0,0.05); background: ${CARD_BG}; }
+            .spot-product-thumb { width: 60px; height: 60px; background-size: cover; border-radius: 12px; background-color: #f0f0f0; flex-shrink: 0; }
+            .spot-product-name { font-weight: 800; font-size: 14px; color: ${PROD_NAME}; text-transform: uppercase; }
+            .spot-product-desc { font-size: 11px; color: ${PROD_DESC}; margin-top: 2px; line-height: 1.3; opacity: 0.8; }
+            .spot-product-price { font-weight: 900; font-size: 15px; margin-top: 5px; color: ${PROD_PRICE}; }
+            
+            /* BOTONES LISTA */
+            .spot-add-wrapper button { 
+                width: 32px !important; height: 32px !important; 
+                background: ${BTN_BG} !important; 
+                color: ${BTN_TEXT} !important; 
+                border-radius: 50% !important; 
+                display: flex !important; align-items: center !important; justify-content: center !important;
+                border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
         `;
       case "elegant":
         return `
@@ -941,72 +974,80 @@ case "visualgrid":
             ))}
           </div>
         );
- case "spotlight":
-  return (
-    <div className="app-wrapper">
-      {/* 1. Encabezado Superior */}
-      <div className="spot-header">
-        <div className="flex items-center gap-3 text-left">
-          <div className="spot-logo" style={{ backgroundImage: `url('${LOGO}')` }}></div>
-          <div>
-            <h1 className="text-sm font-black uppercase leading-none tracking-tight">{restaurant.name}</h1>
-            {/* CORRECCIÓN: Quitamos el substring para eliminar los puntos suspensivos (...) */}
-            <p className="text-[10px] font-bold opacity-50 uppercase">{restaurant.description}</p>
-          </div>
-        </div>
-        <div className="spot-status-pill">{isOpen ? "ABIERTO" : "CERRADO"}</div>
-      </div>
-
-      {/* 2. Banner Héroe Interactivo */}
-      <div className="spot-banner-container" onClick={() => isOpen && restaurant.hero_title && setShowHeroModal(true)}>
-        <div className="spot-hero-img" style={{ backgroundImage: `url('${BANNER || LOGO}')` }}></div>
         
-        {restaurant.hero_title && (
-            <div className="spot-overlay">
-              <div className="spot-hero-content">
-                <div className="spot-badge">{restaurant.hero_badge_text || 'DESTACADO'}</div>
-                <h2 className="spot-hero-title">{restaurant.hero_title}</h2>
-                {restaurant.hero_price && <div className="spot-hero-price">{formatPrice(restaurant.hero_price)}</div>}
+case "spotlight":
+        const heroBanner = restaurant.banner_url || (allProducts.length > 0 ? allProducts[0].image_url : "");
+        return (
+          <div className="app-wrapper">
+            {/* 1. Header con Logo y Status */}
+          <div className="spot-header-pub">
+              <div className="flex items-center gap-4 text-left">
+                <div className="spot-logo-pub" style={{ backgroundImage: `url('${LOGO || ""}')` }}></div>
+                <div>
+                  {/* Nombre más grande (XL) */}
+                  <h1 className="text-xl font-black uppercase leading-none tracking-tight" style={{ color: TEXT }}>
+                    {restaurant.name}
+                  </h1>
+                  {/* Descripción más grande (SM) */}
+                  <p className="text-sm font-bold opacity-50 uppercase mt-1" style={{ color: DESC }}>
+                    {restaurant.description}
+                  </p>
+                </div>
               </div>
-              {isOpen && (
+              <div className="spot-status-pill" style={{ backgroundColor: isOpen ? '#2ecc71' : '#e74c3c' }}>
+                {isOpen ? "ABIERTO" : "CERRADO"}
+              </div>
+            </div>
+
+            {/* 2. Banner Héroe Interactivo */}
+            <div className="spot-banner-container" onClick={() => isOpen && restaurant.hero_title && setShowHeroModal(true)}>
+              <div className="spot-hero-img" style={{ backgroundImage: `url('${heroBanner}')` }}></div>
+              <div className="spot-overlay">
+                <div className="text-left">
+                  <div className="spot-badge">{restaurant.hero_badge_text || 'DESTACADO'}</div>
+                  <h2 className="spot-hero-title">{restaurant.hero_title || (allProducts[0]?.name)}</h2>
+                  <div className="spot-hero-price">{formatPrice(restaurant.hero_price || allProducts[0]?.price || 0)}</div>
+                </div>
+                {isOpen && restaurant.hero_title && (
                   <button className="spot-plus-btn">
                     <Plus size={24} strokeWidth={3} />
                   </button>
-              )}
-            </div>
-        )}
-      </div>
-
-      {/* 3. Barra Promo */}
-      {restaurant.show_promo && restaurant.promo_message && (
-        <div className="spot-promo-bar">
-          {restaurant.promo_message}
-        </div>
-      )}
-
-      {/* 4. Lista de Productos */}
-      {restaurant.categories?.map((cat: any) => (
-        <div key={cat.id}>
-          {cat.products?.map((prod: any) => {
-            const principalEnCarrito = cart.some(item => item.id === prod.id);
-            return (
-              <div key={prod.id} className="spot-product-card text-left">
-                <div className="spot-product-thumb" style={{ backgroundImage: `url('${prod.image_url || ""}')` }}></div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-[14px] leading-tight uppercase">{prod.name}</h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{prod.description}</p>
-                  <div className="spot-product-price">{formatPrice(prod.price)}</div>
-                </div>
-                <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Agregado")}>
-                   <AddToCartBtn product={prod} variant="icon" isDark={false} disabled={!isOpen} />
-                </div>
+                )}
               </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
+            </div>
+
+            {/* 3. Barra de Promoción */}
+            {restaurant.show_promo && restaurant.promo_message && (
+              <div className="spot-promo-bar">
+                {restaurant.promo_message}
+              </div>
+            )}
+
+            {/* 4. Lista de Productos con Thumbnails */}
+            <div className="flex-1">
+              {restaurant.categories?.map((cat: any) => (
+                <div key={cat.id} style={{ display: 'contents' }}>
+                  {cat.products?.map((prod: any) => {
+                    const principalEnCarrito = cart.some(item => item.id === prod.id);
+                    return (
+                      <div key={prod.id} className="spot-product-card text-left">
+                        <div className="spot-product-thumb" style={{ backgroundImage: `url('${prod.image_url || ""}')` }}></div>
+                        <div className="flex-1">
+                          <h3 className="spot-product-name">{prod.name}</h3>
+                          <p className="spot-product-desc line-clamp-2">{prod.description}</p>
+                          <div className="spot-product-price">{formatPrice(prod.price)}</div>
+                        </div>
+                        <div className="spot-add-wrapper" onClick={() => !principalEnCarrito && mostrarAviso("✅ Agregado")}>
+                           <AddToCartBtn product={prod} variant="icon" disabled={!isOpen} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
 
   case "elegant":
   return (

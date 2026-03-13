@@ -130,10 +130,25 @@ pop: {
     promo_text: '#000000', 
     banner: false 
   },
-  spotlight: { 
-    theme: '#FFD700', bg: '#ffffff', text: '#000000', desc: '#666666', 
-    card_name: '#000000', card_desc: '#666666', card_price: '#000000', 
-    btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#fff3e0', promo_text: '#000000', banner: true 
+ spotlight: { 
+    theme: '#FFD700',      // Dorado para acentos
+    bg: '#ffffff', 
+    card: '#ffffff', 
+    text: '#000000', 
+    desc: '#666666', 
+    card_name: '#000000', 
+    card_desc: '#666666', 
+    card_price: '#000000', 
+    btn_bg: '#000000',     // Botones negros
+    btn_text: '#ffffff', 
+    promo: '#fff3e0',      // Fondo naranja muy suave para promo
+    promo_text: '#000000',
+    banner: true,
+    // --- NUEVOS CAMPOS HERO ---
+    hero_badge_bg: '#FFD700',
+    hero_badge_color: '#000000',
+    hero_title_color: '#ffffff',
+    hero_price_color: '#FFD700'
   },
   marketpro: { 
     theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', 
@@ -414,32 +429,42 @@ const applyTemplate = (templateId: string) => {
   };
 
 const handleSave = async () => {
-    if (!data.id) return;
+    if (!data.id || !data.slug) return;
     
     try {
-      // Limpiamos solo lo que NO pertenece a la tabla restaurants
-      const { 
-        id, 
-        created_at, 
-        categories, 
-        products, 
-        fetched_extras, 
-        ...updates 
-      } = data; 
+      // 1. VERIFICACIÓN DE DOMINIO ÚNICO
+      const { data: existingRestaurant, error: checkError } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('slug', data.slug)
+        .neq('id', data.id) // Que no sea mi propio restaurante
+        .maybeSingle();
+
+      if (existingRestaurant) {
+        alert(`❌ El nombre "snappy.uno/${data.slug}" ya está en uso. Por favor, elegí otro.`);
+        return; // Cortamos el guardado
+      }
+
+      // 2. PROCEDER CON EL GUARDADO SI ESTÁ DISPONIBLE
+      const { id, created_at, categories, products, fetched_extras, ...updates } = data; 
 
       const { error } = await supabase
         .from('restaurants')
-        .update(updates) // Aquí ahora viaja 'card_shadow_color'
+        .update(updates)
         .eq('id', data.id);
 
-      if (error) { console.error("Error Supabase:", error.message); } 
-      setUnsavedChanges(false); 
-
-      if (!error) {
+      if (error) { 
+        console.error("Error Supabase:", error.message);
+        alert("Error al guardar los cambios.");
+      } else {
+        setUnsavedChanges(false); 
         setShowSuccessModal(true); 
         setTimeout(() => setShowSuccessModal(false), 2000); 
       }
-    } catch (err) { setUnsavedChanges(false); }
+    } catch (err) { 
+        console.error("Error crítico:", err);
+        setUnsavedChanges(false); 
+    }
 };
   const handleAddProduct = async () => {
     if (!newProd.name || !newProd.price) return alert("Faltan datos");
@@ -466,7 +491,11 @@ const handleSave = async () => {
      if (!error) setProducts(products.filter(p => p.id !== id));
   };
 
-  const copyLink = () => { navigator.clipboard.writeText(`https://snappy.uno/${data.slug}`); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+ const copyLink = () => { 
+    navigator.clipboard.writeText(`snappy.uno/${data.slug}`); 
+    setCopied(true); 
+    setTimeout(() => setCopied(false), 2000); 
+  }
   const handleResetClick = () => setShowRestoreModal(true);
   
 const confirmReset = () => {
@@ -483,11 +512,15 @@ const confirmReset = () => {
         card_color: defaults.card, 
         card_desc_color: defaults.card_desc,
         card_price_color: defaults.card_price, 
-        card_shadow_color: defaults.card_shadow_color || '#000000', // <--- AGREGADO PARA POP
         card_btn_bg: defaults.btn_bg,
         card_btn_text: defaults.btn_text,
         promo_bg_color: defaults.promo_bg || defaults.promo,
         promo_text_color: defaults.promo_text,
+        // --- AGREGADO PARA SPOTLIGHT ---
+        hero_badge_bg: defaults.hero_badge_bg,
+        hero_badge_color: defaults.hero_badge_color,
+        hero_title_color: defaults.hero_title_color,
+        hero_price_color: defaults.hero_price_color,
         show_banner: defaults.banner || false, 
         show_promo: true 
     }));
@@ -771,17 +804,27 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Link de tu Menú</label>
-                      <div className="flex bg-white rounded-lg border overflow-hidden shadow-sm">
-                        <div className="bg-gray-100 px-2 py-2 border-r text-gray-500 text-xs flex items-center select-none">snappy.uno/</div>
-                        <input value={data.slug} onChange={(e) => { setData({...data, slug: e.target.value}); setUnsavedChanges(true); }} className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" placeholder="tu-marca"/>
-                        
-                        <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors" title="Copiar enlace">
-                          {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14}/> <span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14}/>}
-                        </button>
-                        <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-blue-600 transition-colors" title="Ver mi menú en vivo">
-                          <ExternalLink size={14}/>
-                        </a>
-                      </div>
+                     <div className="flex bg-white rounded-lg border overflow-hidden shadow-sm">
+    {/* Visualmente mostramos solo snappy.uno/ */}
+    <div className="bg-gray-100 px-2 py-2 border-r text-gray-500 text-xs flex items-center select-none font-bold">
+        snappy.uno/
+    </div>
+    <input 
+        value={data.slug} 
+        onChange={(e) => { setData({...data, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')}); setUnsavedChanges(true); }} 
+        className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" 
+        placeholder="tu-marca"
+    />
+    
+    <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors">
+        {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14}/> <span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14}/>}
+    </button>
+
+    {/* El href interno sí necesita el protocolo para que el navegador sepa que es un link externo, pero el usuario no lo ve */}
+    <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-blue-600 transition-colors">
+        <ExternalLink size={14}/>
+    </a>
+</div>
                     </div>
                   </div>
               </section>

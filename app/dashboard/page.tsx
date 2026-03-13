@@ -144,8 +144,9 @@ const handleRefresh = () => {
     };
   }, []);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(storeLink);
+ const copyToClipboard = () => {
+  
+    navigator.clipboard.writeText(`snappy.uno/${slug}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -177,7 +178,7 @@ const handleRefresh = () => {
         doc.text(`Escanea para ver el Menú`, 105, 40, { align: 'center' });
         doc.setFontSize(16);
         doc.setTextColor(100);
-        doc.text(`snappy.uno/${slug}`, 105, 50, { align: 'center' });
+       doc.text(`snappy.uno/${slug}`, 105, 50, { align: 'center' });
         const qrSize = 100;
         const xPos = (210 - qrSize) / 2;
         doc.addImage(qrDataUrl, 'PNG', xPos, 60, qrSize, qrSize);
@@ -395,13 +396,14 @@ const confirmDelete = async () => {
       <div className="bg-gray-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <h2 className="text-xl font-black flex items-center gap-2 italic uppercase tracking-tighter">
+         <div className="space-y-2">
+            <h2 className="text-xl font-black flex items-center gap-2 italic uppercase tracking-tighter text-white">
               ¡Tu tienda está activa! <span className="animate-pulse text-green-500 text-sm">●</span>
             </h2>
             <div className="flex items-center mt-4 bg-white/10 p-2 rounded-2xl w-full border border-white/5">
-              <span className="text-green-400 text-xs font-mono pl-1">snappy.uno/</span>
-              <span className="font-bold text-white pr-1 text-sm">{slug || '...'}</span>
+              {/* Mostramos el dominio limpio */}
+              <span className="text-green-400 text-xs font-black pl-1">snappy.uno/</span>
+              <span className="font-black text-white pr-1 text-sm italic">{slug || '...'}</span>
             </div>
           </div>
           

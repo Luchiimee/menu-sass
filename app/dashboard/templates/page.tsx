@@ -87,6 +87,26 @@ pop: {
     promo_text: '#000000', // Texto negro de la promo
     banner: false 
   },
+  spotlight: { 
+    theme: '#FFD700',      // Dorado para acentos
+    bg: '#ffffff', 
+    card: '#ffffff', 
+    text: '#000000', 
+    desc: '#666666', 
+    card_name: '#000000', 
+    card_desc: '#666666', 
+    card_price: '#000000', 
+    btn_bg: '#000000',     // Botones negros
+    btn_text: '#ffffff', 
+    promo: '#fff3e0',      // Fondo naranja muy suave para promo
+    promo_text: '#000000',
+    banner: true,
+    // --- NUEVOS CAMPOS HERO ---
+    hero_badge_bg: '#FFD700',
+    hero_badge_color: '#000000',
+    hero_title_color: '#ffffff',
+    hero_price_color: '#FFD700'
+  },
   'icecream-v1': { 
     theme: '#00bcd4', 
     bg: '#f0faff', 
