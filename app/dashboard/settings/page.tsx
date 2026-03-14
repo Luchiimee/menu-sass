@@ -442,51 +442,71 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
                     {showHours ? <ChevronUp className="text-gray-400"/> : <ChevronDown className="text-gray-400"/>}
                 </button>
                 
-                {showHours && (
-                  <div className="p-8 pt-0 animate-in slide-in-from-top-4 duration-300">
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                        {DAYS.map((day) => {
-                            const dayData = restaurant.business_hours?.[day.key] || {};
-                            const { isOpen, isSplit, open, close, open2, close2 } = dayData;
-                            return (
-                                <div key={day.key} className={`border-2 rounded-[2rem] p-6 transition-all duration-300 ${isOpen ? 'border-green-100 bg-white' : 'border-gray-50 bg-gray-50/50'}`}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <span className="font-black text-gray-800 capitalize text-lg">{day.label}</span>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" className="sr-only peer" checked={isOpen || false} onChange={(e) => updateHour(day.key, 'isOpen', e.target.checked)} />
-                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                                        </label>
-                                    </div>
-                                    {isOpen ? (
-                                        <div className="mt-6 space-y-4 animate-in zoom-in-95">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <input type="time" value={open || '09:00'} onChange={(e) => updateHour(day.key, 'open', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
-                                                <span className="font-bold text-gray-300">a</span>
-                                                <input type="time" value={close || '23:00'} onChange={(e) => updateHour(day.key, 'close', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
-                                            </div>
-                                            {isSplit && (
-                                                <div className="flex flex-wrap items-center gap-2 animate-in slide-in-from-top-1 border-t border-dashed pt-4">
-                                                    <input type="time" value={open2 || '17:00'} onChange={(e) => updateHour(day.key, 'open2', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
-                                                    <span className="font-bold text-gray-300">a</span>
-                                                    <input type="time" value={close2 || '23:00'} onChange={(e) => updateHour(day.key, 'close2', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
-                                                </div>
-                                            )}
-                                            <div className="pt-2">
-                                                <label className="flex items-center gap-2 cursor-pointer group">
-                                                    <input type="checkbox" checked={isSplit || false} onChange={(e) => updateHour(day.key, 'isSplit', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black" />
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Doble Turno</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-[10px] text-center text-gray-300 py-4 font-bold uppercase tracking-widest italic">Cerrado</p>
-                                    )}
-                                </div>
-                            );
-                        })}
+              {showHours && (
+  /* Agregamos 'relative' al contenedor para que el cartel de bloqueo se ubique bien */
+  <div className="p-8 pt-0 animate-in slide-in-from-top-4 duration-300 relative">
+    
+    {/* --- LÓGICA DE BLOQUEO VISUAL --- */}
+    {restaurant.always_open && (
+      <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-[2.5rem] p-6">
+        <div className="bg-gray-900 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 border border-white/10">
+          <div className="bg-amber-500 p-2 rounded-xl text-black">
+            <AlertTriangle size={20} />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-xs font-black uppercase tracking-tight italic">Horarios Bloqueados</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase leading-tight">
+              Desactiva el modo "Siempre Abierto" <br/> en el inicio para poder editar.
+            </span>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Agregamos la lógica para que el grid se vea gris y no sea clickeable si always_open es true */}
+    <div className={`grid grid-cols-1 xl:grid-cols-2 gap-6 transition-all duration-500 ${restaurant.always_open ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
+        {DAYS.map((day) => {
+            const dayData = restaurant.business_hours?.[day.key] || {};
+            const { isOpen, isSplit, open, close, open2, close2 } = dayData;
+            return (
+                <div key={day.key} className={`border-2 rounded-[2rem] p-6 transition-all duration-300 ${isOpen ? 'border-green-100 bg-white' : 'border-gray-50 bg-gray-50/50'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <span className="font-black text-gray-800 capitalize text-lg">{day.label}</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={isOpen || false} onChange={(e) => updateHour(day.key, 'isOpen', e.target.checked)} />
+                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        </label>
                     </div>
-                  </div>
-                )}
+                    {isOpen ? (
+                        <div className="mt-6 space-y-4 animate-in zoom-in-95">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <input type="time" value={open || '09:00'} onChange={(e) => updateHour(day.key, 'open', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
+                                <span className="font-bold text-gray-300">a</span>
+                                <input type="time" value={close || '23:00'} onChange={(e) => updateHour(day.key, 'close', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
+                            </div>
+                            {isSplit && (
+                                <div className="flex flex-wrap items-center gap-2 animate-in slide-in-from-top-1 border-t border-dashed pt-4">
+                                    <input type="time" value={open2 || '17:00'} onChange={(e) => updateHour(day.key, 'open2', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
+                                    <span className="font-bold text-gray-300">a</span>
+                                    <input type="time" value={close2 || '23:00'} onChange={(e) => updateHour(day.key, 'close2', e.target.value)} className="flex-1 min-w-[100px] p-3 bg-gray-50 border-none rounded-xl text-sm font-black text-center" />
+                                </div>
+                            )}
+                            <div className="pt-2">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" checked={isSplit || false} onChange={(e) => updateHour(day.key, 'isSplit', e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black" />
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Doble Turno</span>
+                                </label>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-center text-gray-300 py-4 font-bold uppercase tracking-widest italic">Cerrado</p>
+                    )}
+                </div>
+            );
+        })}
+    </div>
+  </div>
+)}
             </section>
         </div>
       </div>

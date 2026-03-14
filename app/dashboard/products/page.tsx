@@ -307,7 +307,7 @@ if (loading) return (
 );
 
   return (
-    <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-24 md:pt-0 font-sans">
+   <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-4 md:pt-4 font-sans">
         
         {isLocked && (
             <div className="absolute inset-0 z-50 backdrop-blur-md bg-white/60 flex items-center justify-center rounded-3xl overflow-hidden p-4">

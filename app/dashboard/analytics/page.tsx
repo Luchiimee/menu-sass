@@ -146,8 +146,7 @@ const router = useRouter(); // Inicializar router
       }
       setSaving(false);
   };
-
-  if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-gray-400"/></div>;
+if (loading) return <div className="h-[80vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin" size={40} /></div>;
 return (
     <div className="max-w-6xl mx-auto min-h-screen relative font-sans">
         
@@ -189,7 +188,7 @@ return (
         )}
 
         {/* --- 2. CONTENIDO PRINCIPAL (SE DESENFOCA SI ESTÁ BLOQUEADO) --- */}
-        <div className={`space-y-6 pb-12 pt-6 px-4 transition-all duration-500 ${isLocked ? "blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-screen" : ""}`}>
+      <div className={`space-y-6 pb-12 pt-6 md:pt-2 px-4 transition-all duration-500 ${isLocked ? "blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-screen" : ""}`}>
             
             {/* BARRA DE NAVEGACIÓN DE FECHA */}
             <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-3xl border shadow-sm gap-4">

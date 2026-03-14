@@ -393,7 +393,7 @@ const menuItems = [
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col"> 
+     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-16 lg:pt-0">
         {/* Alerta de Pagos */}
         {/* Alerta de Pagos */}
         {restaurant.plan && restaurant.status === 'paused' && (
@@ -410,7 +410,7 @@ const menuItems = [
 
         {/* --- BANNER DE TELÉFONO PERSONAL (GLOBAL) --- */}
         {!isLoading && !hasPhone && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-20 animate-in slide-in-from-top-full">
+       <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm relative z-20 animate-in slide-in-from-top-full">
             <div className="flex items-center gap-3 text-amber-800">
               <div className="bg-amber-100 p-2 rounded-lg hidden sm:block">
                 <AlertTriangle size={18} className="text-amber-600" />
@@ -435,7 +435,7 @@ const menuItems = [
     
 {/* AVISO PERIODO DE PRUEBA (Optimizado para todas las medidas) */}
 {showWarning && !bypassBlock && (
-  <div className="mt-20 lg:mt-0 mb-8 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4 gap-3 relative z-30">
+  <div className="mt-2 lg:mt-0 mb-8 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4 gap-3 relative z-30">
     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
       <div className="bg-white/20 p-1.5 rounded-lg shrink-0">
         <Zap size={16} className="text-white fill-current sm:w-5 sm:h-5" />
@@ -518,7 +518,8 @@ const menuItems = [
      <MobileNav 
   displayName={restaurant.name} 
   displaySubtext={getPlanLabel()} 
-  logoUrl={restaurant.logo_url} // <--- Enviamos el logo aquí
+  logoUrl={restaurant.logo_url}
+  isAdmin={isAdmin} // <--- Enviamos el logo aquí
 />
     </div>
   );

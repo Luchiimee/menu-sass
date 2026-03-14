@@ -34,6 +34,7 @@ const [couponPendingDelete, setCouponPendingDelete] = useState<string | null>(nu
 const [showPromo, setShowPromo] = useState(false);
 const [isSavingPromo, setIsSavingPromo] = useState(false);
 const [coupons, setCoupons] = useState<any[]>([]);
+const [alwaysOpen, setAlwaysOpen] = useState(false);
 const [newCoupon, setNewCoupon] = useState({ 
     code: '', 
     discount: 10, 
@@ -58,18 +59,23 @@ const [newCoupon, setNewCoupon] = useState({
     // 1. SELECT ACTUALIZADO CON PROMO
     const { data: rest } = await supabase
       .from('restaurants')
-     .select('id, slug, subscription_plan, promo_message, show_promo')
+     .select('id, slug, subscription_plan, promo_message, show_promo,always_open')
       .eq('user_id', session.user.id)
       .maybeSingle();
 
-    if (mounted) {
-        // SI NO TIENE RESTAURANTE O NO TIENE PLAN, ES NEW USER
+ if (mounted) {
+        // 1. SI NO TIENE RESTAURANTE O NO TIENE PLAN, ES NEW USER
         if (!rest || !rest.subscription_plan) {
             setIsNewUser(true); 
             setLoading(false);
             return;
         }
+
+      
         setRestaurantId(rest.id);
+       
+        
+        setAlwaysOpen(rest.always_open || false);
 
         // DETECTAR PLAN
         const plan = rest.subscription_plan;
@@ -286,7 +292,7 @@ const confirmDelete = async () => {
   // --- PANTALLA DE BIENVENIDA Y PLANES ---
   if (isNewUser) {
     return (
-      <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in space-y-8 pt-24 md:pt-8">
+      <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-4 md:pt-0">
         <div className="text-center space-y-6 mb-10">
             <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-purple-900/20 p-3">
                 <Image src="/logo.svg" alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
@@ -390,7 +396,7 @@ const confirmDelete = async () => {
 
   // --- DASHBOARD REAL (CUANDO YA TIENE PLAN) ---
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-24 md:pt-0">
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-6 md:pt-0">
       
       {/* 1. BLOQUE: TIENDA ACTIVA */}
       <div className="bg-gray-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
@@ -421,141 +427,158 @@ const confirmDelete = async () => {
         </div>
       </div>
 
-      {/* 2. GRID OPERATIVO: PROMO Y CUPONES */}
+   {/* 2. GRID OPERATIVO: COLUMNA IZQUIERDA (PROMO + ESTADO) | COLUMNA DERECHA (CUPONES) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* MÓDULO: MENSAJE DE PROMOCIÓN */}
-        <div className="lg:col-span-4 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap size={20} className="text-orange-500 fill-orange-500" />
-              <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Mensaje Promo</h3>
+        {/* --- COLUMNA IZQUIERDA (lg:col-span-4) --- */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* MÓDULO 1: MENSAJE DE PROMOCIÓN */}
+          <div className="bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap size={20} className="text-orange-500 fill-orange-500" />
+                <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Mensaje Promo</h3>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <button 
+                  onClick={handleTogglePromo}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${showPromo ? 'bg-green-500' : 'bg-gray-200'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPromo ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className={`text-[8px] font-black uppercase ${showPromo ? 'text-green-600' : 'text-gray-400'}`}>
+                  {showPromo ? 'Visible' : 'Oculto'}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <button 
-                onClick={handleTogglePromo}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${showPromo ? 'bg-green-500' : 'bg-gray-200'}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPromo ? 'translate-x-6' : 'translate-x-1'}`} />
+
+            <div className="space-y-4">
+              <textarea 
+                value={promoMessage}
+                onChange={(e) => setPromoMessage(e.target.value)}
+                onBlur={savePromoMessage}
+                placeholder="Ej: ¡2x1 en burgers!"
+                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xs font-bold focus:border-orange-500 outline-none transition-all resize-none h-24 text-gray-900"
+              />
+              <button onClick={savePromoMessage} className="w-full py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2">
+                {isSavingPromo ? <Loader2 className="animate-spin" size={14}/> : 'Guardar Texto'}
               </button>
-              <span className={`text-[8px] font-black uppercase ${showPromo ? 'text-green-600' : 'text-gray-400'}`}>
-                {showPromo ? 'Visible' : 'Oculto'}
-              </span>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <textarea 
-              value={promoMessage}
-              onChange={(e) => setPromoMessage(e.target.value)}
-              onBlur={savePromoMessage}
-              placeholder="Ej: ¡2x1 en burgers!"
-              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xs font-bold focus:border-orange-500 outline-none transition-all resize-none h-28 text-gray-900"
-            />
-            <button onClick={savePromoMessage} className="w-full py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2">
-              {isSavingPromo ? <Loader2 className="animate-spin" size={14}/> : 'Guardar Texto'}
-            </button>
+          {/* MÓDULO 2: ESTADO DEL LOCAL (CONTROL MANUAL) */}
+          <div className="bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden relative group">
+            {/* Barrita lateral indicativa */}
+            <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors duration-500 ${alwaysOpen ? 'bg-green-500' : 'bg-amber-500'}`} />
+            
+            <div className="flex items-center justify-between mb-4">
+               <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl transition-colors ${alwaysOpen ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
+                    <Clock size={20} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Estado del Local</h3>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Control de apertura</p>
+                  </div>
+               </div>
+
+               <div className="flex flex-col items-end gap-1">
+                  <button 
+                    onClick={async () => {
+                        const nuevoEstado = !alwaysOpen;
+                        setAlwaysOpen(nuevoEstado);
+                        await supabase.from('restaurants').update({ always_open: nuevoEstado }).eq('id', restaurantId);
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${alwaysOpen ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'bg-slate-200'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${alwaysOpen ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                  <span className={`text-[8px] font-black uppercase ${alwaysOpen ? 'text-green-600' : 'text-amber-600'}`}>
+                    {alwaysOpen ? 'Manual' : 'Automático'}
+                  </span>
+               </div>
+            </div>
+
+            <div className={`p-4 rounded-2xl border transition-all ${alwaysOpen ? 'bg-green-50/50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
+               <p className="text-[10px] font-bold text-gray-700 leading-relaxed text-left">
+                  {alwaysOpen ? (
+                    <span className="flex items-center gap-2 text-green-700">
+                       <CheckCircle size={14} className="shrink-0" /> <b>LOCAL ABIERTO:</b> Se ignoran los horarios configurados.
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2 text-slate-500">
+                       <Zap size={14} className="shrink-0 fill-slate-400 text-slate-400" /> <b>CONTROL AUTO:</b> Abre y cierra según tus horarios.
+                    </span>
+                  )}
+               </p>
+            </div>
           </div>
         </div>
 
-        {/* MÓDULO: CUPONES */}
-        {/* MÓDULO: CUPONES DE DESCUENTO (Principal) */}
-<div className="lg:col-span-8 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm space-y-6">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <Crown size={20} className="text-purple-500 fill-purple-500" />
-      <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Gestión de Cupones</h3>
-    </div>
-  </div>
+        {/* --- COLUMNA DERECHA: GESTIÓN DE CUPONES (lg:col-span-8) --- */}
+        <div className="lg:col-span-8 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm space-y-6 h-full">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-left">
+              <Crown size={20} className="text-purple-500 fill-purple-500" />
+              <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Gestión de Cupones</h3>
+            </div>
+          </div>
 
-  {/* Formulario de Creación Programada */}
- {/* Formulario de Creación Programada - CORREGIDO PARA MOBILE */}
-{/* Formulario de Cupones - FIX DESBORDE DEFINITIVO */}
-<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
-  
-  <div className="flex flex-col gap-1 min-w-0">
-    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
-    <input 
-      type="text" 
-      placeholder="EJ: VERANO20" 
-      value={newCoupon.code} 
-      onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} 
-      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-purple-500" 
-    />
-  </div>
+          {/* Formulario de Cupones */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+            <div className="flex flex-col gap-1 min-w-0 text-left">
+              <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
+              <input type="text" placeholder="EJ: VERANO20" value={newCoupon.code} onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-purple-500" />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0 text-left">
+              <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
+              <input type="number" placeholder="20" value={newCoupon.discount} onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-purple-500" />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0 text-left">
+              <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
+              <input type="date" value={newCoupon.startDate} onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500 appearance-none" />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0 text-left">
+              <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
+              <input type="date" value={newCoupon.endDate} onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500 appearance-none" />
+            </div>
+            <button onClick={handleCreateCoupon} className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all">
+              <Plus size={16} /> Crear y Programar Cupón
+            </button>
+          </div>
 
-  <div className="flex flex-col gap-1 min-w-0">
-    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
-    <input 
-      type="number" 
-      placeholder="20" 
-      value={newCoupon.discount} 
-      onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} 
-      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-purple-500" 
-    />
-  </div>
-
-  <div className="flex flex-col gap-1 min-w-0">
-    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
-    <input 
-      type="date" 
-      value={newCoupon.startDate} 
-      onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} 
-      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500 appearance-none" 
-    />
-  </div>
-
-  <div className="flex flex-col gap-1 min-w-0">
-    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
-    <input 
-      type="date" 
-      value={newCoupon.endDate} 
-      onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} 
-      className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500 appearance-none" 
-    />
-  </div>
-
-  <button 
-    onClick={handleCreateCoupon} 
-    className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all"
-  >
-    <Plus size={16} /> Crear y Programar Cupón
-  </button>
-</div>
-
-  {/* Listado de Cupones con Scroll Mobile */}
-  <div className="overflow-x-auto scrollbar-hide">
-    <table className="w-full text-left">
-      <thead>
-        <tr className="text-[10px] text-gray-400 font-black uppercase border-b border-gray-50">
-          <th className="pb-3 px-2">Código</th>
-          <th className="pb-3 px-2">Dcto.</th>
-          <th className="pb-3 px-2">Validez</th>
-          <th className="pb-3 px-2 text-right">Acción</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-50">
-        {coupons.map((c) => (
-          <tr key={c.id} className="group hover:bg-gray-50/50 transition-colors">
-            <td className="py-4 px-2 font-black text-xs text-gray-900 italic">{c.code}</td>
-            <td className="py-4 px-2 text-purple-600 font-black text-xs">-{c.discount_percent}%</td>
-            <td className="py-4 px-2 text-[9px] text-gray-500 font-bold uppercase">
-              {new Date(c.starts_at).toLocaleDateString()} al {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '∞'}
-            </td>
-            <td className="py-4 px-2 text-right">
-              <button onClick={() => handleDeleteClick(c.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
-                <Trash2 size={16} />
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    {coupons.length === 0 && (
-      <p className="text-center py-8 text-[10px] font-bold text-gray-400 uppercase italic">No hay cupones generados</p>
-    )}
-  </div>
-</div>
+          {/* Listado de Cupones */}
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[10px] text-gray-400 font-black uppercase border-b border-gray-50">
+                  <th className="pb-3 px-2">Código</th>
+                  <th className="pb-3 px-2">Dcto.</th>
+                  <th className="pb-3 px-2">Validez</th>
+                  <th className="pb-3 px-2 text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {coupons.map((c) => (
+                  <tr key={c.id} className="group hover:bg-gray-50/50 transition-colors">
+                    <td className="py-4 px-2 font-black text-xs text-gray-900 italic">{c.code}</td>
+                    <td className="py-4 px-2 text-purple-600 font-black text-xs">-{c.discount_percent}%</td>
+                    <td className="py-4 px-2 text-[9px] text-gray-500 font-bold uppercase">{new Date(c.starts_at).toLocaleDateString()} al {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '∞'}</td>
+                    <td className="py-4 px-2 text-right">
+                      <button onClick={() => handleDeleteClick(c.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {coupons.length === 0 && (
+              <p className="text-center py-8 text-[10px] font-bold text-gray-400 uppercase italic">No hay cupones generados</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 3. BLOQUE: ACTIVIDAD RECIENTE / BLOQUEO PLAN */}

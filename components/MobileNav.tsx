@@ -16,7 +16,8 @@ import {
   X,
   Settings,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck // <--- AGREGÁ ESTE
 } from 'lucide-react';
 import PushNotificationManager from '@/components/PushNotificationManager';
 
@@ -24,9 +25,9 @@ interface MobileNavProps {
   displayName: string;
   displaySubtext: string;
   logoUrl?: string | null;
+  isAdmin?: boolean;
 }
-
-export default function MobileNav({ displayName, displaySubtext, logoUrl }: MobileNavProps) {
+export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmin }: MobileNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -64,54 +65,80 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl }: Mobi
          </div>
       </div>
 
-      {/* --- MENÚ DESPLEGABLE "MÁS" --- */}
+{/* --- MENÚ DESPLEGABLE "MÁS" REDISEÑADO (FULL SCREEN) --- */}
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[60] animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
+          {/* Fondo oscuro con blur */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
           
-          <div className="absolute bottom-20 left-4 right-4 bg-white rounded-[2.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 overflow-hidden">
+          {/* Contenedor Pantalla Completa (top-0) */}
+          <div className="absolute top-0 inset-x-0 bottom-0 bg-white shadow-2xl animate-in slide-in-from-bottom-5 duration-300 flex flex-col overflow-y-auto pb-24">
             
-            {/* INFO DEL PLAN (Encabezado del Menú) */}
-            <div className="bg-slate-50 -mx-6 -mt-6 p-6 mb-6 border-b border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tu Suscripción</p>
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-black text-slate-900 uppercase italic flex items-center gap-2">
-                        {displaySubtext || 'Plan Free'} {displaySubtext?.includes('Plus') && <Zap size={14} className="text-blue-600 fill-current"/>}
-                    </span>
-                    <Link href="/dashboard/settings" onClick={() => setIsMenuOpen(false)} className="text-[10px] font-bold text-blue-600 underline">Gestionar</Link>
-                </div>
+            {/* CABECERA DE PERFIL + BOTÓN CERRAR */}
+            <div className="p-6 pt-12 bg-slate-50 border-b flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-black rounded-xl overflow-hidden border-2 border-white shadow-md">
+                     {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="logo" /> : <Store className="w-full h-full p-2 text-white" />}
+                  </div>
+                  <div className="text-left">
+                     <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Hola, {displayName.split(' ')[0]}!</p>
+                     <p className="text-sm font-black text-slate-900 uppercase italic flex items-center gap-1">
+                       {displaySubtext} {displaySubtext?.includes('Plus') && <Zap size={14} className="text-blue-600 fill-current"/>}
+                     </p>
+                  </div>
+               </div>
+
+               {/* BOTÓN CERRAR (X) */}
+               <button 
+                  onClick={() => setIsMenuOpen(false)} 
+                  className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 text-slate-400 active:scale-90 transition-all"
+               >
+                  <X size={24} strokeWidth={2.5} />
+               </button>
             </div>
 
-            <div className="space-y-1">
-              {secondaryNavItems.map((item) => (
-                <Link 
-                  key={item.href} 
-                  href={item.href} 
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`flex items-center justify-between p-4 rounded-2xl font-bold text-sm transition-all ${pathname === item.href ? 'bg-indigo-50 text-indigo-700' : 'text-slate-800 active:bg-slate-50'}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <item.icon size={20} className={pathname === item.href ? 'text-indigo-600' : 'text-slate-400'} /> 
-                    {item.name}
-                  </div>
-                  <ChevronRight size={16} className="text-slate-300" />
+            <div className="p-4 space-y-6">
+              {/* SECCIÓN GESTIÓN */}
+              <div>
+                <p className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 text-left">Diseño y Visualización</p>
+                <div className="space-y-1">
+                   {secondaryNavItems.map((item) => (
+                     <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 rounded-2xl active:bg-slate-100 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-slate-100 rounded-xl text-slate-600"><item.icon size={20} /></div>
+                          <span className="font-bold text-slate-800">{item.name}</span>
+                        </div>
+                        <ChevronRight size={18} className="text-slate-300" />
+                     </Link>
+                   ))}
+                </div>
+              </div>
+
+              {/* SECCIÓN SISTEMA (Solo si es Admin) */}
+              {isAdmin && (
+                <div>
+                  <p className="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 text-left">Administración</p>
+                  <Link href="/admin/snappy" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50 border border-indigo-100 active:scale-95 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200"><ShieldCheck size={20} /></div>
+                      <span className="font-black text-indigo-900">Panel Snappy Admin</span>
+                    </div>
+                    <ChevronRight size={18} className="text-indigo-300" />
+                  </Link>
+                </div>
+              )}
+
+              {/* BOTÓN SALIR AL FINAL */}
+              <div className="pt-4 border-t border-slate-100">
+                <Link href="/login" className="flex items-center gap-4 p-4 rounded-2xl font-black text-red-500 active:bg-red-50 transition-colors">
+                   <div className="p-2 bg-red-50 rounded-xl"><LogOut size={20} /></div>
+                   Cerrar Sesión
                 </Link>
-              ))}
-              
-              <div className="h-px bg-slate-100 my-4" />
-              
-              <Link 
-                href="/login" 
-                className="flex items-center gap-4 p-4 rounded-2xl font-bold text-sm text-red-600 active:bg-red-50"
-              >
-                <LogOut size={20} /> Cerrar Sesión
-              </Link>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* --- BARRA INFERIOR (CONTRASTE MEJORADO) --- */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-[calc(64px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] z-50 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         
         {mainNavItems.map((item) => {

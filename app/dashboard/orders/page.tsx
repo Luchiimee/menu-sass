@@ -369,7 +369,7 @@ useEffect(() => {
     );
   }
  return (
-    <div className="max-w-6xl mx-auto min-h-screen p-2 pt-20 md:pt-28 lg:pt-8 relative font-sans">
+<div className="max-w-6xl mx-auto min-h-screen p-2 pt-2 md:pt-2 lg:pt-8 relative font-sans">
       
       {/* --- LÓGICA DE BLOQUEO --- */}
       {isLocked && (
