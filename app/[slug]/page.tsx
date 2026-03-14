@@ -161,55 +161,55 @@ const getStyles = (
                 .promo-box { background: ${PROMO_BG}; color: ${THEME}; text-align: center; font-size: 12px; padding: 10px; margin-bottom: 10px; font-weight: 600; }
                 .cat-title { font-size: 16px; font-weight: bold; margin: 20px 20px 10px; color: ${TEXT}; border-left: 4px solid ${THEME}; padding-left: 10px; }
             `;
-    case "urban":
+   case "urban":
         return `
             ${common} 
             body { background: ${BG}; margin: 0; font-family: 'Inter', sans-serif; } 
-            .app-wrapper { padding: 12px; display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 120px; } 
+            .app-wrapper { padding: 16px; display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 120px; } 
 
-            /* --- HEADER (Alineación perfecta) --- */
-            .urbano-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
-            .urbano-brand { display: flex; gap: 10px; align-items: center; text-align: left; }
-            .urbano-logo { width: 45px; height: 45px; border-radius: 50%; border: 2px solid ${TEXT}; background-size: cover; background-position: center; flex-shrink: 0; }
-            .urbano-names h4 { font-size: 14px; font-weight: 800; margin: 0; line-height: 1.1; color: ${TEXT}; }
-            .urbano-names span { font-size: 10px; color: ${DESC}; opacity: 0.8; }
-            .urbano-status { color: #000; font-size: 9px; font-weight: 900; padding: 4px 8px; border-radius: 8px; height: fit-content; text-transform: uppercase; }
+            /* --- HEADER AGRANDADO --- */
+            .urbano-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-shrink: 0; }
+            .urbano-brand { display: flex; gap: 14px; align-items: center; text-align: left; }
+            .urbano-logo { width: 60px; height: 60px; border-radius: 50%; border: 2px solid ${TEXT}; background-size: cover; background-position: center; flex-shrink: 0; }
+            .urbano-names h4 { font-size: 20px; font-weight: 800; margin: 0; line-height: 1.1; color: ${TEXT}; text-transform: uppercase; }
+            .urbano-names span { font-size: 13px; color: ${DESC}; opacity: 0.8; margin-top: 2px; }
+            .urbano-status { color: #000; font-size: 10px; font-weight: 900; padding: 5px 10px; border-radius: 10px; height: fit-content; text-transform: uppercase; }
             
             /* --- PROMO --- */
-            .urbano-msg { background: ${PROMO_BG}; padding: 10px; border-radius: 10px; font-size: 10px; color: ${PROMO_TEXT}; margin-bottom: 20px; border-left: 4px solid ${THEME}; font-weight: 700; text-align: left; }
+            .urbano-msg { background: ${PROMO_BG}; padding: 14px; border-radius: 12px; font-size: 12px; color: ${PROMO_TEXT}; margin-bottom: 25px; border-left: 5px solid ${THEME}; font-weight: 700; text-align: left; }
             
-            /* --- PRODUCTOS --- */
-            .urbano-card { background: ${CARD_BG}; padding: 10px; border-radius: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; }
-            .urbano-item-main { display: flex; gap: 12px; position: relative; }
-            .urbano-img { width: 75px; height: 75px; background-size: cover; border-radius: 12px; background-position: center; flex-shrink: 0; background-color: #222; }
-            .urbano-info { flex: 1; padding-right: 25px; display: flex; flex-direction: column; justify-content: center; text-align: left; }
-            .urbano-tit { font-weight: 800; font-size: 13px; margin-bottom: 2px; color: ${PROD_NAME}; }
-            .urbano-desc { font-size: 9px; color: ${PROD_DESC}; line-height: 1.3; opacity: 0.7; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-            .urbano-price { color: ${PROD_PRICE} !important; font-weight: 900; font-size: 13px; margin-top: 5px; }
+            /* --- PRODUCTOS XL --- */
+           .urbano-card { background: ${CARD_BG}; padding: 14px; border-radius: 24px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+            .urbano-item-main { display: flex; gap: 16px; position: relative; }
+            .urbano-img { width: 95px; height: 95px; background-size: cover; border-radius: 18px; background-position: center; flex-shrink: 0; background-color: #222; }background-position: center; flex-shrink: 0; background-color: #222; }
+            .urbano-info { flex: 1; padding-right: 48px; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+            .urbano-tit { font-weight: 800; font-size: 17px; margin-bottom: 4px; color: ${PROD_NAME}; letter-spacing: -0.02em; }
+            .urbano-desc { font-size: 12px; color: ${PROD_DESC}; line-height: 1.4; opacity: 0.7; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            .urbano-price { color: ${PROD_PRICE} !important; font-weight: 900; font-size: 18px; margin-top: 8px; }
             
-            /* BOTÓN + */
-           .add-btn-wrapper { position: absolute; bottom: 0; right: 0; z-index: 10; }
-            .add-btn-wrapper button { 
-                min-width: 28px !important; 
-                height: 28px !important; 
+            /* BOTÓN + GRANDE */
+            .add-btn-wrapper { position: absolute; top: 50%; transform: translateY(-50%); right: 0; z-index: 10; }
+           .add-btn-wrapper button { 
+    min-width: 30px !important; 
+    height: 30px !important;
                 background: ${BTN_BG} !important; 
-                color: ${BG} !important; 
-                border-radius: 20px !important; 
-                padding: 0 8px !important; 
+                color: ${BTN_TEXT} !important; 
+                border-radius: 14px !important; 
                 display: flex !important; 
                 align-items: center !important; 
                 justify-content: center !important; 
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 border: none !important;
                 font-weight: 900 !important;
+                font-size: 18px !important;
             }
 
-            /* --- EXTRAS URBAN --- */
-            .urbano-extras-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
-            .urbano-extra-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 12px; margin-bottom: 6px; }
-            .urbano-extra-name { font-size: 10px; font-weight: 800; color: #fff; text-transform: uppercase; }
-            .urbano-extra-price { font-size: 9px; color: ${PROD_PRICE}; font-weight: 700; }
-            .urbano-extra-add { width: 22px; height: 22px; border-radius: 6px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; }
+            /* --- EXTRAS --- */
+            .urbano-extras-box { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+            .urbano-extra-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 10px 15px; border-radius: 14px; margin-bottom: 8px; }
+            .urbano-extra-name { font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; }
+            .urbano-extra-price { font-size: 11px; color: ${PROD_PRICE}; font-weight: 700; }
+            .urbano-extra-add { width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
         `;
    case "minimal":
         return `
