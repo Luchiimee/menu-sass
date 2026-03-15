@@ -137,6 +137,27 @@ pop: {
     promo_text: '#e6c87e', 
     banner: false 
   },
+  marketpro: { 
+    theme: '#000000', 
+    bg: '#ffffff', 
+    text: '#000000', 
+    desc: '#999999', 
+    card_name: '#000000', 
+    card: '#ffffff', 
+    card_desc: '#999999', 
+    card_price: '#059669', 
+    btn_bg: '#000000', 
+    btn_text: '#ffffff', 
+    promo: '#f3f4f6', 
+    promo_text: '#000000', 
+    banner: true,
+    // --- ESTO ES LO QUE LE FALTABA A LA GALERÍA ---
+    cat_bg_color: '#f3f4f6',
+    cat_text_color: '#999999',
+    cat_title_color: '#000000',
+    search_bg_color: '#f3f4f6',
+    search_icon_color: '#9ca3af'
+  },
   'icecream-v1': { 
     theme: '#00bcd4', 
     bg: '#f0faff', 
@@ -547,7 +568,8 @@ const handleSaveBusinessInfo = async (subType: string) => {
       const defaults = TEMPLATE_DEFAULTS[id] || TEMPLATE_DEFAULTS['classic'];
 
       // HARD RESET: Mandamos todos los colores por defecto de la galería a la DB
-    await supabase.from('restaurants').update({ 
+    // HARD RESET: Mandamos todos los colores por defecto de la galería a la DB
+      await supabase.from('restaurants').update({ 
           template_id: id,
           theme_color: defaults.theme,
           bg_color: defaults.bg,
@@ -559,9 +581,15 @@ const handleSaveBusinessInfo = async (subType: string) => {
           card_price_color: defaults.card_price,
           card_btn_bg: defaults.btn_bg,
           card_btn_text: defaults.btn_text,
-          promo_bg_color: defaults.promo,
+          promo_bg_color: defaults.promo || defaults.promo_bg,
           promo_text_color: defaults.promo_text || defaults.theme,
-          show_banner: defaults.banner
+          show_banner: defaults.banner || false,
+          // --- AQUÍ LA GALERÍA GUARDA LOS COLORES DE MARKETPRO ---
+          cat_bg_color: defaults.cat_bg_color || '#f3f4f6',
+          cat_text_color: defaults.cat_text_color || '#999999',
+          cat_title_color: defaults.cat_title_color || '#000000',
+          search_bg_color: defaults.search_bg_color || '#f3f4f6',
+          search_icon_color: defaults.search_icon_color || '#9ca3af'
       }).eq('user_id', user.id);
       
       setCurrentTemplate(id);

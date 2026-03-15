@@ -566,6 +566,7 @@ function MenuContent({
   // --- 1. VARIABLES DE DISEÑO (SINCRONIZADAS CON EL EDITOR) ---
   const TEMPLATE = restaurant.template_id || "classic";
   const isUrban = TEMPLATE === "urban";
+  const isMarket = TEMPLATE === "marketpro";
 
 
   // Identidad

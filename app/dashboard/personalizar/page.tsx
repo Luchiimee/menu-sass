@@ -180,10 +180,29 @@ bistro: {
     promo_text: '#e6c87e', 
     banner: false 
   },
-  marketpro: { 
-    theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', 
-    card_name: '#000000', card_desc: '#999999', card_price: '#059669', 
-    btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#f3f4f6', promo_text: '#000000', banner: true 
+marketpro: { 
+    theme: '#000000', 
+    bg: '#ffffff', 
+    text: '#000000', 
+    desc: '#999999', 
+    card_name: '#000000', 
+    card_desc: '#999999', 
+    card_price: '#059669', 
+    btn_bg: '#000000', 
+    btn_text: '#ffffff', 
+    promo_bg: '#f3f4f6', 
+    promo_text: '#000000', 
+    banner: true,
+    // --- VARIABLES DE MARKET PRO ---
+    cat_bg_color: '#f3f4f6',
+    cat_text_color: '#999999',
+    cat_title_color: '#000000',
+    cat_active_bg_color: '#000000',   // <--- NUEVO: Fondo Cat Activa
+    cat_active_text_color: '#ffffff', // <--- NUEVO: Texto Cat Activa
+    search_bg_color: '#f3f4f6',
+    search_icon_color: '#9ca3af',
+    card_show_bg: true, 
+    card_color: '#ffffff'
   },
   'icecream-v1': { 
     theme: '#00bcd4', 
@@ -336,47 +355,41 @@ card_shadow_color: '#000000',
 
                 const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single(); 
                 
-              if(rest && mounted) {
+             if(rest && mounted) {
                     const tId = rest.template_id || 'classic';
                     const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
 
-                    // 1. DECLARAMOS VARIABLES INDEPENDIENTES
-                    let theme, bg, text, desc, pBg, pText, cName, cBg, cPrice, cDesc;
+                    setData({
+                        ...rest,
+                        template_id: tId,
+                        theme_color: rest.theme_color || defaults.theme,
+                        bg_color: rest.bg_color || defaults.bg,
+                        text_color: rest.text_color || defaults.text,
+                        description_color: rest.description_color || defaults.desc,
+                        promo_bg_color: rest.promo_bg_color || defaults.promo,
+                        promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
+                        
+                        // Variables de producto
+                        card_name_color: rest.card_name_color || defaults.card_name,
+                        card_color: rest.card_color || defaults.card || defaults.bg,
+                        card_desc_color: rest.card_desc_color || defaults.card_desc,
+                        card_price_color: rest.card_price_color || defaults.card_price,
+                        card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
+                        card_btn_text: rest.card_btn_text || defaults.btn_text,
+                        card_show_bg: rest.card_show_bg !== undefined ? rest.card_show_bg : true,
 
-                    theme = rest.theme_color || defaults.theme;
-                    bg = rest.bg_color || defaults.bg;
-                    text = rest.text_color || defaults.text;
-                    desc = rest.description_color || defaults.desc;
-                    pBg = rest.promo_bg_color || defaults.promo;
-                    pText = rest.promo_text_color || '#ffffff';
-                    
-                    cName = rest.card_name_color || (tId === 'urban' ? '#ffffff' : '#000000');
-                    cBg = rest.card_color || (tId === 'urban' ? '#1E1E1E' : '#ffffff');
-                    
-                    // --- AQUÍ ESTÁ EL ARREGLO: Precio con default fijo, no el theme ---
-                    cPrice = rest.card_price_color || (tId === 'urban' ? '#ea580c' : '#d32f2f'); 
-                    cDesc = rest.card_desc_color || (tId === 'urban' ? '#888888' : '#666666');
-setData({
-    ...rest,
-    template_id: tId,
-    theme_color: rest.theme_color || defaults.theme,
-    bg_color: rest.bg_color || defaults.bg,
-    text_color: rest.text_color || defaults.text,
-    description_color: rest.description_color || defaults.desc,
-    promo_bg_color: rest.promo_bg_color || defaults.promo,
-    promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
-    
-    // Variables de producto sincronizadas
-    card_name_color: rest.card_name_color || defaults.card_name,
-    card_color: rest.card_color || defaults.card || defaults.bg,
-    card_desc_color: rest.card_desc_color || defaults.card_desc,
-    card_price_color: rest.card_price_color || defaults.card_price,
-    card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
-    card_btn_text: rest.card_btn_text || defaults.btn_text,
-    
-    name: rest.name || 'Mi Restaurante',
-    description: rest.description || 'Disfrutá de los mejores sabores.',
-});
+                        // --- NUEVO: CARGAR COLORES DE CATEGORÍAS Y BUSCADOR ---
+                        cat_bg_color: rest.cat_bg_color || '#f3f4f6',
+                        cat_text_color: rest.cat_text_color || '#999999',
+                        cat_active_bg_color: rest.cat_active_bg_color || '#000000',
+                        cat_active_text_color: rest.cat_active_text_color || '#ffffff',
+                        search_bg_color: rest.search_bg_color || '#f3f4f6',
+                        search_icon_color: rest.search_icon_color || '#9ca3af',
+                        
+                        name: rest.name || 'Mi Restaurante',
+                        description: rest.description || 'Disfrutá de los mejores sabores.',
+                    });
+                    // ... resto de la función igual
                     setIsLocked(!rest.subscription_plan);
                     const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
                     if(prods && mounted) setProducts(prods);
@@ -420,7 +433,7 @@ const applyTemplate = (templateId: string) => {
         bg_color: defaults.bg,
         text_color: defaults.text,
         description_color: defaults.desc,
-        promo_bg_color: defaults.promo,
+        promo_bg_color: defaults.promo || defaults.promo_bg,
         promo_text_color: defaults.promo_text || defaults.theme,
         card_name_color: defaults.card_name,
         card_color: defaults.card || defaults.bg,
@@ -429,6 +442,14 @@ const applyTemplate = (templateId: string) => {
         card_btn_bg: defaults.btn_bg,
         card_btn_text: defaults.btn_text,
         show_banner: defaults.banner,
+        // Reset forzado para campos de MarketPro
+        cat_bg_color: defaults.cat_bg_color,
+        cat_text_color: defaults.cat_text_color,
+        cat_title_color: defaults.cat_title_color,
+        search_bg_color: defaults.search_bg_color,
+        search_icon_color: defaults.search_icon_color,
+        cat_active_bg_color: defaults.cat_active_bg_color || '#000000',     // <--- AGREGAR
+        cat_active_text_color: defaults.cat_active_text_color || '#ffffff'
     });
 
     setUnsavedChanges(true);
@@ -540,20 +561,27 @@ const confirmReset = () => {
         text_color: defaults.text, 
         description_color: defaults.desc, 
         card_name_color: defaults.card_name,
-        card_color: defaults.card, 
+        card_color: defaults.card || defaults.bg, 
         card_desc_color: defaults.card_desc,
         card_price_color: defaults.card_price, 
         card_btn_bg: defaults.btn_bg,
         card_btn_text: defaults.btn_text,
-        promo_bg_color: defaults.promo_bg || defaults.promo,
-        promo_text_color: defaults.promo_text,
-        // --- AGREGADO PARA SPOTLIGHT ---
+        promo_bg_color: defaults.promo || defaults.promo_bg,
+        promo_text_color: defaults.promo_text || defaults.theme,
         hero_badge_bg: defaults.hero_badge_bg,
         hero_badge_color: defaults.hero_badge_color,
         hero_title_color: defaults.hero_title_color,
         hero_price_color: defaults.hero_price_color,
         show_banner: defaults.banner || false, 
-        show_promo: true 
+        show_promo: true,
+        // Reset forzado para campos de MarketPro
+        cat_bg_color: defaults.cat_bg_color,
+        cat_text_color: defaults.cat_text_color,
+        cat_title_color: defaults.cat_title_color,
+        search_bg_color: defaults.search_bg_color,
+        search_icon_color: defaults.search_icon_color,
+        cat_active_bg_color: defaults.cat_active_bg_color || '#000000',     
+        cat_active_text_color: defaults.cat_active_text_color || '#ffffff'
     }));
     
     setUnsavedChanges(true); 
@@ -571,23 +599,27 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
     const isPreviewMode = !!previewTemplateId;
     const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
 
- const renderData = isPreviewMode ? {
+const renderData = isPreviewMode ? {
       ...data,
       theme_color: defaults.theme, 
       bg_color: defaults.bg,
       text_color: defaults.text, 
       description_color: defaults.desc,
       card_name_color: defaults.card_name, 
-      card_color: defaults.card || defaults.bg, // <--- AGREGADO PARA QUE LEA EL FONDO
+      card_color: defaults.card || defaults.bg, 
       card_price_color: defaults.card_price,
-      card_btn_bg: defaults.btn_bg,             // <--- AGREGADO PARA QUE LEA EL BOTON
+      card_btn_bg: defaults.btn_bg,             
       card_btn_text: defaults.btn_text, 
-      promo_bg_color: defaults.promo,           // <--- CORREGIDO (decía promo_bg en lugar de promo)
+      promo_bg_color: defaults.promo,           
       promo_text_color: defaults.promo_text,
       // NUEVOS CAMPOS:
       cat_bg_color: data.cat_bg_color,
       cat_text_color: data.cat_text_color,
       card_name_bg: data.card_name_bg,
+      cat_active_bg_color: data.cat_active_bg_color,    
+      cat_active_text_color: data.cat_active_text_color,
+      // --- NUEVO: ASEGURAR QUE LEA EL BOTÓN ON/OFF ---
+      card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
     } : data;
 
     const props = { 
@@ -764,10 +796,16 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
                 {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
 
                 {/* CATEGORÍAS (Solo Alterna Pro) */}
-                {data.template_id === 'alterna-pro' && (
+               {['alterna-pro', 'marketpro'].includes(data.template_id) && (
                     <>
-                        <ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#ea580c'} onChange={(v) => setData({ ...data, cat_bg_color: v })} />
-                        <ColorBubble label="Texto Cat." value={data.cat_text_color || '#ffffff'} onChange={(v) => setData({ ...data, cat_text_color: v })} />
+                        <ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} />
+                        <ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} />
+                    </>
+                )}
+                {data.template_id === 'marketpro' && (
+                    <>
+                        <ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} />
+                        <ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} />
                     </>
                 )}
                 
@@ -775,6 +813,7 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
             </div>
         </div>
 
+        {/* --- SECCIÓN 2: CARTA DE PRODUCTOS --- */}
         {/* --- SECCIÓN 2: CARTA DE PRODUCTOS --- */}
         <div className="space-y-4">
             <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
@@ -784,16 +823,35 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
                 <ColorBubble label="Texto Nombre" value={data.card_name_color} onChange={(v) => setData({ ...data, card_name_color: v })} />
                 <ColorBubble label="Fondo Card" value={data.card_color} onChange={(v) => setData({ ...data, card_color: v })} />
                 
+                {/* --- NUEVO: BOTÓN ON/OFF FONDO (SOLO MARKET PRO) --- */}
+                {data.template_id === 'marketpro' && (
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+                            <button 
+                                onClick={() => { setData({...data, card_show_bg: !data.card_show_bg}); setUnsavedChanges(true); }} 
+                                className={`w-10 h-5 rounded-full flex items-center px-0.5 transition-colors ${data.card_show_bg ? 'bg-black' : 'bg-gray-300'}`}
+                            >
+                                <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${data.card_show_bg ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                            </button>
+                        </div>
+                        <span className="text-[8px] font-black uppercase text-gray-400 text-center leading-tight px-1">
+                           Fondo {data.card_show_bg ? 'ON' : 'OFF'}
+                        </span>
+                    </div>
+                )}
+
                 {/* OCULTAMOS DESCRIPCIÓN PARA ALTERNA-PRO SI ES NECESARIO */}
                 {data.template_id !== 'alterna-pro' && (
                     <ColorBubble label="Texto Desc." value={data.card_desc_color} onChange={(v) => setData({ ...data, card_desc_color: v })} />
                 )}
 
                 <ColorBubble label="Color Precio" value={data.card_price_color} onChange={(v) => setData({ ...data, card_price_color: v })} />
+                
                 {/* NUEVO BOTÓN PARA POP VIBRANT */}
-    {data.template_id === 'pop' && (
-        <ColorBubble label="Color Sombra" value={data.card_shadow_color || '#000000'} onChange={(v) => setData({ ...data, card_shadow_color: v })} />
-    )}
+                {data.template_id === 'pop' && (
+                    <ColorBubble label="Color Sombra" value={data.card_shadow_color || '#000000'} onChange={(v) => setData({ ...data, card_shadow_color: v })} />
+                )}
+                
                 <ColorBubble label="Fondo Botón +" value={data.card_btn_bg} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
                 <ColorBubble label="Símbolo +" value={data.card_btn_text} onChange={(v) => setData({ ...data, card_btn_text: v })} />
             </div>
@@ -1068,14 +1126,14 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
         </div>
       </div>
 {/* WhatsApp de Contacto Directo */}
-      <div className="space-y-1">
+  <div className="space-y-1">
         <label className="text-[9px] font-bold text-green-600 uppercase flex items-center gap-1">
           <Phone size={10}/> WhatsApp de Contacto
         </label>
         <input 
           value={data.phone || ''} 
           onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} 
-          className="w-full p-2 border border-green-100 rounded-lg text-[10px] outline-none bg-green-50/30 font-bold" 
+          className="w-full p-2.5 border-2 border-green-200 rounded-xl text-xs outline-none bg-green-50 font-bold text-green-900 placeholder:text-green-700/50 shadow-sm" 
           placeholder="Ej: 54911..."
         />
       </div>
