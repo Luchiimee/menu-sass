@@ -107,6 +107,36 @@ pop: {
     hero_title_color: '#ffffff',
     hero_price_color: '#FFD700'
   },
+  elegant: { 
+    theme: '#D4AF37',        // Dorado característico
+    bg: '#f9f5f0',           // Crema suave de fondo
+    text: '#333333',         // Texto oscuro para el nombre
+    desc: '#777777',         // Gris para la descripción
+    card_name: '#333333',    // Nombre del producto
+    card_color: '#f9f5f0',   // Mismo crema para que se funda
+    card_desc: '#888888',    // Descripción del producto
+    card_price: '#D4AF37',   // Precio en dorado
+    btn_bg: '#D4AF37',       // Botón + en dorado
+    btn_text: '#ffffff',     // Cruz del botón en blanco
+    promo_bg: '#f0e8dc',     // Crema más oscuro para la promo
+    promo_text: '#5c4b30',   // Texto marrón oscuro para promo
+    banner: false 
+  },
+  bistro: { 
+    theme: '#e6c87e', 
+    bg: '#222222', 
+    text: '#eeeeee', 
+    desc: '#aaaaaa', 
+    card_name: '#ffffff', 
+    card_color: '#222222',
+    card_desc: '#999999', 
+    card_price: '#e6c87e', 
+    btn_bg: '#e6c87e', 
+    btn_text: '#222222', 
+    promo_bg: '#333333', 
+    promo_text: '#e6c87e', 
+    banner: false 
+  },
   'icecream-v1': { 
     theme: '#00bcd4', 
     bg: '#f0faff', 

@@ -150,6 +150,36 @@ pop: {
     hero_title_color: '#ffffff',
     hero_price_color: '#FFD700'
   },
+  elegant: { 
+    theme: '#D4AF37',        // Dorado característico
+    bg: '#f9f5f0',           // Crema suave de fondo
+    text: '#333333',         // Texto oscuro para el nombre
+    desc: '#777777',         // Gris para la descripción
+    card_name: '#333333',    // Nombre del producto
+    card_color: '#f9f5f0',   // Mismo crema para que se funda
+    card_desc: '#888888',    // Descripción del producto
+    card_price: '#D4AF37',   // Precio en dorado
+    btn_bg: '#D4AF37',       // Botón + en dorado
+    btn_text: '#ffffff',     // Cruz del botón en blanco
+    promo_bg: '#f0e8dc',     // Crema más oscuro para la promo
+    promo_text: '#5c4b30',   // Texto marrón oscuro para promo
+    banner: false 
+  },
+bistro: { 
+    theme: '#e6c87e', 
+    bg: '#222222', 
+    text: '#eeeeee', 
+    desc: '#aaaaaa', 
+    card_name: '#ffffff', 
+    card: '#222222',       /* <--- CORREGIDO (Antes decía card_color) */
+    card_desc: '#999999', 
+    card_price: '#e6c87e', 
+    btn_bg: '#e6c87e', 
+    btn_text: '#222222', 
+    promo: '#333333',      /* <--- CORREGIDO (Antes decía promo_bg) */
+    promo_text: '#e6c87e', 
+    banner: false 
+  },
   marketpro: { 
     theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', 
     card_name: '#000000', card_desc: '#999999', card_price: '#059669', 
@@ -361,18 +391,19 @@ setData({
     }, []);
 
     // --- 2. CONFIGURACIÓN DINÁMICA DEL PANEL (QUITA EL BANNER INNECESARIO) ---
-    const getTemplateConfig = () => {
+ const getTemplateConfig = () => {
         const id = data.template_id || 'classic';
         return { 
           editable: true,
           group: id, 
           showClassicBanner: id === 'classic', 
           showBannerImg: ['spotlight', 'marketpro'].includes(id), 
-          showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro'].includes(id),
+          // ACÁ AGREGAMOS 'elegant' PARA QUE TE DEJE CAMBIAR EL COLOR DORADO (ACENTO)
+          showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id),
           showCard: true,
           showHeroEditor: id === 'spotlight',
           showSearch: id === 'marketpro',
-          showFonts: id === 'marketpro',
+          showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
           showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id) 
         };
     };
@@ -540,22 +571,24 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
     const isPreviewMode = !!previewTemplateId;
     const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
 
-   const renderData = isPreviewMode ? {
-  ...data,
-  theme_color: defaults.theme, 
-  bg_color: defaults.bg,
-  text_color: defaults.text, 
-  description_color: defaults.desc,
-  card_name_color: defaults.card_name, 
-  card_price_color: defaults.card_price,
-  card_btn_text: defaults.btn_text, 
-  promo_bg_color: defaults.promo_bg,
-  promo_text_color: defaults.promo_text,
-  // NUEVOS CAMPOS:
-  cat_bg_color: data.cat_bg_color,
-  cat_text_color: data.cat_text_color,
-  card_name_bg: data.card_name_bg,
-} : data;
+ const renderData = isPreviewMode ? {
+      ...data,
+      theme_color: defaults.theme, 
+      bg_color: defaults.bg,
+      text_color: defaults.text, 
+      description_color: defaults.desc,
+      card_name_color: defaults.card_name, 
+      card_color: defaults.card || defaults.bg, // <--- AGREGADO PARA QUE LEA EL FONDO
+      card_price_color: defaults.card_price,
+      card_btn_bg: defaults.btn_bg,             // <--- AGREGADO PARA QUE LEA EL BOTON
+      card_btn_text: defaults.btn_text, 
+      promo_bg_color: defaults.promo,           // <--- CORREGIDO (decía promo_bg en lugar de promo)
+      promo_text_color: defaults.promo_text,
+      // NUEVOS CAMPOS:
+      cat_bg_color: data.cat_bg_color,
+      cat_text_color: data.cat_text_color,
+      card_name_bg: data.card_name_bg,
+    } : data;
 
     const props = { 
       restaurant: { ...renderData, categories: categories }, 
@@ -591,7 +624,8 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
       isMockup={true}
     />
   );
-              case 'icecream-v1':
+
+  case 'icecream-v1':
   return (
     <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative overflow-hidden">
       {/* Header Mini */}
@@ -776,23 +810,31 @@ const PhoneMockup = ({ templateId }: { templateId: string }) => {
             </div>
         </div>
 
-        {/* FUENTES - Solo Market Pro */}
+       {/* FUENTES */}
         {tConfig.showFonts && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                 <div className="space-y-2">
-                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Tipografía Títulos</label>
-                    <select value={data.title_font} onChange={(e) => setData({...data, title_font: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
+                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Títulos y Precios</label>
+                    <select value={data.title_font || ''} onChange={(e) => { setData({...data, title_font: e.target.value}); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
                         <option value="Inter">Moderna (Inter)</option>
                         <option value="Playfair Display">Elegante (Serif)</option>
                         <option value="Patrick Hand">Manuscrita (Chalk)</option>
                     </select>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Tipografía Banner</label>
-                    <select value={data.promo_font} onChange={(e) => setData({...data, promo_font: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
-                        <option value="Inter">Moderna</option>
-                        <option value="Playfair Display">Elegante</option>
-                        <option value="Patrick Hand">Manuscrita</option>
+                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Descripciones</label>
+                    <select value={data.desc_font || ''} onChange={(e) => { setData({...data, desc_font: e.target.value}); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
+                        <option value="Inter">Moderna (Inter)</option>
+                        <option value="Playfair Display">Elegante (Serif)</option>
+                        <option value="Patrick Hand">Manuscrita (Chalk)</option>
+                    </select>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Banner Promo</label>
+                    <select value={data.promo_font || ''} onChange={(e) => { setData({...data, promo_font: e.target.value}); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
+                        <option value="Inter">Moderna (Inter)</option>
+                        <option value="Playfair Display">Elegante (Serif)</option>
+                        <option value="Patrick Hand">Manuscrita (Chalk)</option>
                     </select>
                 </div>
             </div>
