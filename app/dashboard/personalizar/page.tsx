@@ -243,7 +243,105 @@ const CUSTOM_STYLES = `
   @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   .animate-pop-in { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 `;
+// --- ESTE BLOQUE VA ARRIBA DE TODO, FUERA DE EDITORPAGE ---
+const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => {
+  const activeId = previewTemplateId || data?.template_id || 'classic';
+  const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
+  
+  const displayProds = products.length > 0 ? products : [
+    { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
+    { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
+    { id: 3, name: 'Granola de Coco', price: 3900, image_url: 'https://images.unsplash.com/photo-1517093602195-b40af9688b46?w=400' }
+  ];
 
+  const isPreviewMode = !!previewTemplateId;
+
+  const renderData = isPreviewMode ? {
+    ...data,
+    theme_color: defaults.theme, 
+    bg_color: defaults.bg,
+    text_color: defaults.text, 
+    description_color: defaults.desc,
+    card_name_color: defaults.card_name, 
+    card_color: defaults.card || defaults.bg, 
+    card_price_color: defaults.card_price,
+    card_btn_bg: defaults.btn_bg,             
+    card_btn_text: defaults.btn_text, 
+    promo_bg_color: defaults.promo,           
+    promo_text_color: defaults.promo_text,
+    cat_bg_color: data.cat_bg_color,
+    cat_text_color: data.cat_text_color,
+    cat_active_bg_color: data.cat_active_bg_color,    
+    cat_active_text_color: data.cat_active_text_color,
+    card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
+  } : data;
+
+  const props = { 
+    restaurant: { ...renderData, categories: categories }, 
+    products: displayProds 
+  };
+
+  return (
+    <div className="relative w-full h-full bg-white flex flex-col">
+      <div className="status-bar-fixed" style={{ color: 'black' }}><span>9:41</span><span>📶</span></div>
+      <div className="preview-scroll" style={{ backgroundColor: renderData.bg_color }}>
+        {(() => {
+          switch (activeId) {
+            case 'urban': return <UrbanoDark {...props} />;
+            case 'pop': return <PopVibrant {...props} />;
+            case 'visualgrid': return <VisualGrid {...props} />;
+            case 'classic': return <ClassicDelivery {...props} />;
+            case 'minimal': return <MinimalWhite {...props} />;
+            case 'spotlight': return <SpotlightHero {...props} />;
+            case 'elegant': return <ElegantSerif {...props} />;
+            case 'bistro': return <BistroChalk {...props} />;
+            case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => { }} />;
+case 'alterna-pro':
+  return (
+    <AlternaPro
+      restaurant={{ 
+        ...renderData, 
+        categories: categories.length > 0 ? categories : [
+          {id: 'cat-1', name: 'General'}, // <--- CAMBIÁ EL NOMBRE A 'General' ACÁ
+          {id: 'cat-2', name: 'Pizzas'}
+        ] 
+      }}
+      products={displayProds}
+      onAddToCart={() => {}}
+      setSelectedProduct={(p: any) => console.log("Click:", p.name)}
+      isMockup={true}
+    />
+  );
+            case 'icecream-v1':
+              return (
+                <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative overflow-hidden">
+                  <div className="p-3 bg-white border-b flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px]">🍦</div>
+                      <div className="flex flex-col text-left"><span className="text-[9px] font-black uppercase text-gray-800 leading-none">{renderData.name || 'Frozen Dreams'}</span></div>
+                    </div>
+                  </div>
+                  <div className="p-3 overflow-y-auto">
+                    <div className="bg-cyan-100 p-2 rounded-lg text-[7px] text-cyan-800 font-bold mb-3 text-center border border-cyan-200">🍦 PROMO: 1/4kg de regalo comprando 1kg</div>
+                    {displayProds.slice(0, 2).map((p: any) => (
+                      <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-cyan-50 mb-3">
+                        <div className="flex justify-between mb-2">
+                          <div className="text-left"><h4 className="text-[9px] font-black uppercase text-gray-900">{p.name}</h4><p className="text-[6px] text-gray-400">Hasta 3 sabores</p></div>
+                          <div className="text-right"><span className="text-[9px] font-black text-cyan-600">${p.price}</span></div>
+                        </div>
+                        <button className="w-full py-1.5 rounded-lg text-[8px] font-black uppercase bg-cyan-500 text-white shadow-md active:scale-95 transition-all">Agregar al carrito</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            default: return <ClassicDelivery {...props} />;
+          }
+        })()}
+      </div>
+    </div>
+  );
+};
 export default function EditorPage() {
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -266,7 +364,16 @@ export default function EditorPage() {
 const [data, setData] = useState<any>({
     id: null, 
     name: '', 
+    slug: '',
     description: '', 
+    delivery_cost: 0,    
+    address: '',        
+    instagram: '',     
+    facebook: '',       
+    tiktok: '',         
+    opening_hours: '',  
+    google_maps_link: '',
+    phone: '',
     promo_message: '', 
     show_promo: true, 
     // COLORES POR DEFECTO (Classic Style)
@@ -286,13 +393,6 @@ const [data, setData] = useState<any>({
     hero_title: '', 
     hero_price: 0, 
     hero_description: '',
-    address: '',
-opening_hours: '',
-is_open: true,
-instagram: '',
-facebook: '',
-tiktok: '',
-google_maps_link: '',
 card_shadow_color: '#000000',
     
     // --- NUEVOS CAMPOS PARA EL CONTROL PRO ---
@@ -587,136 +687,9 @@ const confirmReset = () => {
     setUnsavedChanges(true); 
     setShowRestoreModal(false);
 };
-const PhoneMockup = ({ templateId }: { templateId: string }) => {
-    const activeId = templateId || 'classic';
-    
-    const displayProds = products.length > 0 ? products : [
-      { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
-      { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
-      { id: 3, name: 'Granola de Coco', price: 3900, image_url: 'https://images.unsplash.com/photo-1517093602195-b40af9688b46?w=400' }
-    ];
 
-    const isPreviewMode = !!previewTemplateId;
-    const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
 
-const renderData = isPreviewMode ? {
-      ...data,
-      theme_color: defaults.theme, 
-      bg_color: defaults.bg,
-      text_color: defaults.text, 
-      description_color: defaults.desc,
-      card_name_color: defaults.card_name, 
-      card_color: defaults.card || defaults.bg, 
-      card_price_color: defaults.card_price,
-      card_btn_bg: defaults.btn_bg,             
-      card_btn_text: defaults.btn_text, 
-      promo_bg_color: defaults.promo,           
-      promo_text_color: defaults.promo_text,
-      // NUEVOS CAMPOS:
-      cat_bg_color: data.cat_bg_color,
-      cat_text_color: data.cat_text_color,
-      card_name_bg: data.card_name_bg,
-      cat_active_bg_color: data.cat_active_bg_color,    
-      cat_active_text_color: data.cat_active_text_color,
-      // --- NUEVO: ASEGURAR QUE LEA EL BOTÓN ON/OFF ---
-      card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
-    } : data;
 
-    const props = { 
-      restaurant: { ...renderData, categories: categories }, 
-      products: displayProds 
-    };
-
-    return (
-      <div className="relative w-full h-full bg-white flex flex-col">
-        <div className="status-bar-fixed" style={{ color: 'black' }}><span>9:41</span><span>📶</span></div>
-        <div className="preview-scroll" style={{ backgroundColor: renderData.bg_color }}>
-          {(() => {
-            switch (activeId) {
-              case 'urban': return <UrbanoDark {...props} />;
-              case 'pop': return <PopVibrant {...props} />;
-              case 'visualgrid': return <VisualGrid {...props} />;
-              case 'classic': return <ClassicDelivery {...props} />;
-              case 'minimal': return <MinimalWhite {...props} />;
-              case 'spotlight': return <SpotlightHero {...props} />;
-              case 'elegant': return <ElegantSerif {...props} />;
-              case 'bistro': return <BistroChalk {...props} />;
-              case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => { }} />;
-               case 'alterna-pro':
-  return (
-    <AlternaPro
-      // Inyectamos categorías de ejemplo si no hay reales para que no se vea vacío
-      restaurant={{ 
-        ...renderData, 
-        categories: categories.length > 0 ? categories : [{name: 'Semillas'}, {name: 'Aceites'}] 
-      }}
-      products={displayProds}
-      onAddToCart={() => {}}
-      setSelectedProduct={(p: any) => console.log("Click:", p.name)}
-      isMockup={true}
-    />
-  );
-
-  case 'icecream-v1':
-  return (
-    <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative overflow-hidden">
-      {/* Header Mini */}
-      <div className="p-3 bg-white border-b flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px] shadow-sm">🍦</div>
-          <div className="flex flex-col text-left">
-            <span className="text-[9px] font-black uppercase tracking-tighter text-gray-800 leading-none">
-              {renderData.name || 'Frozen Dreams'}
-            </span>
-            <span className="text-[6px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-              Abierto ahora
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="p-3 overflow-y-auto no-scrollbar">
-        <div className="bg-cyan-100 p-2 rounded-lg text-[7px] text-cyan-800 font-bold mb-3 text-center border border-cyan-200 uppercase">
-             🍦 PROMO: 1/4kg de regalo comprando 1kg
-        </div>
-        
-        {/* Producto de Ejemplo usando los productos reales o de mockup */}
-        {displayProds.slice(0, 2).map((p: any) => (
-          <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-cyan-50 mb-3">
-            <div className="flex justify-between items-start mb-2">
-              <div className="text-left">
-                <h4 className="text-[9px] font-black uppercase text-gray-900 leading-tight">{p.name}</h4>
-                <p className="text-[6px] text-gray-400">Hasta 3 sabores a elección</p>
-              </div>
-              <div className="text-right">
-                 <span className="text-[9px] font-black text-cyan-600 block leading-none">${p.price}</span>
-                 <span className="text-[5px] text-gray-400 uppercase font-bold tracking-tighter">precio por kg</span>
-              </div>
-            </div>
-            
-            <p className="text-[6px] font-black uppercase text-gray-400 mb-1">Seleccionar cantidad:</p>
-            <div className="grid grid-cols-3 gap-1">
-              <div className="border-2 border-cyan-500 bg-cyan-50 rounded-md py-1 text-[7px] text-center font-black text-cyan-600">1/4 KG</div>
-              <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold">1/2 KG</div>
-              <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold">1 KG</div>
-            </div>
-            
-            <button className="w-full mt-3 py-1.5 rounded-lg text-[8px] font-black uppercase bg-cyan-500 text-white shadow-md active:scale-95 transition-all">
-              Agregar al carrito
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-              default: return <ClassicDelivery {...props} />;
-            }
-          })()}
-        </div>
-      </div>
-    );
-  };
-  if (loading) return <div className="p-10 text-center flex items-center justify-center h-[80vh]"><Loader2 className="animate-spin mr-2"/> Cargando editor...</div>;
 
   return (
     <>
@@ -909,12 +882,15 @@ const renderData = isPreviewMode ? {
     <div className="bg-gray-100 px-2 py-2 border-r text-gray-500 text-xs flex items-center select-none font-bold">
         snappy.uno/
     </div>
-    <input 
-        value={data.slug} 
-        onChange={(e) => { setData({...data, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')}); setUnsavedChanges(true); }} 
-        className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" 
-        placeholder="tu-marca"
-    />
+   <input 
+    value={data.slug || ''}  // <--- AGREGÁ EL || '' ACÁ
+    onChange={(e) => { 
+        setData({...data, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')}); 
+        setUnsavedChanges(true); 
+    }} 
+    className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" 
+    placeholder="tu-marca"
+/>
     
     <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors">
         {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14}/> <span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14}/>}
@@ -1035,7 +1011,13 @@ const renderData = isPreviewMode ? {
         <div className="flex gap-3 items-end">
           <div className="flex-1 space-y-1">
             <label className="text-[10px] font-bold text-gray-500 uppercase">Precio ($)</label>
-            <input type="number" value={data.hero_price || ''} onChange={(e) => { setData({...data, hero_price: Number(e.target.value)}); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="0"/>
+           <input 
+  type="number" 
+  value={data.delivery_cost ?? 0} 
+  onChange={(e) => { setData({...data, delivery_cost: Number(e.target.value)}); setUnsavedChanges(true); }} 
+  className="w-full p-2 text-xs font-bold outline-none" 
+  placeholder="0"
+/>
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black text-gray-400 uppercase">Color</label>
@@ -1205,7 +1187,7 @@ const renderData = isPreviewMode ? {
               </div>
 
               <div className="w-[300px] h-[600px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col transform-gpu mt-8">
-                  <PhoneMockup templateId={data.template_id} />
+                <PhoneMockup data={data} products={products} categories={categories} previewTemplateId={null} />
               </div>
             </div>
 
@@ -1213,7 +1195,7 @@ const renderData = isPreviewMode ? {
               <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                 <div className="relative w-full max-w-sm h-[80vh] bg-white rounded-3xl overflow-hidden shadow-2xl">
                   <button onClick={() => setPreviewTemplateId(null)} className="absolute top-4 right-4 z-20 bg-black text-white p-2 rounded-full shadow-lg"><X size={20} /></button>
-                  <PhoneMockup templateId={previewTemplateId} />
+             <PhoneMockup data={data} products={products} categories={categories} previewTemplateId={previewTemplateId} />
                   <div className="absolute bottom-4 left-4 right-4 z-20"><button onClick={() => applyTemplate(previewTemplateId)} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-xl hover:bg-emerald-700 transition">Usar este Diseño</button></div>
                 </div>
               </div>
@@ -1231,7 +1213,7 @@ const renderData = isPreviewMode ? {
               <X size={24} />
             </button>
             <div className="h-full">
-               <PhoneMockup templateId={data.template_id} />
+              <PhoneMockup data={data} products={products} categories={categories} previewTemplateId={null} />
             </div>
           </div>
           <p className="mt-6 text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse italic">Vista Previa en Vivo</p>

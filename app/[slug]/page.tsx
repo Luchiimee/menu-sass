@@ -30,22 +30,32 @@ const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 // --- 1. DATOS ---
 async function getRestaurant(slug: string) {
+  // A. Traemos el restaurante y sus nombres de categorías
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select(
-      `*, categories (id, name, products (id, name, description, price, image_url, variations))`,
-    )
+    .select(`*, categories (id, name)`) 
     .eq("slug", slug)
     .single();
 
   if (!restaurant) return null;
+
+  // B. AGREGÁ ESTA CONSULTA AQUÍ: Trae TODOS los productos del local
+  const { data: products } = await supabase
+    .from("products")
+    .select("*")
+    .eq("restaurant_id", restaurant.id);
 
   const { data: allExtras } = await supabase
     .from("extras")
     .select(`*, product_extras (product_id)`)
     .eq("restaurant_id", restaurant.id);
 
-  return { ...restaurant, fetched_extras: allExtras || [] };
+  // C. MODIFICÁ EL RETURN: Agregá fetched_products
+  return { 
+    ...restaurant, 
+    fetched_products: products || [], 
+    fetched_extras: allExtras || [] 
+  };
 }
 
 // --- 2. HORARIOS ---
@@ -698,12 +708,9 @@ function MenuContent({
     mostrarAviso("⚠️ Elegí primero el menú principal");
   };
 
-  const renderTemplate = () => {
-    const allProducts =
-      restaurant.categories?.flatMap((c: any) =>
-        c.products.map((p: any) => ({ ...p, category_id: c.id })),
-      ) || [];
-
+const renderTemplate = () => {
+  // DEJALA ASÍ:
+  const allProducts = restaurant.fetched_products || [];
     // 2. LÓGICA DE CATEGORÍAS PARA ALTERNA-PRO (Filtra "General" y pone defaults)
     const rawCats = restaurant.categories || [];
     const cleanCats = rawCats.filter(
@@ -1937,15 +1944,23 @@ function MenuContent({
           </div>
         );
       }
-      case "alterna-pro":
-        return (
-          <AlternaPro
-            restaurant={restaurant}
-            products={allProducts}
-            setSelectedProduct={setSelectedProduct}
-            isMockup={false} // <--- ESTO AGRANDA TODO EN EL CELULAR DEL CLIENTE
-          />
-        );
+case "alterna-pro":
+  return (
+    <AlternaPro
+      // Pasamos el producto seleccionado para que la plantilla abra SU modal
+      restaurant={{ ...restaurant, selectedProduct }} 
+      products={allProducts}
+      setSelectedProduct={setSelectedProduct}
+      // Esta función ahora recibe el producto y la cantidad elegida
+      onAddToCart={(product: any, qty: number) => {
+        for (let i = 0; i < qty; i++) {
+          addToCart(product);
+        }
+        mostrarAviso("✅ Producto agregado");
+      }}
+      isMockup={false}
+    />
+  );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
@@ -2095,7 +2110,7 @@ function MenuContent({
       )}
       {/* --- MODAL DE SELECCIÓN PARA VENTA FRACCIONADA (DIETÉTICA/HELADERÍA) --- */}
       {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
-      {selectedProduct && (
+     {selectedProduct && !["alterna-pro", "marketpro"].includes(TEMPLATE) && (
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
           <div
             className="absolute inset-0 bg-black/80 backdrop-blur-md"
