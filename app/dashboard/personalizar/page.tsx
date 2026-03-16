@@ -22,6 +22,7 @@ import ElegantSerif from '../../../components/templates/ElegantSerif';
 import BistroChalk from '../../../components/templates/BistroChalk';
 import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 import AlternaPro from '../../../components/templates/AlternaPro';
+import HeladeriaSoft from '../../../components/templates/HeladeriaSoft';
 
 const ColorRow = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => (
     <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors">
@@ -318,29 +319,16 @@ case 'alterna-pro':
       isMockup={true}
     />
   );
-            case 'icecream-v1':
+ case 'icecream-v1':
               return (
-                <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative overflow-hidden">
-                  <div className="p-3 bg-white border-b flex justify-between items-center shrink-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px]">🍦</div>
-                      <div className="flex flex-col text-left"><span className="text-[9px] font-black uppercase text-gray-800 leading-none">{renderData.name || 'Frozen Dreams'}</span></div>
-                    </div>
-                  </div>
-                  <div className="p-3 overflow-y-auto">
-                    <div className="bg-cyan-100 p-2 rounded-lg text-[7px] text-cyan-800 font-bold mb-3 text-center border border-cyan-200">🍦 PROMO: 1/4kg de regalo comprando 1kg</div>
-                    {displayProds.slice(0, 2).map((p: any) => (
-                      <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-cyan-50 mb-3">
-                        <div className="flex justify-between mb-2">
-                          <div className="text-left"><h4 className="text-[9px] font-black uppercase text-gray-900">{p.name}</h4><p className="text-[6px] text-gray-400">Hasta 3 sabores</p></div>
-                          <div className="text-right"><span className="text-[9px] font-black text-cyan-600">${p.price}</span></div>
-                        </div>
-                        <button className="w-full py-1.5 rounded-lg text-[8px] font-black uppercase bg-cyan-500 text-white shadow-md active:scale-95 transition-all">Agregar al carrito</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <HeladeriaSoft 
+                  restaurant={renderData} 
+                  products={displayProds} 
+                  onAddToCart={() => {}} 
+                  isMockup={true} 
+                />
               );
+
             default: return <ClassicDelivery {...props} />;
           }
         })()}

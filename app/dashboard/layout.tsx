@@ -85,7 +85,7 @@ const [restaurant, setRestaurant] = useState<{
 
 if (mounted) {
     const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
-    
+    const isUGCUser = session.user.email === 'sabrinaidiartcm@gmail.com';
     // --- NUEVA LÓGICA DE SINCRONIZACIÓN DE NOMBRE ---
     let firstName = profile?.first_name;
     let lastName = profile?.last_name;
@@ -104,10 +104,9 @@ if (mounted) {
         });
     }
 
-    setProfileData({ ...profile, first_name: firstName, last_name: lastName }); 
-    setIsAdmin(isSuperAdmin);
-    setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
-
+   setProfileData({ ...profile, first_name: firstName, last_name: lastName }); 
+setIsAdmin(isSuperAdmin); 
+setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
     // Definimos el nombre a mostrar en el sidebar
     let displayName = "Bienvenido";
     if (firstName) {
@@ -120,12 +119,13 @@ if (mounted) {
 setRestaurant({
     id: rest?.id, 
     name: displayName, 
-    plan: isSuperAdmin ? 'max' : (rest?.subscription_plan || null),
-    status: isSuperAdmin ? 'active' : (rest?.subscription_status || 'active'),
+    // Si es Sabrina o Vos, le damos Plan Max para que nada esté bloqueado
+    plan: (isSuperAdmin || isUGCUser) ? 'max' : (rest?.subscription_plan || null),
+    status: (isSuperAdmin || isUGCUser) ? 'active' : (rest?.subscription_status || 'active'),
     logo_url: rest?.logo_url || null,
     sale_type: rest?.sale_type || null,
     onboarding_completed: rest?.onboarding_completed || false
-});      
+});     
             setIsLoading(false);
         }
       } catch (error) {
