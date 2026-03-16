@@ -231,7 +231,11 @@ marketpro: {
     btn_text: '#ffffff', 
     promo_bg: '#ffffff', 
     promo_text: '#ea580c', 
-    banner: false 
+    banner: false,
+    cat_bg_color: '#ffffff',
+    cat_text_color: '#64748b',
+    cat_active_bg_color: '#000000',
+    cat_active_text_color: '#ffffff'
 },
 };
 

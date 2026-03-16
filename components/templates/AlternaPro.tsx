@@ -118,41 +118,50 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
         )}
       </header>
 
-     {/* CATEGORÍAS (BLOQUE ÚNICO) */}
+    
     {/* CATEGORÍAS (DISEÑO BLINDADO - ESTILO CÁPSULA) */}
       <div 
-        className="relative z-[100] w-full flex items-center gap-2 px-4 overflow-x-auto no-scrollbar shadow-sm border-b border-black/[0.03]" 
+        className="relative z-[50] w-full flex items-center gap-2 px-4 overflow-x-auto no-scrollbar shadow-sm border-b border-black/[0.03]" 
         style={{ backgroundColor: BG, minHeight: '60px' }}
       >
-        <button 
+      <button 
           onClick={() => setSelectedCategory("todos")} 
           className={`px-5 py-2 rounded-full text-[9px] font-black uppercase transition-all shrink-0 shadow-sm border ${
-            selectedCategory === "todos" 
-              ? 'scale-105' 
-              : 'bg-white opacity-70 border-gray-100 hover:opacity-100'
+            selectedCategory === "todos" ? 'scale-105' : 'hover:scale-105'
           }`}
           style={{ 
-            backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : 'white', 
-            color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || 'white') : '#64748b',
-            borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' 
+            backgroundColor: selectedCategory === "todos" 
+              ? (restaurant?.cat_active_bg_color || THEME) 
+              : (restaurant?.cat_bg_color || '#ffffff'), 
+            color: selectedCategory === "todos" 
+              ? (restaurant?.cat_active_text_color || '#ffffff') 
+              : (restaurant?.cat_text_color || '#000000'),
+            borderColor: selectedCategory === "todos" 
+              ? (restaurant?.cat_active_bg_color || THEME) 
+              : 'transparent' 
           }}
         >
           Todos
         </button>
 
+        {/* BOTONES DE CATEGORÍAS */}
         {categoryButtons.map((cat: any) => (
           <button 
             key={cat.id} 
             onClick={() => setSelectedCategory(String(cat.id))} 
             className={`px-5 py-2 rounded-full text-[9px] font-black uppercase transition-all shrink-0 shadow-sm border ${
-              selectedCategory === String(cat.id) 
-                ? 'scale-105' 
-                : 'bg-white opacity-70 border-gray-100 hover:opacity-100'
+              selectedCategory === String(cat.id) ? 'scale-105' : 'hover:scale-105'
             }`}
             style={{ 
-              backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : 'white', 
-              color: selectedCategory === String(cat.id) ? (restaurant?.cat_active_text_color || 'white') : '#64748b',
-              borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' 
+              backgroundColor: selectedCategory === String(cat.id) 
+                ? (restaurant?.cat_active_bg_color || THEME) 
+                : (restaurant?.cat_bg_color || '#ffffff'), 
+              color: selectedCategory === String(cat.id) 
+                ? (restaurant?.cat_active_text_color || '#ffffff') 
+                : (restaurant?.cat_text_color || '#000000'),
+              borderColor: selectedCategory === String(cat.id) 
+                ? (restaurant?.cat_active_bg_color || THEME) 
+                : 'transparent' 
             }}
           >
             {cat.name}
@@ -271,11 +280,11 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
                   });
                   closeModal();
                 }}
-                className="w-full py-4 rounded-2xl font-black text-[12px] text-white shadow-xl active:scale-95" 
-                style={{ backgroundColor: THEME }}
-              >
-                CONFIRMAR Y SUMAR
-              </button>
+             className="w-full py-4 rounded-2xl font-black text-[12px] text-white shadow-xl active:scale-95 transition-all" 
+  style={{ backgroundColor: '#000000' }} // <--- ACÁ QUEDÓ FIJO EN NEGRO
+>
+  CONFIRMAR Y SUMAR
+</button>
             </div>
           </div>
         </div>
