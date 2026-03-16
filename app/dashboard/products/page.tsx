@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info } from 'lucide-react';
+import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductsPage() {
@@ -43,8 +43,7 @@ const [categoryFormData, setCategoryFormData] = useState({ name: '' });
   price: '', 
   image_url: '', 
   category_id: '',
-  // Usamos "label" para que sirva para "100g", "Atado", "Cajón", etc.
-  variations: [] as { label: string, price: string }[] 
+  variations: [] as { label: string, price: string, is_featured?: boolean }[]
 });
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
@@ -719,20 +718,22 @@ if (loading) return (
     </div>
 
   {/* LÓGICA DE PRECIO DINÁMICA (PESO/UNIDAD) */}
-{businessType === 'fraccionado' || isAdmin ? ( // Podés sumar más condiciones aquí
+
+{/* LÓGICA DE PRECIO DINÁMICA (PESO/UNIDAD) */}
+{(businessType === 'fraccionado' || isAdmin) ? (
   <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-500 text-left">
     <div className="flex items-center justify-between mb-2">
       <div>
         <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
           <Layers size={14} className="text-violet-500"/> Opciones de Venta
         </label>
-        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Fraccionado / Pesos / Medidas</p>
+        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Marcá con la ⭐ el precio a mostrar</p>
       </div>
       <button 
         type="button"
         onClick={() => setFormData({
           ...formData, 
-          variations: [...formData.variations, { label: '', price: '' }]
+          variations: [...formData.variations, { label: '', price: '', is_featured: false } as any]
         })}
         className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-black transition-all flex items-center gap-1 shadow-md"
       >
@@ -743,42 +744,59 @@ if (loading) return (
     <div className="space-y-2">
       {formData.variations.length === 0 ? (
         <div className="text-center py-6 bg-white/50 rounded-xl border border-dashed border-slate-200">
-          <p className="text-[10px] text-slate-400 font-medium italic">No hay opciones. Ej: "100g", "Por KG", "Atado".</p>
+          <p className="text-[10px] text-slate-400 font-medium italic">No hay opciones. Ej: "100g", "Por KG".</p>
         </div>
       ) : (
-        formData.variations.map((v, index) => (
-          <div key={index} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm animate-in zoom-in-95 duration-200">
-           <input 
-  type="text" 
-  placeholder="Ej: 100g" 
-  value={v.label} // <--- AGREGÁ ESTO
-  onChange={(e) => {
-    const newVars = [...formData.variations];
-    newVars[index].label = e.target.value;
-    setFormData({...formData, variations: newVars});
-  }}
-  className="flex-1 bg-slate-50 p-2 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-violet-200"
-/>
+        formData.variations.map((v: any, index: number) => (
+          <div key={index} className={`flex items-center gap-2 p-2 rounded-xl border transition-all duration-300 ${v.is_featured ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-white border-slate-200'}`}>
+            
+            {/* BOTÓN ESTRELLA: Para elegir precio principal */}
+            <button
+              type="button"
+              onClick={() => {
+                const newVars = formData.variations.map((item: any, i: number) => ({
+                  ...item,
+                  is_featured: i === index
+                }));
+                setFormData({...formData, variations: newVars});
+              }}
+              className={`p-1.5 rounded-lg transition-all ${v.is_featured ? 'text-amber-500 scale-110' : 'text-slate-300 hover:text-amber-400'}`}
+              title="Mostrar este precio en la carta"
+            >
+              <Star size={16} fill={v.is_featured ? "currentColor" : "none"} strokeWidth={2.5}/>
+            </button>
 
-{/* 2. Input del Precio */}
-<div className="w-24 relative">
-  <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" size={12}/>
-  <input 
-    type="number" 
-    placeholder="Precio" 
-    value={v.price} // <--- AGREGÁ ESTO
-    onChange={(e) => {
-      const newVars = [...formData.variations];
-      newVars[index].price = e.target.value;
-      setFormData({...formData, variations: newVars});
-    }}
-    className="w-full pl-6 p-2 bg-slate-50 rounded-lg text-[10px] font-black outline-none" 
-  />
-</div>
+            <input 
+              type="text" 
+              placeholder="Ej: 100g" 
+              value={v.label}
+              onChange={(e) => {
+                const newVars = [...formData.variations];
+                newVars[index].label = e.target.value;
+                setFormData({...formData, variations: newVars});
+              }}
+              className="flex-1 bg-slate-50 p-2 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-violet-200"
+            />
+
+            <div className="w-24 relative">
+              <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" size={12}/>
+              <input 
+                type="number" 
+                placeholder="Precio" 
+                value={v.price}
+                onChange={(e) => {
+                  const newVars = [...formData.variations];
+                  newVars[index].price = e.target.value;
+                  setFormData({...formData, variations: newVars});
+                }}
+                className="w-full pl-6 p-2 bg-slate-50 rounded-lg text-[10px] font-black outline-none" 
+              />
+            </div>
+
             <button 
               type="button"
               onClick={() => {
-                const newVars = formData.variations.filter((_, i) => i !== index);
+                const newVars = formData.variations.filter((_: any, i: number) => i !== index);
                 setFormData({...formData, variations: newVars});
               }}
               className="p-2 text-slate-300 hover:text-red-500 transition-colors"
@@ -800,7 +818,6 @@ if (loading) return (
     </div>
   </div>
 )}
-
     {/* DESCRIPCIÓN */}
     <div>
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Descripción</label>

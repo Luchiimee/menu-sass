@@ -58,9 +58,23 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
   // --- CONTADOR GLOBAL PARA ZIG-ZAG ---
   let globalItemIdx = 0;
 
-  const renderProductCard = (p: any) => {
+
+ const renderProductCard = (p: any) => {
     const isEven = globalItemIdx % 2 === 0;
     globalItemIdx++;
+
+    // --- LÓGICA DE PRECIO CORREGIDA (Sin useMemo para evitar el error) ---
+    let displayPrice = p.price;
+    if (p.variations && p.variations.length > 0) {
+      const featured = p.variations.find((v: any) => v.is_featured);
+      if (featured) {
+        displayPrice = featured.price;
+      } else {
+        const prices = p.variations.map((v: any) => Number(v.price));
+        displayPrice = Math.min(...prices);
+      }
+    }
+
     return (
       <button key={p.id} onClick={() => setSelectedProduct(p)} className={`w-full flex items-center gap-4 active:scale-95 transition-transform ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
         <div className="shrink-0 relative">
@@ -70,7 +84,9 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
         </div>
         <div className={`flex-1 min-w-0 flex flex-col ${isEven ? 'items-start text-left' : 'items-end text-right'} space-y-1`}>
           <span className="inline-block px-3 py-2 rounded-xl border border-gray-100 shadow-sm text-[9px] font-black uppercase" style={{ color: PROD_NAME_COLOR, backgroundColor: PROD_NAME_BG }}>{p.name}</span>
-          <div className="inline-block px-4 py-1.5 rounded-full font-black text-[10px] shadow-md border border-white/20" style={{ backgroundColor: PRICE_BG, color: PRICE_TEXT }}>${p.price}</div>
+          <div className="inline-block px-4 py-1.5 rounded-full font-black text-[10px] shadow-md border border-white/20" style={{ backgroundColor: PRICE_BG, color: PRICE_TEXT }}>
+            ${displayPrice}
+          </div>
         </div>
       </button>
     );
@@ -102,22 +118,49 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
         )}
       </header>
 
-      {/* CATEGORÍAS */}
-     <div className="sticky top-0 z-30 py-4 px-4 flex gap-1.5 overflow-x-auto no-scrollbar" style={{ backgroundColor: BG }}>
-        <button onClick={() => setSelectedCategory("todos")} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all shadow-sm shrink-0 ${selectedCategory === "todos" ? 'scale-105' : 'opacity-70'}`}
-          style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : 'white', color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || 'white') : '#9ca3af', borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' }}>
+     {/* CATEGORÍAS (BLOQUE ÚNICO) */}
+    {/* CATEGORÍAS (DISEÑO BLINDADO - ESTILO CÁPSULA) */}
+      <div 
+        className="relative z-[100] w-full flex items-center gap-2 px-4 overflow-x-auto no-scrollbar shadow-sm border-b border-black/[0.03]" 
+        style={{ backgroundColor: BG, minHeight: '60px' }}
+      >
+        <button 
+          onClick={() => setSelectedCategory("todos")} 
+          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase transition-all shrink-0 shadow-sm border ${
+            selectedCategory === "todos" 
+              ? 'scale-105' 
+              : 'bg-white opacity-70 border-gray-100 hover:opacity-100'
+          }`}
+          style={{ 
+            backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : 'white', 
+            color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || 'white') : '#64748b',
+            borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' 
+          }}
+        >
           Todos
         </button>
+
         {categoryButtons.map((cat: any) => (
-          <button key={cat.id} onClick={() => setSelectedCategory(String(cat.id))} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all shadow-sm shrink-0 ${selectedCategory === String(cat.id) ? 'scale-105' : 'opacity-70'}`}
-            style={{ backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : 'white', color: selectedCategory === String(cat.id) ? (restaurant?.cat_active_text_color || 'white') : '#9ca3af', borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' }}>
+          <button 
+            key={cat.id} 
+            onClick={() => setSelectedCategory(String(cat.id))} 
+            className={`px-5 py-2 rounded-full text-[9px] font-black uppercase transition-all shrink-0 shadow-sm border ${
+              selectedCategory === String(cat.id) 
+                ? 'scale-105' 
+                : 'bg-white opacity-70 border-gray-100 hover:opacity-100'
+            }`}
+            style={{ 
+              backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : 'white', 
+              color: selectedCategory === String(cat.id) ? (restaurant?.cat_active_text_color || 'white') : '#64748b',
+              borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' 
+            }}
+          >
             {cat.name}
           </button>
         ))}
       </div>
-
       {/* LISTADO DINÁMICO */}
-    <div className={`${isMockup ? 'p-4 pt-4' : 'p-6 pt-0'} space-y-12`}>
+    <div className={`${isMockup ? 'p-4 pt-10' : 'p-6 pt-0'} space-y-12 relative z-10`}>
         {selectedCategory === "todos" && generalProducts.length > 0 && (
           <div className="space-y-6 mt-4">
             <div className="flex items-center gap-3">

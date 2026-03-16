@@ -43,7 +43,8 @@ async function getRestaurant(slug: string) {
   const { data: products } = await supabase
     .from("products")
     .select("*")
-    .eq("restaurant_id", restaurant.id);
+    .eq("restaurant_id", restaurant.id)
+    .order('name', { ascending: true });
 
   const { data: allExtras } = await supabase
     .from("extras")
