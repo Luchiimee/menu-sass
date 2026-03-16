@@ -301,8 +301,10 @@ case 'alterna-pro':
     <AlternaPro
       restaurant={{ 
         ...renderData, 
-        categories: categories.length > 0 ? categories : [
-          {id: 'cat-1', name: 'General'}, // <--- CAMBIÁ EL NOMBRE A 'General' ACÁ
+        // Usamos .slice(0, 2) para que en el editor solo se vea "General" y una categoría más
+        // Así no se rompe el diseño del mockup aunque tengas 10 categorías reales.
+        categories: categories.length > 0 ? categories.slice(0, 2) : [
+          {id: 'cat-1', name: 'General'}, 
           {id: 'cat-2', name: 'Pizzas'}
         ] 
       }}

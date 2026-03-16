@@ -103,7 +103,7 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
       </header>
 
       {/* CATEGORÍAS */}
-      <div className="sticky top-0 z-30 py-3 px-4 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-black/5" style={{ backgroundColor: BG + 'F2', backdropFilter: 'blur(8px)' }}>
+     <div className="sticky top-0 z-30 py-4 px-4 flex gap-1.5 overflow-x-auto no-scrollbar" style={{ backgroundColor: BG }}>
         <button onClick={() => setSelectedCategory("todos")} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all shadow-sm shrink-0 ${selectedCategory === "todos" ? 'scale-105' : 'opacity-70'}`}
           style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : 'white', color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || 'white') : '#9ca3af', borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : '#e5e7eb' }}>
           Todos
@@ -117,9 +117,9 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
       </div>
 
       {/* LISTADO DINÁMICO */}
-      <div className={`${isMockup ? 'p-4' : 'p-6'} space-y-12`}>
+    <div className={`${isMockup ? 'p-4 pt-4' : 'p-6 pt-0'} space-y-12`}>
         {selectedCategory === "todos" && generalProducts.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-4">
             <div className="flex items-center gap-3">
               <div className="h-[1px] flex-1 bg-gray-200" />
               <h2 className="text-[10px] font-black uppercase italic tracking-tighter text-gray-400">Nuestros Productos</h2>
