@@ -57,25 +57,27 @@ const [newCoupon, setNewCoupon] = useState({
     if (!session) return;
 
     // 1. SELECT ACTUALIZADO CON PROMO
-    const { data: rest } = await supabase
-      .from('restaurants')
-     .select('id, slug, subscription_plan, promo_message, show_promo,always_open')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
+  const { data: rest } = await supabase
+  .from('restaurants')
+  .select('id, slug, subscription_plan, subscription_status, promo_message, show_promo, always_open')
+  .eq('user_id', session.user.id)
+  .maybeSingle();
 
- if (mounted) {
-        // 1. SI NO TIENE RESTAURANTE O NO TIENE PLAN, ES NEW USER
-        if (!rest || !rest.subscription_plan) {
-            setIsNewUser(true); 
-            setLoading(false);
-            return;
-        }
+if (mounted) {
+    // LÓGICA DE GRACIA: 
+    // Solo bloqueamos si el estado es 'cancelled'. 
+    // Si es 'unpaid', 'pending' o 'trialing', lo dejamos pasar para dar tiempo a los reintentos de cobro.
+    const isBlocked = rest?.subscription_status === 'cancelled';
 
-      
-        setRestaurantId(rest.id);
-       
-        
-        setAlwaysOpen(rest.always_open || false);
+    if (!rest || !rest.subscription_plan || isBlocked) {
+        setIsNewUser(true); 
+        setLoading(false);
+        return;
+    }
+
+    // Si pasó el filtro anterior, cargamos el resto normalmente
+    setRestaurantId(rest.id);
+    setAlwaysOpen(rest.always_open || false);
 
         // DETECTAR PLAN
         const plan = rest.subscription_plan;

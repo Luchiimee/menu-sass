@@ -281,10 +281,13 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => 
     card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
   } : data;
 
-  const props = { 
+ const props = { 
     restaurant: { ...renderData, categories: categories }, 
-    products: displayProds 
-  };
+    products: displayProds,
+    isOpen: true,           // <--- Agregado (En el editor siempre se ve abierto)
+    onAddToCart: () => {},  // <--- Agregado (Función vacía para que no falle)
+    isMockup: true          // <--- Agregado (Para saber que es la vista previa)
+  }
 
   return (
     <div className="relative w-full h-full bg-white flex flex-col">

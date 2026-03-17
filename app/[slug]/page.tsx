@@ -796,19 +796,20 @@ const renderTemplate = () => {
                             </div>
                           </div>
                           {/* El botón ahora es un "pill" que crece si hay cantidad */}
-                          <div
-                            className="add-btn-wrapper"
-                            onClick={() =>
-                              !principalEnCarrito && mostrarAviso("✅ Agregado")
-                            }
-                          >
-                            <AddToCartBtn
-                              product={prod}
-                              variant="icon"
-                              isDark={true}
-                              disabled={!isOpen}
-                            />
-                          </div>
+                         <div
+  className="add-btn-wrapper"
+  onClick={() => {
+    if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
+    !principalEnCarrito && mostrarAviso("✅ Agregado");
+  }}
+>
+  <AddToCartBtn
+    product={prod}
+    variant="icon"
+    isDark={true}
+    disabled={false} // <--- CAMBIAR A FALSE
+  />
+</div>
                         </div>
 
                         {/* SECCIÓN EXTRAS */}
@@ -854,9 +855,13 @@ const renderTemplate = () => {
         return (
           <div className="layout-container">
             <div className="header-sec">
-              <div className="status-badge">
-                {isOpen ? "ABIERTO" : "CERRADO"}
-              </div>
+             <div className="status-badge" style={{ 
+  backgroundColor: isOpen ? 'white' : '#fef2f2', 
+  color: isOpen ? THEME : '#ef4444',
+  border: isOpen ? 'none' : '1px solid #fecaca' 
+}}>
+  {isOpen ? "ABIERTO" : "CERRADO"}
+</div>
               <div className="header-logo">
                 {LOGO ? (
                   <img src={LOGO} alt="Logo" />
@@ -907,19 +912,7 @@ const renderTemplate = () => {
                                       </span>
                                     </span>
                                     <button
-                                      onClick={() => {
-                                        if (!principalEnCarrito) {
-                                          avisarSeleccionPrimero();
-                                        } else {
-                                          addToCart({
-                                            id: prod.id,
-                                            extraId: ex.id,
-                                            name: ex.name,
-                                            price: Number(ex.price),
-                                          });
-                                          mostrarAviso("✅ Extra sumado");
-                                        }
-                                      }}
+                                   
                                       className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-colors ${principalEnCarrito ? "border-gray-200 text-gray-400 hover:bg-gray-50" : "border-gray-100 text-gray-200 cursor-not-allowed"}`}
                                     >
                                       <Plus size={12} strokeWidth={3} />
@@ -929,16 +922,19 @@ const renderTemplate = () => {
                               </div>
                             )}
                           </div>
-                          <div
-                            className="add-btn-wrapper pt-1"
-                            onClick={() => mostrarAviso("✅ Producto agregado")}
-                          >
-                            <AddToCartBtn
-                              product={prod}
-                              disabled={!isOpen}
-                              hasExtras={false}
-                            />
-                          </div>
+                        <div
+  className="add-btn-wrapper pt-1"
+  onClick={() => {
+    if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
+    mostrarAviso("✅ Producto agregado");
+  }}
+>
+  <AddToCartBtn
+    product={prod}
+    disabled={false} // <--- CAMBIAR A FALSE
+    hasExtras={false}
+  />
+</div>
                         </div>
                       </div>
                       <div className="classic-line"></div>
@@ -986,16 +982,19 @@ const renderTemplate = () => {
                     </div>
 
                     {/* GRUPO DERECHA: BOTÓN */}
-                    <div
-                      className="add-btn-wrapper"
-                      onClick={() => mostrarAviso("✅ Producto agregado")}
-                    >
-                      <AddToCartBtn
-                        product={prod}
-                        variant="icon"
-                        disabled={!isOpen}
-                      />
-                    </div>
+                 <div
+  className="add-btn-wrapper"
+  onClick={() => {
+    if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
+    mostrarAviso("✅ Producto agregado");
+  }}
+>
+  <AddToCartBtn
+    product={prod}
+    variant="icon"
+    disabled={false} // <--- CAMBIAR A FALSE
+  />
+</div>
                   </div>
                 ))}
               </div>
