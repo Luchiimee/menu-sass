@@ -97,6 +97,7 @@ const loadDashboardData = async () => {
 
     const origin = window.location.origin;
     setStoreLink(`${origin}/${rest.slug}`);
+    
       // CARGA DE STATS (Solo si es Plus)
       if (plan === 'plus' || plan === 'max') {
         const today = new Date();
