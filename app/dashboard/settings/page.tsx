@@ -188,22 +188,37 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
     const autoSlug = `snappy-${Math.random().toString(36).substring(2, 7)}`;
 
     // Usamos upsert para que funcione tanto para nuevos como para cambios de plan
-    const { data, error } = await supabase
-      .from('restaurants')
-      .upsert({ 
-        user_id: userId, 
-        subscription_plan: planType,
-        subscription_status: 'trialing',
-        trial_start_date: new Date().toISOString(),
-        name: restaurant?.name || 'Mi Restaurante',
-        slug: restaurant?.slug || autoSlug,
-        // CLAVE: Mantenemos el rubro si ya existía
-        onboarding_completed: restaurant?.onboarding_completed || false 
-      }, {
-        onConflict: 'user_id' 
-      })
-      .select()
-      .single();
+   const { data, error } = await supabase
+  .from('restaurants')
+  .upsert({ 
+    user_id: userId, 
+    subscription_plan: planType,
+    subscription_status: 'trialing',
+    trial_start_date: new Date().toISOString(),
+    name: restaurant?.name || 'Mi Restaurante',
+    slug: restaurant?.slug || autoSlug,
+    
+    // --- COLORES INICIALES (CLASSIC DELIVERY) ---
+    // Esto evita que Supabase use colores "basura" o vacíos
+    template_id: 'classic',
+    theme_color: '#d32f2f',       // Rojo
+    bg_color: '#ffffff',          // Blanco
+    text_color: '#ffffff',        // Blanco (nombre local)
+    description_color: '#ffffff', // Blanco (desc local)
+    promo_bg_color: '#ffebee',    // Rosa suave
+    promo_text_color: '#d32f2f',  // Rojo (texto promo)
+    card_name_color: '#000000',   // Negro (nombre producto)
+    card_price_color: '#d32f2f',  // Rojo (precio)
+    card_btn_bg: '#ffffff',       // Blanco (botón +)
+    card_btn_text: '#000000',     // Negro (cruz +)
+    card_color: '#ffffff',        // Blanco (fondo card)
+    
+    onboarding_completed: restaurant?.onboarding_completed || false 
+  }, {
+    onConflict: 'user_id' 
+  })
+  .select()
+  .single();
 
     if (error) throw error;
     if (data) {

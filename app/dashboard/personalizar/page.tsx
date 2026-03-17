@@ -69,17 +69,17 @@ const MARKETPRO_ASSETS = {
 // 1. COLORES POR DEFECTO
 const TEMPLATE_DEFAULTS: any = {
 classic: { 
-    theme: '#d32f2f', 
-    bg: '#ffffff', 
-    text: '#ffffff', 
-    desc: '#ffffff', 
+    theme: '#d32f2f',       // Rojo
+    bg: '#ffffff',          // Blanco
+    text: '#ffffff',        // Blanco (sobre rojo)
+    desc: '#ffffff',        // Blanco (sobre rojo)
     card_name: '#000000', 
     card_desc: '#666666', 
     card_price: '#d32f2f', 
     btn_bg: '#ffffff', 
-    btn_text: '#000000', // <--- NEGRO PURO POR DEFECTO
-    promo_bg: '#ffebee', 
-    promo_text: '#d32f2f', 
+    btn_text: '#000000', 
+    promo_bg_color: '#ffebee', // Rosa suave (Antes estaba como promo_bg)
+    promo_text_color: '#d32f2f', // Texto rojo (Antes estaba como promo_text)
     banner: false 
 },
 urban: { 
@@ -270,10 +270,10 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => 
     card_name_color: defaults.card_name, 
     card_color: defaults.card || defaults.bg, 
     card_price_color: defaults.card_price,
-    card_btn_bg: defaults.btn_bg,             
+    card_btn_bg: defaults.btn_bg,     
+    promo_bg_color: defaults.promo_bg_color || defaults.promo,  
+    promo_text_color: defaults.promo_text_color || defaults.promo_text,      
     card_btn_text: defaults.btn_text, 
-    promo_bg_color: defaults.promo,           
-    promo_text_color: defaults.promo_text,
     cat_bg_color: data.cat_bg_color,
     cat_text_color: data.cat_text_color,
     cat_active_bg_color: data.cat_active_bg_color,    
@@ -523,15 +523,16 @@ card_shadow_color: '#000000',
 const applyTemplate = (templateId: string) => {
     const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
     
-    setData({
+    // Creamos el objeto con los valores de la plantilla elegida
+    const cleanData = {
         ...data, 
         template_id: templateId,
         theme_color: defaults.theme,
         bg_color: defaults.bg,
         text_color: defaults.text,
         description_color: defaults.desc,
-        promo_bg_color: defaults.promo || defaults.promo_bg,
-        promo_text_color: defaults.promo_text || defaults.theme,
+        promo_bg_color: defaults.promo_bg_color || defaults.promo || '#ffebee',
+        promo_text_color: defaults.promo_text_color || defaults.theme || '#d32f2f',
         card_name_color: defaults.card_name,
         card_color: defaults.card || defaults.bg,
         card_desc_color: defaults.card_desc,
@@ -539,18 +540,19 @@ const applyTemplate = (templateId: string) => {
         card_btn_bg: defaults.btn_bg,
         card_btn_text: defaults.btn_text,
         show_banner: defaults.banner,
-        // Reset forzado para campos de MarketPro
-        cat_bg_color: defaults.cat_bg_color,
-        cat_text_color: defaults.cat_text_color,
-        cat_title_color: defaults.cat_title_color,
-        search_bg_color: defaults.search_bg_color,
-        search_icon_color: defaults.search_icon_color,
-        cat_active_bg_color: defaults.cat_active_bg_color || '#000000',     // <--- AGREGAR
+        // Reseteamos también los colores pro para que no arrastre basura
+        cat_bg_color: defaults.cat_bg_color || '#f3f4f6',
+        cat_text_color: defaults.cat_text_color || '#999999',
+        cat_active_bg_color: defaults.cat_active_bg_color || '#000000',     
         cat_active_text_color: defaults.cat_active_text_color || '#ffffff'
-    });
+    };
 
+    setData(cleanData);
     setUnsavedChanges(true);
     setPreviewTemplateId(null);
+    
+    // OPCIONAL: Forzamos el guardado inmediato para limpiar la DB ya mismo
+    handleSave(); 
 };
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.length) return;
