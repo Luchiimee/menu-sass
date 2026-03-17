@@ -286,17 +286,46 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
                   <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-green-500 shrink-0"/> Dominio Personalizable</li>
               </ul>
 
-              {restaurant.subscription_plan === 'light' ? (
-                <div className="space-y-3">
-                  <button onClick={() => handleGoToPayment('light')} className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-black text-white hover:bg-gray-800 transition-all">Configurar Pago</button>
-                  <p className="text-[10px] text-gray-400 text-center font-bold italic uppercase tracking-tighter">Primer cobro: {getChargeDate()}</p>
-                </div>
-              ) : (
-                <button onClick={() => handleActivateTrial('light')} className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all">Activar 14 días gratis</button>
-              )}
+         {restaurant.subscription_plan === 'light' ? (
+  <div className="space-y-3">
+    {/* SOLO mostramos "Suscripción Activa" si ya está AUTHORIZED. 
+        Si está en 'trialing' (prueba), 'unpaid' o 'cancelled', debe ver el botón. */}
+    {restaurant.subscription_status === 'authorized' ? (
+      <div className="bg-green-50 border border-green-100 p-4 rounded-2xl flex flex-col items-center gap-1 animate-in zoom-in-95">
+        <div className="bg-green-500 text-white p-1 rounded-full">
+          <Check size={14} strokeWidth={4} />
+        </div>
+        <p className="text-[10px] font-black text-green-700 uppercase tracking-tighter">Suscripción Activa</p>
+        <p className="text-[9px] text-green-600/70 font-bold italic">Tu plan está al día</p>
+      </div>
+    ) : (
+      <>
+        <button 
+          onClick={() => handleGoToPayment('light')} 
+          disabled={processingPlan === 'light'}
+          className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-black text-white hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+        >
+          {processingPlan === 'light' ? <Loader2 className="animate-spin" size={16}/> : 
+           (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
+        </button>
+        <p className="text-[10px] text-gray-400 text-center font-bold italic uppercase tracking-tighter">
+          {restaurant.subscription_status === 'trialing' ? `Se debita el: ${getChargeDate()}` : 'Cobro inmediato'}
+        </p>
+      </>
+    )}
+  </div>
+) : (
+  <button 
+    onClick={() => handleActivateTrial('light')} 
+    disabled={processingPlan !== null}
+    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all disabled:opacity-50"
+  >
+    Activar 14 días gratis
+  </button>
+)}
           </div>
 
-          {/* PLUS */}
+         
        {/* --- PLAN PLUS --- */}
 <div className={`p-8 rounded-[2rem] border-2 flex flex-col transition-all bg-white relative shadow-2xl scale-100 xl:scale-105 z-10 border-blue-500`}>
     
@@ -322,20 +351,42 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
         <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-blue-500 shrink-0"/> Acceso a todas las plantillas</li>
     </ul>
 
-    {restaurant.subscription_plan === 'plus' ? (
-        <div className="space-y-3">
-            <button onClick={() => handleGoToPayment('plus')} className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all">
-                Configurar Pago
-            </button>
-            <p className="text-[10px] text-blue-400 text-center font-bold italic uppercase tracking-tighter">
-                Primer cobro: {getChargeDate()}
-            </p>
+ {restaurant.subscription_plan === 'plus' ? (
+  <div className="space-y-3">
+    {/* Misma lógica: Si no es authorized, puede configurar o pagar */}
+    {restaurant.subscription_status === 'authorized' ? (
+      <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex flex-col items-center gap-1 animate-in zoom-in-95">
+        <div className="bg-blue-500 text-white p-1 rounded-full">
+          <Check size={14} strokeWidth={4} />
         </div>
+        <p className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">Suscripción Activa</p>
+        <p className="text-[9px] text-blue-600/70 font-bold italic">Tu plan está al día</p>
+      </div>
     ) : (
-        <button onClick={() => handleActivateTrial('plus')} className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all">
-            Activar 14 días gratis
+      <>
+        <button 
+          onClick={() => handleGoToPayment('plus')} 
+          disabled={processingPlan === 'plus'}
+          className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+        >
+          {processingPlan === 'plus' ? <Loader2 className="animate-spin" size={16}/> : 
+           (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
         </button>
+        <p className="text-[10px] text-blue-400 text-center font-bold italic uppercase tracking-tighter">
+          {restaurant.subscription_status === 'trialing' ? `Se debita el: ${getChargeDate()}` : 'Cobro inmediato'}
+        </p>
+      </>
     )}
+  </div>
+) : (
+  <button 
+    onClick={() => handleActivateTrial('plus')} 
+    disabled={processingPlan !== null}
+    className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+  >
+    Activar 14 días gratis
+  </button>
+)}
 </div>
           {/* MAX */}
         <div className="p-8 rounded-[2rem] border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col opacity-70">
