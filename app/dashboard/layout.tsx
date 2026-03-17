@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -391,16 +391,15 @@ const menuItems = [
        
         </div>
       </aside>
-
-      {/* --- MAIN CONTENT --- */}
-     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-16 lg:pt-0">
-        {/* Alerta de Pagos */}
-        {/* Alerta de Pagos */}
+{/* --- MAIN CONTENT --- */}
+      <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-16 lg:pt-0">
+        
+        {/* Alerta de Pagos Pausados (Sticky) */}
         {restaurant.plan && restaurant.status === 'paused' && (
-          <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-20">
-            <div className="flex items-center gap-2">
+          <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60]">
+            <div className="flex items-center gap-2 text-left">
               <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
-              <p className="font-bold text-sm text-center md:text-left">Tu plan está pausado por falta de pago.</p>
+              <p className="font-bold text-sm">Tu plan está pausado por falta de pago.</p>
             </div>
             <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-red-600 px-4 py-1 rounded-full text-xs font-bold uppercase hover:bg-gray-100 transition whitespace-nowrap">
               Solucionar
@@ -410,8 +409,8 @@ const menuItems = [
 
         {/* --- BANNER DE TELÉFONO PERSONAL (GLOBAL) --- */}
         {!isLoading && !hasPhone && (
-       <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm relative z-20 animate-in slide-in-from-top-full">
-            <div className="flex items-center gap-3 text-amber-800">
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm relative z-20 animate-in slide-in-from-top-full">
+            <div className="flex items-center gap-3 text-amber-800 text-left">
               <div className="bg-amber-100 p-2 rounded-lg hidden sm:block">
                 <AlertTriangle size={18} className="text-amber-600" />
               </div>
@@ -431,88 +430,79 @@ const menuItems = [
 
         {restaurant.plan && <TrialBanner />}
 
-      <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10">
-    
-{/* AVISO PERIODO DE PRUEBA (Optimizado para todas las medidas) */}
-{showWarning && !bypassBlock && (
-  <div className="mt-2 lg:mt-0 mb-8 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4 gap-3 relative z-30">
-    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-      <div className="bg-white/20 p-1.5 rounded-lg shrink-0">
-        <Zap size={16} className="text-white fill-current sm:w-5 sm:h-5" />
-      </div>
-      <div className="text-left min-w-0">
-        <p className="font-black text-[9px] sm:text-xs uppercase tracking-widest leading-none mb-1 truncate">
-          Atención: Prueba
-        </p>
-        <p className="text-[11px] sm:text-sm opacity-95 leading-tight truncate">
-          Te quedan <b>{daysRemaining} días</b>
-        </p>
-      </div>
-    </div>
-    
-    <Link 
-      href="/dashboard/settings" 
-      className="shrink-0 bg-white text-orange-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[10px] font-black uppercase hover:bg-orange-50 transition shadow-sm whitespace-nowrap"
-    >
-      Configurar
-    </Link>
-  </div>
-)}
-
-
-{/* 1. BLOQUEO SI NO TIENE PLAN (Efecto Vidrio) */}
-{!isLoading && needsPlan && pathname !== '/dashboard' && pathname !== '/dashboard/settings' ? (
-  <div className="fixed inset-0 z-[1000] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-      
-      {/* Contenedor del Cartel - Agregamos 'relative' para ubicar la X */}
-      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
+        {/* CONTENEDOR PRINCIPAL CON LÓGICA DE BLOQUEO LOCALIZADO */}
+        <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10 relative">
           
-          {/* BOTÓN X PARA VOLVER AL INICIO */}
-          <button 
-            onClick={() => router.push('/dashboard')}
-            className="absolute top-6 right-8 p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition-all cursor-pointer"
-          >
-            <X size={20} />
-          </button>
+          {(() => {
+            // Variable que detecta si debe haber algún bloqueo visual
+            const isBlocked = !isLoading && (needsPlan || needsRubro || (isExpired && !bypassBlock)) && pathname !== '/dashboard' && pathname !== '/dashboard/settings';
 
-          <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Zap size={40} />
-          </div>
-          <h2 className="text-3xl font-black mb-4 uppercase italic leading-none">¡Bienvenido!</h2>
-          <p className="text-gray-500 mb-8 font-medium">Para comenzar a crear tu menú, primero debes activar un plan (tenés 14 días gratis).</p>
-          <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">
-              Ver Planes Disponibles <ArrowRight size={18} className="inline ml-2" />
-          </Link>
-      </div>
-  </div>
-)  
-    // 2. BLOQUEO SI TIENE PLAN PERO NO RUBRO: Bloquea todo excepto Plantillas y Configuración
-    : !isLoading && needsRubro && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' ? (
-      <div className="fixed inset-0 z-[1000] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
-          <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-indigo-50 max-w-md">
-              <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <Store size={40} />
-              </div>
-              <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.3em] mb-2 block">Paso Final</span>
-              <h2 className="text-3xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
-              <p className="text-gray-500 mb-8 font-medium">¡Ya tenés tu plan activo! Ahora elegí tu rubro para activar las herramientas de venta.</p>
-              <Link href="/dashboard/templates" className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-indigo-700 transition shadow-xl shadow-indigo-100">
-                  Elegir Rubro Ahora <ArrowRight size={18} className="inline ml-2" />
-              </Link>
-          </div>
-      </div>
-    )
-    
-    // 3. BLOQUEO DE EXPIRACIÓN (Igual que antes)
-    : isExpired && !bypassBlock && pathname !== '/dashboard/settings' ? (
-       /* ... Tu bloque de Servicio Pausado ... */
-      <div className="fixed inset-0 z-[1000] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
-          {/* (Dejá el contenido que ya tenías para el vencimiento) */}
-       </div>
-    ) : (
-      children
-    )}
-</div>
+            return (
+              <>
+                {/* 1. EL CONTENIDO (Se desenfoca si isBlocked es true) */}
+                <div className={`h-full transition-all duration-700 ${isBlocked ? 'blur-md pointer-events-none opacity-40 select-none grayscale' : ''}`}>
+                  {children}
+                </div>
+
+                {/* 2. LOS CARTELES DE BLOQUEO (Ahora son ABSOLUTE para no tapar el Sidebar) */}
+                {isBlocked && (
+                  <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in duration-500">
+                    
+                    {/* CASO 1: BLOQUEO POR FALTA DE PLAN */}
+                    {needsPlan && pathname !== '/dashboard' && pathname !== '/dashboard/settings' && (
+                      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
+                          <button 
+                            onClick={() => router.push('/dashboard')}
+                            className="absolute top-6 right-8 p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition-all cursor-pointer"
+                          >
+                            <X size={20} />
+                          </button>
+                          <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                              <Zap size={40} />
+                          </div>
+                          <h2 className="text-3xl font-black mb-4 uppercase italic leading-none">¡Bienvenido!</h2>
+                          <p className="text-gray-500 mb-8 font-medium text-sm">Para comenzar a crear tu menú, primero debes activar un plan (tenés 14 días gratis).</p>
+                          <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">
+                              Ver Planes Disponibles <ArrowRight size={18} className="inline ml-2" />
+                          </Link>
+                      </div>
+                    )}
+
+                    {/* CASO 2: BLOQUEO POR FALTA DE RUBRO */}
+                    {needsRubro && !needsPlan && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' && (
+                      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-indigo-50 max-w-md">
+                          <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                              <Store size={40} />
+                          </div>
+                          <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.3em] mb-2 block text-center">Paso Final</span>
+                          <h2 className="text-3xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
+                          <p className="text-gray-500 mb-8 font-medium text-sm">¡Ya tenés tu plan activo! Ahora elegí tu rubro para activar las herramientas de venta.</p>
+                          <Link href="/dashboard/templates" className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-indigo-700 transition shadow-xl shadow-indigo-100">
+                              Elegir Rubro Ahora <ArrowRight size={18} className="inline ml-2" />
+                          </Link>
+                      </div>
+                    )}
+
+                    {/* CASO 3: BLOQUEO POR PRUEBA EXPIRADA */}
+                    {isExpired && !bypassBlock && pathname !== '/dashboard/settings' && (
+                      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-red-50 max-w-md text-center">
+                          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                              <Clock size={40} />
+                          </div>
+                          <h2 className="text-3xl font-black mb-4 uppercase italic text-gray-900 leading-none">Servicio Pausado</h2>
+                          <p className="text-gray-500 mb-8 font-medium text-sm">Tu periodo de prueba de 14 días ha finalizado. Configura un método de pago para seguir recibiendo pedidos.</p>
+                          <Link href="/dashboard/settings" className="block w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-red-700 transition shadow-xl shadow-red-100">
+                              Reactivar Panel <ArrowRight size={18} className="inline ml-2" />
+                          </Link>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
       </main>
 
      <MobileNav 
