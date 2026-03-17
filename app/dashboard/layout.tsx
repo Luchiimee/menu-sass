@@ -211,7 +211,7 @@ const needsPlan = !restaurant.plan;
     const paymentConfigured = profileData?.payment_configured || false;
 
     // Definimos estados de bloqueo y aviso
-    isExpired = daysRemaining <= 0 && !paymentConfigured;
+    isExpired = daysRemaining <= 0 && !paymentConfigured && restaurant.status !== 'authorized';
     showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured;
 
     console.log(`Días usados: ${daysUsed} | Quedan: ${daysRemaining} | Bloqueado: ${isExpired}`);
@@ -478,18 +478,37 @@ const menuItems = [
                 )}
 
                 {/* MODAL DE ONBOARDING (El de Bienvenida o Configurar Rubro) */}
-                {showOnboardingBlock && !showSuspendedModal && (
-                  <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in">
-                    <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
-                       {/* ... Aquí va el contenido de Bienvenida o Rubro que ya tenías ... */}
-                       <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
-                       <p className="text-gray-500 mb-8 text-sm">Para activar tu menú, primero debes elegir un plan.</p>
-                       <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
-                         Ver Planes
-                       </Link>
-                    </div>
-                  </div>
-                )}
+               {/* MODAL DE ONBOARDING / EXPIRACIÓN */}
+{showOnboardingBlock && !showSuspendedModal && (
+  <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in">
+    <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
+       
+       {/* CASO: VENCIMIENTO DE PRUEBA */}
+       {isExpired ? (
+         <>
+           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Clock size={40} />
+           </div>
+           <h2 className="text-2xl font-black mb-4 uppercase italic">Prueba Finalizada</h2>
+           <p className="text-gray-500 mb-8 text-sm">Tu periodo de prueba terminó. Para seguir usando el panel, configura tu suscripción.</p>
+         </>
+       ) : (
+         /* CASO: ES NUEVO DE VERDAD */
+         <>
+           <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Zap size={40} />
+           </div>
+           <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
+           <p className="text-gray-500 mb-8 text-sm">Para activar tu menú, primero debes elegir un plan.</p>
+         </>
+       )}
+
+       <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
+         Ir a Configuración
+       </Link>
+    </div>
+  </div>
+)}
               </>
             );
           })()}
