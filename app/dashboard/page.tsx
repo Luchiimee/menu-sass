@@ -68,30 +68,35 @@ const loadDashboardData = async () => {
       .eq('user_id', session.user.id)
       .maybeSingle();
 
-   if (mounted) {
-    const isBlocked = rest?.subscription_status === 'cancelled';
+ if (mounted) {
+    // 1. Detectamos si está cancelado DE VERDAD
+    const isCancelled = rest?.subscription_status === 'cancelled';
+
+    // 2. ¿Es realmente un usuario nuevo? 
+    // SOLO si no hay restaurante o no eligió plan nunca.
     if (!rest || !rest.subscription_plan) {
         setIsNewUser(true); 
         setLoading(false);
         return;
     }
 
-   
-    setIsLocked(isBlocked); 
+    // 3. Si llegó acá, es un usuario viejo con datos cargados.
+    setIsNewUser(false); 
+    setIsLocked(isCancelled); // Si está cancelado se activa el "vidrio"
 
+    // 4. Cargamos sus datos normalmente (se verán de fondo tras el vidrio)
     setRestaurantId(rest.id);
     setAlwaysOpen(rest.always_open || false);
     setSlug(rest.slug || '');
-      setPromoMessage(rest.promo_message || '');
-      setShowPromo(rest.show_promo || false);
+    setPromoMessage(rest.promo_message || '');
+    setShowPromo(rest.show_promo || false);
 
-      const plan = rest.subscription_plan;
-      setHasPlan(!!plan); 
-      setIsPlus(plan === 'plus' || plan === 'max');
+    const plan = rest.subscription_plan;
+    setHasPlan(!!plan); 
+    setIsPlus(plan === 'plus' || plan === 'max');
 
-      const origin = window.location.origin;
-      setStoreLink(`${origin}/${rest.slug}`);
-
+    const origin = window.location.origin;
+    setStoreLink(`${origin}/${rest.slug}`);
       // CARGA DE STATS (Solo si es Plus)
       if (plan === 'plus' || plan === 'max') {
         const today = new Date();
