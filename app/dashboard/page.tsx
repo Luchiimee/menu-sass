@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export default function DashboardHome() {
+  const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
   const [isPlus, setIsPlus] = useState(false);
@@ -50,87 +51,95 @@ const [newCoupon, setNewCoupon] = useState({
 
   useEffect(() => {
     let mounted = true;
-
-   const loadDashboardData = async () => {
+const loadDashboardData = async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    
+    // Si no hay sesión, apagamos el loading y salimos para que no quede en blanco
+    if (!session) {
+      if (mounted) setLoading(false);
+      return;
+    }
 
-    // 1. SELECT ACTUALIZADO CON PROMO
-  const { data: rest } = await supabase
-  .from('restaurants')
-  .select('id, slug, subscription_plan, subscription_status, promo_message, show_promo, always_open')
-  .eq('user_id', session.user.id)
-  .maybeSingle();
+    // 1. SELECT con subscription_status
+    const { data: rest } = await supabase
+      .from('restaurants')
+      .select('id, slug, subscription_plan, subscription_status, promo_message, show_promo, always_open')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
 
-if (mounted) {
-    // LÓGICA DE GRACIA: 
-    // Solo bloqueamos si el estado es 'cancelled'. 
-    // Si es 'unpaid', 'pending' o 'trialing', lo dejamos pasar para dar tiempo a los reintentos de cobro.
-    const isBlocked = rest?.subscription_status === 'cancelled';
+    if (mounted) {
+      // LÓGICA DE GRACIA: 
+      // Solo bloqueamos si el estado es 'cancelled'. 
+      // Si es 'unpaid', 'pending' o 'trialing', lo dejamos pasar (isBlocked = false).
+      const isBlocked = rest?.subscription_status === 'cancelled';
 
-    if (!rest || !rest.subscription_plan || isBlocked) {
+      // Si no existe el local, no eligió plan, o está cancelado -> Mandar a elegir plan
+      if (!rest || !rest.subscription_plan || isBlocked) {
         setIsNewUser(true); 
         setLoading(false);
         return;
-    }
+      }
 
-    // Si pasó el filtro anterior, cargamos el resto normalmente
-    setRestaurantId(rest.id);
-    setAlwaysOpen(rest.always_open || false);
+      // --- SI LLEGÓ ACÁ, EL USUARIO ESTÁ AUTORIZADO (O EN PERIODO DE GRACIA) ---
+      setRestaurantId(rest.id);
+      setAlwaysOpen(rest.always_open || false);
+      setSlug(rest.slug || '');
+      setPromoMessage(rest.promo_message || '');
+      setShowPromo(rest.show_promo || false);
 
-        // DETECTAR PLAN
-        const plan = rest.subscription_plan;
-        setHasPlan(!!plan); 
-        setIsPlus(plan === 'plus' || plan === 'max');
+      // Seteamos el estado para el cartel de aviso (si tenés el useState creado)
+      // setSubscriptionStatus(rest.subscription_status || ''); 
 
-        setSlug(rest.slug);
-        const origin = window.location.origin;
-        setStoreLink(`${origin}/${rest.slug}`);
+      // Configuración de niveles de plan
+      const plan = rest.subscription_plan;
+      setHasPlan(!!plan); 
+      setIsPlus(plan === 'plus' || plan === 'max');
 
-        // --- 2. CARGA DE DATOS DE PROMO (NUEVO) ---
-        setPromoMessage(rest.promo_message || '');
-        setShowPromo(rest.show_promo || false);
+      const origin = window.location.origin;
+      setStoreLink(`${origin}/${rest.slug}`);
 
-        // SOLO CARGAMOS DATOS SI ES PLUS
-        if (plan === 'plus' || plan === 'max') {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+      // CARGA DE STATS (Solo si es Plus)
+      if (plan === 'plus' || plan === 'max') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-            const { data: todaysOrders } = await supabase
-                .from('orders')
-                .select('total, status')
-                .eq('restaurant_id', rest.id)
-                .neq('order_type', 'apertura')
-                .gte('created_at', today.toISOString());
+        const { data: todaysOrders } = await supabase
+          .from('orders')
+          .select('total, status')
+          .eq('restaurant_id', rest.id)
+          .neq('order_type', 'apertura')
+          .gte('created_at', today.toISOString());
 
-            if (todaysOrders) {
-                const validOrders = todaysOrders.filter(o => o.status !== 'cancelado');
-                const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
-                setStats({
-                    orders: validOrders.length,
-                    revenue: totalRevenue,
-                    views: 0
-                });
-            }
-
-            const { data: lastOrders } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('restaurant_id', rest.id)
-                .neq('order_type', 'apertura')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            if (lastOrders) setRecentOrders(lastOrders);
+        if (todaysOrders) {
+          const validOrders = todaysOrders.filter(o => o.status !== 'cancelado');
+          const totalRevenue = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
+          setStats({
+            orders: validOrders.length,
+            revenue: totalRevenue,
+            views: 0
+          });
         }
-        const { data: cpns } = await supabase
-    .from('coupons')
-    .select('*')
-    .eq('restaurant_id', rest.id)
-    .order('created_at', { ascending: false });
 
-if (cpns) setCoupons(cpns);
+        const { data: lastOrders } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('restaurant_id', rest.id)
+          .neq('order_type', 'apertura')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (lastOrders) setRecentOrders(lastOrders);
+      }
+
+      // Carga de cupones
+      const { data: cpns } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('restaurant_id', rest.id)
+        .order('created_at', { ascending: false });
+
+      if (cpns) setCoupons(cpns);
     }
   } catch (error) {
     console.error("Error cargando dashboard:", error);
@@ -138,7 +147,7 @@ if (cpns) setCoupons(cpns);
     if (mounted) setLoading(false);
   }
 };
-
+  
     loadDashboardData();
 const handleRefresh = () => {
       console.log("📢 Pedido detectado, recargando estadísticas y lista...");
