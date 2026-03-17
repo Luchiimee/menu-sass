@@ -438,12 +438,17 @@ const menuItems = [
             // 1. LÓGICA DE BLOQUEO GLOBAL
             const isCancelled = restaurant.status === 'cancelled';
             const isSettingsPage = pathname === '/dashboard/settings';
+            const isTemplatesPage = pathname === '/dashboard/templates';
             
             // Bloqueamos si está cancelado y NO es la página de configuración
             const showSuspendedModal = isCancelled && !isSettingsPage;
             
             // Otros bloqueos (Falta plan o Rubro)
-            const showOnboardingBlock = !isLoading && (needsPlan || needsRubro || (isExpired && !bypassBlock)) && !isSettingsPage && pathname !== '/dashboard';
+          const showOnboardingBlock = !isLoading && 
+    (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
+    !isSettingsPage && 
+    !isTemplatesPage && // <--- CLAVE: Si está en templates, NO lo bloqueamos
+    pathname !== '/dashboard';
 
             const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
 
@@ -478,34 +483,40 @@ const menuItems = [
                 )}
 
                 {/* MODAL DE ONBOARDING (El de Bienvenida o Configurar Rubro) */}
-               {/* MODAL DE ONBOARDING / EXPIRACIÓN */}
 {showOnboardingBlock && !showSuspendedModal && (
   <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in">
     <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
        
-       {/* CASO: VENCIMIENTO DE PRUEBA */}
-       {isExpired ? (
+       {needsRubro ? (
+         /* --- CASO A: YA TIENE PLAN, PERO LE FALTA EL RUBRO --- */
          <>
-           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Clock size={40} />
+           <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <LayoutTemplate size={40} />
            </div>
-           <h2 className="text-2xl font-black mb-4 uppercase italic">Prueba Finalizada</h2>
-           <p className="text-gray-500 mb-8 text-sm">Tu periodo de prueba terminó. Para seguir usando el panel, configura tu suscripción.</p>
+           <h2 className="text-2xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
+           <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+             ¡Plan activado con éxito! 🚀 <br/> 
+             Ahora elegí el rubro de tu negocio para habilitar tu catálogo y empezar a vender.
+           </p>
+           <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
+             Elegir mi Rubro
+           </Link>
          </>
        ) : (
-         /* CASO: ES NUEVO DE VERDAD */
+         /* --- CASO B: NO TIENE PLAN (NUEVO O EXPIRADO) --- */
          <>
            <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <Zap size={40} />
            </div>
            <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
-           <p className="text-gray-500 mb-8 text-sm">Para activar tu menú, primero debes elegir un plan.</p>
+           <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+             Para activar tu menú y acceder a todas las funciones, primero debés elegir un plan.
+           </p>
+           <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
+             Ver Planes
+           </Link>
          </>
        )}
-
-       <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
-         Ir a Configuración
-       </Link>
     </div>
   </div>
 )}
