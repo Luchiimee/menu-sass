@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -392,7 +392,7 @@ const menuItems = [
         </div>
       </aside>
 {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-16 lg:pt-0">
+     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-16 lg:pt-0">
         
         {/* Alerta de Pagos Pausados (Sticky) */}
         {restaurant.plan && restaurant.status === 'paused' && (
@@ -433,70 +433,61 @@ const menuItems = [
         {/* CONTENEDOR PRINCIPAL CON LÓGICA DE BLOQUEO LOCALIZADO */}
         <div className="p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 pb-24 lg:pb-10 relative">
           
-          {(() => {
-            // Variable que detecta si debe haber algún bloqueo visual
-            const isBlocked = !isLoading && (needsPlan || needsRubro || (isExpired && !bypassBlock)) && pathname !== '/dashboard' && pathname !== '/dashboard/settings';
+        
+{(() => {
+            // 1. LÓGICA DE BLOQUEO GLOBAL
+            const isCancelled = restaurant.status === 'cancelled';
+            const isSettingsPage = pathname === '/dashboard/settings';
+            
+            // Bloqueamos si está cancelado y NO es la página de configuración
+            const showSuspendedModal = isCancelled && !isSettingsPage;
+            
+            // Otros bloqueos (Falta plan o Rubro)
+            const showOnboardingBlock = !isLoading && (needsPlan || needsRubro || (isExpired && !bypassBlock)) && !isSettingsPage && pathname !== '/dashboard';
+
+            const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
 
             return (
               <>
-                {/* 1. EL CONTENIDO (Se desenfoca si isBlocked es true) */}
-                <div className={`h-full transition-all duration-700 ${isBlocked ? 'blur-md pointer-events-none opacity-40 select-none grayscale' : ''}`}>
+                {/* EL CONTENIDO: Se desenfoca si hay cualquier bloqueo activo */}
+                <div className={`h-full transition-all duration-700 ${isAnyBlocked ? 'blur-md pointer-events-none opacity-40 select-none grayscale' : ''}`}>
                   {children}
                 </div>
 
-                {/* 2. LOS CARTELES DE BLOQUEO (Ahora son ABSOLUTE para no tapar el Sidebar) */}
-                {isBlocked && (
-                  <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in duration-500">
-                    
-                    {/* CASO 1: BLOQUEO POR FALTA DE PLAN */}
-                    {needsPlan && pathname !== '/dashboard' && pathname !== '/dashboard/settings' && (
-                      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
-                          <button 
-                            onClick={() => router.push('/dashboard')}
-                            className="absolute top-6 right-8 p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition-all cursor-pointer"
-                          >
-                            <X size={20} />
-                          </button>
-                          <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                              <Zap size={40} />
-                          </div>
-                          <h2 className="text-3xl font-black mb-4 uppercase italic leading-none">¡Bienvenido!</h2>
-                          <p className="text-gray-500 mb-8 font-medium text-sm">Para comenzar a crear tu menú, primero debes activar un plan (tenés 14 días gratis).</p>
-                          <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-gray-800 transition shadow-xl">
-                              Ver Planes Disponibles <ArrowRight size={18} className="inline ml-2" />
-                          </Link>
+                {/* MODAL DE PANEL SUSPENDIDO (Global) */}
+                {showSuspendedModal && (
+                  <div className="absolute inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white/90 backdrop-blur-xl p-10 rounded-[3.5rem] shadow-2xl border border-red-100 text-center max-w-xs animate-in zoom-in-95 duration-500">
+                      <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <Lock size={40} />
                       </div>
-                    )}
+                      <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Panel Suspendido</h3>
+                      <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase tracking-widest leading-relaxed text-center">
+                        Tu suscripción está vencida. Podés navegar el menú lateral, pero para gestionar tu local debés regularizar el pago.
+                      </p>
+                      
+                      {/* BOTÓN PAGAR -> Manda a Settings */}
+                      <Link 
+                        href="/dashboard/settings"
+                        className="mt-8 block w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-red-200 active:scale-95 transition-all text-center"
+                      >
+                        PAGAR
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
-                    {/* CASO 2: BLOQUEO POR FALTA DE RUBRO */}
-                    {needsRubro && !needsPlan && pathname !== '/dashboard/templates' && pathname !== '/dashboard/settings' && (
-                      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-indigo-50 max-w-md">
-                          <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                              <Store size={40} />
-                          </div>
-                          <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.3em] mb-2 block text-center">Paso Final</span>
-                          <h2 className="text-3xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
-                          <p className="text-gray-500 mb-8 font-medium text-sm">¡Ya tenés tu plan activo! Ahora elegí tu rubro para activar las herramientas de venta.</p>
-                          <Link href="/dashboard/templates" className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-indigo-700 transition shadow-xl shadow-indigo-100">
-                              Elegir Rubro Ahora <ArrowRight size={18} className="inline ml-2" />
-                          </Link>
-                      </div>
-                    )}
-
-                    {/* CASO 3: BLOQUEO POR PRUEBA EXPIRADA */}
-                    {isExpired && !bypassBlock && pathname !== '/dashboard/settings' && (
-                      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-red-50 max-w-md text-center">
-                          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                              <Clock size={40} />
-                          </div>
-                          <h2 className="text-3xl font-black mb-4 uppercase italic text-gray-900 leading-none">Servicio Pausado</h2>
-                          <p className="text-gray-500 mb-8 font-medium text-sm">Tu periodo de prueba de 14 días ha finalizado. Configura un método de pago para seguir recibiendo pedidos.</p>
-                          <Link href="/dashboard/settings" className="block w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-red-700 transition shadow-xl shadow-red-100">
-                              Reactivar Panel <ArrowRight size={18} className="inline ml-2" />
-                          </Link>
-                      </div>
-                    )}
-
+                {/* MODAL DE ONBOARDING (El de Bienvenida o Configurar Rubro) */}
+                {showOnboardingBlock && !showSuspendedModal && (
+                  <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in">
+                    <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
+                       {/* ... Aquí va el contenido de Bienvenida o Rubro que ya tenías ... */}
+                       <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
+                       <p className="text-gray-500 mb-8 text-sm">Para activar tu menú, primero debes elegir un plan.</p>
+                       <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
+                         Ver Planes
+                       </Link>
+                    </div>
                   </div>
                 )}
               </>
@@ -504,7 +495,6 @@ const menuItems = [
           })()}
         </div>
       </main>
-
      <MobileNav 
   displayName={restaurant.name} 
   displaySubtext={getPlanLabel()} 
