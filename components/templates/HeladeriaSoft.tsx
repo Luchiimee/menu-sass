@@ -5,8 +5,8 @@ import CartFooter from "../CartFooter";
 
 export default function HeladeriaSoft({ restaurant, products, onAddToCart, isMockup = false }: any) {
   const [selections, setSelections] = useState<{ [key: string]: number }>({});
-  const THEME = restaurant?.theme_color || '#00bcd4';
-  const BG = restaurant?.bg_color || '#f0faff';
+  const THEME = restaurant?.theme_color || '#6366f1';
+  const BG = restaurant?.bg_color || '#f8fafc';
 
   return (
     <div className="flex flex-col h-full font-sans relative min-h-screen" style={{ backgroundColor: BG }}>

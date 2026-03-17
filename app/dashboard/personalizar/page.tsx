@@ -205,20 +205,20 @@ marketpro: {
     card_show_bg: true, 
     card_color: '#ffffff'
   },
-  'icecream-v1': { 
-    theme: '#00bcd4', 
-    bg: '#f0faff', 
-    text: '#000000', 
-    desc: '#666666', 
-    card_name: '#000000', 
-    card_desc: '#666666', 
-    card_price: '#00bcd4', 
-    btn_bg: '#00bcd4', 
+ 'icecream-v1': { 
+    theme: '#6366f1',        // Indigo moderno
+    bg: '#f8fafc',           // Slate 50 (Blanco azulado muy limpio)
+    text: '#0f172a',         // Slate 900 (Casi negro)
+    desc: '#64748b',         // Slate 500 (Gris suave)
+    card_name: '#0f172a',    
+    card_desc: '#64748b', 
+    card_price: '#6366f1',   
+    btn_bg: '#6366f1', 
     btn_text: '#ffffff', 
-    promo_bg: '#e0f7fa', 
-    promo_text: '#00838f', 
+    promo_bg: '#eef2ff',     // Indigo muy clarito
+    promo_text: '#4f46e5',   // Indigo fuerte
     banner: false
-  },
+},
 // Buscá TEMPLATE_DEFAULTS y reemplazá 'alterna-pro' por esto:
 'alterna-pro': { 
     theme: '#ea580c',        // Naranja Eco

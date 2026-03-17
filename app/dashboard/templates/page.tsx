@@ -159,13 +159,18 @@ pop: {
     search_icon_color: '#9ca3af'
   },
   'icecream-v1': { 
-    theme: '#00bcd4', 
-    bg: '#f0faff', 
-    card: '#ffffff', 
-    text: '#000000', 
-    desc: '#666666', 
-    promo: '#e0f7fa', 
-    banner: true 
+    theme: '#6366f1',        // Indigo moderno
+    bg: '#f8fafc',           // Blanco Slate muy limpio
+    text: '#0f172a',         // Texto casi negro
+    desc: '#64748b',         // Gris Slate
+    card_name: '#0f172a',    
+    card_desc: '#64748b', 
+    card_price: '#6366f1',   
+    btn_bg: '#6366f1', 
+    btn_text: '#ffffff', 
+    promo: '#eef2ff',     
+    promo_text: '#4f46e5',   
+    banner: false
   },
  'alterna-pro': { 
     theme: '#ea580c', 
@@ -442,38 +447,26 @@ const GALLERY_STYLES = `
 
 // --- DATA ---
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic Delivery', desc: 'Simple y efectivo.', premium: false, type: 'classic', category: 'minimal', sale_type: 'unidad' },
-  { id: 'urban', name: 'Urbano Dark', desc: 'Impacto visual oscuro.', premium: false, type: 'urban', category: 'basicas', sale_type: 'unidad' },
-  { id: 'minimal', name: 'Minimalista', desc: 'Limpio y moderno.', premium: false, type: 'minimal', category: 'minimal', sale_type: 'unidad' },
-  { id: 'visualgrid', name: 'Visual Grid', desc: 'Grilla de fotos grande.', premium: true, type: 'visualgrid', category: 'basicas', sale_type: 'unidad' },
-  { id: 'pop', name: 'Pop Vibrante', desc: 'Estilo cómic colorido.', premium: true, type: 'pop', category: 'basicas', sale_type: 'unidad' },
-  { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante.', premium: true, type: 'spotlight', category: 'basicas', sale_type: 'unidad' },
-  { id: 'elegant', name: 'Elegante Serif', desc: 'Para alta cocina.', premium: true, type: 'elegant', category: 'minimal', sale_type: 'unidad' },
-  { id: 'bistro', name: 'Bistro Chalk', desc: 'Estilo pizarra.', premium: true, type: 'bistro', category: 'minimal', sale_type: 'unidad' },
-  { id: 'marketpro', name: 'Market Pro', desc: 'Diseño estilo Tienda App.', premium: true, type: 'marketpro', category: 'completas', sale_type: 'unidad' },
- { 
-    id: 'icecream-v1', 
-    name: 'Heladería Soft', 
-    desc: 'Diseño fresco con selector de peso (kg/gr).', 
-    premium: true, 
-    type: 'icecream', 
-    category: ['basicas'], 
-    sale_type: 'peso' 
-  },
-  {
-    id: 'alterna-pro',
-    name: 'Alterna Pro',
-    desc: 'Diseño Zig-Zag premium con foco en imágenes circulares y burbujas de impacto.',
-    premium: true,
-    type: 'alterna-pro', 
-    category: ['completas'], 
-   
-    sale_type: ['unidad', 'peso'],  
-    preview: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80',
-  },
+  // --- RÁPIDAS (UNIDAD) ---
+  { id: 'classic', name: 'Classic Delivery', desc: 'Simple y efectivo. Ideal para pocos productos.', premium: false, type: 'classic', category: 'basicas', sale_type: 'unidad' },
+  { id: 'urban', name: 'Urbano Dark', desc: 'Impacto visual oscuro para marcas modernas.', premium: false, type: 'urban', category: 'basicas', sale_type: 'unidad' },
+  { id: 'minimal', name: 'Minimalista', desc: 'Limpio y moderno. Foco 100% en el nombre.', premium: false, type: 'minimal', category: 'basicas', sale_type: 'unidad' },
+  { id: 'visualgrid', name: 'Visual Grid', desc: 'Grilla de fotos grande. Muy intuitivo.', premium: true, type: 'visualgrid', category: 'basicas', sale_type: 'unidad' },
+  { id: 'pop', name: 'Pop Vibrante', desc: 'Estilo cómic colorido y divertido.', premium: true, type: 'pop', category: 'basicas', sale_type: 'unidad' },
+  { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante para promociones estrella.', premium: true, type: 'spotlight', category: 'basicas', sale_type: 'unidad' },
+  { id: 'elegant', name: 'Elegante Serif', desc: 'Tipografía refinada para alta cocina.', premium: true, type: 'elegant', category: 'basicas', sale_type: 'unidad' },
+  { id: 'bistro', name: 'Bistro Chalk', desc: 'Efecto tiza sobre pizarra. Estética bodegón.', premium: true, type: 'bistro', category: 'basicas', sale_type: 'unidad' },
+  
+  // --- RÁPIDAS (PESO) ---
+  { id: 'icecream-v1', name: 'Soft Premium', desc: 'Venta rápida por peso. Sin imágenes para máxima velocidad.', premium: true, type: 'icecream', category: 'basicas', sale_type: 'peso' },
+
+  // --- COMPLETAS (UNIDAD Y PESO) ---
+  { id: 'marketpro', name: 'Market Pro', desc: 'Diseño estilo App. Incluye buscador y categorías.', premium: true, type: 'marketpro', category: 'completas', sale_type: 'unidad' },
+  { id: 'alterna-pro', name: 'Alterna Pro', desc: 'Diseño Zig-Zag. El más completo para fotos y categorías.', premium: true, type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'] },
 ];
 
 function GalleryContent() {
+  const [mainCategory, setMainCategory] = useState<'basicas' | 'completas' | 'todas'>('todas');
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
   const isNewlyActivated = searchParams.get('activated')
@@ -1020,14 +1013,21 @@ const filteredTemplates = TEMPLATES.filter(t => {
   }
 
   // 2. SI YA COMPLETÓ EL ONBOARDING: Mostramos la Galería normal (Imagen 2)
+// Lógica: Si mainCategory es 'todas', no filtra por tipo.
+  const finalTemplates = filteredTemplates.filter(t => {
+    const matchesMain = mainCategory === 'todas' || t.category.includes(mainCategory);
+    
+    if (activeFilter === 'todas') return matchesMain;
+    return matchesMain && t.category.includes(activeFilter);
+  });
   return (
-    <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50">
+    <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20">
       <style>{GALLERY_STYLES}</style>
       
       <header className="mb-8 pt-20 lg:pt-0 text-left relative z-10">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Galería de Diseños</h1>
-          <p className="text-gray-500 text-xs font-medium leading-tight">Elegí la base para tu menú digital. Todas son personalizables.</p>
+          <p className="text-gray-500 text-xs font-medium leading-tight text-left">Elegí la base para tu menú digital. Todas son personalizables.</p>
         </div>
         
         <button 
@@ -1038,61 +1038,99 @@ const filteredTemplates = TEMPLATES.filter(t => {
         </button>
       </header>
 
-      {/* --- RESTO DE TU GRILLA DE PLANTILLAS (Filtros y Grid) --- */}
-      <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
-        {['todas', 'minimal', 'basicas', 'completas'].map((f) => (
-          <button key={f} onClick={() => setActiveFilter(f)} className={`px-4 sm:px-6 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all border-2 ${activeFilter === f ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'}`}>
+      {/* --- BOTONES MAESTROS ACHICADOS --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+        {/* BOTÓN RÁPIDAS */}
+        <button 
+          onClick={() => { setMainCategory(mainCategory === 'basicas' ? 'todas' : 'basicas'); setActiveFilter('todas'); }}
+          className={`p-4 rounded-[1.5rem] border-2 text-left transition-all relative overflow-hidden group ${mainCategory === 'basicas' ? 'border-amber-500 bg-white shadow-lg shadow-amber-100' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}`}
+        >
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className={`p-1.5 rounded-lg ${mainCategory === 'basicas' ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+              <Zap size={16} fill={mainCategory === 'basicas' ? "currentColor" : "none"}/>
+            </div>
+            <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'basicas' ? 'text-slate-900' : 'text-gray-400'}`}>Diseños Rápidos</h3>
+          </div>
+          <p className={`text-[9px] font-bold leading-relaxed uppercase tracking-widest ${mainCategory === 'basicas' ? 'text-slate-500' : 'text-gray-400'}`}>
+            Fomentan una compra inmediata y directa. Ideales para catálogos que priorizan la velocidad de carga.
+          </p>
+        </button>
+
+        {/* BOTÓN COMPLETAS */}
+        <button 
+          onClick={() => { setMainCategory(mainCategory === 'completas' ? 'todas' : 'completas'); setActiveFilter('todas'); }}
+          className={`p-4 rounded-[1.5rem] border-2 text-left transition-all relative overflow-hidden group ${mainCategory === 'completas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}`}
+        >
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className={`p-1.5 rounded-lg ${mainCategory === 'completas' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+              <ShoppingBag size={16}/>
+            </div>
+            <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'completas' ? 'text-slate-900' : 'text-gray-400'}`}>Diseños Completos</h3>
+          </div>
+          <p className={`text-[9px] font-bold leading-relaxed uppercase tracking-widest ${mainCategory === 'completas' ? 'text-slate-500' : 'text-gray-400'}`}>
+            Organización Pro con categorías, buscador y foco en imágenes de productos para una experiencia total.
+          </p>
+        </button>
+      </div>
+
+      {/* --- SUB-FILTROS --- */}
+      <div className="flex gap-2 overflow-x-auto pb-8 no-scrollbar">
+        <button 
+          onClick={() => { setMainCategory('todas'); setActiveFilter('todas'); }}
+          className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border-2 ${mainCategory === 'todas' && activeFilter === 'todas' ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'}`}
+        >
+          Ver Todas
+        </button>
+
+        {['minimal', 'basicas', 'completas'].map((f) => (
+          <button 
+            key={f} 
+            onClick={() => setActiveFilter(f)} 
+            className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border-2 ${activeFilter === f ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'}`}
+          >
             {f}
           </button>
         ))}
       </div>
 
-      <div className="templates-grid">
-        {filteredTemplates.map((t) => {
-          const isSelected = currentTemplate === t.id;
-          const isLocked = t.premium && userPlan === 'free';
-          return (
-            <article key={t.id} className={`template-card ${isSelected ? 'active-card' : ''}`}>
-              <div className="phone-preview">
-                <div className="preview-content">{renderPreview(t.type)}</div>
-                {isLocked && <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30"><Lock size={24} className="mb-2 opacity-80" /><span className="font-bold text-xs">Diseño Premium</span></div>}
-              </div>
-              <div className="card-info">
-                <h3 className="card-title">{t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500" />}</h3>
-             <button
-    onClick={() => handleSelect(t.id, t.premium)}
-    disabled={savingId === t.id || isSelected}
-    className={`btn-select ${isLocked ? 'locked-btn' : ''}`}
-  >
-    {savingId === t.id
-      ? <Loader2 className="animate-spin" size={14} />
-      : isSelected
-        ? 'En uso'
-        : 'Usar Plantilla'}
-  </button>
-  
-  {/* BOTÓN RECUPERADO: Solo aparece si la plantilla está seleccionada */}
-  {isSelected && (
-    <Link 
-      href="/dashboard/personalizar" 
-      className="btn-personalize block text-center mt-3 text-[10px] font-black uppercase text-indigo-600 hover:underline"
-    >
-      Ir a Personalizar →
-    </Link>
-  )}
-              </div>
-            </article>
-          );
-        })}
+      {/* --- GRILLA ÚNICA --- */}
+      <div className="templates-grid animate-in fade-in duration-500 pb-20">
+        {finalTemplates.length > 0 ? (
+          finalTemplates.map((t) => {
+            const isSelected = currentTemplate === t.id;
+            const isLocked = t.premium && userPlan === 'free';
+            return (
+              <article key={t.id} className={`template-card ${isSelected ? 'active-card' : ''}`}>
+                <div className="phone-preview">
+                  <div className="preview-content">{renderPreview(t.type)}</div>
+                  {isLocked && <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30"><Lock size={24} className="mb-2 opacity-80" /><span className="font-bold text-xs">Diseño Premium</span></div>}
+                </div>
+                <div className="card-info text-left">
+                  <h3 className="card-title">{t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500" />}</h3>
+                  <button onClick={() => handleSelect(t.id, t.premium)} disabled={savingId === t.id || isSelected} className={`btn-select ${isLocked ? 'locked-btn' : ''}`}>
+                    {savingId === t.id ? <Loader2 className="animate-spin" size={14} /> : isSelected ? 'En uso' : 'Usar Plantilla'}
+                  </button>
+                  {isSelected && <Link href="/dashboard/personalizar" className="btn-personalize block text-center mt-3 text-[10px] font-black uppercase text-indigo-600 hover:underline">Ir a Personalizar →</Link>}
+                </div>
+              </article>
+            );
+          })
+        ) : (
+          <div className="col-span-full py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-[10px] italic">
+            No hay diseños disponibles con estos filtros...
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 export default function GalleryPage() {
   return (
     <Suspense fallback={
-      <div className="fixed inset-0 flex items-center justify-center bg-white z-[300]">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[300]">
         <Loader2 className="animate-spin text-indigo-600 mb-4" size={40}/>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Preparando diseños...</p>
       </div>
     }>
       <GalleryContent />
