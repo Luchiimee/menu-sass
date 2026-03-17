@@ -1,8 +1,9 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check } from 'lucide-react';
+import { ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check,Clock } from 'lucide-react';
 
-export default function AlternaPro({ restaurant = {}, products = [], setSelectedProduct, onAddToCart, isMockup = false }: any) {
+export default function AlternaPro({ restaurant = {}, products = [], setSelectedProduct, onAddToCart, isOpen, isMockup = false }: any) {
+  const [showClosedModal, setShowClosedModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
   const [variationCounts, setVariationCounts] = useState<{ [key: string]: number }>({});
@@ -96,10 +97,16 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
     <div className="flex flex-col min-h-screen pb-32 select-none animate-in fade-in duration-500" style={{ backgroundColor: BG }}>
       {/* HEADER */}
       <header className="pt-8 px-6 pb-4 relative">
-        <div className="absolute top-8 right-6 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-0.5">
-          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[8px] font-black text-emerald-600 uppercase">Abierto</span>
-        </div>
+      <div className="absolute top-8 right-6 px-2 py-1 rounded-full border flex items-center gap-1.5 transition-colors duration-500"
+     style={{ 
+       backgroundColor: isOpen ? '#f0fdf4' : '#fef2f2', 
+       borderColor: isOpen ? '#bbf7d0' : '#fecaca' 
+     }}>
+  <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+  <span className={`text-[8px] font-black uppercase ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>
+    {isOpen ? 'Abierto' : 'Cerrado'}
+  </span>
+</div>
         <div className="text-center px-4">
           {restaurant?.logo_url && (
             <div className={`w-16 h-16 mx-auto rounded-full border-2 border-white shadow-md overflow-hidden mb-3 bg-white flex items-center justify-center`}>
@@ -253,39 +260,63 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
             </div>
 
             <div className="p-6 pt-2 bg-white border-t border-gray-50">
-              <button 
-                onClick={() => {
-                  Object.entries(variationCounts).forEach(([label, qty]) => {
-                    if (qty > 0) {
-                      const basePrice = (restaurant.selectedProduct.variations?.find((v:any) => v.label === label)?.price) || restaurant.selectedProduct.price;
-                      const parentId = label === 'principal' ? restaurant.selectedProduct.id : `${restaurant.selectedProduct.id}-${label}`;
-                      const parentName = label === 'principal' ? restaurant.selectedProduct.name : `${restaurant.selectedProduct.name} (${label})`;
-                      
-                      // --- LÓGICA QUE ARREGLA EL CARRITO (AQUÍ ESTÁ EL SECRETO) ---
-                      for (let i = 0; i < qty; i++) {
-                        // 1. Mandamos el producto principal
-                        onAddToCart({ ...restaurant.selectedProduct, id: parentId, name: parentName, price: Number(basePrice) }, 1);
-                        
-                        // 2. Mandamos los extras uno por uno vinculados al padre
-                        selectedExtras.forEach(extra => {
-                          onAddToCart({ 
-                            id: parentId, 
-                            extraId: extra.id, 
-                            name: extra.name, 
-                            price: Number(extra.price) 
-                          }, 1);
-                        });
-                      }
-                    }
-                  });
-                  closeModal();
-                }}
-             className="w-full py-4 rounded-2xl font-black text-[12px] text-white shadow-xl active:scale-95 transition-all" 
-  style={{ backgroundColor: '#000000' }} // <--- ACÁ QUEDÓ FIJO EN NEGRO
+        <button 
+  onClick={() => {
+    // --- LÓGICA DE BLOQUEO ---
+    if (!isOpen && !isMockup) {
+      setShowClosedModal(true);
+      return;
+    }
+
+    // --- TU LÓGICA EXISTENTE ---
+    Object.entries(variationCounts).forEach(([label, qty]) => {
+      if (qty > 0) {
+        const basePrice = (restaurant.selectedProduct.variations?.find((v:any) => v.label === label)?.price) || restaurant.selectedProduct.price;
+        const parentId = label === 'principal' ? restaurant.selectedProduct.id : `${restaurant.selectedProduct.id}-${label}`;
+        const parentName = label === 'principal' ? restaurant.selectedProduct.name : `${restaurant.selectedProduct.name} (${label})`;
+        
+        for (let i = 0; i < qty; i++) {
+          onAddToCart({ ...restaurant.selectedProduct, id: parentId, name: parentName, price: Number(basePrice) }, 1);
+          selectedExtras.forEach(extra => {
+            onAddToCart({ 
+              id: parentId, 
+              extraId: extra.id, 
+              name: extra.name, 
+              price: Number(extra.price) 
+            }, 1);
+          });
+        }
+      }
+    });
+    closeModal();
+  }}
+  className="w-full py-4 rounded-2xl font-black text-[12px] text-white shadow-xl active:scale-95 transition-all" 
+  style={{ backgroundColor: '#000000' }}
 >
   CONFIRMAR Y SUMAR
 </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* --- MODAL DE AVISO: LOCAL CERRADO --- */}
+      {showClosedModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowClosedModal(false)} />
+          <div className="bg-white w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl text-center relative animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <Clock size={32} strokeWidth={2.5} />
+            </div>
+            <h3 className="text-xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Local Cerrado</h3>
+            <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase tracking-widest leading-relaxed">
+              ¡Hola! Actualmente estamos fuera de nuestro horario de atención. Podés ver el menú, pero los pedidos están desactivados.
+            </p>
+            <button 
+              onClick={() => setShowClosedModal(false)}
+              className="mt-6 w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg active:scale-95 transition-all"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

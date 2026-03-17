@@ -31,7 +31,7 @@ const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 // --- 1. DATOS ---
 async function getRestaurant(slug: string) {
-  // A. Traemos el restaurante y sus nombres de categorías
+  // A. Traemos el restaurante y sus categorías
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(`*, categories (id, name)`) 
@@ -40,7 +40,7 @@ async function getRestaurant(slug: string) {
 
   if (!restaurant) return null;
 
-  // B. AGREGÁ ESTA CONSULTA AQUÍ: Trae TODOS los productos del local
+  // B. Traemos los productos
   const { data: products } = await supabase
     .from("products")
     .select("*")
@@ -52,10 +52,27 @@ async function getRestaurant(slug: string) {
     .select(`*, product_extras (product_id)`)
     .eq("restaurant_id", restaurant.id);
 
-  // C. MODIFICÁ EL RETURN: Agregá fetched_products
+  // --- EL TRUCO ESTÁ ACÁ: Agrupamos los productos en las categorías ---
+  const productsList = products || [];
+  const categoriesWithProducts = (restaurant.categories || []).map((cat: any) => ({
+    ...cat,
+    products: productsList.filter((p: any) => String(p.category_id) === String(cat.id))
+  }));
+
+  // C. Agregamos una categoría "General" para productos sin categoría asignada
+  const orphanedProducts = productsList.filter((p: any) => !p.category_id);
+  if (orphanedProducts.length > 0) {
+    categoriesWithProducts.push({
+      id: 'general',
+      name: 'General',
+      products: orphanedProducts
+    });
+  }
+
   return { 
     ...restaurant, 
-    fetched_products: products || [], 
+    categories: categoriesWithProducts, // <--- Ahora las categorías tienen sus productos
+    fetched_products: productsList, 
     fetched_extras: allExtras || [] 
   };
 }
@@ -1741,29 +1758,27 @@ const renderTemplate = () => {
           />
         );
 case "icecream-v1": {
-        // CORRECCIÓN: Usamos fetched_products que ya trae todos los datos correctos
-        const iceCreamProducts = restaurant.fetched_products || [];
-        
-        return (
-          <HeladeriaSoft
-            restaurant={restaurant}
-            products={iceCreamProducts}
-            onAddToCart={(product: any) => {
-              addToCart(product);
-              mostrarAviso("✅ Producto agregado");
-            }}
-            isMockup={false}
-          />
-        );
-      }
+    const iceCreamProducts = restaurant.fetched_products || [];
+    return (
+      <HeladeriaSoft
+        restaurant={restaurant}
+        products={iceCreamProducts}
+        isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
+        onAddToCart={(product: any) => {
+          addToCart(product);
+          mostrarAviso("✅ Producto agregado");
+        }}
+        isMockup={false}
+      />
+    );
+}
 case "alterna-pro":
   return (
     <AlternaPro
-      // Pasamos el producto seleccionado para que la plantilla abra SU modal
       restaurant={{ ...restaurant, selectedProduct }} 
       products={allProducts}
       setSelectedProduct={setSelectedProduct}
-      // Esta función ahora recibe el producto y la cantidad elegida
+      isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
       onAddToCart={(product: any, qty: number) => {
         for (let i = 0; i < qty; i++) {
           addToCart(product);
@@ -2214,12 +2229,13 @@ export default function MenuPage({
     );
   if (!restaurant) return notFound();
 
-  return (
-    <CartProvider>
-      <MenuContent
-        restaurant={restaurant}
-        isOpen={restaurant.is_open && checkIsOpen(restaurant.business_hours)}
-      />
-    </CartProvider>
-  );
+return (
+  <CartProvider>
+    <MenuContent
+      restaurant={restaurant}
+    
+      isOpen={restaurant.always_open || (restaurant.is_open && checkIsOpen(restaurant.business_hours))}
+    />
+  </CartProvider>
+);
 }

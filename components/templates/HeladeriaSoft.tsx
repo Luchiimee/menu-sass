@@ -1,53 +1,42 @@
 'use client';
 import { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Clock } from 'lucide-react';
 import CartFooter from "../CartFooter";
 
-export default function HeladeriaSoft({ restaurant, products, onAddToCart, isMockup = false }: any) {
+export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpen, isMockup = false }: any) {
   const [selections, setSelections] = useState<{ [key: string]: number }>({});
+  const [showClosedModal, setShowClosedModal] = useState(false);
   const THEME = restaurant?.theme_color || '#6366f1';
   const BG = restaurant?.bg_color || '#f8fafc';
 
   return (
     <div className="flex flex-col h-full font-sans relative min-h-screen" style={{ backgroundColor: BG }}>
       
-     {/* HEADER DINÁMICO (TAMAÑOS FINALES Y BOTÓN REUBICADO) */}
+      {/* HEADER DINÁMICO */}
       <header className="p-6 pt-10 bg-white border-b flex items-center sticky top-0 z-30 shadow-md relative">
         
-        {/* BOTÓN ESTADO: Ahora arriba a la derecha y más grande */}
+        {/* BOTÓN ESTADO DINÁMICO (CORREGIDO) */}
         <div 
-          className="absolute top-4 right-4 px-4 py-1.5 rounded-full font-black uppercase italic tracking-widest text-[9px] shadow-sm flex items-center gap-1.5"
-          style={{ backgroundColor: '#10b981', color: 'white' }}
+          className="absolute top-4 right-4 px-4 py-1.5 rounded-full font-black uppercase italic tracking-widest text-[9px] shadow-sm flex items-center gap-1.5 transition-colors duration-500"
+          style={{ 
+            backgroundColor: isOpen ? '#10b981' : '#ef4444', // Verde si abre, Rojo si cierra
+            color: 'white' 
+          }}
         >
-          <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          Abierto
+          {/* El puntito solo late si está abierto */}
+          <div className={`w-1.5 h-1.5 rounded-full bg-white ${isOpen ? 'animate-pulse' : ''}`} />
+          {isOpen ? 'Abierto' : 'Cerrado'}
         </div>
 
         <div className="flex items-center gap-5">
-          {/* LOGO: Subimos a w-16 */}
-          <div 
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-4xl shadow-md overflow-hidden bg-gray-50 flex-shrink-0 border-2 border-white" 
-            style={{ backgroundColor: THEME }}
-          >
-            {restaurant?.logo_url ? (
-              <img src={restaurant.logo_url} className="w-full h-full object-cover" alt="Logo" />
-            ) : (
-              "✨" 
-            )}
+          {/* LOGO */}
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-4xl shadow-md overflow-hidden bg-gray-50 flex-shrink-0 border-2 border-white" style={{ backgroundColor: THEME }}>
+            {restaurant?.logo_url ? <img src={restaurant.logo_url} className="w-full h-full object-cover" alt="Logo" /> : "✨"}
           </div>
           
           <div className="text-left leading-tight flex-1 pr-10">
-            {/* NOMBRE NEGOCIO: Subimos a text-[18px] */}
-            <span className="text-[18px] font-black uppercase text-gray-900 tracking-tighter block leading-none">
-              {restaurant?.name || 'Mi Tienda'}
-            </span>
-            
-            {/* DESCRIPCIÓN: Subimos a text-[10px] */}
-            {restaurant?.description && (
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block mt-2 leading-relaxed opacity-80">
-                {restaurant.description}
-              </span>
-            )}
+            <span className="text-[18px] font-black uppercase text-gray-900 tracking-tighter block leading-none">{restaurant?.name || 'Mi Tienda'}</span>
+            {restaurant?.description && <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block mt-2 leading-relaxed opacity-80">{restaurant.description}</span>}
           </div>
         </div>
       </header>
@@ -111,18 +100,22 @@ export default function HeladeriaSoft({ restaurant, products, onAddToCart, isMoc
                   )}
                 </div>
 
-                <button
-                  onClick={() => {
-                    const itemToAdd = variations.length > 0 
-                      ? { ...p, id: `${p.id}-${selectedIdx}`, name: `${p.name} (${variations[selectedIdx].label})`, price: Number(variations[selectedIdx].price) }
-                      : { ...p };
-                    onAddToCart(itemToAdd, 1);
-                  }}
-                  className="w-full py-4 rounded-[1.5rem] text-[10px] font-black uppercase text-white shadow-xl active:scale-95 transition-all"
-                  style={{ backgroundColor: THEME }}
-                >
-                  Agregar al pedido
-                </button>
+               <button
+  onClick={() => {
+    if (!isOpen && !isMockup) {
+      setShowClosedModal(true); // <--- Muestra el aviso si está cerrado
+    } else {
+      const itemToAdd = variations.length > 0 
+        ? { ...p, id: `${p.id}-${selectedIdx}`, name: `${p.name} (${variations[selectedIdx].label})`, price: Number(variations[selectedIdx].price) }
+        : { ...p };
+      onAddToCart(itemToAdd, 1);
+    }
+  }}
+  className="w-full py-4 rounded-[1.5rem] text-[10px] font-black uppercase text-white shadow-xl active:scale-95 transition-all"
+  style={{ backgroundColor: THEME }}
+>
+  Agregar al pedido
+</button>
               </div>
             )
           })
@@ -132,6 +125,27 @@ export default function HeladeriaSoft({ restaurant, products, onAddToCart, isMoc
       </div>
 
       {!isMockup && <CartFooter restaurant={restaurant} />}
+      {/* --- MODAL DE AVISO: LOCAL CERRADO --- */}
+      {showClosedModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowClosedModal(false)} />
+          <div className="bg-white w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl text-center relative animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <Clock size={32} strokeWidth={2.5} />
+            </div>
+            <h3 className="text-xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Local Cerrado</h3>
+            <p className="text-[10px] text-gray-400 font-bold mt-3 uppercase tracking-widest leading-relaxed">
+              ¡Hola! Actualmente estamos fuera de nuestro horario de atención.
+            </p>
+            <button 
+              onClick={() => setShowClosedModal(false)}
+              className="mt-6 w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg active:scale-95 transition-all"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
