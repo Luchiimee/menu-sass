@@ -460,11 +460,11 @@ const menuItems = [
                 </div>
 
                 {/* MODAL DE PANEL SUSPENDIDO (Global) */}
-                {showSuspendedModal && (
-                  <div className="absolute inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white/90 backdrop-blur-xl p-10 rounded-[3.5rem] shadow-2xl border border-red-100 text-center max-w-xs animate-in zoom-in-95 duration-500">
-                      <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                        <Lock size={40} />
+              {showSuspendedModal && (
+                  <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white/95 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl border border-red-100 text-center w-full max-w-[320px] animate-in zoom-in-95 duration-500 relative">
+                      <div className="w-16 h-16 bg-red-50 text-red-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4 shadow-inner">
+                        <Lock size={32} />
                       </div>
                       <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Panel Suspendido</h3>
                       <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase tracking-widest leading-relaxed text-center">
