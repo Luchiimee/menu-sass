@@ -34,7 +34,7 @@ async function getRestaurant(slug: string) {
   // A. Traemos el restaurante y sus categorías
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select(`*, categories (id, name)`) 
+    .select(`*, categories (id, name)`)
     .eq("slug", slug)
     .single();
 
@@ -45,7 +45,7 @@ async function getRestaurant(slug: string) {
     .from("products")
     .select("*")
     .eq("restaurant_id", restaurant.id)
-    .order('name', { ascending: true });
+    .order("name", { ascending: true });
 
   const { data: allExtras } = await supabase
     .from("extras")
@@ -54,26 +54,30 @@ async function getRestaurant(slug: string) {
 
   // --- EL TRUCO ESTÁ ACÁ: Agrupamos los productos en las categorías ---
   const productsList = products || [];
-  const categoriesWithProducts = (restaurant.categories || []).map((cat: any) => ({
-    ...cat,
-    products: productsList.filter((p: any) => String(p.category_id) === String(cat.id))
-  }));
+  const categoriesWithProducts = (restaurant.categories || []).map(
+    (cat: any) => ({
+      ...cat,
+      products: productsList.filter(
+        (p: any) => String(p.category_id) === String(cat.id),
+      ),
+    }),
+  );
 
   // C. Agregamos una categoría "General" para productos sin categoría asignada
   const orphanedProducts = productsList.filter((p: any) => !p.category_id);
   if (orphanedProducts.length > 0) {
     categoriesWithProducts.push({
-      id: 'general',
-      name: 'General',
-      products: orphanedProducts
+      id: "general",
+      name: "General",
+      products: orphanedProducts,
     });
   }
 
-  return { 
-    ...restaurant, 
+  return {
+    ...restaurant,
     categories: categoriesWithProducts, // <--- Ahora las categorías tienen sus productos
-    fetched_products: productsList, 
-    fetched_extras: allExtras || [] 
+    fetched_products: productsList,
+    fetched_extras: allExtras || [],
   };
 }
 
@@ -135,7 +139,7 @@ const getStyles = (
   HERO_PRICE_COLOR?: string,
   TITLE_FONT?: string,
   DESC_FONT?: string,
-  PROMO_FONT?: string
+  PROMO_FONT?: string,
 ) => {
   // ESTILOS GLOBALES: Bloquean el "Pull-to-Refresh" del iPhone y mejoran el scroll
   const common = `
@@ -431,8 +435,8 @@ height: 26px !important;
                 border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             }
         `;
- case "elegant":
-        return `
+    case "elegant":
+      return `
             ${common}
             /* Quitamos el import local porque ya está en common */
             /* body, h1, h2, h3, p, span, div, button { font-family: 'Playfair Display', serif !important; } */
@@ -456,10 +460,10 @@ height: 26px !important;
           
            
         `;
-case "bistro":
+    case "bistro":
       return `
             @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
-            body { background: ${BG}; margin: 0; color: ${TEXT}; font-family: '${DESC_FONT || 'Patrick Hand'}', cursive !important; }
+            body { background: ${BG}; margin: 0; color: ${TEXT}; font-family: '${DESC_FONT || "Patrick Hand"}', cursive !important; }
             .app-wrapper { min-height: 100vh; display: flex; flex-direction: column; padding: 15px; padding-bottom: 40px; background: ${BG}; }
             .bistro-border { border: 2px dashed ${THEME}60; border-radius: 20px; padding: 20px 15px; flex: 1; display: flex; flex-direction: column; position: relative; }
             .bistro-header { text-align: center; margin-bottom: 25px; }
@@ -470,9 +474,9 @@ case "bistro":
               line-height: 1; 
               margin-bottom: 5px; 
               text-transform: uppercase; 
-              font-family: '${TITLE_FONT || 'Patrick Hand'}', cursive; 
+              font-family: '${TITLE_FONT || "Patrick Hand"}', cursive; 
             }
-            .bistro-desc { font-size: 15px; color: ${DESC}; font-family: '${DESC_FONT || 'Patrick Hand'}', cursive; }
+            .bistro-desc { font-size: 15px; color: ${DESC}; font-family: '${DESC_FONT || "Patrick Hand"}', cursive; }
             
             /* --- PROMO RECONECTADA EN SLUGPAGE --- */
             .bistro-promo { 
@@ -487,15 +491,15 @@ case "bistro":
               font-size: 14px; 
               font-weight: bold; 
               text-transform: uppercase; 
-              font-family: '${PROMO_FONT || 'Patrick Hand'}', cursive; 
+              font-family: '${PROMO_FONT || "Patrick Hand"}', cursive; 
             }
-            .bistro-cat-title { color: ${THEME}; font-size: 18px; text-align: left; margin-bottom: 10px; opacity: 0.8; font-family: '${TITLE_FONT || 'Patrick Hand'}', cursive; border-bottom: 1px dashed ${THEME}40; padding-bottom: 4px; text-transform: uppercase; }
+            .bistro-cat-title { color: ${THEME}; font-size: 18px; text-align: left; margin-bottom: 10px; opacity: 0.8; font-family: '${TITLE_FONT || "Patrick Hand"}', cursive; border-bottom: 1px dashed ${THEME}40; padding-bottom: 4px; text-transform: uppercase; }
             
             .bistro-row { display: flex; justify-content: space-between; align-items: baseline; }
-            .bistro-name { font-size: 20px; font-weight: bold; color: ${PROD_NAME || TEXT}; line-height: 1.2; font-family: '${TITLE_FONT || 'Patrick Hand'}', cursive; }
+            .bistro-name { font-size: 20px; font-weight: bold; color: ${PROD_NAME || TEXT}; line-height: 1.2; font-family: '${TITLE_FONT || "Patrick Hand"}', cursive; }
             .bistro-dots { flex: 1; border-bottom: 1px dotted ${THEME}50; margin: 0 6px; }
-            .bistro-price { font-size: 18px; color: ${PROD_PRICE || THEME}; font-weight: bold; font-family: '${TITLE_FONT || 'Patrick Hand'}', cursive; }
-            .bistro-prod-desc { color: ${PROD_DESC || DESC}; font-family: '${DESC_FONT || 'Patrick Hand'}', cursive; opacity: 0.8; font-size: 14px; margin-top: 4px; }
+            .bistro-price { font-size: 18px; color: ${PROD_PRICE || THEME}; font-weight: bold; font-family: '${TITLE_FONT || "Patrick Hand"}', cursive; }
+            .bistro-prod-desc { color: ${PROD_DESC || DESC}; font-family: '${DESC_FONT || "Patrick Hand"}', cursive; opacity: 0.8; font-size: 14px; margin-top: 4px; }
             .bistro-extra-btn { width: 28px; height: 28px; border-radius: 8px; background: ${BTN_BG || THEME}; color: ${BTN_TEXT || BG}; display: flex; align-items: center; justify-content: center; border: none; font-family: 'Inter', sans-serif; }
          /* SOLO el botón + principal adopta el color. Si se expande, vuelve a blanco/negro */
             .bistro-item-container .add-btn-wrapper:not(.expanded) button {
@@ -597,7 +601,6 @@ function MenuContent({
   const isUrban = TEMPLATE === "urban";
   const isMarket = TEMPLATE === "marketpro";
 
-
   // Identidad
   const THEME = restaurant.theme_color || (isUrban ? "#ea580c" : "#d32f2f");
   const BG = restaurant.bg_color || (isUrban ? "#121212" : "#ffffff");
@@ -648,9 +651,24 @@ function MenuContent({
       restaurant.hero_badge_color, // 15
       restaurant.hero_title_color, // 16
       restaurant.hero_price_color, // 17
-      restaurant.title_font || (TEMPLATE === 'elegant' ? 'Playfair Display' : TEMPLATE === 'bistro' ? 'Patrick Hand' : 'Inter'),
-      restaurant.desc_font || (TEMPLATE === 'elegant' ? 'Playfair Display' : TEMPLATE === 'bistro' ? 'Patrick Hand' : 'Inter'),
-      restaurant.promo_font || (TEMPLATE === 'elegant' ? 'Playfair Display' : TEMPLATE === 'bistro' ? 'Patrick Hand' : 'Inter')
+      restaurant.title_font ||
+        (TEMPLATE === "elegant"
+          ? "Playfair Display"
+          : TEMPLATE === "bistro"
+            ? "Patrick Hand"
+            : "Inter"),
+      restaurant.desc_font ||
+        (TEMPLATE === "elegant"
+          ? "Playfair Display"
+          : TEMPLATE === "bistro"
+            ? "Patrick Hand"
+            : "Inter"),
+      restaurant.promo_font ||
+        (TEMPLATE === "elegant"
+          ? "Playfair Display"
+          : TEMPLATE === "bistro"
+            ? "Patrick Hand"
+            : "Inter"),
     );
   }, [
     TEMPLATE,
@@ -727,9 +745,9 @@ function MenuContent({
     mostrarAviso("⚠️ Elegí primero el menú principal");
   };
 
-const renderTemplate = () => {
-  // DEJALA ASÍ:
-  const allProducts = restaurant.fetched_products || [];
+  const renderTemplate = () => {
+    // DEJALA ASÍ:
+    const allProducts = restaurant.fetched_products || [];
     // 2. LÓGICA DE CATEGORÍAS PARA ALTERNA-PRO (Filtra "General" y pone defaults)
     const rawCats = restaurant.categories || [];
     const cleanCats = rawCats.filter(
@@ -796,20 +814,21 @@ const renderTemplate = () => {
                             </div>
                           </div>
                           {/* El botón ahora es un "pill" que crece si hay cantidad */}
-                         <div
-  className="add-btn-wrapper"
-  onClick={() => {
-    if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
-    !principalEnCarrito && mostrarAviso("✅ Agregado");
-  }}
->
-  <AddToCartBtn
-    product={prod}
-    variant="icon"
-    isDark={true}
-    disabled={false} // <--- CAMBIAR A FALSE
-  />
-</div>
+                          <div
+                            className="add-btn-wrapper"
+                            onClick={() => {
+                              if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
+                              !principalEnCarrito &&
+                                mostrarAviso("✅ Agregado");
+                            }}
+                          >
+                            <AddToCartBtn
+                              product={prod}
+                              variant="icon"
+                              isDark={true}
+                              disabled={false} // <--- CAMBIAR A FALSE
+                            />
+                          </div>
                         </div>
 
                         {/* SECCIÓN EXTRAS */}
@@ -855,13 +874,16 @@ const renderTemplate = () => {
         return (
           <div className="layout-container">
             <div className="header-sec">
-             <div className="status-badge" style={{ 
-  backgroundColor: isOpen ? 'white' : '#fef2f2', 
-  color: isOpen ? THEME : '#ef4444',
-  border: isOpen ? 'none' : '1px solid #fecaca' 
-}}>
-  {isOpen ? "ABIERTO" : "CERRADO"}
-</div>
+              <div
+                className="status-badge"
+                style={{
+                  backgroundColor: isOpen ? "white" : "#fef2f2",
+                  color: isOpen ? THEME : "#ef4444",
+                  border: isOpen ? "none" : "1px solid #fecaca",
+                }}
+              >
+                {isOpen ? "ABIERTO" : "CERRADO"}
+              </div>
               <div className="header-logo">
                 {LOGO ? (
                   <img src={LOGO} alt="Logo" />
@@ -912,7 +934,6 @@ const renderTemplate = () => {
                                       </span>
                                     </span>
                                     <button
-                                   
                                       className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-colors ${principalEnCarrito ? "border-gray-200 text-gray-400 hover:bg-gray-50" : "border-gray-100 text-gray-200 cursor-not-allowed"}`}
                                     >
                                       <Plus size={12} strokeWidth={3} />
@@ -922,19 +943,19 @@ const renderTemplate = () => {
                               </div>
                             )}
                           </div>
-                        <div
-  className="add-btn-wrapper pt-1"
-  onClick={() => {
-    if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
-    mostrarAviso("✅ Producto agregado");
-  }}
->
-  <AddToCartBtn
-    product={prod}
-    disabled={false} // <--- CAMBIAR A FALSE
-    hasExtras={false}
-  />
-</div>
+                          <div
+                            className="add-btn-wrapper pt-1"
+                            onClick={() => {
+                              if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
+                              mostrarAviso("✅ Producto agregado");
+                            }}
+                          >
+                            <AddToCartBtn
+                              product={prod}
+                              disabled={false} // <--- CAMBIAR A FALSE
+                              hasExtras={false}
+                            />
+                          </div>
                         </div>
                       </div>
                       <div className="classic-line"></div>
@@ -982,19 +1003,19 @@ const renderTemplate = () => {
                     </div>
 
                     {/* GRUPO DERECHA: BOTÓN */}
-                 <div
-  className="add-btn-wrapper"
-  onClick={() => {
-    if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
-    mostrarAviso("✅ Producto agregado");
-  }}
->
-  <AddToCartBtn
-    product={prod}
-    variant="icon"
-    disabled={false} // <--- CAMBIAR A FALSE
-  />
-</div>
+                    <div
+                      className="add-btn-wrapper"
+                      onClick={() => {
+                        if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
+                        mostrarAviso("✅ Producto agregado");
+                      }}
+                    >
+                      <AddToCartBtn
+                        product={prod}
+                        variant="icon"
+                        disabled={false} // <--- CAMBIAR A FALSE
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1534,108 +1555,144 @@ const renderTemplate = () => {
           </div>
         );
 
-  case "elegant":
-  return (
-    <div className="app-wrapper">
-      <div className="elegant-header" style={{ position: 'relative' }}>
-        {/* BADGE DE ESTADO */}
-        <div 
-          className="elegant-status" 
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            fontSize: '8px',
-            fontWeight: '900',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            padding: '5px 10px',
-            borderRadius: '6px',
-            border: `1px solid ${isOpen ? THEME : '#cc0000'}`,
-            color: isOpen ? THEME : '#cc0000',
-            backgroundColor: 'transparent',
-            zIndex: 10,
-            fontFamily: 'Inter, sans-serif' // Fuente neutra para el estado
-          }}
-        >
-          {isOpen ? 'Abierto' : 'Cerrado'}
-        </div>
-
-        {LOGO && <img src={LOGO} className="elegant-logo" alt="logo" />}
-        
-        {/* TÍTULO CON FUENTE DINÁMICA */}
-        <h1 className="elegant-title" style={{ fontFamily: restaurant.title_font || 'Playfair Display' }}>
-          {restaurant.name}
-        </h1>
-
-        {/* DESCRIPCIÓN CON FUENTE DINÁMICA (Aquí estaba el fallo) */}
-        <p 
-          className="text-[10px] uppercase tracking-[0.3em] opacity-40 font-bold"
-          style={{ fontFamily: restaurant.desc_font || 'Inter' }}
-        >
-          {restaurant.description}
-        </p>
-      </div>
-
-      {restaurant.show_promo && restaurant.promo_message && (
-        <div className="elegant-promo" style={{ fontFamily: restaurant.promo_font || 'Playfair Display' }}>
-          {restaurant.promo_message}
-        </div>
-      )}
-
-      {/* LISTADO DE PRODUCTOS */}
-      {restaurant.categories?.map((cat: any) => (
-        <div key={cat.id}>
-          {cat.name.toLowerCase() !== "general" && (
-            <h2 style={{ 
-              fontFamily: restaurant.title_font || 'Playfair Display',
-              fontSize: '14px', 
-              textTransform: 'uppercase', 
-              letterSpacing: '3px', 
-              margin: '30px 0 15px', 
-              opacity: 0.5 
-            }}>
-              {cat.name}
-            </h2>
-          )}
-
-          {cat.products?.map((prod: any) => {
-            const principalEnCarrito = cart.some((item) => item.id === prod.id);
-            return (
-              <div key={prod.id} className="elegant-card">
-                <div className="flex-1 pr-6 text-left">
-                  {/* NOMBRE PROD CON FUENTE DINÁMICA */}
-                  <h3 className="elegant-prod-name" style={{ fontFamily: restaurant.title_font || 'Playfair Display' }}>
-                    {prod.name}
-                  </h3>
-                  {/* DESC PROD CON FUENTE DINÁMICA */}
-                  <p className="elegant-prod-desc" style={{ fontFamily: restaurant.desc_font || 'Inter' }}>
-                    {prod.description}
-                  </p>
-                  <div className="elegant-price" style={{ fontFamily: restaurant.title_font || 'Playfair Display' }}>
-                    {formatPrice(prod.price)}
-                  </div>
-                  
-                  {/* ... (resto de extras igual) ... */}
-                </div>
-                
-                <div onClick={() => !principalEnCarrito && mostrarAviso("✅ Producto agregado")}>
-                  <AddToCartBtn
-                    product={prod}
-                    variant="icon"
-                    isDark={false}
-                    disabled={!isOpen}
-                  />
-                </div>
+      case "elegant":
+        return (
+          <div className="app-wrapper">
+            <div className="elegant-header" style={{ position: "relative" }}>
+              {/* BADGE DE ESTADO */}
+              <div
+                className="elegant-status"
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  right: "20px",
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                  border: `1px solid ${isOpen ? THEME : "#cc0000"}`,
+                  color: isOpen ? THEME : "#cc0000",
+                  backgroundColor: "transparent",
+                  zIndex: 10,
+                  fontFamily: "Inter, sans-serif", // Fuente neutra para el estado
+                }}
+              >
+                {isOpen ? "Abierto" : "Cerrado"}
               </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
 
-    case "bistro":
+              {LOGO && <img src={LOGO} className="elegant-logo" alt="logo" />}
+
+              {/* TÍTULO CON FUENTE DINÁMICA */}
+              <h1
+                className="elegant-title"
+                style={{
+                  fontFamily: restaurant.title_font || "Playfair Display",
+                }}
+              >
+                {restaurant.name}
+              </h1>
+
+              {/* DESCRIPCIÓN CON FUENTE DINÁMICA (Aquí estaba el fallo) */}
+              <p
+                className="text-[10px] uppercase tracking-[0.3em] opacity-40 font-bold"
+                style={{ fontFamily: restaurant.desc_font || "Inter" }}
+              >
+                {restaurant.description}
+              </p>
+            </div>
+
+            {restaurant.show_promo && restaurant.promo_message && (
+              <div
+                className="elegant-promo"
+                style={{
+                  fontFamily: restaurant.promo_font || "Playfair Display",
+                }}
+              >
+                {restaurant.promo_message}
+              </div>
+            )}
+
+            {/* LISTADO DE PRODUCTOS */}
+            {restaurant.categories?.map((cat: any) => (
+              <div key={cat.id}>
+                {cat.name.toLowerCase() !== "general" && (
+                  <h2
+                    style={{
+                      fontFamily: restaurant.title_font || "Playfair Display",
+                      fontSize: "14px",
+                      textTransform: "uppercase",
+                      letterSpacing: "3px",
+                      margin: "30px 0 15px",
+                      opacity: 0.5,
+                    }}
+                  >
+                    {cat.name}
+                  </h2>
+                )}
+
+                {cat.products?.map((prod: any) => {
+                  const principalEnCarrito = cart.some(
+                    (item) => item.id === prod.id,
+                  );
+                  return (
+                    <div key={prod.id} className="elegant-card">
+                      <div className="flex-1 pr-6 text-left">
+                        {/* NOMBRE PROD CON FUENTE DINÁMICA */}
+                        <h3
+                          className="elegant-prod-name"
+                          style={{
+                            fontFamily:
+                              restaurant.title_font || "Playfair Display",
+                          }}
+                        >
+                          {prod.name}
+                        </h3>
+                        {/* DESC PROD CON FUENTE DINÁMICA */}
+                        <p
+                          className="elegant-prod-desc"
+                          style={{
+                            fontFamily: restaurant.desc_font || "Inter",
+                          }}
+                        >
+                          {prod.description}
+                        </p>
+                        <div
+                          className="elegant-price"
+                          style={{
+                            fontFamily:
+                              restaurant.title_font || "Playfair Display",
+                          }}
+                        >
+                          {formatPrice(prod.price)}
+                        </div>
+
+                        {/* ... (resto de extras igual) ... */}
+                      </div>
+
+                      <div
+                        onClick={() =>
+                          !principalEnCarrito &&
+                          mostrarAviso("✅ Producto agregado")
+                        }
+                      >
+                        <AddToCartBtn
+                          product={prod}
+                          variant="icon"
+                          isDark={false}
+                          disabled={!isOpen}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        );
+
+      case "bistro":
         return (
           <div className="app-wrapper">
             <div className="bistro-border relative">
@@ -1645,15 +1702,15 @@ const renderTemplate = () => {
                   className={`px-3 py-1 border-2 border-dashed rounded-lg text-[10px] font-black uppercase tracking-widest`}
                   style={{
                     backgroundColor: BG,
-                    color: isOpen ? '#2ecc71' : '#e74c3c', // Verde abierto, Rojo cerrado
-                    borderColor: isOpen ? '#2ecc71' : '#e74c3c',
-                    fontFamily: restaurant.title_font || 'Patrick Hand'
+                    color: isOpen ? "#2ecc71" : "#e74c3c", // Verde abierto, Rojo cerrado
+                    borderColor: isOpen ? "#2ecc71" : "#e74c3c",
+                    fontFamily: restaurant.title_font || "Patrick Hand",
                   }}
                 >
                   {isOpen ? "Abierto" : "Cerrado"}
                 </div>
               </div>
-              
+
               <div className="bistro-header">
                 {LOGO && <img src={LOGO} className="bistro-logo" alt="logo" />}
                 <h1 className="bistro-title">{restaurant.name}</h1>
@@ -1668,7 +1725,6 @@ const renderTemplate = () => {
               <div className="flex-1 overflow-y-auto no-scrollbar">
                 {restaurant.categories?.map((cat: any) => (
                   <div key={cat.id} className="mb-8">
-                    
                     {/* FILTRO DE CATEGORÍA "GENERAL" */}
                     {cat.name.toLowerCase() !== "general" && (
                       <div className="bistro-cat-title">{cat.name}</div>
@@ -1683,15 +1739,21 @@ const renderTemplate = () => {
                       return (
                         <div key={prod.id} className="bistro-item-container">
                           <div className="bistro-row">
-                            <div className={`bistro-name ${principalEnCarrito ? "in-cart" : ""}`}>
+                            <div
+                              className={`bistro-name ${principalEnCarrito ? "in-cart" : ""}`}
+                            >
                               {prod.name}
                             </div>
                             <div className="bistro-dots"></div>
-                            <div className="bistro-price">{formatPrice(prod.price)}</div>
+                            <div className="bistro-price">
+                              {formatPrice(prod.price)}
+                            </div>
                           </div>
 
                           {prod.description && (
-                            <p className={`bistro-prod-desc ${principalEnCarrito ? "in-cart" : ""}`}>
+                            <p
+                              className={`bistro-prod-desc ${principalEnCarrito ? "in-cart" : ""}`}
+                            >
                               {prod.description}
                             </p>
                           )}
@@ -1699,39 +1761,83 @@ const renderTemplate = () => {
                           <div className="flex justify-end mt-2">
                             <div
                               className={`add-btn-wrapper ${principalEnCarrito ? "expanded" : ""}`}
-                              onClick={() => !principalEnCarrito && mostrarAviso("✅ Agregado")}
+                              onClick={() =>
+                                !principalEnCarrito &&
+                                mostrarAviso("✅ Agregado")
+                              }
                             >
-                              <AddToCartBtn product={prod} variant="icon" isDark={true} disabled={!isOpen} />
+                              <AddToCartBtn
+                                product={prod}
+                                variant="icon"
+                                isDark={true}
+                                disabled={!isOpen}
+                              />
                             </div>
                           </div>
 
                           {/* SECCIÓN EXTRAS */}
-                          {principalEnCarrito && extras && extras.length > 0 && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 mt-4 border-t border-dashed border-gray-600/50 pt-3">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2" style={{ fontFamily: restaurant.desc_font || 'Patrick Hand' }}>
-                                Adicionales
-                              </p>
-                              {extras.map((ex: any) => (
-                                <div key={ex.id} className="flex justify-between items-center mb-2">
-                                  <div className="text-left">
-                                    <span style={{ color: TEXT, fontSize: '14px', fontFamily: restaurant.desc_font || 'Patrick Hand' }}>{ex.name}</span>
-                                    <span style={{ color: THEME, fontSize: '14px', fontWeight: 'bold', marginLeft: '6px', fontFamily: restaurant.title_font || 'Patrick Hand' }}>
-                                      +{formatPrice(ex.price)}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      addToCart({ id: prod.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
-                                      mostrarAviso("✅ Extra sumado");
-                                    }}
-                                    className="bistro-extra-btn"
+                          {principalEnCarrito &&
+                            extras &&
+                            extras.length > 0 && (
+                              <div className="animate-in fade-in slide-in-from-top-2 duration-300 mt-4 border-t border-dashed border-gray-600/50 pt-3">
+                                <p
+                                  className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2"
+                                  style={{
+                                    fontFamily:
+                                      restaurant.desc_font || "Patrick Hand",
+                                  }}
+                                >
+                                  Adicionales
+                                </p>
+                                {extras.map((ex: any) => (
+                                  <div
+                                    key={ex.id}
+                                    className="flex justify-between items-center mb-2"
                                   >
-                                    <Plus size={16} strokeWidth={3} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                    <div className="text-left">
+                                      <span
+                                        style={{
+                                          color: TEXT,
+                                          fontSize: "14px",
+                                          fontFamily:
+                                            restaurant.desc_font ||
+                                            "Patrick Hand",
+                                        }}
+                                      >
+                                        {ex.name}
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: THEME,
+                                          fontSize: "14px",
+                                          fontWeight: "bold",
+                                          marginLeft: "6px",
+                                          fontFamily:
+                                            restaurant.title_font ||
+                                            "Patrick Hand",
+                                        }}
+                                      >
+                                        +{formatPrice(ex.price)}
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        addToCart({
+                                          id: prod.id,
+                                          extraId: ex.id,
+                                          name: ex.name,
+                                          price: Number(ex.price),
+                                        });
+                                        mostrarAviso("✅ Extra sumado");
+                                      }}
+                                      className="bistro-extra-btn"
+                                    >
+                                      <Plus size={16} strokeWidth={3} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                         </div>
                       );
                     })}
@@ -1756,37 +1862,37 @@ const renderTemplate = () => {
             }}
           />
         );
-case "icecream-v1": {
-    const iceCreamProducts = restaurant.fetched_products || [];
-    return (
-      <HeladeriaSoft
-        restaurant={restaurant}
-        products={iceCreamProducts}
-        isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
-        onAddToCart={(product: any) => {
-          addToCart(product);
-          mostrarAviso("✅ Producto agregado");
-        }}
-        isMockup={false}
-      />
-    );
-}
-case "alterna-pro":
-  return (
-    <AlternaPro
-      restaurant={{ ...restaurant, selectedProduct }} 
-      products={allProducts}
-      setSelectedProduct={setSelectedProduct}
-      isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
-      onAddToCart={(product: any, qty: number) => {
-        for (let i = 0; i < qty; i++) {
-          addToCart(product);
-        }
-        mostrarAviso("✅ Producto agregado");
-      }}
-      isMockup={false}
-    />
-  );
+      case "icecream-v1": {
+        const iceCreamProducts = restaurant.fetched_products || [];
+        return (
+          <HeladeriaSoft
+            restaurant={restaurant}
+            products={iceCreamProducts}
+            isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
+            onAddToCart={(product: any) => {
+              addToCart(product);
+              mostrarAviso("✅ Producto agregado");
+            }}
+            isMockup={false}
+          />
+        );
+      }
+      case "alterna-pro":
+        return (
+          <AlternaPro
+            restaurant={{ ...restaurant, selectedProduct }}
+            products={allProducts}
+            setSelectedProduct={setSelectedProduct}
+            isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
+            onAddToCart={(product: any, qty: number) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Producto agregado");
+            }}
+            isMockup={false}
+          />
+        );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
@@ -1936,7 +2042,7 @@ case "alterna-pro":
       )}
       {/* --- MODAL DE SELECCIÓN PARA VENTA FRACCIONADA (DIETÉTICA/HELADERÍA) --- */}
       {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
-     {selectedProduct && !["alterna-pro", "marketpro"].includes(TEMPLATE) && (
+      {selectedProduct && !["alterna-pro", "marketpro"].includes(TEMPLATE) && (
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
           <div
             className="absolute inset-0 bg-black/80 backdrop-blur-md"
@@ -2228,13 +2334,15 @@ export default function MenuPage({
     );
   if (!restaurant) return notFound();
 
-return (
-  <CartProvider>
-    <MenuContent
-      restaurant={restaurant}
-    
-      isOpen={restaurant.always_open || (restaurant.is_open && checkIsOpen(restaurant.business_hours))}
-    />
-  </CartProvider>
-);
+  return (
+    <CartProvider>
+      <MenuContent
+        restaurant={restaurant}
+        isOpen={
+          restaurant.always_open ||
+          (restaurant.is_open && checkIsOpen(restaurant.business_hours))
+        }
+      />
+    </CartProvider>
+  );
 }

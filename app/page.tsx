@@ -277,17 +277,17 @@ export default function LandingPage() {
               <div
                 // Aumenté el ancho base (w-[165px])
                 // Borde de 4px y esquinas de 2.2rem para mobile
-                className="w-[165px] md:w-[200px] aspect-[9/20] bg-black rounded-[2.2rem] md:rounded-[2.5rem] border-[4px] md:border-[6px] border-gray-950 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden transition-all duration-500 hover:scale-105"
+                className="w-[165px] md:w-[205px] aspect-[9/20] bg-black rounded-[2.2rem] md:rounded-[2.5rem] border-[4px] md:border-[6px] border-gray-950 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden transition-all duration-500 hover:scale-105"
                 style={{
                   zIndex: 30,
                   transform: 'translateZ(50px)'
                 }}
               >
                 {/* Dynamic Island ajustada */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[60px] md:w-[80px] h-[15px] md:h-[20px] bg-black rounded-full z-40"></div>
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[80px] md:w-[80px] h-[15px] md:h-[20px] bg-black rounded-full z-40"></div>
                 <div className="relative w-full h-full bg-white">
                   <Image
-                    src="/mobile-headerr.gif"
+                    src="/013.svg"
                     alt="Panel Principal"
                     fill
                     className="object-cover"
