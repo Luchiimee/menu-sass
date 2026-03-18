@@ -23,35 +23,63 @@ export async function POST(request: Request) {
 
             const userId = subData.external_reference;
             const status = subData.status; 
-
-     if (status === 'authorized') {
-            // 1. ACTIVAMOS EL PLAN EN LA TABLA RESTAURANTS
-            // Esto asegura que el restaurante tenga acceso a las funciones del plan
-            await supabase
-                .from('restaurants')
-                .update({ 
-                    subscription_status: 'active',
-                    mp_preapproval_id: id,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('user_id', userId);
-
-            // 2. ACTIVAMOS LA "LLAVE MAESTRA" EN PROFILES
-            // Esto elimina automáticamente el bloqueo de pantalla de los 14 días
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update({ 
-                    payment_configured: true 
-                })
-                .eq('id', userId);
-
-            if (profileError) {
-                console.error("Error actualizando perfil:", profileError);
-                throw profileError;
-            }
             
-            console.log(`✅ Suscripción y llave maestra activadas para: ${userId}`);
-        }
+            console.log(`Webhook MP: Recibido estado '${status}' para el usuario ${userId}`);
+
+            if (!userId) {
+                 console.error("Webhook Error: No hay external_reference en la suscripción");
+                 return NextResponse.json({ error: 'No userId' }, { status: 400 });
+            }
+
+            // --- CASO 1: PAGO EXITOSO O SUSCRIPCIÓN ACTIVA ---
+            if (status === 'authorized') {
+                await supabase
+                    .from('restaurants')
+                    .update({ 
+                        subscription_status: 'active',
+                        mp_preapproval_id: id,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', userId);
+
+                await supabase
+                    .from('profiles')
+                    .update({ payment_configured: true })
+                    .eq('id', userId);
+
+                console.log(`✅ Suscripción y llave maestra activadas para: ${userId}`);
+            }
+
+            // --- CASO 2: PAGO FALLIDO / EN REINTENTOS ---
+            // Mercado Pago pone el estado 'pending' cuando falla el cobro e inicia sus 4 intentos
+            else if (status === 'pending') {
+                await supabase
+                    .from('restaurants')
+                    .update({ 
+                        subscription_status: 'past_due', // Usamos este estado para el banner naranja
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', userId);
+
+                console.log(`⚠️ Pago fallido para ${userId}. Suscripción en estado 'past_due' (reintentando).`);
+            }
+
+            // --- CASO 3: CANCELADA DEFINTIVAMENTE ---
+            // MP lo pasa a 'cancelled' si fallan los 4 intentos o si el usuario/vos la cancelan a mano
+            else if (status === 'cancelled') {
+                await supabase
+                    .from('restaurants')
+                    .update({ 
+                        subscription_status: 'cancelled', // Esto bloquea el panel en layout.tsx
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', userId);
+
+                // Opcional: Podrías poner payment_configured: false si querés que tengan que hacer todo de nuevo
+                // await supabase.from('profiles').update({ payment_configured: false }).eq('id', userId);
+
+                console.log(`❌ Suscripción CANCELADA para: ${userId}`);
+            }
         }
 
         return NextResponse.json({ received: true }, { status: 200 });

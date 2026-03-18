@@ -406,7 +406,20 @@ const menuItems = [
             </button>
           </div>
         )}
-
+{restaurant.plan && restaurant.status === 'past_due' && (
+          <div className="bg-orange-500 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60] animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-3 text-left">
+              <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
+              <div>
+                <p className="font-bold text-sm">Tuvimos un problema al cobrar tu suscripción.</p>
+                <p className="text-xs opacity-90">El sistema hará un nuevo intento pronto. Mantené tu local activo actualizando tu medio de pago.</p>
+              </div>
+            </div>
+            <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-orange-600 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition whitespace-nowrap shadow-sm">
+              Actualizar Tarjeta
+            </button>
+          </div>
+        )}
         {/* --- BANNER DE TELÉFONO PERSONAL (GLOBAL) --- */}
         {!isLoading && !hasPhone && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm relative z-20 animate-in slide-in-from-top-full">
@@ -427,7 +440,23 @@ const menuItems = [
             </Link>
           </div>
         )}
-
+           {showWarning && (
+          <div className="bg-orange-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[50] animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-3 text-left">
+              <AlertTriangle size={20} className="animate-pulse flex-shrink-0" />
+              <div>
+                <p className="font-bold text-sm">¡Tu prueba gratuita termina en {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'}!</p>
+                <p className="text-xs opacity-90">Configurá tu método de pago ahora para no perder acceso a tu panel.</p>
+              </div>
+            </div>
+            <Link 
+              href="/dashboard/settings" 
+              className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-gray-100 transition whitespace-nowrap shadow-sm"
+            >
+              Configurar Pago
+            </Link>
+          </div>
+        )}
         {restaurant.plan && <TrialBanner />}
 
         {/* CONTENEDOR PRINCIPAL CON LÓGICA DE BLOQUEO LOCALIZADO */}
