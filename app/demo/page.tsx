@@ -9,40 +9,60 @@ import {
   Clock, ChefHat, Bike, Check, Zap, ShoppingBag,
   Store, Plus, Minus, X, ChevronDown, 
   Wallet, Landmark, Copy, MessageSquare, Loader2, Send,
-  Monitor, Smartphone, SmartphoneNfc, CheckCircle2, HelpCircle
+  Monitor, Smartphone, SmartphoneNfc, CheckCircle2, HelpCircle, Search, MapPin,Instagram,Facebook, Phone,
+  Hamburger
 } from 'lucide-react';
 
 // --- ESTILOS EXACTOS DE TU ARCHIVO TEMPLATES ---
 const REAL_TEMPLATES_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');
 
-  .demo-phone-viewport { max-width: 450px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 60px rgba(0,0,0,0.1); }
-/* --- URBANO DARK COMPLETO --- */
-  .urbano-dark { background: #121212; color: white; padding: 20px; font-family: 'Inter', sans-serif; min-height: 100vh; text-align: left; }
-  
-  /* CABECERA */
-  .urbano-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .urbano-logo { width: 50px; height: 50px; background: #333; border-radius: 50%; border: 2px solid white; background-size: cover; background-position: center; flex-shrink: 0; }
-  .urbano-names h4 { font-size: 24px; font-weight: 900; margin: 0; line-height: 0.9; text-transform: uppercase; font-style: italic; }
-  .urbano-names span { font-size: 10px; color: #888; display: block; font-weight: 700; margin-top: 4px; text-transform: uppercase; }
-  
-  /* BOTÓN ABIERTO */
-  .urbano-status { background: white; color: black; font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; }
+ .demo-phone-viewport::-webkit-scrollbar { display: none; }
+  .demo-phone-viewport { 
+    max-width: 450px; 
+    margin: 0 auto; 
+    background: white; 
+    min-height: 100vh; 
+    position: relative; 
+    box-shadow: 0 0 60px rgba(0,0,0,0.1);
+    -ms-overflow-style: none;  /* IE y Edge */
+    scrollbar-width: none;  /* Firefox */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 
-  /* BANNER CON ACENTO NARANJA (Recuperado) */
-  .urbano-promo-banner { border-left: 3px solid #ea580c; padding-left: 12px; margin: 15px 0 25px; }
-  .urbano-promo-text { color: white; font-size: 12px; font-weight: 600; opacity: 0.9; }
-
-  /* ITEMS Y SELECTORES */
-  .urbano-item { background: #1E1E1E; padding: 12px; border-radius: 16px; display: flex; gap: 15px; margin-bottom: 12px; border: 1px solid #2a2a2a; align-items: center; }
-  .urbano-img { width: 80px; height: 80px; background-size: cover; border-radius: 12px; background-position: center; flex-shrink: 0; }
-  .urbano-tit { font-weight: 800; font-size: 16px; margin-bottom: 2px; }
-  .urbano-desc { font-size: 10px; color: #666; font-weight: 600; line-height: 1.2; text-transform: uppercase; }
-  .urbano-price { color: #ea580c; font-weight: 900; font-size: 15px; font-style: italic; }
+  /* Ocultar scroll en contenedores internos (como el menú o el carrito) */
+  .overflow-y-auto::-webkit-scrollbar,
+  .scrollbar-hide::-webkit-scrollbar { 
+    display: none; 
+  }
+  .overflow-y-auto,
+  .scrollbar-hide { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+  }
   
-  .urbano-qty-row { display: flex; align-items: center; gap: 8px; background: #2a2a2a; padding: 3px 5px; border-radius: 50px; }
-  .urbano-qty-btn { width: 26px; height: 26px; background: #ea580c; color: white; border-radius: 50%; display: grid; place-items: center; }
-  .urbano-add-btn { width: 32px; height: 32px; background: white; color: black; border-radius: 50%; display: grid; place-items: center; }
+/* --- MARKET PRO DEMO --- */
+.market-pro { background: #ffffff; min-height: 100vh; font-family: 'Inter', sans-serif; color: #000; text-align: left; }
+.market-header { padding: 30px 20px 10px; text-align: center; }
+.market-logo { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #000; margin: 0 auto 10px; background-size: cover; background-position: center; }
+.market-banner-img { width: 100%; aspect-ratio: 16/8; border-radius: 20px; object-fit: cover; margin-bottom: 20px; }
+.market-search { margin: 15px 20px; background: #f3f4f6; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; color: #9ca3af; }
+.market-cats { display: flex; gap: 8px; overflow-x: auto; padding: 0 20px 20px; scrollbar-width: none; }
+.market-pill { padding: 6px 15px; background: #f3f4f6; border-radius: 20px; font-size: 10px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+.market-pill.active { background: #000; color: #fff; }
+.market-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; }
+.market-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 15px; padding: 6px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+.market-img-box { aspect-ratio: 16/13; border-radius: 10px; overflow: hidden; margin-bottom: 5px; }
+.market-img { width: 100%; height: 100%; object-fit: cover; }
+.market-tit { font-size: 9px; font-weight: 900; text-transform: uppercase; line-height: 1.1; height: 22px; display: flex; align-items: center; justify-content: center; }
+.market-price { font-size: 10px; font-weight: 900; color: #059669; margin: 4px 0; }
+.market-btn { width: 100%; background: #000; color: #fff; font-size: 8px; font-weight: 900; text-transform: uppercase; padding: 7px; border-radius: 8px; }
+
+/* MODAL INFO DEMO */
+.demo-modal-overlay { position: absolute; inset: 0; z-index: 500; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.demo-modal-content { background: white; width: 100%; max-width: 350px; border-radius: 2.5rem; overflow: hidden; animation: popIn 0.3s ease; }
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
   /* --- CLASSIC DELIVERY (PIZZERÍA) - RESTAURADO Y AGRANDADO --- */
   .classic-del { background: white; font-family: Arial, sans-serif; min-height: 100vh; text-align: left; }
@@ -211,6 +231,10 @@ const REAL_TEMPLATES_CSS = `
 .spot-add-btn { width: 32px; height: 32px; border: 1px solid #eee; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 `;
 export default function DemoPage() {
+  const [showInfo, setShowInfo] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedExtrasDemo, setSelectedExtrasDemo] = useState<any[]>([]);
+  const [quantityDemo, setQuantityDemo] = useState(1);
   const [showHeroModalDemo, setShowHeroModalDemo] = useState(false);
 const [heroQtyDemo, setHeroQtyDemo] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
@@ -353,10 +377,11 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { id: 'pop', label: 'Ideal Kiosco', icon: <Store/>, template: 'pop', color: 'text-pink-600' },
+               { id: 'urban', label: 'Ideal Hamburguesería', icon: <Hamburger/>, template: 'urban', color: 'text-orange-600' },
+      
               { id: 'spotlight', label: 'Ideal Restaurante', icon: <ChefHat/>, template: 'spotlight', color: 'text-amber-600' },
               { id: 'classic', label: 'Ideal Pizzería', icon: <Pizza/>, template: 'classic', color: 'text-red-600' },
-              { id: 'urban', label: 'Ideal Hamburguesería', icon: <Utensils/>, template: 'urban', color: 'text-orange-600' },
+              { id: 'pop', label: 'Ideal Kiosco', icon: <Store/>, template: 'pop', color: 'text-pink-600' },
               { id: 'visualgrid', label: 'Ideal Sushi', icon: <Fish/>, template: 'visualgrid', color: 'text-blue-600' },
               { id: 'minimal', label: 'Ideal Cafetería', icon: <Coffee/>, template: 'minimal', color: 'text-stone-800' },
             ].map((opt) => (
@@ -373,12 +398,14 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
 
         <div 
         className="demo-phone-viewport">
-         <button 
-  onClick={() => { setView('selector'); setIsCartOpen(false); setCart({}); }} 
-  className="absolute bottom-10 left-4 z-[100] bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-xl border border-gray-100 hover:scale-110 active:scale-95 transition-all text-gray-900"
->
-  <ArrowLeft size={22} />
-</button>
+        {template !== 'urban' && (
+  <button 
+    onClick={() => { setView('selector'); setIsCartOpen(false); setCart({}); }} 
+    className="absolute bottom-10 left-4 z-[100] bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-xl border border-gray-100 hover:scale-110 active:scale-95 transition-all text-gray-900"
+  >
+    <ArrowLeft size={22} />
+  </button>
+)}
           
           {view === 'menu' ? (
             <div className="flex flex-col h-screen overflow-hidden">
@@ -456,62 +483,175 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
   </div>
 )}
 
+{template === 'urban' && (
+  <div className="market-pro relative pb-10">
+    
+    {/* --- BOTÓN VOLVER ATRÁS (FIJO ARRIBA A LA IZQUIERDA) --- */}
+    <button 
+      onClick={() => { setView('selector'); setIsCartOpen(false); setCart({}); }} 
+      className="absolute top-6 left-6 z-[50] p-2 bg-white/80 backdrop-blur-md rounded-full shadow-md border border-gray-100 active:scale-90 transition-all"
+    >
+      <ArrowLeft size={20} className="text-gray-900"/>
+    </button>
 
-        {template === 'urban' && (
-  <div className="urbano-dark">
-    {/* CABECERA: Logo + Nombres + Botón Abierto */}
-    <div className="urbano-top">
-      <div className="flex items-center gap-4">
-        <div className="urbano-logo" style={{backgroundImage: "url('https://placehold.co/100/111/fff?text=BURGER')"}}></div>
-        <div className="urbano-names">
-          <h4>Burger KRUSTY</h4>
-          <span>A la parrilla desde 1954</span>
+    {/* --- MODAL INFO --- */}
+    {showInfo && (
+      <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-center justify-center p-6">
+        <div className="bg-white w-full max-w-[350px] p-8 rounded-[2.5rem] text-left relative animate-in zoom-in-95 duration-200">
+          <button onClick={() => setShowInfo(false)} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full"><X size={18}/></button>
+          <div className="flex items-center gap-2 mb-8 text-gray-900"><Store size={20}/><h3 className="text-lg font-black uppercase italic tracking-tighter">Información</h3></div>
+          
+          <div className="space-y-6">
+            <div className="flex gap-4"><MapPin className="text-blue-600"/><div className="text-sm font-bold text-gray-800">Calle 25 num. 1111</div></div>
+            <div className="flex gap-4"><Clock className="text-blue-600"/><div className="text-sm font-bold text-gray-800">Lun a Dom: 11:00 - 23:00</div></div>
+            <div className="flex gap-4"><Phone className="text-blue-600"/><div className="text-sm font-bold text-gray-800">1131694099</div></div>
+            
+            <div className="pt-6 border-t flex gap-4">
+              <Instagram className="text-blue-600" strokeWidth={1.5} size={24}/>
+              <Facebook className="text-blue-600" strokeWidth={1.5} size={24}/>
+            </div>
+          </div>
+          <button onClick={() => setShowInfo(false)} className="w-full mt-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest">Entendido</button>
         </div>
       </div>
-      <div className="urbano-status">Abierto</div>
-    </div>
+    )}
 
-    {/* BANNER CON ACENTO NARANJA RECUPERADO */}
-    <div className="urbano-promo-banner">
-      <p className="urbano-promo-text">Lunes de promo : 2x1 en papas con cheddar</p>
-    </div>
-
-    <div className="flex flex-col gap-3">
-      {DEMO_PRODUCTS.urban.map(p => {
-        const qty = cart[p.id] || 0;
-        return (
-          <div key={p.id} className="urbano-item">
-            <div className="urbano-img" style={{backgroundImage: `url(${p.i})`}}></div>
-            <div className="flex-1">
-              <div className="urbano-tit uppercase">{p.n}</div>
-              <div className="urbano-desc mb-3">{p.d}</div>
-              <div className="flex justify-between items-center">
-                <span className="urbano-price">${p.p}</span>
-                
-                {qty > 0 ? (
-                  <div className="urbano-qty-row">
-                    <button onClick={() => removeFromCart(p.id)} className="urbano-qty-btn">
-                      <Minus size={14} strokeWidth={3}/>
-                    </button>
-                    <span className="font-black text-sm w-5 text-center">{qty}</span>
-                    <button onClick={() => addToCart(p.id)} className="urbano-qty-btn">
-                      <Plus size={14} strokeWidth={3}/>
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => addToCart(p.id)} className="urbano-add-btn">
-                    <Plus size={18} strokeWidth={3}/>
-                  </button>
-                )}
+    {/* --- MODAL DE PRODUCTO (DISEÑO MARKET PRO EXACTO) --- */}
+    {selectedProduct && (
+      <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-end justify-center sm:items-center p-0 sm:p-4">
+        <div className="relative w-full max-w-sm bg-white overflow-hidden shadow-2xl flex flex-col max-h-[90vh] rounded-t-[2.5rem] sm:rounded-[2.5rem] animate-in slide-in-from-bottom-20 sm:zoom-in-95">
+          <div className="relative aspect-[16/12] w-full bg-gray-50">
+            <img src={selectedProduct.i} alt={selectedProduct.n} className="w-full h-full object-cover" />
+            <button onClick={() => { setSelectedProduct(null); setQuantityDemo(1); setSelectedExtrasDemo([]); }} className="absolute top-4 right-4 bg-white/90 p-2 rounded-full shadow-lg border border-gray-100 z-10">
+              <X size={18} className="text-gray-900" />
+            </button>
+          </div>
+          
+          <div className="p-6 overflow-y-auto scrollbar-hide pb-24 text-left">
+            <h2 className="text-2xl font-black italic uppercase leading-none text-gray-900 mb-2">{selectedProduct.n}</h2>
+            <p className="text-[11px] font-bold text-gray-400 uppercase leading-relaxed mb-6">{selectedProduct.d}</p>
+            
+            {/* SELECTOR DE UNIDADES */}
+            <div className="flex items-center justify-between p-3 rounded-2xl mb-8 bg-gray-50 border border-gray-100 shadow-sm">
+              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2">Unidades</span>
+              <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm">
+                <button onClick={() => setQuantityDemo(Math.max(1, quantityDemo - 1))} className="text-red-500 active:scale-75 transition-transform"><Minus size={16} strokeWidth={3}/></button>
+                <span className="font-black text-sm w-5 text-center text-gray-900">{quantityDemo}</span>
+                <button onClick={() => setQuantityDemo(quantityDemo + 1)} className="text-emerald-600 active:scale-75 transition-transform"><Plus size={16} strokeWidth={3}/></button>
               </div>
             </div>
+
+            {/* SECCIÓN DE ADICIONALES */}
+            {selectedProduct.extras && (
+              <div className="space-y-3">
+                <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
+                  ¿Querés sumar algo más?
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {selectedProduct.extras.map((ex: any) => {
+                    const isSelected = selectedExtrasDemo.some((s) => s.id === ex.id);
+                    return (
+                      <div
+                        key={ex.id}
+                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                          isSelected ? "border-emerald-500 bg-emerald-50" : "border-gray-100 bg-white"
+                        }`}
+                        onClick={() => setSelectedExtrasDemo(prev => 
+                          isSelected ? prev.filter(s => s.id !== ex.id) : [...prev, ex]
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            isSelected ? "bg-emerald-500 border-emerald-500" : "border-gray-200"
+                          }`}>
+                            {isSelected && <Check size={12} className="text-white" strokeWidth={4} />}
+                          </div>
+                          <span className={`text-xs font-black uppercase ${isSelected ? "text-emerald-900" : "text-gray-500"}`}>
+                            {ex.n}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-600">
+                          +${ex.p}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* BOTÓN CONFIRMAR FIJO ABAJO */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+            <button 
+              onClick={() => { 
+                for(let i=0; i<quantityDemo; i++) addToCart(selectedProduct.id);
+                selectedExtrasDemo.forEach(extra => {
+                   for(let i=0; i<quantityDemo; i++) addToCart(extra.id);
+                });
+                setSelectedProduct(null); 
+                setSelectedExtrasDemo([]);
+                setQuantityDemo(1);
+              }} 
+              className="w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-[0.98] transition-all bg-black text-white" 
+            >
+              Confirmar — ${ (selectedProduct.p * quantityDemo) + (selectedExtrasDemo.reduce((acc, e) => acc + Number(e.p), 0) * quantityDemo) }
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* --- HEADER MARKET PRO --- */}
+    <header className="pt-8 pb-4 px-5 text-center relative">
+        <button onClick={() => setShowInfo(true)} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm bg-white text-gray-900 active:scale-90 transition-all">
+          <Store size={18} strokeWidth={2.5} />
+        </button>
+        <div className="flex justify-center mb-3"><span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">● Abierto ahora</span></div>
+        <div className="market-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=MK')"}}></div>
+        <h1 className="text-xl font-black tracking-tighter uppercase italic leading-none text-gray-900">KRUSTY BURGER</h1>
+        <p className="mt-1 max-w-[220px] mx-auto leading-tight text-gray-400 text-[10px] font-bold uppercase tracking-widest">Hamburguesería Premium</p>
+    </header>
+
+    <div className="market-search"><Search size={14}/><span className="text-xs">Buscar producto...</span></div>
+    <div className="px-5 mb-4"><img src="https://images.unsplash.com/photo-1550547660-d9450f859349?w=600" className="market-banner-img" alt="Portada" /></div>
+
+    <div className="market-cats no-scrollbar">
+      <div className="market-pill active">Todos</div>
+      <div className="market-pill">Hamburguesas</div>
+      <div className="market-pill">Bebidas</div>
+    </div>
+
+    {/* --- GRILLA 3 COLUMNAS --- */}
+    <div className="market-grid">
+      {DEMO_PRODUCTS.urban.filter((p: any) => !p.isExtra).map(p => {
+        const qty = cart[p.id] || 0; 
+        
+        return (
+          <div key={p.id} className="market-card flex flex-col justify-between">
+            <div>
+              <div className="market-img-box"><img src={p.i} className="market-img" alt={p.n} /></div>
+              <div className="market-tit text-gray-900">{p.n}</div>
+              <div className="market-price">${p.p}</div>
+            </div>
+            
+            {/* LÓGICA DE CARRITO SIMPLE ( - 1 + ) */}
+            {qty > 0 ? (
+              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-1 mt-1 border border-gray-100 shadow-inner">
+                <button onClick={() => removeFromCart(p.id)} className="w-6 h-6 flex items-center justify-center text-red-500 font-bold active:scale-75 transition-transform"><Minus size={14} strokeWidth={3}/></button>
+                <span className="text-[10px] font-black text-gray-900">{qty}</span>
+                <button onClick={() => addToCart(p.id)} className="w-6 h-6 flex items-center justify-center text-emerald-600 font-bold active:scale-75 transition-transform"><Plus size={14} strokeWidth={3}/></button>
+              </div>
+            ) : (
+              <button onClick={() => setSelectedProduct(p)} className="market-btn active:scale-95 transition-all mt-1">Elegir</button>
+            )}
           </div>
         );
       })}
     </div>
   </div>
 )}
-        {template === 'classic' && (
+   {template === 'classic' && (
   <div className="classic-del">
     {/* ... Header y Banner se mantienen igual ... */}
     <div className="classic-header">
@@ -714,19 +854,46 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
                       <button onClick={()=>setIsCartOpen(false)} className="bg-gray-100 p-2 rounded-full"><X size={18}/></button>
                     </div>
 <div className="mb-8">
-  <h2 className="text-xl font-black italic uppercase mb-4">Tu Pedido</h2>
-  <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 scrollbar-hide">
-    {DEMO_PRODUCTS[template]?.filter(p => cart[p.id] > 0).map(item => (
-      <div key={item.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex justify-between items-center">
-        <div className="flex-1">
-          <span className="text-sm font-black block leading-none">{item.n}</span>
-          <span className="text-blue-600 font-bold text-xs">${item.p}</span>
+  <h2 className="text-xl font-black italic uppercase mb-4 text-gray-900">Tu Pedido</h2>
+  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 scrollbar-hide">
+    {/* Filtramos !p.isExtra para no renderizar el extra como un producto suelto */}
+    {DEMO_PRODUCTS[template]?.filter((p: any) => !p.isExtra && cart[p.id] > 0).map((item: any) => (
+      <div key={item.id} className="bg-gray-50 p-5 rounded-[2rem] border border-gray-100 flex flex-col shadow-sm">
+        
+        {/* FILA PRINCIPAL: HAMBURGUESA */}
+        <div className="flex justify-between items-center w-full">
+          <div className="flex-1 text-left pr-2">
+            <span className="text-sm font-black block leading-none uppercase text-gray-900">{item.n}</span>
+            <span className="text-emerald-600 font-bold text-xs">${item.p}</span>
+          </div>
+          <div className="flex items-center gap-3 bg-white p-1.5 rounded-xl border shadow-sm">
+            <button onClick={() => removeFromCart(item.id)} className="w-7 h-7 flex items-center justify-center text-red-500 active:scale-90 transition-transform"><Minus size={16} strokeWidth={3}/></button>
+            <span className="font-black text-sm w-4 text-center text-gray-900">{cart[item.id]}</span>
+            <button onClick={() => addToCart(item.id)} className="w-7 h-7 flex items-center justify-center text-emerald-600 active:scale-90 transition-transform"><Plus size={16} strokeWidth={3}/></button>
+          </div>
         </div>
-        <div className="flex items-center gap-3 bg-white p-1 rounded-xl border">
-          <button onClick={() => removeFromCart(item.id)} className="w-7 h-7 flex items-center justify-center text-red-500"><Minus size={14} strokeWidth={3}/></button>
-          <span className="font-black text-sm w-4 text-center">{cart[item.id]}</span>
-          <button onClick={() => addToCart(item.id)} className="w-7 h-7 flex items-center justify-center text-green-600"><Plus size={14} strokeWidth={3}/></button>
-        </div>
+
+        {/* FILA ANIDADA: ADICIONALES CHICOS (SIN LÍNEA NI FONDO BLANCO) */}
+        {item.extras && item.extras.some((ex: any) => cart[ex.id] > 0) && (
+          <div className="mt-3 space-y-2">
+            {item.extras.filter((ex: any) => cart[ex.id] > 0).map((ex: any) => (
+              <div key={ex.id} className="flex justify-between items-center">
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">+ {ex.n}</p>
+                  <p className="text-[10px] font-black text-emerald-600">${ex.p}</p>
+                </div>
+                
+                {/* BOTONES MÁS CHICOS PARA EXTRAS */}
+                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+                  <button onClick={() => removeFromCart(ex.id)} className="w-5 h-5 flex items-center justify-center text-red-500 active:scale-90 transition-transform"><Minus size={10} strokeWidth={4}/></button>
+                  <span className="text-[11px] font-black w-3 text-center text-gray-900">{cart[ex.id]}</span>
+                  <button onClick={() => addToCart(ex.id)} className="w-5 h-5 flex items-center justify-center text-emerald-600 active:scale-90 transition-transform"><Plus size={10} strokeWidth={4}/></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     ))}
   </div>
@@ -1041,12 +1208,16 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
 // --- DATA DE PRODUCTOS (VA AL FINAL DEL ARCHIVO) ---
 const DEMO_PRODUCTS: Record<string, any[]> = {
 urban: [
-    { id: 'u1', n: 'Doble Black Bacon', d: 'Medallón 180g + Cheddar', p: 8500, i: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300' },
-    // IMAGEN CAMBIADA AQUÍ:
-    { id: 'u2', n: 'Papas King Cheddar', d: 'Panceta y verdeo crunchy', p: 4200, i: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=300&q=80' },
-    { id: 'u3', n: 'Crispy Chicken', d: 'Pollo frito + Alioli', p: 7800, i: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300' },
-    { id: 'u4', n: 'Aros de Cebolla', d: 'X10 unidades con BBQ', p: 3500, i: 'https://images.unsplash.com/photo-1639146174825-df8551817a01?w=300' }
-  ],
+  { id: 'u1', n: 'Doble Black Bacon', d: 'Medallón 180g + Cheddar', p: 8500, i: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300', extras: [{id:'e1', n:'Extra Bacon', p:1500}, {id:'e2', n:'Cheddar Fundido', p:1200}] },
+  { id: 'u2', n: 'Papas King Cheddar', d: 'Panceta y verdeo crunchy', p: 4200, i: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=300', extras: [{id:'e3', n:'Doble Porción', p:2000}] },
+  { id: 'u3', n: 'Crispy Chicken', d: 'Pollo frito + Alioli', p: 7800, i: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300' },
+  { id: 'u4', n: 'Aros de Cebolla', d: 'X10 unidades con BBQ', p: 3500, i: 'https://images.unsplash.com/photo-1625938146369-adc83368bda7?w=400', extras: [{id:'e4', n:'Salsa Picante', p:500}] },
+  // EXTRAS OCULTOS (Solución para que no tire $NaN en tu carrito simple)
+  { id: 'e1', n: 'Extra Bacon', p: 1500, isExtra: true },
+  { id: 'e2', n: 'Cheddar Fundido', p: 1200, isExtra: true },
+  { id: 'e3', n: 'Doble Porción', p: 2000, isExtra: true },
+  { id: 'e4', n: 'Salsa Picante', p: 500, isExtra: true }
+],
   visualgrid: [
     { id: 's1', n: 'Niguiri Salmón', p: 12500, i: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400', d: 'Fina lámina de salmón sobre arroz shari.' },
     { 
