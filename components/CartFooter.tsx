@@ -175,9 +175,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             if (newOrder) {
                 setActiveOrderId(newOrder.id); // <--- ESTO ACTIVA EL TRACKER AUTOMÁTICAMENTE
                 orderRef = `#${newOrder.id.slice(0, 5)}`;
-               /* if (isPlus) {
-                    fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurantId, orderId: newOrder.id, customerName: nombre, total: totalFinal, orderType: metodoEnvio }), }).catch(() => {});
-                }*/
+              
             }
         } else {
             setActiveOrderId('light-plan-order'); // <--- ESTO ACTIVA EL CARTEL VERDE EN LIGHT
@@ -219,17 +217,12 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
 
         window.onbeforeunload = null;
 
-        // --- ACÁ ARREGLAMOS EL TOGGLE ---
-        // Redirigimos SOLO si:
-        // a) Es Plan Light (siempre va a WhatsApp)
-        // b) Es Plan Plus Y el toggle de WhatsApp está encendido (true)
         if (isLight || receiveWhatsapp === true) {
             setTimeout(() => {
                 window.location.href = protocolUrl;
             }, 100);
         } else {
-            // SI ES "SOLO PANEL": No hacemos nada. 
-            // El componente ya cambió a la vista de OrderTracker porque seteamos setActiveOrderId(newOrder.id) arriba.
+           
             console.log("Pedido guardado. Solo panel activado.");
         }
         
@@ -347,7 +340,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
                         )}
                     </div>
 
-                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Ej: Sin cebolla..." value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Ej:Deja aquí alguna nota" value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
 
                     <div className="pt-2 border-t border-gray-100 space-y-4">
                         <div className="bg-gray-50 p-4 rounded-[2rem] border border-gray-100 shadow-inner">
