@@ -522,13 +522,32 @@ height: 26px !important;
               color: ${BTN_TEXT} !important;
             }
         `;
-    case "marketpro":
-      return `
-            ${common}
-            body { background: ${BG}; margin: 0; }
-            .no-scrollbar::-webkit-scrollbar { display: none; }
-            .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        `;
+   case "marketpro":
+  return `
+        ${common}
+        /* Fix total para el efecto chicle y bloqueo de botones en el carrito */
+        html, body {
+          height: auto !important;
+          min-height: 100% !important;
+          overflow-y: auto !important;
+          overscroll-behavior-y: contain !important; /* Permite scroll pero frena el rebote elástico */
+        }
+        
+        body { 
+          background: ${BG}; 
+          margin: 0; 
+          position: relative;
+        }
+
+        /* Liberamos el contenedor principal para que no capture los toques del carrito */
+        main {
+          height: auto !important;
+          overscroll-behavior-y: contain !important;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    `;
     default:
       return `${common} body { background: ${BG}; }`;
   }

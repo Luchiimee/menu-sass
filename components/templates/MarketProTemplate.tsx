@@ -74,9 +74,24 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
             borderColor: showBg ? `${restaurant.description_color}20` : 'transparent',
           }}
         >
-          <div className="aspect-[16/13] w-full rounded-xl overflow-hidden mb-1 bg-transparent flex items-center justify-center">
-            <img src={product.image_url || '/placeholder.png'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-          </div>
+      <div className="aspect-[3/4] w-full rounded-xl overflow-hidden mb-1 bg-gray-100 flex items-center justify-center relative">
+  {product.video_url ? (
+    <video 
+      src={product.video_url} 
+      autoPlay 
+      loop 
+      muted 
+      playsInline 
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+    />
+  ) : (
+    <img 
+      src={product.image_url || '/placeholder.png'} 
+      alt={product.name} 
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+    />
+  )}
+</div>
           <div className="flex flex-col items-center px-0.5 pb-0.5 w-full">
             <h3 className="text-[9px] font-black uppercase italic tracking-tighter leading-tight line-clamp-2 min-h-[22px] flex items-center justify-center" style={{ color: restaurant.card_name_color || '#000000' }}>
               {product.short_name || product.name}
@@ -220,8 +235,23 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
             </button>
             <div className="overflow-y-auto no-scrollbar flex-1">
               <div className="relative aspect-[16/15] w-full bg-gray-50">
-                <img src={selectedProduct.image_url} alt={selectedProduct.name} className="w-full h-full object-cover" />
-              </div>
+  {selectedProduct.video_url ? (
+    <video 
+      src={selectedProduct.video_url} 
+      autoPlay 
+      loop 
+      muted 
+      playsInline 
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <img 
+      src={selectedProduct.image_url || '/placeholder.png'} 
+      alt={selectedProduct.name} 
+      className="w-full h-full object-cover" 
+    />
+  )}
+</div>
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h2 className="text-xl font-black uppercase italic tracking-tighter leading-none text-gray-900" style={{ fontFamily: titleFont }}>{selectedProduct.name}</h2>

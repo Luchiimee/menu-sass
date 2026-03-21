@@ -4,8 +4,9 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star } from 'lucide-react';
+import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video } from 'lucide-react';
 import Link from 'next/link';
+import { CldUploadWidget } from 'next-cloudinary';
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -37,13 +38,14 @@ const [categoryFormData, setCategoryFormData] = useState({ name: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<string | null>(null);
 
- const [formData, setFormData] = useState({ 
-  name: '', 
-  description: '', 
-  price: '', 
-  image_url: '', 
-  category_id: '',
-  variations: [] as { label: string, price: string, is_featured?: boolean }[]
+const [formData, setFormData] = useState({ 
+  name: '', 
+  description: '', 
+  price: '', 
+  image_url: '', 
+  video_url: '', // <--- AGREGAMOS ESTO
+  category_id: '',
+  variations: [] as { label: string, price: string, is_featured?: boolean }[]
 });
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
@@ -135,8 +137,8 @@ const openCreateModal = () => {
     }
     setEditingId(null);
     setFormData({ 
-      name: '', description: '', price: '', image_url: '', category_id: '',
-      variations: [] // Reseteamos variaciones
+      name: '', description: '', price: '', image_url: '', video_url: '', category_id: '',
+      variations: [] 
     });
     setSelectedExtras([]); 
     setShowModal(true);
@@ -149,30 +151,88 @@ const openEditModal = async (product: any) => {
         description: product.description || '',
         price: product.price || '',
         image_url: product.image_url || '',
+        video_url: product.video_url || '',
         category_id: product.category_id || '',
-        variations: product.variations || [] // Cargamos variaciones existentes
+        variations: product.variations || [] 
     });
     setSelectedExtras([]); 
     const { data: rels } = await supabase.from('product_extras').select('extra_id').eq('product_id', product.id);
     if (rels) setSelectedExtras(rels.map(r => r.extra_id));
     setShowModal(true);
 };
+
   const toggleExtra = (extraId: string) => {
       if (selectedExtras.includes(extraId)) setSelectedExtras(selectedExtras.filter(id => id !== extraId));
       else setSelectedExtras([...selectedExtras, extraId]);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!e.target.files?.length) return;
-      setUploading(true);
-      const file = e.target.files[0];
-      const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
+ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files?.length) return;
+      setUploading(true);
+      const file = e.target.files[0];
+      const isVideo = file.type.startsWith('video/');
+
       try {
-          await supabase.storage.from('images').upload(fileName, file);
-          const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
-          setFormData({ ...formData, image_url: publicUrl });
-      } catch (error) { alert('Error al subir imagen'); } finally { setUploading(false); }
-  };
+          if (isVideo) {
+              // --- 1. VALIDAR PESO (Máx 10MB) ---
+              if (file.size > 10 * 1024 * 1024) {
+                  setToast("❌ El video es muy pesado. Máximo 10MB.");
+                  setTimeout(() => setToast(null), 4000);
+                  setUploading(false);
+                  return;
+              }
+
+              // --- 2. VALIDAR DURACIÓN (Magia para leer los metadatos antes de subir) ---
+              const duration: number = await new Promise((resolve) => {
+                  const video = document.createElement('video');
+                  video.preload = 'metadata';
+                  video.onloadedmetadata = () => {
+                      window.URL.revokeObjectURL(video.src);
+                      resolve(video.duration);
+                  };
+                  video.src = URL.createObjectURL(file);
+              });
+
+              // Le damos un margen hasta 5.5 por los milisegundos de algunos celulares
+              if (duration > 5.5) {
+                  setToast("⏱️ El video es muy largo. Debe durar máximo 5 segundos para mantener tu menú rápido.");
+                  setTimeout(() => setToast(null), 5000);
+                  setUploading(false);
+                  return;
+              }
+
+              // --- 3. SUBIR A CLOUDINARY (Si pasó las pruebas) ---
+              const formDataCloudinary = new FormData();
+              formDataCloudinary.append('file', file);
+              formDataCloudinary.append('upload_preset', 'snappy_videos'); 
+
+              const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+              const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+                  method: 'POST',
+                  body: formDataCloudinary
+              });
+
+              const data = await response.json();
+              if (data.secure_url) {
+                  setFormData({ ...formData, video_url: data.secure_url, image_url: '' }); 
+              } else {
+                  throw new Error("Error al subir a Cloudinary");
+              }
+
+          } else {
+              // --- LÓGICA SUPABASE PARA IMÁGENES (La que ya tenías) ---
+              const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
+              await supabase.storage.from('images').upload(fileName, file);
+              const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+              setFormData({ ...formData, image_url: publicUrl, video_url: '' }); 
+          }
+      } catch (error) { 
+          setToast("❌ Error al subir el archivo."); 
+          setTimeout(() => setToast(null), 4000);
+      } finally { 
+          setUploading(false); 
+      }
+  };
 
  const handleSaveProduct = async () => {
     // 1. VALIDACIÓN INTELIGENTE
@@ -190,15 +250,16 @@ const openEditModal = async (product: any) => {
         let productId = editingId;
         
         // 2. PREPARAMOS LOS DATOS (Incluyendo las nuevas variaciones)
-        const productData: any = {
-            name: formData.name,
-            description: formData.description,
-            // Si no hay precio único, guardamos 0 o null
-            price: formData.price ? Number(formData.price) : 0, 
-            image_url: formData.image_url,
-            category_id: formData.category_id || null,
-            variations: formData.variations // <--- AGREGAMOS LAS VARIANTES AQUÍ
-        };
+      // 2. PREPARAMOS LOS DATOS (Incluyendo video y variaciones)
+        const productData: any = {
+            name: formData.name,
+            description: formData.description,
+            price: formData.price ? Number(formData.price) : 0, 
+            image_url: formData.image_url,
+            video_url: formData.video_url || null, // <--- GUARDAMOS EL VIDEO
+            category_id: formData.category_id || null,
+            variations: formData.variations 
+        };
 
         if (editingId) {
             const { error } = await supabase.from('products').update(productData).eq('id', editingId);
@@ -504,13 +565,25 @@ if (loading) return (
                                 <tr key={p.id} className="hover:bg-slate-50/50 group transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3 text-left">
-                                            <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100">
-                                                {p.image_url ? (
-                                                    <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
-                                                ) : (
-                                                    <ImageIcon className="p-3 text-gray-300 w-full h-full"/>
-                                                )}
-                                            </div>
+                                         <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100 relative">
+    {p.image_url ? (
+        <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
+    ) : p.video_url ? (
+        <>
+            {/* Generamos una miniatura automática del video cambiando .mp4 por .jpg */}
+            <img 
+                src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} 
+                className="w-full h-full object-cover opacity-80" 
+                alt={p.name}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <Video size={12} className="text-white drop-shadow-md" />
+            </div>
+        </>
+    ) : (
+        <ImageIcon className="p-3 text-gray-300 w-full h-full"/>
+    )}
+</div>
                                             <div className="flex flex-col min-w-0">
                                                 {/* NOMBRE NEGRITA Y COMPACTO */}
                                                 <p className="font-black text-slate-900 uppercase leading-tight text-xs truncate max-w-[180px]">
@@ -559,17 +632,41 @@ if (loading) return (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {products.map((p) => (
                         <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
-                            <div className="aspect-square bg-gray-100 relative">
-                                {p.image_url ? (
-                                    <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
-                                ) : (
-                                    <ImageIcon className="p-10 text-gray-200 w-full h-full"/>
-                                )}
-                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button onClick={() => openEditModal(p)} className="bg-white p-2 rounded-full shadow text-blue-500 hover:scale-110 transition"><Edit2 size={12}/></button>
-                                    <button onClick={() => handleDeleteProduct(p.id)} className="bg-white p-2 rounded-full shadow text-red-500 hover:scale-110 transition"><Trash2 size={12}/></button>
-                                </div>
-                            </div>
+  <div className="aspect-square bg-gray-100 relative overflow-hidden group">
+    {/* --- LÓGICA DE IMAGEN / VIDEO --- */}
+    {p.image_url ? (
+        <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
+    ) : p.video_url ? (
+        <>
+            <img 
+                src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} 
+                className="w-full h-full object-cover" 
+                alt={p.name}
+            />
+            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md p-1.5 rounded-lg border border-white/20">
+                <Video size={14} className="text-white" />
+            </div>
+        </>
+    ) : (
+        <ImageIcon className="p-10 text-gray-200 w-full h-full"/>
+    )}
+
+    {/* --- BOTONES RESTAURADOS (Lápiz y Tachito) --- */}
+    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button 
+            onClick={(e) => { e.stopPropagation(); openEditModal(p); }} 
+            className="bg-white p-2 rounded-full shadow-lg text-blue-500 hover:scale-110 transition active:scale-95"
+        >
+            <Edit2 size={12}/>
+        </button>
+        <button 
+            onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} 
+            className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95"
+        >
+            <Trash2 size={12}/>
+        </button>
+    </div>
+</div>
                             <div className="p-3">
                                 <p className="font-bold text-sm truncate uppercase text-slate-800">{p.name}</p>
                                 <p className="font-black text-violet-600 text-sm mt-1">
@@ -671,39 +768,69 @@ if (loading) return (
                   <div className="p-6 overflow-y-auto space-y-6 bg-white">
                         
                       {/* 1. SECCIÓN DE FOTO O MENSAJE SEGÚN PLANTILLA */}
+
 {selectedTemplate && templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) ? (
-    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
-            <ImageIcon className="text-amber-500" size={24} />
-        </div>
-        <h4 className="text-amber-800 font-bold text-sm uppercase tracking-tight">Diseño de Carga Rápida</h4>
-        <p className="text-amber-700/80 text-[11px] mt-2 leading-relaxed">
-            La plantilla <b>{selectedTemplate.toUpperCase()}</b> es un diseño simplificado.<br/> 
-            No utiliza imágenes ni categorías para priorizar la velocidad de carga.
-        </p>
-    </div>
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+            <ImageIcon className="text-amber-500" size={24} />
+        </div>
+        <h4 className="text-amber-800 font-bold text-sm uppercase tracking-tight">Diseño de Carga Rápida</h4>
+        <p className="text-amber-700/80 text-[11px] mt-2 leading-relaxed">
+            La plantilla <b>{selectedTemplate.toUpperCase()}</b> es un diseño simplificado.<br/> 
+            No utiliza imágenes para priorizar la velocidad de carga.
+        </p>
+    </div>
 ) : (
-    <div className="flex justify-center animate-in fade-in zoom-in-95 duration-200">
-        <label className="relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden">
-            {formData.image_url ? (
-                <>
-                    <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Foto</p>
+    <div className="flex justify-center animate-in fade-in zoom-in-95 duration-200">
+        <label className={`relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            
+            {uploading ? (
+                <div className="flex flex-col items-center">
+                    <Loader2 className="animate-spin text-violet-500 mb-2" size={30} />
+                    <span className="text-xs font-bold text-violet-700">Subiendo archivo...</span>
+                </div>
+            ) : formData.video_url ? (
+                <>
+                    <video src={formData.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Archivo</p>
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] text-white font-bold rounded-lg uppercase tracking-widest flex items-center gap-1"><Video size={12}/> Video</div>
+                </>
+            ) : formData.image_url ? (
+                <>
+                    <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Archivo</p>
+                    </div>
+                </>
+            ) : (
+        <>
+                    {/* ESTADO VACÍO: CENTRADO TOTAL SIN RELLENOS EXTRAS */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                        
+                        {/* La cápsula de iconos */}
+                        <div className="bg-white px-4 py-2 rounded-full shadow-sm inline-flex items-center justify-center mb-3 border border-violet-50 group-hover:scale-110 transition-transform duration-300">
+                            <div className="flex items-center gap-2.5 text-violet-500">
+                                <ImageIcon size={18}/>
+                                <div className="w-[1px] h-4 bg-violet-100"></div>
+                                <Video size={18}/>
+                            </div>
+                        </div>
+                        
+                        {/* Bloque de textos juntos */}
+                        <div className="space-y-0.5">
+                            <p className="text-[13px] font-bold text-gray-700">Sube Foto o Video animado</p>
+                            <p className="text-[10px] text-gray-400 font-medium">Duración ideal: 3 a 5 segundos</p>
+                            <p className="text-[9px] text-gray-300 font-bold uppercase tracking-tight">Máximo 10MB</p>
+                        </div>
                     </div>
                 </>
-            ) : (
-                <div className="text-center p-4">
-                    <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3">
-                        <ImageIcon className="text-violet-400" size={24}/>
-                    </div>
-                    <p className="text-sm font-bold text-gray-600">Sube una foto atractiva</p>
-                    <p className="text-[10px] text-gray-400 mt-1">Recomendado: 800x800px</p>
-                </div>
-            )}
-            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-        </label>
-    </div>
+            )}
+            {/* EL TRUCO: Aceptar image/* y video/* */}
+            <input type="file" className="hidden" accept="image/*,video/*" onChange={handleImageUpload} disabled={uploading} />
+        </label>
+    </div>
 )}
 
              {/* 2. DATOS BÁSICOS DEL PRODUCTO */}
