@@ -522,27 +522,31 @@ height: 26px !important;
               color: ${BTN_TEXT} !important;
             }
         `;
-   case "marketpro":
+ case "marketpro":
   return `
         ${common}
-        /* Fix total para el efecto chicle y bloqueo de botones en el carrito */
+        /* Bloqueo total del rebote elástico del navegador (Safari iOS) */
         html, body {
-          height: auto !important;
-          min-height: 100% !important;
-          overflow-y: auto !important;
-          overscroll-behavior-y: contain !important; /* Permite scroll pero frena el rebote elástico */
+          overflow: hidden !important;
+          height: 100dvh !important; /* dVH se ajusta perfecto a la pantalla del celu */
+          position: fixed !important;
+          width: 100% !important;
+          margin: 0;
+          padding: 0;
         }
         
-        body { 
-          background: ${BG}; 
-          margin: 0; 
-          position: relative;
+        /* El scroll real queda encerrado únicamente dentro de la etiqueta <main> */
+        main {
+          height: 100dvh !important;
+          width: 100% !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important; /* Suavidad en iPhone */
+          overscroll-behavior-y: contain !important; /* Evita que el scroll 'salte' al navegador */
         }
 
-        /* Liberamos el contenedor principal para que no capture los toques del carrito */
-        main {
-          height: auto !important;
-          overscroll-behavior-y: contain !important;
+        /* Forzamos que el carrito y los modales se mantengan fijos a la pantalla, no al contenido */
+        .fixed {
+          position: fixed !important;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
