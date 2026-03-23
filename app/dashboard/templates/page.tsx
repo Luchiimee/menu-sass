@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw, Heart, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -190,103 +190,85 @@ const GALLERY_STYLES = `
   :root {
       --primary: #FF4500;
       --border-color: #e5e7eb;
-      --text-dark: #1a1a1a;
-      --text-gray: #666666;
   }
 
-  /* 1. GRID COMPACTO (4 por fila) */
+  /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
   .templates-grid { 
       display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); 
-      gap: 1.5rem; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 1rem; 
       padding-bottom: 2rem; 
   }
+  @media (min-width: 1024px) {
+    .templates-grid { grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+  }
 
-  /* TARJETA */
+  /* 2. CELULAR FLOTANTE (Sin la card blanca de fondo) */
   .template-card {
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: transparent;
+      border: none;
+      transition: all 0.3s ease;
       position: relative;
       display: flex;
       flex-direction: column;
       height: 100%;
-  }
-  .template-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-      border-color: var(--text-dark);
-  }
-  .template-card.active-card {
-      border: 2px solid #000;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+      cursor: pointer;
   }
 
-  /* BADGES */
-  .tags-container { position: absolute; top: 10px; left: 10px; z-index: 10; display: flex; gap: 4px; }
-  .tag { padding: 3px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
-  .tag.new { background: #22c55e; color: white; }
-  .tag.premium { background: #1a1a1a; color: #ffd700; border: 1px solid #ffd700; }
-  
-  .badge-selected { 
-      position: absolute; top: 10px; right: 10px; 
-      background: #000; color: white; 
-      padding: 4px 8px; border-radius: 20px; 
-      font-size: 0.65rem; font-weight: 600; z-index: 10; 
-      display: flex; align-items: center; gap: 4px; 
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-  }
-
-  /* 2. CELULAR (PREVIEW) */
   .phone-preview {
-      height: 330px; 
+      width: 100%;
+      aspect-ratio: 9/18;
+      height: auto; 
       background: #f3f4f6;
       position: relative;
       overflow: hidden;
-      border-bottom: 1px solid var(--border-color);
+      border-radius: 28px;
+      /* TRAZO FINO Y SOMBRA SUAVE */
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 15px 35px -5px rgba(0,0,0,0.08);
       display: flex; justify-content: center; align-items: flex-start;
-      padding-top: 25px; /* Espacio para que la hora no tape el diseño */
+      padding-top: 20px;
   }
   
-  .preview-content {
-      width: 100%; height: 100%;
-      background: white; 
-      overflow: hidden; 
-      position: relative;
-      display: flex; 
-      flex-direction: column; 
-  }
-  
-  .status-bar-fake { 
-      position: absolute; top: 0; left: 0; width: 100%; height: 25px; 
-      display: flex; justify-content: space-between; padding: 0 10px; 
-      align-items: center; font-size: 9px; font-weight: bold; z-index: 20;
-      margin-top: -25px; /* Sube al padding del padre */
+  .template-card:hover .phone-preview {
+      transform: translateY(-5px);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
   }
 
-  /* INFO FOOTER */
-  .card-info { padding: 1rem; flex: 1; display: flex; flex-direction: column; background: white; position: relative; z-index: 2; }
-  .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.2rem; display: flex; justify-content: space-between; align-items: center; color: var(--text-dark); }
-  .card-desc { font-size: 0.75rem; color: var(--text-gray); margin-bottom: 0.8rem; line-height: 1.3; flex: 1; }
+  .preview-content { width: 100%; height: 100%; background: white; overflow: hidden; position: relative; }
 
-  .btn-select {
-      width: 100%; padding: 8px; border: none; border-radius: 6px;
-      background: #000; color: white; font-weight: 600; font-size: 0.8rem;
-      cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+  /* BOTÓN CORAZÓN TIPO INSTAGRAM */
+  .heart-btn {
+      position: absolute; bottom: 12px; right: 12px; 
+      background: white; color: #666; 
+      width: 30px; height: 30px; border-radius: 50%; 
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 20;
+      transition: all 0.2s;
   }
-  .btn-select:hover { background: #333; }
-  .btn-select:disabled { background: #e5e7eb; color: #9ca3af; cursor: default; }
-  .btn-select.locked-btn { background: #333; }
+  .heart-btn.liked { color: #ef4444; }
 
-  .btn-personalize { display: block; text-align: center; margin-top: 8px; font-size: 0.7rem; font-weight: 700; color: #2563eb; text-decoration: none; }
-  .btn-personalize:hover { text-decoration: underline; }
+  /* INFO TEXTO ABAJO */
+  .card-info { padding: 0.7rem 0; text-align: center; }
+  .card-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #111; }
+
+  /* OVERLAY HISTORIAS */
+  .story-overlay {
+      position: fixed; inset: 0; background: #000; z-index: 500;
+      display: flex; flex-direction: column;
+  }
+  .story-track {
+      display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100%;
+  }
+  .story-slide {
+      min-width: 100vw; display: flex; align-items: center; justify-content: center; scroll-snap-align: center;
+  }
+
 
   /* --- ESTILOS DE TUS PLANTILLAS (EXACTOS) --- */
 
   /* URBANO DARK */
-  .urbano-dark { background: #121212; color: white; padding: 12px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; }
+  .urbano-dark { background: #121212; color: white; padding: 12px; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
   .urbano-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .urbano-brand { display: flex; gap: 8px; align-items: center; }
   .urbano-logo { width: 32px; height: 32px; background: #333; border-radius: 50%; border: 2px solid white; background-size: cover; background-position: center; }
@@ -303,7 +285,7 @@ const GALLERY_STYLES = `
   .urbano-add-btn { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: none; font-size: 12px; }
 
   /* VISUAL GRID (CON HOVER) */
-  .sushi-visual { background: #1a1a1a; color: white; padding: 12px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; }
+  .sushi-visual { background: #1a1a1a; color: white; padding: 12px; font-family: 'Inter', sans-serif; min-height: 100vh;; display: flex; flex-direction: column;}
   .sushi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .sushi-brand { display: flex; align-items: center; gap: 8px; }
   .sushi-logo { width: 30px; height: 30px; border-radius: 50%; background-size: cover; border: 2px solid #ea580c; flex-shrink: 0; }
@@ -329,7 +311,7 @@ const GALLERY_STYLES = `
   .sushi-item:hover .sushi-btn { display: block; }
 
   /* CLASSIC */
-  .classic-del { background: white; font-family: Arial, sans-serif; height: 100%; display: flex; flex-direction: column; }
+  .classic-del { background: white; font-family: Arial, sans-serif;min-height: 100vh;; display: flex; flex-direction: column; }
   .classic-header { background: #d32f2f; padding: 12px; color: white; text-align: center; position: relative; }
   .classic-logo { width: 26px; height: 26px; background: white; border-radius: 50%; color: #d32f2f; display: grid; place-items: center; font-size: 9px; margin: 0 auto 4px; font-weight: bold; }
   .classic-title { font-size: 11px; font-weight: bold; }
@@ -344,7 +326,7 @@ const GALLERY_STYLES = `
   .classic-btn { width: 18px; height: 18px; border: 1px solid #ddd; background: white; color: #555; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; }
 
   /* MINIMAL */
-  .minimal-white { background: white; padding: 15px 10px; text-align: center; font-family: 'Lato', sans-serif; color: #222; height: 100%; display: flex; flex-direction: column; }
+  .minimal-white { background: white; padding: 15px 10px; text-align: center; font-family: 'Lato', sans-serif; color: #222; min-height: 100vh;; display: flex; flex-direction: column; }
   .minimal-header { margin-bottom: 15px; }
   .minimal-logo { width: 34px; height: 34px; background: #111; color: white; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; }
   .minimal-title { font-weight: 900; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
@@ -358,7 +340,7 @@ const GALLERY_STYLES = `
   .minimal-btn { width: 16px; height: 16px; background: #222; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; border: none; }
 
   /* POP VIBRANT */
-  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; }
+  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
   .pop-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; background: #fff; border: 2px solid #000; padding: 6px; border-radius: 8px; box-shadow: 3px 3px 0 #000; position: relative; }
   .pop-logo { width: 30px; height: 30px; background: #FF1493; border: 2px solid #000; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: white; font-size: 7px; }
   .pop-title { font-weight: 900; font-size: 11px; text-transform: uppercase; color: #000; line-height: 1; }
@@ -373,7 +355,7 @@ const GALLERY_STYLES = `
   .pop-btn { width: 100%; background: #fff; border: 2px solid #000; padding: 3px; border-radius: 20px; font-weight: 900; font-size: 7px; text-transform: uppercase; text-align: center; }
 
   /* SPOTLIGHT */
-  .spot-hero { background: white; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; text-align: left; }
+  .spot-hero { background: white; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; text-align: left; }
   
   /* Header con Status Pill */
   .spot-header-mini { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f8f8f8; }
@@ -404,7 +386,7 @@ const GALLERY_STYLES = `
   .spot-add-mini { width: 20px; height: 20px; background: #000; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
 
   /* ELEGANT */
-  .elegant-serif { background: #f9f5f0; padding: 15px; font-family: 'Playfair Display', serif; color: #333; text-align: center; height: 100%; display: flex; flex-direction: column; }
+  .elegant-serif { background: #f9f5f0; padding: 15px; font-family: 'Playfair Display', serif; color: #333; text-align: center; min-height: 100vh; display: flex; flex-direction: column; }
   .elegant-logo { width: 28px; height: 28px; margin: 0 auto 4px; border: 1px solid #D4AF37; border-radius: 50%; display: grid; place-items: center; color: #D4AF37; }
   .elegant-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
   .elegant-msg { background: #f0e8dc; border: 1px solid #e0d0b8; padding: 6px; font-size: 8px; color: #5c4b30; margin: 12px 0; font-style: italic; }
@@ -414,7 +396,7 @@ const GALLERY_STYLES = `
   .elegant-price { color: #D4AF37; font-weight: 700; font-size: 9px; }
 
   /* BISTRO */
-  .bistro-chalk { background: #222; color: #eee; padding: 12px; font-family: 'Patrick Hand', cursive; height: 100%; display: flex; flex-direction: column; }
+  .bistro-chalk { background: #222; color: #eee; padding: 12px; font-family: 'Patrick Hand', cursive; min-height: 100vh; display: flex; flex-direction: column; }
   .bistro-border { border: 2px dashed #555; height: 100%; padding: 8px; border-radius: 8px; display: flex; flex-direction: column; }
   .bistro-header { text-align: center; margin-bottom: 12px; }
   .bistro-logo { width: 32px; height: 32px; margin: 0 auto 4px; border: 2px solid #e6c87e; border-radius: 50%; display: grid; place-items: center; color: #e6c87e; font-size: 12px; }
@@ -425,7 +407,7 @@ const GALLERY_STYLES = `
   .bistro-price { font-size: 11px; color: #e6c87e; }
   
   /* --- ESTILOS MARKET PRO --- */
-  .market-pro { background: white; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; padding: 10px; }
+  .market-pro { background: white; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; padding: 10px; }
   .market-logo-wrap { width: 35px; height: 35px; background: #eee; border-radius: 50%; margin: 5px auto 8px; overflow: hidden; border: 1px solid #f0f0f0; }
   .market-logo-wrap img { width: 100%; height: 100%; object-fit: cover; }
   .market-search-fake { background: #f3f4f6; border-radius: 12px; height: 25px; margin-bottom: 12px; display: flex; align-items: center; padding: 0 8px; font-size: 7px; color: #999; }
@@ -447,25 +429,24 @@ const GALLERY_STYLES = `
 
 // --- DATA ---
 const TEMPLATES = [
-  // --- RÁPIDAS (UNIDAD) ---
-  { id: 'classic', name: 'Classic Delivery', desc: 'Simple y efectivo. Ideal para pocos productos.', premium: false, type: 'classic', category: 'basicas', sale_type: 'unidad' },
-  { id: 'urban', name: 'Urbano Dark', desc: 'Impacto visual oscuro para marcas modernas.', premium: false, type: 'urban', category: 'basicas', sale_type: 'unidad' },
-  { id: 'minimal', name: 'Minimalista', desc: 'Limpio y moderno. Foco 100% en el nombre.', premium: false, type: 'minimal', category: 'basicas', sale_type: 'unidad' },
-  { id: 'visualgrid', name: 'Visual Grid', desc: 'Grilla de fotos grande. Muy intuitivo.', premium: true, type: 'visualgrid', category: 'basicas', sale_type: 'unidad' },
-  { id: 'pop', name: 'Pop Vibrante', desc: 'Estilo cómic colorido y divertido.', premium: true, type: 'pop', category: 'basicas', sale_type: 'unidad' },
-  { id: 'spotlight', name: 'Spotlight Hero', desc: 'Banner gigante para promociones estrella.', premium: true, type: 'spotlight', category: 'basicas', sale_type: 'unidad' },
-  { id: 'elegant', name: 'Elegante Serif', desc: 'Tipografía refinada para alta cocina.', premium: true, type: 'elegant', category: 'basicas', sale_type: 'unidad' },
-  { id: 'bistro', name: 'Bistro Chalk', desc: 'Efecto tiza sobre pizarra. Estética bodegón.', premium: true, type: 'bistro', category: 'basicas', sale_type: 'unidad' },
-  
-  // --- RÁPIDAS (PESO) ---
-  { id: 'icecream-v1', name: 'Soft Premium', desc: 'Venta rápida por peso. Sin imágenes para máxima velocidad.', premium: true, type: 'icecream', category: 'basicas', sale_type: 'peso' },
-
-  // --- COMPLETAS (UNIDAD Y PESO) ---
-  { id: 'marketpro', name: 'Market Pro', desc: 'Diseño estilo App. Incluye buscador y categorías.', premium: true, type: 'marketpro', category: 'completas', sale_type: 'unidad' },
-  { id: 'alterna-pro', name: 'Alterna Pro', desc: 'Diseño Zig-Zag. El más completo para fotos y categorías.', premium: true, type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'] },
+  { id: 'classic', name: 'Classic Delivery', type: 'classic', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
+  { id: 'urban', name: 'Urbano Dark', type: 'urban', category: 'basicas', sale_type: 'unidad', hasPhotos: true },
+  { id: 'minimal', name: 'Minimalista', type: 'minimal', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
+  { id: 'visualgrid', name: 'Visual Grid', type: 'visualgrid', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
+  { id: 'pop', name: 'Pop Vibrante', type: 'pop', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true },
+  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
+  { id: 'elegant', name: 'Elegante Serif', type: 'elegant', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true },
+  { id: 'bistro', name: 'Bistro Chalk', type: 'bistro', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true },
+  { id: 'icecream-v1', name: 'Soft Premium', type: 'icecream', category: 'basicas', sale_type: 'peso', hasPhotos: false, premium: true },
+  { id: 'marketpro', name: 'Market Pro', type: 'marketpro', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
+  { id: 'alterna-pro', name: 'Alterna Pro', type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true, premium: true },
 ];
 
 function GalleryContent() {
+  const [photoFilter, setPhotoFilter] = useState<'todas' | 'con-foto' | 'sin-foto'>('todas');
+  const [storyMode, setStoryMode] = useState(false);
+  const [likedTemplates, setLikedTemplates] = useState<string[]>([]); // IDS de plantillas que EL USUARIO actual le dio Like
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({}); // Cantidad TOTAL de likes por plantilla
   const [mainCategory, setMainCategory] = useState<'basicas' | 'completas' | 'todas'>('todas');
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
@@ -490,34 +471,63 @@ const router = useRouter();
   );
 
 useEffect(() => {
-    const load = async () => {
+    const loadAllData = async () => {
         const { data: { session } } = await supabase.auth.getSession();
+        
         if(session) {
-            const { data } = await supabase
+            // 1. CARGAR INFO DEL RESTAURANTE
+            const { data: restaurantData } = await supabase
                 .from('restaurants')
-               .select('template_id, subscription_plan, sale_type, is_open, onboarding_completed') // <--- UN SOLO SELECT // <--- UN SOLO SELECT
+                .select('template_id, subscription_plan, sale_type, is_open, onboarding_completed')
                 .eq('user_id', session.user.id)
                 .maybeSingle();
-if(data) {
-                setCurrentTemplate(data.template_id || 'classic');
-                setUserPlan(data.subscription_plan ? 'paid' : 'free');
-                setIsOpen(data.is_open ?? true);
-                setSaleType(data.sale_type); // Guardamos el rubro actual si existe
 
-if (data.onboarding_completed) {
-    setShowOnboarding(false);
-    setIsOnboardingMandatory(false); // <--- AGREGÁ ESTO: Ya no es obligatorio
-    setStep(3); 
-} else {
-    setStep(1);
-    setShowOnboarding(true);
-    setIsOnboardingMandatory(true); // <--- AGREGÁ ESTO: Es la primera vez
-}
+            if(restaurantData) {
+                setCurrentTemplate(restaurantData.template_id || 'classic');
+                setUserPlan(restaurantData.subscription_plan ? 'paid' : 'free');
+                setIsOpen(restaurantData.is_open ?? true);
+                setSaleType(restaurantData.sale_type);
+
+                if (restaurantData.onboarding_completed) {
+                    setShowOnboarding(false);
+                    setIsOnboardingMandatory(false);
+                    setStep(3); 
+                } else {
+                    setStep(1);
+                    setShowOnboarding(true);
+                    setIsOnboardingMandatory(true);
+                }
+            }
+
+            // 2. CARGAR MIS LIKES (SI ESTOY LOGUEADO)
+            const { data: myLikes } = await supabase
+                .from('template_likes')
+                .select('template_id')
+                .eq('user_id', session.user.id);
+
+            if(myLikes) {
+                setLikedTemplates(myLikes.map(like => like.template_id));
             }
         }
+
+        // 3. CARGAR CANTIDAD TOTAL DE LIKES (Para todos, logueados o no)
+        const { data: allCounts } = await supabase
+            .from('template_likes')
+            .select('template_id');
+
+        if(allCounts) {
+            const countsObject = allCounts.reduce((acc: Record<string, number>, like) => {
+                const id = like.template_id;
+                acc[id] = (acc[id] || 0) + 1;
+                return acc;
+            }, {});
+            setLikeCounts(countsObject);
+        }
+
         setIsInitialLoading(false); 
     };
-    load();
+
+    loadAllData();
 }, [supabase]);
 
 const handleSaveBusinessInfo = async (subType: string) => {
@@ -590,7 +600,43 @@ const handleSaveBusinessInfo = async (subType: string) => {
     }
     setSavingId(null);
   };
+const handleLike = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return toast.error("Iniciá sesión para dar me gusta");
 
+    // Copias de los estados actuales para actualizarlos de forma inmutable
+    const newLikedTemplates = [...likedTemplates];
+    const newLikeCounts = { ...likeCounts };
+
+    if (likedTemplates.includes(id)) {
+      // QUITAR LIKE
+      // 1. Quitar de la lista personal del usuario
+      setLikedTemplates(prev => prev.filter(t => t !== id));
+      
+      // 2. Decrementar el contador total VISUALMENTE
+      newLikeCounts[id] = Math.max(0, (newLikeCounts[id] || 1) - 1);
+      setLikeCounts(newLikeCounts);
+
+      // Aquí deberías agregar la lógica para borrar de Supabase en la tabla template_likes
+      // .from('template_likes').delete().eq('user_id', user.id).eq('template_id', id)...
+      // toast.info("Quitado de tus favoritos");
+
+    } else {
+      // DAR LIKE
+      // 1. Agregar a la lista personal del usuario
+      setLikedTemplates(prev => [...prev, id]);
+      
+      // 2. Incrementar el contador total VISUALMENTE
+      newLikeCounts[id] = (newLikeCounts[id] || 0) + 1;
+      setLikeCounts(newLikeCounts);
+
+      toast.success("¡Guardado en tus favoritos!");
+
+      // Aquí deberías agregar la lógica para guardar en Supabase en la tabla template_likes
+      // .from('template_likes').insert({user_id: user.id, template_id: id})...
+    }
+  };
   const renderPreview = (type: string) => {
     switch (type) {
       case 'urban': return (
@@ -1014,113 +1060,289 @@ const filteredTemplates = TEMPLATES.filter(t => {
 
   // 2. SI YA COMPLETÓ EL ONBOARDING: Mostramos la Galería normal (Imagen 2)
 // Lógica: Si mainCategory es 'todas', no filtra por tipo.
-  const finalTemplates = filteredTemplates.filter(t => {
-    const matchesMain = mainCategory === 'todas' || t.category.includes(mainCategory);
+const finalTemplates = TEMPLATES.filter(t => {
+    // 1. Filtrar por Rubro (Unidad o Peso)
+    const typeMatch = Array.isArray(t.sale_type) 
+      ? t.sale_type.includes(saleType || '') 
+      : t.sale_type === saleType;
+    if (!typeMatch) return false;
+
+    // 2. Filtrar por Categoría Principal (Rápidas o Completas)
+    const matchesMain = mainCategory === 'todas' || t.category === mainCategory;
     
-    if (activeFilter === 'todas') return matchesMain;
-    return matchesMain && t.category.includes(activeFilter);
+    // 3. Filtrar por Estilo Visual (Con o Sin Fotos)
+    const matchesPhoto = photoFilter === 'todas' || 
+      (photoFilter === 'con-foto' ? t.hasPhotos === true : t.hasPhotos === false);
+
+    return matchesMain && matchesPhoto;
   });
-  return (
+ return (
     <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20">
       <style>{GALLERY_STYLES}</style>
       
-      <header className="mb-8 pt-20 lg:pt-0 text-left relative z-10">
+      {/* 1. HEADER CON TÍTULO Y BOTÓN DE RUBRO (A LA IZQUIERDA) */}
+      <header className="mb-10 pt-20 lg:pt-0 text-left relative z-10">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Galería de Diseños</h1>
-          <p className="text-gray-500 text-xs font-medium leading-tight text-left">Elegí la base para tu menú digital. Todas son personalizables.</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Galería de Diseños</h1>
+          <p className="text-gray-500 text-xs sm:text-sm font-medium leading-tight">
+            Elige el diseño perfecto para el link digital de tu negocio
+          </p>
         </div>
         
+        {/* TU BOTÓN DE RUBRO (CONSERVADO AL 100%) */}
         <button 
           onClick={() => { setStep(1); setTempType(null); setShowOnboarding(true); }}
-          className="mt-5 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
+          className="mt-5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
         >
-          <ShoppingBag size={14}/> RUBRO: {saleType === 'unidad' ? 'GASTRONOMÍA' : 'VENTA POR PESO'} (CAMBIAR)
+          <ShoppingBag size={14}/> RUBRO: {saleType === 'unidad' ? 'UNIDAD / GASTRONOMÍA' : 'VENTA POR PESO'} (CAMBIAR)
         </button>
       </header>
 
-      {/* --- BOTONES MAESTROS ACHICADOS --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-        {/* BOTÓN RÁPIDAS */}
+      {/* 2. MASTER CARDS (RÁPIDAS VS COMPLETAS) */}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        
+        {/* DISEÑOS RÁPIDOS */}
         <button 
-          onClick={() => { setMainCategory(mainCategory === 'basicas' ? 'todas' : 'basicas'); setActiveFilter('todas'); }}
-          className={`p-4 rounded-[1.5rem] border-2 text-left transition-all relative overflow-hidden group ${mainCategory === 'basicas' ? 'border-amber-500 bg-white shadow-lg shadow-amber-100' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}`}
+          onClick={() => { setMainCategory(mainCategory === 'basicas' ? 'todas' : 'basicas'); }}
+          className={`relative p-4 rounded-3xl border-2 text-left transition-all group overflow-hidden ${mainCategory === 'basicas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
         >
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className={`p-1.5 rounded-lg ${mainCategory === 'basicas' ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
-              <Zap size={16} fill={mainCategory === 'basicas' ? "currentColor" : "none"}/>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center transition-colors ${mainCategory === 'basicas' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+              <Zap size={20} fill={mainCategory === 'basicas' ? "currentColor" : "none"} />
             </div>
-            <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'basicas' ? 'text-slate-900' : 'text-gray-400'}`}>Diseños Rápidos</h3>
+            <div className="flex-1">
+              <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'basicas' ? 'text-slate-900' : 'text-slate-400'}`}>Diseños Rápidos</h3>
+              <p className={`text-[9px] font-bold uppercase tracking-widest leading-none mt-1 ${mainCategory === 'basicas' ? 'text-slate-500' : 'text-slate-300'}`}>Pedidos en 1-click y layouts simples</p>
+            </div>
+            
+            {/* BOTÓN X PARA DESMARCAR */}
+            {mainCategory === 'basicas' && (
+              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full hover:bg-indigo-200 transition-colors">
+                <X size={14} strokeWidth={3} />
+              </div>
+            )}
           </div>
-          <p className={`text-[9px] font-bold leading-relaxed uppercase tracking-widest ${mainCategory === 'basicas' ? 'text-slate-500' : 'text-gray-400'}`}>
-            Fomentan una compra inmediata y directa. Ideales para catálogos que priorizan la velocidad de carga.
-          </p>
         </button>
 
-        {/* BOTÓN COMPLETAS */}
+        {/* DISEÑOS COMPLETOS */}
         <button 
-          onClick={() => { setMainCategory(mainCategory === 'completas' ? 'todas' : 'completas'); setActiveFilter('todas'); }}
-          className={`p-4 rounded-[1.5rem] border-2 text-left transition-all relative overflow-hidden group ${mainCategory === 'completas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}`}
+          onClick={() => { setMainCategory(mainCategory === 'completas' ? 'todas' : 'completas'); }}
+          className={`relative p-4 rounded-3xl border-2 text-left transition-all group overflow-hidden ${mainCategory === 'completas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
         >
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className={`p-1.5 rounded-lg ${mainCategory === 'completas' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-              <ShoppingBag size={16}/>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center transition-colors ${mainCategory === 'completas' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+              <ShoppingBag size={20} />
             </div>
-            <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'completas' ? 'text-slate-900' : 'text-gray-400'}`}>Diseños Completos</h3>
+            <div className="flex-1">
+              <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'completas' ? 'text-slate-900' : 'text-slate-400'}`}>Diseños Completos</h3>
+              <p className={`text-[9px] font-bold uppercase tracking-widest leading-none mt-1 ${mainCategory === 'completas' ? 'text-slate-500' : 'text-slate-300'}`}>Buscador, categorías y experiencia Pro</p>
+            </div>
+
+            {/* BOTÓN X PARA DESMARCAR */}
+            {mainCategory === 'completas' && (
+              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full hover:bg-indigo-200 transition-colors">
+                <X size={14} strokeWidth={3} />
+              </div>
+            )}
           </div>
-          <p className={`text-[9px] font-bold leading-relaxed uppercase tracking-widest ${mainCategory === 'completas' ? 'text-slate-500' : 'text-gray-400'}`}>
-            Organización Pro con categorías, buscador y foco en imágenes de productos para una experiencia total.
-          </p>
         </button>
       </div>
 
-      {/* --- SUB-FILTROS --- */}
-      <div className="flex gap-2 overflow-x-auto pb-8 no-scrollbar">
+      {/* 3. BOTÓN DE HISTORIAS (AHORA DEBAJO DE LAS MASTER CARDS) */}
+      <div className="flex justify-center mb-8">
         <button 
-          onClick={() => { setMainCategory('todas'); setActiveFilter('todas'); }}
-          className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border-2 ${mainCategory === 'todas' && activeFilter === 'todas' ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'}`}
+          onClick={() => setStoryMode(true)}
+          className="group relative px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest italic flex items-center gap-3 hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
         >
-          Ver Todas
+          <Sparkles size={16} className="text-indigo-400" />
+          Mirá tu diseño tipo Historia ✨
         </button>
-
-        {['minimal', 'basicas', 'completas'].map((f) => (
-          <button 
-            key={f} 
-            onClick={() => setActiveFilter(f)} 
-            className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border-2 ${activeFilter === f ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300'}`}
-          >
-            {f}
-          </button>
-        ))}
       </div>
 
-      {/* --- GRILLA ÚNICA --- */}
+      {/* 4. FILTROS DE ESTILO (CHIPS) */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+        <button 
+          onClick={() => setPhotoFilter('todas')}
+          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'todas' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
+        >
+          Todos los estilos
+        </button>
+        <button 
+          onClick={() => setPhotoFilter('sin-foto')}
+          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'sin-foto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
+        >
+          ✨ Minimalistas (Sin Fotos)
+        </button>
+        <button 
+          onClick={() => setPhotoFilter('con-foto')}
+          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'con-foto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
+        >
+          📸 Visuales (Con Fotos)
+        </button>
+      </div>
+    
+   {/* GRILLA ÚNICA ACTUALIZADA */}
       <div className="templates-grid animate-in fade-in duration-500 pb-20">
-        {finalTemplates.length > 0 ? (
-          finalTemplates.map((t) => {
-            const isSelected = currentTemplate === t.id;
-            const isLocked = t.premium && userPlan === 'free';
-            return (
-              <article key={t.id} className={`template-card ${isSelected ? 'active-card' : ''}`}>
+        {finalTemplates.map((t) => {
+          const isSelected = currentTemplate === t.id;
+          const isLocked = t.premium && userPlan === 'free';
+          const isLiked = likedTemplates.includes(t.id);
+
+          return (
+            <article 
+              key={t.id} 
+              className={`template-item`}
+              onClick={() => setStoryMode(true)}
+            >
+              <div className={`template-card`}>
                 <div className="phone-preview">
                   <div className="preview-content">{renderPreview(t.type)}</div>
-                  {isLocked && <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30"><Lock size={24} className="mb-2 opacity-80" /><span className="font-bold text-xs">Diseño Premium</span></div>}
-                </div>
-                <div className="card-info text-left">
-                  <h3 className="card-title">{t.name} {t.premium && <Crown size={12} className="text-yellow-500 fill-yellow-500" />}</h3>
-                  <button onClick={() => handleSelect(t.id, t.premium)} disabled={savingId === t.id || isSelected} className={`btn-select ${isLocked ? 'locked-btn' : ''}`}>
-                    {savingId === t.id ? <Loader2 className="animate-spin" size={14} /> : isSelected ? 'En uso' : 'Usar Plantilla'}
+                  
+                  {/* BOTÓN MG INSTAGRAM */}
+                  <button 
+                    onClick={(e) => handleLike(t.id, e)}
+                    className={`heart-btn ${isLiked ? 'liked' : ''}`}
+                  >
+                    <Heart 
+  size={16} 
+  fill={isLiked ? "currentColor" : "none"} 
+  className={isLiked ? "text-red-500" : "text-gray-400"}
+/>
                   </button>
-                  {isSelected && <Link href="/dashboard/personalizar" className="btn-personalize block text-center mt-3 text-[10px] font-black uppercase text-indigo-600 hover:underline">Ir a Personalizar →</Link>}
+
+                  {isLocked && (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+                      <Lock size={20} className="mb-2 opacity-80" />
+                      <span className="font-bold text-[10px]">PREMIUM</span>
+                    </div>
+                  )}
                 </div>
-              </article>
-            );
-          })
-        ) : (
-          <div className="col-span-full py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-[10px] italic">
-            No hay diseños disponibles con estos filtros...
-          </div>
-        )}
+
+                <div className="card-info">
+                  <h3 className="card-title">{t.name}</h3>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+                    disabled={savingId === t.id || isSelected}
+                    className="mt-2 text-[9px] font-black uppercase text-indigo-600 hover:underline"
+                  >
+                    {isSelected ? 'En uso' : 'Seleccionar'}
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
+
+     {/* MODAL MODO HISTORIA REAL (FULL SCREEN) */}
+    {storyMode && (
+  <div className="story-overlay animate-in fade-in duration-300">
+    
+    {/* Header Superior (Snappy Stories + X) */}
+    <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-[700] bg-gradient-to-b from-black/80 to-transparent">
+       <div className="flex flex-col text-left">
+          <span className="text-white font-black uppercase italic text-xl leading-none tracking-tighter">Snappy Stories</span>
+          <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Deslizá para ver más</span>
+       </div>
+       <button onClick={() => setStoryMode(false)} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md hover:bg-white/40 transition-all">
+         <X size={28} strokeWidth={3} />
+       </button>
+    </div>
+
+    <div className="story-track no-scrollbar">
+      {finalTemplates.map((t) => {
+        const isLiked = likedTemplates.includes(t.id);
+        const isSelected = currentTemplate === t.id;
+        const isDark = t.id === 'urban' || t.id === 'visualgrid' || t.id === 'bistro';
+
+        return (
+          <div key={t.id} className="story-slide relative bg-black">
+            
+            {/* CONTENEDOR PRINCIPAL DEL DISEÑO */}
+            <div className={`w-full h-full md:max-w-[450px] md:h-[92vh] md:rounded-[3rem] shadow-2xl overflow-hidden relative ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+              
+              {/* EL DISEÑO REAL CON ZOOM 1.6 */}
+              <div className="w-full h-full overflow-y-auto no-scrollbar">
+                {/* min-h-[101%] y flex-col aseguran que el fondo negro/color se estire hasta el final */}
+                <div className="w-full min-h-[101%] origin-top flex flex-col" style={{ zoom: '1.6' }}>
+                  <div className="flex-1 w-full h-full">
+                    {renderPreview(t.type)}
+                  </div>
+                </div>
+              </div>
+
+              {/* 1. INTERACCIÓN DE LIKES (PEGADA A LA DERECHA) */}
+              <div className="absolute bottom-32 right-4 flex flex-col items-center z-[710]">
+                <div className="flex flex-col items-center">
+                  <button 
+                    onClick={(e) => handleLike(t.id, e)}
+                    className={`p-2.5 rounded-full transition-all active:scale-75 shadow-sm border border-black/5 ${
+                      isLiked 
+                        ? 'bg-red-500 text-white' 
+                        : isDark ? 'bg-white/10 text-white backdrop-blur-md' : 'bg-black/5 text-slate-400'
+                    }`}
+                  >
+                    <Heart 
+                      size={22} 
+                      fill={isLiked ? "currentColor" : "none"} 
+                      strokeWidth={2} 
+                    />
+                  </button>
+                  
+                  {/* NÚMERO ADAPTATIVO: Blanco en oscuro, Negro en claro */}
+                  <span className={`text-[11px] font-bold mt-1.5 transition-colors drop-shadow-md ${
+                    isDark ? 'text-white' : 'text-black'
+                  }`}>
+                    {likeCounts[t.id] || 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. BOTÓN DE ACCIÓN (A LA IZQUIERDA, SOBRE EL TÍTULO) */}
+              <div className="absolute bottom-32 left-8 z-[710]">
+                <button 
+                  onClick={() => { 
+                    if (!isSelected) {
+                      setStoryMode(false); 
+                      handleSelect(t.id, t.premium ?? false); 
+                    }
+                  }}
+                  disabled={isSelected}
+                  className={`px-6 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl active:scale-95 ${
+                    isSelected 
+                      ? 'bg-emerald-500 text-white cursor-default shadow-emerald-500/20' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20'
+                  }`}
+                >
+                  {isSelected ? (
+                    <div className="flex items-center gap-2">
+                      <Check size={14} strokeWidth={4} />
+                      Elegido
+                    </div>
+                  ) : (
+                    'Usar Diseño'
+                  )}
+                </button>
+              </div>
+
+              {/* 3. INFO DEL DISEÑO (ABAJO IZQUIERDA) */}
+              <div className="absolute bottom-12 left-8 text-left pointer-events-none z-[710]">
+                 <h3 className="text-white text-3xl font-black uppercase italic tracking-tighter leading-none drop-shadow-2xl">{t.name}</h3>
+                 <p className="text-white/70 text-[10px] font-bold uppercase tracking-[0.2em] mt-3 drop-shadow-md bg-black/20 px-3 py-1 rounded-full w-fit">
+                   {t.category === 'basicas' ? '⚡ Diseño Rápido' : '💎 Diseño Completo'}
+                 </p>
+              </div>
+
+              {/* Sombra de fondo para legibilidad total de los textos blancos */}
+              <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none z-[705]" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
     </div>
   );
 }
