@@ -443,6 +443,7 @@ const TEMPLATES = [
 ];
 
 function GalleryContent() {
+  const [showStoryUI, setShowStoryUI] = useState(true);
   const [photoFilter, setPhotoFilter] = useState<'todas' | 'con-foto' | 'sin-foto'>('todas');
   const [storyMode, setStoryMode] = useState(false);
   const [likedTemplates, setLikedTemplates] = useState<string[]>([]); // IDS de plantillas que EL USUARIO actual le dio Like
@@ -529,6 +530,17 @@ useEffect(() => {
 
     loadAllData();
 }, [supabase]);
+// Temporizador para ocultar la interfaz en las historias (Línea 477)
+  // Temporizador para ocultar la interfaz (Línea 477)
+  useEffect(() => {
+    let timer: any;
+    if (storyMode && showStoryUI) {
+      timer = setTimeout(() => {
+        setShowStoryUI(false);
+      }, 5000);
+    }
+    return () => clearTimeout(timer);
+  }, [storyMode, showStoryUI]);
 
 const handleSaveBusinessInfo = async (subType: string) => {
     setIsUpdatingType(true);
@@ -1183,166 +1195,172 @@ const finalTemplates = TEMPLATES.filter(t => {
       </div>
     
    {/* GRILLA ÚNICA ACTUALIZADA */}
-      <div className="templates-grid animate-in fade-in duration-500 pb-20">
-        {finalTemplates.map((t) => {
-          const isSelected = currentTemplate === t.id;
-          const isLocked = t.premium && userPlan === 'free';
-          const isLiked = likedTemplates.includes(t.id);
+    {/* GRILLA ÚNICA ACTUALIZADA - VISTA MOCKUP LIMPIA */}
+<div className="templates-grid animate-in fade-in duration-500 pb-20">
+  {finalTemplates.map((t) => {
+    const isSelected = currentTemplate === t.id;
+    const isLocked = t.premium && userPlan === 'free';
+    const isLiked = likedTemplates.includes(t.id);
 
-          return (
-            <article 
-              key={t.id} 
-              className={`template-item`}
-              onClick={() => setStoryMode(true)}
-            >
-              <div className={`template-card`}>
-                <div className="phone-preview">
-                  <div className="preview-content">{renderPreview(t.type)}</div>
-                  
-                  {/* BOTÓN MG INSTAGRAM */}
-                  <button 
-                    onClick={(e) => handleLike(t.id, e)}
-                    className={`heart-btn ${isLiked ? 'liked' : ''}`}
-                  >
-                    <Heart 
-  size={16} 
-  fill={isLiked ? "currentColor" : "none"} 
-  className={isLiked ? "text-red-500" : "text-gray-400"}
-/>
-                  </button>
-
-                  {isLocked && (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
-                      <Lock size={20} className="mb-2 opacity-80" />
-                      <span className="font-bold text-[10px]">PREMIUM</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="card-info">
-                  <h3 className="card-title">{t.name}</h3>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
-                    disabled={savingId === t.id || isSelected}
-                    className="mt-2 text-[9px] font-black uppercase text-indigo-600 hover:underline"
-                  >
-                    {isSelected ? 'En uso' : 'Seleccionar'}
-                  </button>
-                </div>
+    return (
+      <article 
+        key={t.id} 
+        className="template-item"
+        onClick={() => { setShowStoryUI(true); setStoryMode(true); }}
+      >
+        <div className="template-card">
+          <div className="phone-preview">
+            <div className="preview-content">
+              {/* AQUÍ ESTÁ EL FIX: Zoom 0.85 fijo para la grilla, sin rellenos extras ni barras */}
+              <div style={{ zoom: '0.85', transformOrigin: 'top', width: '100%', height: '100%' }}>
+                {renderPreview(t.type)}
               </div>
-            </article>
-          );
-        })}
-      </div>
-
-     {/* MODAL MODO HISTORIA REAL (FULL SCREEN) */}
-    {storyMode && (
-  <div className="story-overlay animate-in fade-in duration-300">
-    
-    {/* Header Superior (Snappy Stories + X) */}
-    <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-[700] bg-gradient-to-b from-black/80 to-transparent">
-       <div className="flex flex-col text-left">
-          <span className="text-white font-black uppercase italic text-xl leading-none tracking-tighter">Snappy Stories</span>
-          <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Deslizá para ver más</span>
-       </div>
-       <button onClick={() => setStoryMode(false)} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md hover:bg-white/40 transition-all">
-         <X size={28} strokeWidth={3} />
-       </button>
-    </div>
-
-    <div className="story-track no-scrollbar">
-      {finalTemplates.map((t) => {
-        const isLiked = likedTemplates.includes(t.id);
-        const isSelected = currentTemplate === t.id;
-        const isDark = t.id === 'urban' || t.id === 'visualgrid' || t.id === 'bistro';
-
-        return (
-          <div key={t.id} className="story-slide relative bg-black">
+            </div>
             
-            {/* CONTENEDOR PRINCIPAL DEL DISEÑO */}
-            <div className={`w-full h-full md:max-w-[450px] md:h-[92vh] md:rounded-[3rem] shadow-2xl overflow-hidden relative ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
-              
-              {/* EL DISEÑO REAL CON ZOOM 1.6 */}
-              <div className="w-full h-full overflow-y-auto no-scrollbar">
-                {/* min-h-[101%] y flex-col aseguran que el fondo negro/color se estire hasta el final */}
-                <div className="w-full min-h-[101%] origin-top flex flex-col" style={{ zoom: '1.6' }}>
-                  <div className="flex-1 w-full h-full">
-                    {renderPreview(t.type)}
+            {/* BOTÓN MG INSTAGRAM (Se queda donde estaba) */}
+            <button 
+              onClick={(e) => handleLike(t.id, e)}
+              className={`heart-btn ${isLiked ? 'liked' : ''}`}
+            >
+              <Heart 
+                size={16} 
+                fill={isLiked ? "currentColor" : "none"} 
+                className={isLiked ? "text-red-500" : "text-gray-400"}
+              />
+            </button>
+
+            {isLocked && (
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+                <Lock size={20} className="mb-2 opacity-80" />
+                <span className="font-bold text-[10px]">PREMIUM</span>
+              </div>
+            )}
+          </div>
+
+          <div className="card-info">
+            <h3 className="card-title">{t.name}</h3>
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+              disabled={savingId === t.id || isSelected}
+              className={`mt-2 text-[9px] font-black uppercase transition-colors ${isSelected ? 'text-emerald-500' : 'text-indigo-600 hover:underline'}`}
+            >
+              {isSelected ? 'En uso' : 'Seleccionar'}
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  })}
+</div>
+
+  
+ {/* MODAL MODO HISTORIA REAL (INMERSIVO) */}
+      {storyMode && (
+        <div className="story-overlay animate-in fade-in duration-300">
+          
+          {/* 1. Header Superior (Snappy Stories) - ESTE SÍ SE OCULTA */}
+          <div className={`absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-[850] bg-gradient-to-b from-black/80 to-transparent transition-all duration-500 ${showStoryUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
+             <div className="flex flex-col text-left">
+                <span className="text-white font-black uppercase italic text-xl leading-none tracking-tighter">Snappy Stories</span>
+                <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Vista previa real</span>
+             </div>
+             <button onClick={() => setStoryMode(false)} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md hover:bg-white/40 transition-all pointer-events-auto">
+               <X size={28} strokeWidth={3} />
+             </button>
+          </div>
+
+          <div className="story-track no-scrollbar">
+            {finalTemplates.map((t) => {
+              const isLiked = likedTemplates.includes(t.id);
+              const isSelected = currentTemplate === t.id;
+              const isDark = t.id === 'urban' || t.id === 'visualgrid' || t.id === 'bistro';
+
+              return (
+                <div key={t.id} className="story-slide relative bg-black" onClick={() => setShowStoryUI(!showStoryUI)}>
+                  
+                  <div className={`w-full h-full md:max-w-[450px] md:h-[92vh] md:rounded-[3rem] shadow-2xl overflow-hidden relative ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+                    
+                    {/* 2. BARRA DE NAVEGADOR FAKE - FIJA (NUNCA SE VA) */}
+                    <div className="absolute top-0 inset-x-0 h-14 bg-white/95 backdrop-blur-lg border-b border-gray-100 z-[800] flex items-center px-4 shadow-sm">
+                       <div className="flex gap-1.5 mr-4">
+                          <div className="w-2 h-2 rounded-full bg-slate-200" />
+                          <div className="w-2 h-2 rounded-full bg-slate-200" />
+                       </div>
+                       <div className="flex-1 bg-slate-100 rounded-full h-8 flex items-center justify-center gap-2 text-[10px] text-slate-500 font-bold tracking-tight">
+                          <Lock size={10} className="text-slate-400" /> snappy.menu/{t.id}
+                       </div>
+                    </div>
+
+                    {/* DISEÑO CON ZOOM REAL (pt-14 para respetar la barra fija) */}
+                    <div className="w-full h-full overflow-y-auto no-scrollbar pt-14">
+                      <div className="w-full min-h-[101%] origin-top flex flex-col" style={{ zoom: '1.6' }}>
+                        <div className="flex-1 w-full h-full">
+                          {renderPreview(t.type)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. CORAZÓN (DERECHA) - SE OCULTA */}
+                    <div className={`absolute bottom-32 right-4 flex flex-col items-center z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-14'}`}>
+                      <div className="flex flex-col items-center">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleLike(t.id, e); }}
+                          className={`p-2.5 rounded-full transition-all active:scale-75 shadow-sm border border-black/5 ${isLiked ? 'bg-red-500 text-white' : isDark ? 'bg-white/10 text-white backdrop-blur-md' : 'bg-black/5 text-slate-400'}`}
+                        >
+                          <Heart size={22} fill={isLiked ? "currentColor" : "none"} strokeWidth={2} />
+                        </button>
+                        <span className={`text-[11px] font-bold mt-1.5 transition-colors ${isDark ? 'text-white' : 'text-black'}`}>
+                          {likeCounts[t.id] || 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 4. BOTÓN ACCIÓN (IZQUIERDA) - SE OCULTA */}
+                  {/* 2. BOTÓN DE ACCIÓN (A LA IZQUIERDA) - NO SE CIERRA AL ELEGIR */}
+<div className={`absolute bottom-32 left-8 z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-14'}`}>
+  <button 
+    onClick={(e) => { 
+      e.stopPropagation(); 
+      if (!isSelected) { 
+        // Eliminamos setStoryMode(false) de acá para que se quede abierto
+        handleSelect(t.id, t.premium ?? false); 
+      } 
+    }}
+    disabled={isSelected}
+    className={`px-6 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl active:scale-95 ${
+      isSelected 
+        ? 'bg-emerald-500 text-white cursor-default shadow-emerald-500/20' 
+        : 'bg-indigo-600 text-white shadow-indigo-500/20 hover:bg-indigo-700'
+    }`}
+  >
+    {isSelected ? (
+      <div className="flex items-center gap-2">
+        <Check size={14} strokeWidth={4} /> 
+        Elegido
+      </div>
+    ) : (
+      'Usar Diseño'
+    )}
+  </button>
+</div>
+
+                    {/* 5. INFO DISEÑO (ABAJO) - SE OCULTA */}
+                    <div className={`absolute bottom-12 left-8 text-left pointer-events-none z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                       <h3 className="text-white text-3xl font-black uppercase italic tracking-tighter leading-none drop-shadow-2xl">{t.name}</h3>
+                       <p className="text-white/70 text-[10px] font-bold uppercase mt-3 drop-shadow-md bg-black/20 px-3 py-1 rounded-full w-fit">
+                         {t.category === 'basicas' ? '⚡ Diseño Rápido' : '💎 Diseño Completo'}
+                       </p>
+                    </div>
+
+                    {/* Sombra inferior - SE OCULTA */}
+                    <div className={`absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none z-[705] transition-opacity duration-700 ${showStoryUI ? 'opacity-100' : 'opacity-0'}`} />
                   </div>
                 </div>
-              </div>
-
-              {/* 1. INTERACCIÓN DE LIKES (PEGADA A LA DERECHA) */}
-              <div className="absolute bottom-32 right-4 flex flex-col items-center z-[710]">
-                <div className="flex flex-col items-center">
-                  <button 
-                    onClick={(e) => handleLike(t.id, e)}
-                    className={`p-2.5 rounded-full transition-all active:scale-75 shadow-sm border border-black/5 ${
-                      isLiked 
-                        ? 'bg-red-500 text-white' 
-                        : isDark ? 'bg-white/10 text-white backdrop-blur-md' : 'bg-black/5 text-slate-400'
-                    }`}
-                  >
-                    <Heart 
-                      size={22} 
-                      fill={isLiked ? "currentColor" : "none"} 
-                      strokeWidth={2} 
-                    />
-                  </button>
-                  
-                  {/* NÚMERO ADAPTATIVO: Blanco en oscuro, Negro en claro */}
-                  <span className={`text-[11px] font-bold mt-1.5 transition-colors drop-shadow-md ${
-                    isDark ? 'text-white' : 'text-black'
-                  }`}>
-                    {likeCounts[t.id] || 0}
-                  </span>
-                </div>
-              </div>
-
-              {/* 2. BOTÓN DE ACCIÓN (A LA IZQUIERDA, SOBRE EL TÍTULO) */}
-              <div className="absolute bottom-32 left-8 z-[710]">
-                <button 
-                  onClick={() => { 
-                    if (!isSelected) {
-                      setStoryMode(false); 
-                      handleSelect(t.id, t.premium ?? false); 
-                    }
-                  }}
-                  disabled={isSelected}
-                  className={`px-6 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl active:scale-95 ${
-                    isSelected 
-                      ? 'bg-emerald-500 text-white cursor-default shadow-emerald-500/20' 
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20'
-                  }`}
-                >
-                  {isSelected ? (
-                    <div className="flex items-center gap-2">
-                      <Check size={14} strokeWidth={4} />
-                      Elegido
-                    </div>
-                  ) : (
-                    'Usar Diseño'
-                  )}
-                </button>
-              </div>
-
-              {/* 3. INFO DEL DISEÑO (ABAJO IZQUIERDA) */}
-              <div className="absolute bottom-12 left-8 text-left pointer-events-none z-[710]">
-                 <h3 className="text-white text-3xl font-black uppercase italic tracking-tighter leading-none drop-shadow-2xl">{t.name}</h3>
-                 <p className="text-white/70 text-[10px] font-bold uppercase tracking-[0.2em] mt-3 drop-shadow-md bg-black/20 px-3 py-1 rounded-full w-fit">
-                   {t.category === 'basicas' ? '⚡ Diseño Rápido' : '💎 Diseño Completo'}
-                 </p>
-              </div>
-
-              {/* Sombra de fondo para legibilidad total de los textos blancos */}
-              <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none z-[705]" />
-            </div>
+              );
+            })}
           </div>
-        );
-      })}
-    </div>
-  </div>
-)}
+        </div>
+      )}
     </div>
   );
 }
