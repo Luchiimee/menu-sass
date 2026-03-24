@@ -821,12 +821,24 @@ function MenuContent({
                     return (
                       <div key={prod.id} className="urbano-card">
                         <div className="urbano-item-main">
-                          <div
-                            className="urbano-img"
-                            style={{
-                              backgroundImage: `url('${prod.image_url || ""}')`,
-                            }}
-                          ></div>
+                         <div className="urbano-img overflow-hidden bg-zinc-900">
+  {prod.video_url ? (
+    <video 
+      src={prod.video_url} 
+      autoPlay 
+      muted 
+      loop 
+      playsInline 
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <img 
+      src={prod.image_url || ""} 
+      className="w-full h-full object-cover" 
+      alt={prod.name} 
+    />
+  )}
+</div>
                           <div className="urbano-info">
                             <div className="urbano-tit">{prod.name}</div>
                             <div className="urbano-desc">
@@ -1112,15 +1124,24 @@ function MenuContent({
                         onClick={() => setActiveCardId(prod.id)}
                       >
                         {/* Imagen con desenfoque al tocar (Video Flow) */}
-                        <div
-                          className="absolute inset-0 bg-cover bg-center transition-all duration-500"
-                          style={{
-                            backgroundImage: `url('${prod.image_url || ""}')`,
-                            filter: isActive
-                              ? "brightness(0.2) blur(8px)"
-                              : "none",
-                          }}
-                        />
+                      <div className="absolute inset-0 transition-all duration-500 overflow-hidden bg-zinc-900">
+  {prod.video_url ? (
+    <video 
+      src={prod.video_url} 
+      autoPlay muted loop playsInline 
+      className="w-full h-full object-cover transition-all duration-500"
+      style={{ filter: isActive ? "brightness(0.2) blur(8px)" : "none" }}
+    />
+  ) : (
+    <div
+      className="w-full h-full bg-cover bg-center transition-all duration-500"
+      style={{
+        backgroundImage: `url('${prod.image_url || ""}')`,
+        filter: isActive ? "brightness(0.2) blur(8px)" : "none",
+      }}
+    />
+  )}
+</div>
 
                         {/* Vista Normal */}
                         {!isActive && (
@@ -1542,12 +1563,20 @@ function MenuContent({
                         key={prod.id}
                         className="spot-product-card text-left"
                       >
-                        <div
-                          className="spot-product-thumb"
-                          style={{
-                            backgroundImage: `url('${prod.image_url || ""}')`,
-                          }}
-                        ></div>
+                       <div className="spot-product-thumb overflow-hidden bg-zinc-100">
+  {prod.video_url ? (
+    <video 
+      src={prod.video_url} 
+      autoPlay muted loop playsInline 
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div 
+      className="w-full h-full bg-cover bg-center"
+      style={{ backgroundImage: `url('${prod.image_url || ""}')` }}
+    />
+  )}
+</div>
                         <div className="flex-1">
                           <h3 className="spot-product-name">{prod.name}</h3>
                           <p className="spot-product-desc line-clamp-2">

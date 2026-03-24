@@ -79,9 +79,17 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
     return (
       <button key={p.id} onClick={() => setSelectedProduct(p)} className={`w-full flex items-center gap-4 active:scale-95 transition-transform ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
         <div className="shrink-0 relative">
-          <div className={`${sizeProductImg} rounded-full border-4 border-white shadow-xl overflow-hidden bg-white`} style={{ boxShadow: `0 0 0 1px ${THEME}` }}>
-            {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" alt={p.name} /> : <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-200"><ShoppingBag size={24}/></div>}
-          </div>
+         <div className={`${sizeProductImg} rounded-full border-4 border-white shadow-xl overflow-hidden bg-white`} style={{ boxShadow: `0 0 0 1px ${THEME}` }}>
+  {p.video_url ? (
+    <video src={p.video_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+  ) : p.image_url ? (
+    <img src={p.image_url} className="w-full h-full object-cover" alt={p.name} />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-200">
+      <ShoppingBag size={24}/>
+    </div>
+  )}
+</div>
         </div>
         <div className={`flex-1 min-w-0 flex flex-col ${isEven ? 'items-start text-left' : 'items-end text-right'} space-y-1`}>
           <span className="inline-block px-3 py-2 rounded-xl border border-gray-100 shadow-sm text-[9px] font-black uppercase" style={{ color: PROD_NAME_COLOR, backgroundColor: PROD_NAME_BG }}>{p.name}</span>
@@ -209,10 +217,24 @@ export default function AlternaPro({ restaurant = {}, products = [], setSelected
       {/* MODAL */}
       {restaurant.selectedProduct && (
         <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-sm rounded-[2.5rem] bg-white overflow-hidden shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95">
+          <div className="relative w-full max-w-md rounded-[2.5rem] bg-white overflow-hidden shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95">
             <button onClick={closeModal} className="absolute top-4 right-8 z-[210] bg-white/90 p-1.5 rounded-full shadow-lg border border-gray-100"><X size={18} /></button>
             <div className="overflow-y-auto no-scrollbar flex-1 p-6 text-left">
-              <img src={restaurant.selectedProduct.image_url} className="w-full aspect-video object-cover rounded-2xl mb-4" />
+        <div className="w-full aspect-[4/3] overflow-hidden rounded-b-2xl mb-4 bg-zinc-100">
+  {restaurant.selectedProduct.video_url ? (
+    <video 
+      src={restaurant.selectedProduct.video_url} 
+      autoPlay muted loop playsInline 
+      className="w-full h-full object-cover" 
+    />
+  ) : (
+    <img 
+      src={restaurant.selectedProduct.image_url} 
+      className="w-full h-full object-cover" 
+      alt={restaurant.selectedProduct.name}
+    />
+  )}
+</div>
               <h2 className="text-xl font-black uppercase text-gray-900 italic tracking-tighter leading-none">{restaurant.selectedProduct.name}</h2>
               <p className="text-[11px] text-gray-500 mt-2 font-medium leading-relaxed">{restaurant.selectedProduct.description}</p>
               
