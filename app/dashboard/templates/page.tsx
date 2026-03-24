@@ -243,7 +243,7 @@ const GALLERY_STYLES = `
       box-shadow: 0 15px 35px -5px rgba(0,0,0,0.08);
       display: flex; 
       justify-content: center; 
-      align-items: flex-start;
+     
       
   }
   
@@ -413,8 +413,27 @@ const GALLERY_STYLES = `
   .elegant-price { color: #D4AF37; font-weight: 700; font-size: 9px; }
 
   /* BISTRO */
-  .bistro-chalk { background: #222; color: #eee; padding: 12px; font-family: 'Patrick Hand', cursive; min-height: 100vh; display: flex; flex-direction: column; }
-  .bistro-border { border: 2px dashed #555; height: 100%; padding: 8px; border-radius: 8px; display: flex; flex-direction: column; }
+  .bistro-chalk { 
+ background: #222; 
+      color: #eee; 
+      padding: 12px; 
+      font-family: 'Patrick Hand', cursive; 
+      height: 100%;        /* Ocupa exactamente el alto del celu */
+      display: flex; 
+      flex-direction: column; 
+      width: 100%;
+      overflow: hidden;
+  }
+  .bistro-border { 
+    border: 2px dashed #555; 
+      padding: 8px; 
+      border-radius: 8px; 
+      display: flex; 
+      flex-direction: column; 
+      flex: 1;             /* Se estira hasta el fondo del 100% */
+      width: 100%;
+      height: 100%;
+  }
   .bistro-header { text-align: center; margin-bottom: 12px; }
   .bistro-logo { width: 32px; height: 32px; margin: 0 auto 4px; border: 2px solid #e6c87e; border-radius: 50%; display: grid; place-items: center; color: #e6c87e; font-size: 12px; }
   .bistro-list { flex: 1; overflow-y: auto; }
@@ -885,74 +904,82 @@ case 'icecream': return (
   </div>
   
 );
+
 case 'alterna-pro':
   return (
     <div className="w-full h-full bg-[#fafaf9] flex flex-col overflow-hidden relative font-sans select-none">
       
-      {/* 1. HEADER REALISTA */}
-      <div className="pt-3 px-2 pb-1 bg-white relative flex-shrink-0">
-        <div className="absolute top-2 right-2 px-1 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-0.5">
-          <div className="w-1 h-1 rounded-full bg-emerald-500" />
-          <span className="text-[3px] font-black text-emerald-600 uppercase">Abierto</span>
+      {/* 1. HEADER - TAMAÑOS INTERMEDIOS */}
+      <div className="pt-4 px-3 pb-2 bg-white relative flex-shrink-0 border-b border-gray-50">
+        {/* Status Pill tamaño medio */}
+        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Abierto</span>
         </div>
         
-        <div className="w-6 h-6 rounded-full bg-orange-100 border border-orange-200 mx-auto mb-1 flex items-center justify-center overflow-hidden shadow-sm">
-           <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=50" className="object-cover w-full h-full" />
+        {/* Logo Mediano: de w-16 a w-12 */}
+        <div className="w-12 h-12 rounded-full bg-orange-100 border-2 border-orange-200 mx-auto mb-1.5 flex items-center justify-center overflow-hidden shadow-sm">
+           <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=80" className="object-cover w-full h-full" />
         </div>
-        <div className="text-[6px] font-black uppercase text-gray-900 leading-none text-center">Eco Nature</div>
-        <div className="text-[4px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter text-center leading-none">Productos Orgánicos</div>
+        
+        {/* Título: de text-base a text-sm (14px) */}
+        <div className="text-sm font-black uppercase text-gray-900 leading-none text-center tracking-tighter">Eco Nature</div>
+        {/* Subtítulo: text-[9px] */}
+        <div className="text-[9px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter text-center leading-none">Productos Orgánicos</div>
       </div>
 
-      {/* 2. BANNER DE PROMOS */}
-      <div className="px-2 py-1 flex-shrink-0">
-        <div className="bg-orange-50 border border-dashed border-orange-200 rounded-lg p-1 text-center">
-          <span className="text-[4px] font-black text-orange-700 uppercase tracking-widest leading-none block">
+      {/* 2. BANNER DE PROMOS - AJUSTADO */}
+      <div className="px-3 py-1.5 flex-shrink-0">
+        <div className="bg-orange-50 border-2 border-dashed border-orange-200 rounded-lg py-1.5 text-center">
+          <span className="text-[9px] font-black text-orange-700 uppercase tracking-widest leading-none block">
              Envío Gratis — Compras +$20.000
           </span>
         </div>
       </div>
 
-      {/* 3. BOTONES DE CATEGORÍA */}
-      <div className="flex gap-1 px-2 py-1 justify-center flex-shrink-0 border-b border-gray-50">
+      {/* 3. BOTONES DE CATEGORÍA - AJUSTADOS */}
+      <div className="flex gap-1.5 px-3 py-1.5 justify-center flex-shrink-0 border-b border-gray-100 bg-white">
         {['Mixes', 'Mieles', 'Harinas'].map((cat, i) => (
-          <div key={i} className={`px-1.5 py-0.5 rounded-full text-[4px] font-black uppercase border ${i === 0 ? 'bg-orange-600 text-white border-orange-600' : 'bg-white text-gray-400 border-gray-100 shadow-sm'}`}>
+          <div key={i} className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border-2 ${i === 0 ? 'bg-orange-600 text-white border-orange-600 shadow-sm' : 'bg-white text-gray-400 border-gray-100'}`}>
             {cat}
           </div>
         ))}
       </div>
 
-      {/* 4. LISTADO ZIG-ZAG (Precios pegados ABAJO sin pise) */}
-      <div className="p-2 space-y-4 overflow-hidden">
+      {/* 4. LISTADO ZIG-ZAG - CÍRCULOS DE PRODUCTO MEDIANOS */}
+      <div className="flex-1 p-3 space-y-4 overflow-hidden">
         
         {/* PRODUCTO 1 */}
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full border-2 border-orange-600 shrink-0 overflow-hidden shadow-md">
-             <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=80" className="object-cover w-full h-full" />
+        <div className="flex items-center gap-3">
+          {/* Imagen: de w-24 a w-16 */}
+          <div className="w-16 h-16 rounded-full border-[3px] border-orange-600 shrink-0 overflow-hidden shadow-lg">
+             <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=100" className="object-cover w-full h-full" />
           </div>
-          <div className="flex-1 min-w-0 flex flex-col items-start space-y-0.5">
+          <div className="flex-1 min-w-0 flex flex-col items-start space-y-1">
             <div className="leading-none">
-              <span className="inline-block bg-white px-1.5 py-0.5 rounded-lg border border-gray-100 shadow-sm text-[5px] font-black text-gray-900 uppercase">
-                 Mix Frutos Secos
+              {/* Texto labels: de text-xs a text-[11px] */}
+              <span className="inline-block bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm text-[11px] font-black text-gray-900 uppercase">
+                  Mix Frutos Secos
               </span>
             </div>
-            <div className="inline-block bg-orange-600 text-white text-[5px] font-black px-2 py-0.5 rounded-full shadow-sm leading-none border border-white/20">
+            <div className="inline-block bg-orange-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-md leading-none border border-white/20">
               $8.500
             </div>
           </div>
         </div>
 
         {/* PRODUCTO 2 (INVERTIDO) */}
-        <div className="flex items-center gap-2 flex-row-reverse">
-          <div className="w-9 h-9 rounded-full border-2 border-orange-600 shrink-0 overflow-hidden shadow-md">
-             <img src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=80" className="object-cover w-full h-full" />
+        <div className="flex items-center gap-3 flex-row-reverse">
+          <div className="w-16 h-16 rounded-full border-[3px] border-orange-600 shrink-0 overflow-hidden shadow-lg">
+             <img src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=100" className="object-cover w-full h-full" />
           </div>
-          <div className="flex-1 text-right min-w-0 flex flex-col items-end space-y-0.5">
+          <div className="flex-1 text-right min-w-0 flex flex-col items-end space-y-1">
             <div className="leading-none">
-              <span className="inline-block bg-white px-1.5 py-0.5 rounded-lg border border-gray-100 shadow-sm text-[5px] font-black text-gray-900 uppercase">
-                 Miel Orgánica
+              <span className="inline-block bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm text-[11px] font-black text-gray-900 uppercase">
+                  Miel Orgánica
               </span>
             </div>
-            <div className="inline-block bg-orange-600 text-white text-[5px] font-black px-2 py-0.5 rounded-full shadow-sm leading-none border border-white/20">
+            <div className="inline-block bg-orange-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-md leading-none border border-white/20">
               $4.200
             </div>
           </div>
@@ -1229,7 +1256,7 @@ const finalTemplates = TEMPLATES.filter(t => {
                 <div className="phone-preview">
                   <div className="preview-content">
                     {/* ZOOM RESPONSIVE: 0.6 en mobile (para que entre todo) y 1.0 en PC */}
-                    <div className="w-full h-full origin-top" 
+                    <div className="w-full h-full origin-top flex flex-col"
                          style={{ 
                            zoom: typeof window !== 'undefined' && window.innerWidth < 768 ? '0.65' : '1.0',
                            transformOrigin: 'top' 
@@ -1308,13 +1335,19 @@ const finalTemplates = TEMPLATES.filter(t => {
                     </div>
 
                     {/* DISEÑO CON ZOOM REAL (pt-14 para respetar la barra fija) */}
-                    <div className="w-full h-full overflow-y-auto no-scrollbar pt-14">
-                      <div className="w-full min-h-[101%] origin-top flex flex-col" style={{ zoom: '1.6' }}>
-                        <div className="flex-1 w-full h-full">
+              <div className="w-full h-full overflow-hidden pt-14 flex flex-col">
+                      
+                      {/* Quitamos el min-h-[101%] para que no genere scroll hacia abajo */}
+                      <div className="w-full h-full origin-top flex flex-col" style={{ zoom: '1.6' }}>
+                        
+                        {/* Agregamos flex flex-col aquí para que Bistro sepa que tiene que estirarse */}
+                        <div className="flex-1 w-full h-full bg-inherit flex flex-col">
                           {renderPreview(t.type)}
                         </div>
+                        
                       </div>
                     </div>
+    
 
                     {/* 3. CORAZÓN (DERECHA) - SE OCULTA */}
                     <div className={`absolute bottom-32 right-4 flex flex-col items-center z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-14'}`}>
