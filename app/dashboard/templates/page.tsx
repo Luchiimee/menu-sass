@@ -193,16 +193,31 @@ const GALLERY_STYLES = `
   }
 
   /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
-  .templates-grid { 
+.templates-grid { 
       display: grid; 
-      grid-template-columns: repeat(2, 1fr); 
-      gap: 1rem; 
+      grid-template-columns: repeat(2, 1fr); /* Fuerza 2 columnas en el celu */
+      gap: 1rem;                             /* Espacio más ajustado para mobile */
       padding-bottom: 2rem; 
   }
-  @media (min-width: 1024px) {
-    .templates-grid { grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+
+  /* Tablets: de 2 columnas */
+  @media (min-width: 700px) {
+    .templates-grid { grid-template-columns: repeat(2, 1fr); } 
   }
 
+  /* Laptops / PCs medianas: recién acá pasamos a 3 columnas */
+ @media (min-width: 1100px) {
+    .templates-grid { 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 2rem; 
+    } 
+  }
+  /* Monitores Grandes: acá recién permitimos 4 columnas */
+@media (min-width: 1550px) {
+    .templates-grid { 
+        grid-template-columns: repeat(4, 1fr); 
+    } 
+  }
   /* 2. CELULAR FLOTANTE (Sin la card blanca de fondo) */
   .template-card {
       background: transparent;
@@ -215,19 +230,21 @@ const GALLERY_STYLES = `
       cursor: pointer;
   }
 
-  .phone-preview {
+.phone-preview {
       width: 100%;
-      aspect-ratio: 9/18;
-      height: auto; 
+      max-width: 280px; /* EVITA QUE EL CELULAR SEA GIGANTE EN PC */
+      margin: 0 auto;   /* LO CENTRA EN LA COLUMNA */
+      aspect-ratio: 9/16; /* UN POQUITO MÁS CORTO PARA QUE SE VEA LLENO */
       background: #f3f4f6;
       position: relative;
       overflow: hidden;
       border-radius: 28px;
-      /* TRAZO FINO Y SOMBRA SUAVE */
       border: 1px solid rgba(0,0,0,0.06);
       box-shadow: 0 15px 35px -5px rgba(0,0,0,0.08);
-      display: flex; justify-content: center; align-items: flex-start;
-      padding-top: 20px;
+      display: flex; 
+      justify-content: center; 
+      align-items: flex-start;
+      
   }
   
   .template-card:hover .phone-preview {
@@ -268,7 +285,7 @@ const GALLERY_STYLES = `
   /* --- ESTILOS DE TUS PLANTILLAS (EXACTOS) --- */
 
   /* URBANO DARK */
-  .urbano-dark { background: #121212; color: white; padding: 12px; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .urbano-dark { background: #121212; color: white; padding: 20px 10px; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
   .urbano-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .urbano-brand { display: flex; gap: 8px; align-items: center; }
   .urbano-logo { width: 32px; height: 32px; background: #333; border-radius: 50%; border: 2px solid white; background-size: cover; background-position: center; }
@@ -285,14 +302,14 @@ const GALLERY_STYLES = `
   .urbano-add-btn { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: none; font-size: 12px; }
 
   /* VISUAL GRID (CON HOVER) */
-  .sushi-visual { background: #1a1a1a; color: white; padding: 12px; font-family: 'Inter', sans-serif; min-height: 100vh;; display: flex; flex-direction: column;}
+  .sushi-visual { background: #1a1a1a; color: white; padding: 15px; font-family: 'Inter', sans-serif; min-height: 100vh;; display: flex; flex-direction: column;}
   .sushi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .sushi-brand { display: flex; align-items: center; gap: 8px; }
   .sushi-logo { width: 30px; height: 30px; border-radius: 50%; background-size: cover; border: 2px solid #ea580c; flex-shrink: 0; }
   .sushi-name { font-size: 11px; font-weight: 800; line-height: 1.2; }
   .sushi-desc-local { font-size: 7px; color: #bbb; }
   .sushi-status { font-size: 6px; font-weight: bold; background: #22c55e; color: black; padding: 2px 4px; border-radius: 4px; }
-  .sushi-msg { font-size: 8px; color: #ccc; margin-bottom: 10px; border-left: 2px solid #ea580c; padding-left: 6px; }
+  .sushi-msg { background: #3a3a3a; padding: 6px; border-radius: 6px; font-size: 8px; color: #ddd; margin-bottom: 12px; border-left: 3px solid #ea580c; }
   .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; overflow-y: auto; padding-bottom: 10px; }
   .sushi-item { height: 110px; border-radius: 8px; position: relative; overflow: hidden; background-size: cover; background-position: center; cursor: pointer; }
   .sushi-overlay { 
@@ -312,12 +329,12 @@ const GALLERY_STYLES = `
 
   /* CLASSIC */
   .classic-del { background: white; font-family: Arial, sans-serif;min-height: 100vh;; display: flex; flex-direction: column; }
-  .classic-header { background: #d32f2f; padding: 12px; color: white; text-align: center; position: relative; }
+  .classic-header { background: #d32f2f; padding: 25px 8px;  color: white; text-align: center; position: relative; }
   .classic-logo { width: 26px; height: 26px; background: white; border-radius: 50%; color: #d32f2f; display: grid; place-items: center; font-size: 9px; margin: 0 auto 4px; font-weight: bold; }
   .classic-title { font-size: 11px; font-weight: bold; }
-  .classic-status { position: absolute; top: 8px; right: 8px; background: white; color: #d32f2f; font-size: 6px; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
+  .classic-status { position: absolute; top: 12px; right: 20px; background: white; color: #d32f2f; font-size: 6px; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
   .classic-msg { background: #ffebee; color: #b71c1c; font-size: 8px; padding: 5px; text-align: center; border-bottom: 1px solid #ffcdd2; }
-  .classic-list { padding: 8px; flex: 1; overflow-y: auto; }
+  .classic-list { padding: 8px 10px; flex: 1; overflow-y: auto; }
   .classic-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 6px 0; align-items: center; }
   .classic-info { flex: 1; }
   .classic-prod { font-weight: bold; font-size: 10px; color: #333; }
@@ -326,7 +343,7 @@ const GALLERY_STYLES = `
   .classic-btn { width: 18px; height: 18px; border: 1px solid #ddd; background: white; color: #555; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; }
 
   /* MINIMAL */
-  .minimal-white { background: white; padding: 15px 10px; text-align: center; font-family: 'Lato', sans-serif; color: #222; min-height: 100vh;; display: flex; flex-direction: column; }
+  .minimal-white { background: white; padding: 20px 23px; text-align: center; font-family: 'Lato', sans-serif; color: #222; min-height: 100vh;; display: flex; flex-direction: column; }
   .minimal-header { margin-bottom: 15px; }
   .minimal-logo { width: 34px; height: 34px; background: #111; color: white; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; }
   .minimal-title { font-weight: 900; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
@@ -532,7 +549,7 @@ useEffect(() => {
 }, [supabase]);
 // Temporizador para ocultar la interfaz en las historias (Línea 477)
   // Temporizador para ocultar la interfaz (Línea 477)
-  useEffect(() => {
+ useEffect(() => {
     let timer: any;
     if (storyMode && showStoryUI) {
       timer = setTimeout(() => {
@@ -1194,64 +1211,63 @@ const finalTemplates = TEMPLATES.filter(t => {
         </button>
       </div>
     
-   {/* GRILLA ÚNICA ACTUALIZADA */}
-    {/* GRILLA ÚNICA ACTUALIZADA - VISTA MOCKUP LIMPIA */}
-<div className="templates-grid animate-in fade-in duration-500 pb-20">
-  {finalTemplates.map((t) => {
-    const isSelected = currentTemplate === t.id;
-    const isLocked = t.premium && userPlan === 'free';
-    const isLiked = likedTemplates.includes(t.id);
+  
+{/* GRILLA DE MOCKUPS OPTIMIZADA */}
+      <div className="templates-grid animate-in fade-in duration-500 pb-20">
+        {finalTemplates.map((t) => {
+          const isSelected = currentTemplate === t.id;
+          const isLocked = t.premium && userPlan === 'free';
+          const isLiked = likedTemplates.includes(t.id);
 
-    return (
-      <article 
-        key={t.id} 
-        className="template-item"
-        onClick={() => { setShowStoryUI(true); setStoryMode(true); }}
-      >
-        <div className="template-card">
-          <div className="phone-preview">
-            <div className="preview-content">
-              {/* AQUÍ ESTÁ EL FIX: Zoom 0.85 fijo para la grilla, sin rellenos extras ni barras */}
-              <div style={{ zoom: '0.85', transformOrigin: 'top', width: '100%', height: '100%' }}>
-                {renderPreview(t.type)}
-              </div>
-            </div>
-            
-            {/* BOTÓN MG INSTAGRAM (Se queda donde estaba) */}
-            <button 
-              onClick={(e) => handleLike(t.id, e)}
-              className={`heart-btn ${isLiked ? 'liked' : ''}`}
+          return (
+            <article 
+              key={t.id} 
+              className="template-item"
+              onClick={() => { setShowStoryUI(true); setStoryMode(true); }}
             >
-              <Heart 
-                size={16} 
-                fill={isLiked ? "currentColor" : "none"} 
-                className={isLiked ? "text-red-500" : "text-gray-400"}
-              />
-            </button>
+              <div className="template-card">
+                <div className="phone-preview">
+                  <div className="preview-content">
+                    {/* ZOOM RESPONSIVE: 0.6 en mobile (para que entre todo) y 1.0 en PC */}
+                    <div className="w-full h-full origin-top" 
+                         style={{ 
+                           zoom: typeof window !== 'undefined' && window.innerWidth < 768 ? '0.65' : '1.0',
+                           transformOrigin: 'top' 
+                         }}>
+                       {renderPreview(t.type)}
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={(e) => handleLike(t.id, e)}
+                    className={`heart-btn ${isLiked ? 'liked' : ''}`}
+                  >
+                    <Heart size={16} fill={isLiked ? "currentColor" : "none"} className={isLiked ? "text-red-500" : "text-gray-400"}/>
+                  </button>
 
-            {isLocked && (
-              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
-                <Lock size={20} className="mb-2 opacity-80" />
-                <span className="font-bold text-[10px]">PREMIUM</span>
+                  {isLocked && (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+                      <Lock size={20} className="mb-2 opacity-80" />
+                      <span className="font-bold text-[10px]">PREMIUM</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="card-info">
+                  <h3 className="card-title">{t.name}</h3>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+                    disabled={savingId === t.id || isSelected}
+                    className={`mt-2 text-[9px] font-black uppercase transition-colors ${isSelected ? 'text-emerald-500' : 'text-indigo-600 hover:underline'}`}
+                  >
+                    {isSelected ? 'En uso' : 'Seleccionar'}
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-
-          <div className="card-info">
-            <h3 className="card-title">{t.name}</h3>
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
-              disabled={savingId === t.id || isSelected}
-              className={`mt-2 text-[9px] font-black uppercase transition-colors ${isSelected ? 'text-emerald-500' : 'text-indigo-600 hover:underline'}`}
-            >
-              {isSelected ? 'En uso' : 'Seleccionar'}
-            </button>
-          </div>
-        </div>
-      </article>
-    );
-  })}
-</div>
+            </article>
+          );
+        })}
+      </div>
 
   
  {/* MODAL MODO HISTORIA REAL (INMERSIVO) */}
