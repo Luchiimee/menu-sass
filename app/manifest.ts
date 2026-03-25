@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
     description: 'Gestiona tu menú digital sin comisiones en segundos',
-    start_url: '/login', 
+    start_url: '/login?source=pwa',
     display: 'standalone',
     display_override: ['standalone', 'fullscreen'],
     background_color: '#000000',

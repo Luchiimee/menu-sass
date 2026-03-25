@@ -23,6 +23,10 @@ export const metadata: Metadata = {
    statusBarStyle: 'black-translucent',
     title: 'Snappy',
   },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "mobile-web-app-capable": "yes",
+  }
 };
 export const viewport: Viewport = {
   themeColor: "#000000",
