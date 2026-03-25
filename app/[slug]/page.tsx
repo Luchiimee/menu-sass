@@ -152,14 +152,26 @@ const common = `
       height: 100%;
       width: 100%;
       overflow-x: hidden;
-      /* FIX iOS: Asegura que los eventos de clic se registren correctamente en el fondo */
+      /* FIX iOS: Despierta los eventos de clic en Safari */
       cursor: pointer; 
       -webkit-tap-highlight-color: transparent;
+      -webkit-overflow-scrolling: touch;
     }
 
-    /* FIX MODAL iOS: Asegura que los elementos fijos (como el carrito) respondan al touch */
+    /* FIX RADICAL iOS: Fuerza a los botones a estar "arriba" y ser clicables */
+    button, [role="button"], .cursor-pointer {
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      /* Fuerza renderizado de hardware para evitar capas fantasma */
+      transform: translateZ(0); 
+    }
+
+    /* Asegura que los elementos fijos (como el Carrito) no se hundan en la pantalla */
     .fixed {
       touch-action: manipulation;
+      transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
     }
     
     main, .layout-container, .app-wrapper {
@@ -171,7 +183,7 @@ const common = `
     .add-btn-wrapper button {
       border-radius: 8px !important;
     }
-  `
+  `;
 
   switch (TEMPLATE) {
     case "classic":
