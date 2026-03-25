@@ -141,29 +141,37 @@ const getStyles = (
   DESC_FONT?: string,
   PROMO_FONT?: string,
 ) => {
-  // ESTILOS GLOBALES: Bloquean el "Pull-to-Refresh" del iPhone y mejoran el scroll
-  const common = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');
-      html, body { 
-        margin: 0;
-        padding: 0;
-        overscroll-behavior-y: none !important; /* BLOQUEO CLAVE PARA IPHONE */
-        height: 100%;
-        width: 100%;
-        overflow-x: hidden;
-      }
+ 
+const common = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');
+    
+    html, body { 
+      margin: 0;
+      padding: 0;
+      overscroll-behavior-y: none !important;
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+      /* FIX iOS: Asegura que los eventos de clic se registren correctamente en el fondo */
+      cursor: pointer; 
+      -webkit-tap-highlight-color: transparent;
+    }
 
-      /* Evita el rebote elástico en contenedores principales */
-      main, .layout-container, .app-wrapper {
-        overscroll-behavior-y: none !important;
-        -webkit-overflow-scrolling: touch;
-      }
-      
-      /* Sincronización de bordes del botón con el editor */
-      .add-btn-wrapper button {
-        border-radius: 8px !important;
-      }
-    `;
+    /* FIX MODAL iOS: Asegura que los elementos fijos (como el carrito) respondan al touch */
+    .fixed {
+      touch-action: manipulation;
+    }
+    
+    main, .layout-container, .app-wrapper {
+      overscroll-behavior-y: none !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Sincronización de botones */
+    .add-btn-wrapper button {
+      border-radius: 8px !important;
+    }
+  `
 
   switch (TEMPLATE) {
     case "classic":
@@ -224,7 +232,7 @@ const getStyles = (
             .urbano-img { width: 95px; height: 95px; background-size: cover; border-radius: 18px; background-position: center; flex-shrink: 0; background-color: #222; }background-position: center; flex-shrink: 0; background-color: #222; }
             .urbano-info { flex: 1; padding-right: 48px; display: flex; flex-direction: column; justify-content: center; text-align: left; }
             .urbano-tit { font-weight: 800; font-size: 17px; margin-bottom: 4px; color: ${PROD_NAME}; letter-spacing: -0.02em; }
-            .urbano-desc { font-size: 12px; color: ${PROD_DESC}; line-height: 1.4; opacity: 0.7; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            .urbano-desc { font-size: 12px; color: ${PROD_DESC}; line-height: 1.4; opacity: 0.7; }
             .urbano-price { color: ${PROD_PRICE} !important; font-weight: 900; font-size: 18px; margin-top: 8px; }
             
             /* BOTÓN + GRANDE */
@@ -1579,7 +1587,7 @@ function MenuContent({
 </div>
                         <div className="flex-1">
                           <h3 className="spot-product-name">{prod.name}</h3>
-                          <p className="spot-product-desc line-clamp-2">
+                          <p className="spot-product-desc">
                             {prod.description}
                           </p>
                           <div className="spot-product-price">

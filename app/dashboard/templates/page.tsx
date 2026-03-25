@@ -479,11 +479,7 @@ const TEMPLATES = [
 ];
 
 function GalleryContent() {
-  const [showStoryUI, setShowStoryUI] = useState(true);
   const [photoFilter, setPhotoFilter] = useState<'todas' | 'con-foto' | 'sin-foto'>('todas');
-  const [storyMode, setStoryMode] = useState(false);
-  const [likedTemplates, setLikedTemplates] = useState<string[]>([]); // IDS de plantillas que EL USUARIO actual le dio Like
-  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({}); // Cantidad TOTAL de likes por plantilla
   const [mainCategory, setMainCategory] = useState<'basicas' | 'completas' | 'todas'>('todas');
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
@@ -508,11 +504,10 @@ const router = useRouter();
   );
 
 useEffect(() => {
-    const loadAllData = async () => {
+   const loadAllData = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if(session) {
-            // 1. CARGAR INFO DEL RESTAURANTE
             const { data: restaurantData } = await supabase
                 .from('restaurants')
                 .select('template_id, subscription_plan, sale_type, is_open, onboarding_completed')
@@ -535,48 +530,12 @@ useEffect(() => {
                     setIsOnboardingMandatory(true);
                 }
             }
-
-            // 2. CARGAR MIS LIKES (SI ESTOY LOGUEADO)
-            const { data: myLikes } = await supabase
-                .from('template_likes')
-                .select('template_id')
-                .eq('user_id', session.user.id);
-
-            if(myLikes) {
-                setLikedTemplates(myLikes.map(like => like.template_id));
-            }
         }
-
-        // 3. CARGAR CANTIDAD TOTAL DE LIKES (Para todos, logueados o no)
-        const { data: allCounts } = await supabase
-            .from('template_likes')
-            .select('template_id');
-
-        if(allCounts) {
-            const countsObject = allCounts.reduce((acc: Record<string, number>, like) => {
-                const id = like.template_id;
-                acc[id] = (acc[id] || 0) + 1;
-                return acc;
-            }, {});
-            setLikeCounts(countsObject);
-        }
-
         setIsInitialLoading(false); 
     };
-
     loadAllData();
 }, [supabase]);
-// Temporizador para ocultar la interfaz en las historias (Línea 477)
-  // Temporizador para ocultar la interfaz (Línea 477)
- useEffect(() => {
-    let timer: any;
-    if (storyMode && showStoryUI) {
-      timer = setTimeout(() => {
-        setShowStoryUI(false);
-      }, 5000);
-    }
-    return () => clearTimeout(timer);
-  }, [storyMode, showStoryUI]);
+
 
 const handleSaveBusinessInfo = async (subType: string) => {
     setIsUpdatingType(true);
@@ -648,43 +607,7 @@ const handleSaveBusinessInfo = async (subType: string) => {
     }
     setSavingId(null);
   };
-const handleLike = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return toast.error("Iniciá sesión para dar me gusta");
 
-    // Copias de los estados actuales para actualizarlos de forma inmutable
-    const newLikedTemplates = [...likedTemplates];
-    const newLikeCounts = { ...likeCounts };
-
-    if (likedTemplates.includes(id)) {
-      // QUITAR LIKE
-      // 1. Quitar de la lista personal del usuario
-      setLikedTemplates(prev => prev.filter(t => t !== id));
-      
-      // 2. Decrementar el contador total VISUALMENTE
-      newLikeCounts[id] = Math.max(0, (newLikeCounts[id] || 1) - 1);
-      setLikeCounts(newLikeCounts);
-
-      // Aquí deberías agregar la lógica para borrar de Supabase en la tabla template_likes
-      // .from('template_likes').delete().eq('user_id', user.id).eq('template_id', id)...
-      // toast.info("Quitado de tus favoritos");
-
-    } else {
-      // DAR LIKE
-      // 1. Agregar a la lista personal del usuario
-      setLikedTemplates(prev => [...prev, id]);
-      
-      // 2. Incrementar el contador total VISUALMENTE
-      newLikeCounts[id] = (newLikeCounts[id] || 0) + 1;
-      setLikeCounts(newLikeCounts);
-
-      toast.success("¡Guardado en tus favoritos!");
-
-      // Aquí deberías agregar la lógica para guardar en Supabase en la tabla template_likes
-      // .from('template_likes').insert({user_id: user.id, template_id: id})...
-    }
-  };
   const renderPreview = (type: string) => {
     switch (type) {
       case 'urban': return (
@@ -1205,16 +1128,8 @@ const finalTemplates = TEMPLATES.filter(t => {
         </button>
       </div>
 
-      {/* 3. BOTÓN DE HISTORIAS (AHORA DEBAJO DE LAS MASTER CARDS) */}
-      <div className="flex justify-center mb-8">
-        <button 
-          onClick={() => setStoryMode(true)}
-          className="group relative px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest italic flex items-center gap-3 hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
-        >
-          <Sparkles size={16} className="text-indigo-400" />
-          Mirá tu diseño tipo Historia ✨
-        </button>
-      </div>
+
+    
 
       {/* 4. FILTROS DE ESTILO (CHIPS) */}
       <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
@@ -1244,14 +1159,10 @@ const finalTemplates = TEMPLATES.filter(t => {
         {finalTemplates.map((t) => {
           const isSelected = currentTemplate === t.id;
           const isLocked = t.premium && userPlan === 'free';
-          const isLiked = likedTemplates.includes(t.id);
+          
 
           return (
-            <article 
-              key={t.id} 
-              className="template-item"
-              onClick={() => { setShowStoryUI(true); setStoryMode(true); }}
-            >
+           <article key={t.id} className="template-item">
               <div className="template-card">
                 <div className="phone-preview">
                   <div className="preview-content">
@@ -1265,12 +1176,7 @@ const finalTemplates = TEMPLATES.filter(t => {
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={(e) => handleLike(t.id, e)}
-                    className={`heart-btn ${isLiked ? 'liked' : ''}`}
-                  >
-                    <Heart size={16} fill={isLiked ? "currentColor" : "none"} className={isLiked ? "text-red-500" : "text-gray-400"}/>
-                  </button>
+               
 
                   {isLocked && (
                     <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
@@ -1297,119 +1203,8 @@ const finalTemplates = TEMPLATES.filter(t => {
       </div>
 
   
- {/* MODAL MODO HISTORIA REAL (INMERSIVO) */}
-      {storyMode && (
-        <div className="story-overlay animate-in fade-in duration-300">
-          
-          {/* 1. Header Superior (Snappy Stories) - ESTE SÍ SE OCULTA */}
-          <div className={`absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-[850] bg-gradient-to-b from-black/80 to-transparent transition-all duration-500 ${showStoryUI ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10 pointer-events-none'}`}>
-             <div className="flex flex-col text-left">
-                <span className="text-white font-black uppercase italic text-xl leading-none tracking-tighter">Snappy Stories</span>
-                <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Vista previa real</span>
-             </div>
-             <button onClick={() => setStoryMode(false)} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md hover:bg-white/40 transition-all pointer-events-auto">
-               <X size={28} strokeWidth={3} />
-             </button>
-          </div>
 
-          <div className="story-track no-scrollbar">
-            {finalTemplates.map((t) => {
-              const isLiked = likedTemplates.includes(t.id);
-              const isSelected = currentTemplate === t.id;
-              const isDark = t.id === 'urban' || t.id === 'visualgrid' || t.id === 'bistro';
 
-              return (
-                <div key={t.id} className="story-slide relative bg-black" onClick={() => setShowStoryUI(!showStoryUI)}>
-                  
-                  <div className={`w-full h-full md:max-w-[450px] md:h-[92vh] md:rounded-[3rem] shadow-2xl overflow-hidden relative ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
-                    
-                    {/* 2. BARRA DE NAVEGADOR FAKE - FIJA (NUNCA SE VA) */}
-                    <div className="absolute top-0 inset-x-0 h-14 bg-white/95 backdrop-blur-lg border-b border-gray-100 z-[800] flex items-center px-4 shadow-sm">
-                       <div className="flex gap-1.5 mr-4">
-                          <div className="w-2 h-2 rounded-full bg-slate-200" />
-                          <div className="w-2 h-2 rounded-full bg-slate-200" />
-                       </div>
-                       <div className="flex-1 bg-slate-100 rounded-full h-8 flex items-center justify-center gap-2 text-[10px] text-slate-500 font-bold tracking-tight">
-                          <Lock size={10} className="text-slate-400" /> snappy.menu/{t.id}
-                       </div>
-                    </div>
-
-                    {/* DISEÑO CON ZOOM REAL (pt-14 para respetar la barra fija) */}
-              <div className="w-full h-full overflow-hidden pt-14 flex flex-col">
-                      
-                      {/* Quitamos el min-h-[101%] para que no genere scroll hacia abajo */}
-                      <div className="w-full h-full origin-top flex flex-col" style={{ zoom: '1.6' }}>
-                        
-                        {/* Agregamos flex flex-col aquí para que Bistro sepa que tiene que estirarse */}
-                        <div className="flex-1 w-full h-full bg-inherit flex flex-col">
-                          {renderPreview(t.type)}
-                        </div>
-                        
-                      </div>
-                    </div>
-    
-
-                    {/* 3. CORAZÓN (DERECHA) - SE OCULTA */}
-                    <div className={`absolute bottom-32 right-4 flex flex-col items-center z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-14'}`}>
-                      <div className="flex flex-col items-center">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleLike(t.id, e); }}
-                          className={`p-2.5 rounded-full transition-all active:scale-75 shadow-sm border border-black/5 ${isLiked ? 'bg-red-500 text-white' : isDark ? 'bg-white/10 text-white backdrop-blur-md' : 'bg-black/5 text-slate-400'}`}
-                        >
-                          <Heart size={22} fill={isLiked ? "currentColor" : "none"} strokeWidth={2} />
-                        </button>
-                        <span className={`text-[11px] font-bold mt-1.5 transition-colors ${isDark ? 'text-white' : 'text-black'}`}>
-                          {likeCounts[t.id] || 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 4. BOTÓN ACCIÓN (IZQUIERDA) - SE OCULTA */}
-                  {/* 2. BOTÓN DE ACCIÓN (A LA IZQUIERDA) - NO SE CIERRA AL ELEGIR */}
-<div className={`absolute bottom-32 left-8 z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-14'}`}>
-  <button 
-    onClick={(e) => { 
-      e.stopPropagation(); 
-      if (!isSelected) { 
-        // Eliminamos setStoryMode(false) de acá para que se quede abierto
-        handleSelect(t.id, t.premium ?? false); 
-      } 
-    }}
-    disabled={isSelected}
-    className={`px-6 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl active:scale-95 ${
-      isSelected 
-        ? 'bg-emerald-500 text-white cursor-default shadow-emerald-500/20' 
-        : 'bg-indigo-600 text-white shadow-indigo-500/20 hover:bg-indigo-700'
-    }`}
-  >
-    {isSelected ? (
-      <div className="flex items-center gap-2">
-        <Check size={14} strokeWidth={4} /> 
-        Elegido
-      </div>
-    ) : (
-      'Usar Diseño'
-    )}
-  </button>
-</div>
-
-                    {/* 5. INFO DISEÑO (ABAJO) - SE OCULTA */}
-                    <div className={`absolute bottom-12 left-8 text-left pointer-events-none z-[710] transition-all duration-700 ${showStoryUI ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                       <h3 className="text-white text-3xl font-black uppercase italic tracking-tighter leading-none drop-shadow-2xl">{t.name}</h3>
-                       <p className="text-white/70 text-[10px] font-bold uppercase mt-3 drop-shadow-md bg-black/20 px-3 py-1 rounded-full w-fit">
-                         {t.category === 'basicas' ? '⚡ Diseño Rápido' : '💎 Diseño Completo'}
-                       </p>
-                    </div>
-
-                    {/* Sombra inferior - SE OCULTA */}
-                    <div className={`absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none z-[705] transition-opacity duration-700 ${showStoryUI ? 'opacity-100' : 'opacity-0'}`} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
