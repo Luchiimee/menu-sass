@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "uno.snappy.twa",
+    "sha256_cert_fingerprints": ["C3:6D:03:0A:95:52:FC:A3:11:C7:74:77:77:8D:14:38:73:49:F2:7D:98:22:63:4D:E4:97:90:4D:E3:3B:E0:76"]
+  }
+}]
