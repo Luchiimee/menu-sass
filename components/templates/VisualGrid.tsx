@@ -50,15 +50,26 @@ export default function VisualGrid({ restaurant, products }: any) {
       </div>
 
       {/* BANNER PROMO */}
+    {/* BANNER PROMO ACTUALIZADO */}
       {restaurant.show_promo && (
         <div style={{ 
-          background: PROMO_BG,
+          background: PROMO_BG === 'transparent' ? '#1E1E1E' : PROMO_BG, // Si es transparente, forzamos el gris oscuro
           color: PROMO_TXT,
-          fontSize: '9px', marginBottom: '12px', 
-          borderLeft: `3px solid ${ACENTO}`, padding: '6px 8px', 
-          fontWeight: '700', flexShrink: 0 
+          fontSize: '9px', 
+          marginBottom: '18px', // Más espacio con los productos
+          marginTop: '5px',
+          marginLeft: '4px',
+          marginRight: '4px',
+          borderLeft: `4px solid ${ACENTO}`, 
+          padding: '10px 14px', 
+          fontWeight: '700', 
+          flexShrink: 0,
+          borderRadius: '12px', // <--- REDONDEADO
+          boxShadow: '0 4px 15px rgba(0,0,0,0.2)', // <--- SOMBRA PARA QUE RESALTE
+          display: 'flex',
+          alignItems: 'center'
         }}>
-          {restaurant.promo_message || '🍣 Happy Hour: 2x1 en Rolls'}
+          {restaurant.promo_message || 'Happy Hour: 2x1 en Rolls'}
         </div>
       )}
 
@@ -67,18 +78,39 @@ export default function VisualGrid({ restaurant, products }: any) {
         {products.map((p: any, i: number) => {
           const isActive = activeId === p.id;
           
-          return (
+        return (
             <div 
               key={i} 
               onClick={() => setActiveId(isActive ? null : p.id)}
               style={{ 
                 aspectRatio: '1 / 1.2', borderRadius: '15px', position: 'relative', overflow: 'hidden',
-                backgroundImage: `url('${p.image_url || 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200'}')`,
-                backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid rgba(255,255,255,0.1)',
                 backgroundColor: CARD_BG,
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                border: '1px solid rgba(255,255,255,0.05)'
               }}
             >
+              {/* --- FONDO: IMAGEN O VIDEO --- */}
+              <div style={{ position: 'absolute', inset: 0 }}>
+                {p.video_url ? (
+                  <video 
+                    src={p.video_url} 
+                    autoPlay muted loop playsInline 
+                    style={{ 
+                      width: '100%', height: '100%', objectFit: 'cover',
+                      filter: isActive ? 'brightness(0.3) blur(4px)' : 'none',
+                      transition: 'all 0.5s ease'
+                    }} 
+                  />
+                ) : (
+                  <div style={{ 
+                    width: '100%', height: '100%', 
+                    backgroundImage: `url('${p.image_url || 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200'}')`,
+                    backgroundSize: 'cover', backgroundPosition: 'center',
+                    filter: isActive ? 'brightness(0.3) blur(4px)' : 'none',
+                    transition: 'all 0.5s ease'
+                  }} />
+                )}
+              </div>
               {/* --- 1. MODO EXPANDIDO (Al tocar, como en el video) --- */}
               {isActive ? (
                 <div style={{ 

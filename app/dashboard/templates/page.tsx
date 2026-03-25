@@ -309,7 +309,19 @@ const GALLERY_STYLES = `
   .sushi-name { font-size: 11px; font-weight: 800; line-height: 1.2; }
   .sushi-desc-local { font-size: 7px; color: #bbb; }
   .sushi-status { font-size: 6px; font-weight: bold; background: #22c55e; color: black; padding: 2px 4px; border-radius: 4px; }
-  .sushi-msg { background: #3a3a3a; padding: 6px; border-radius: 6px; font-size: 8px; color: #ddd; margin-bottom: 12px; border-left: 3px solid #ea580c; }
+ /* NUEVO ESTILO PROMO VISUAL GRID */
+  .sushi-msg { 
+      background: #1E1E1E; 
+      padding: 10px 12px; 
+      border-radius: 12px; 
+      font-size: 8px; 
+      color: #fff; 
+      margin: 0 1px 15px; 
+      border-left: 4px solid #ea580c; 
+      font-weight: 700;
+      text-align: left;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
   .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; overflow-y: auto; padding-bottom: 10px; }
   .sushi-item { height: 110px; border-radius: 8px; position: relative; overflow: hidden; background-size: cover; background-position: center; cursor: pointer; }
   .sushi-overlay { 

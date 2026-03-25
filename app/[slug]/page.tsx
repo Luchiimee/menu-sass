@@ -24,6 +24,7 @@ import MarketProTemplate from "@/components/templates/MarketProTemplate";
 import AlternaPro from "@/components/templates/AlternaPro";
 import UrbanoDark from "@/components/templates/UrbanoDark";
 import HeladeriaSoft from "@/components/templates/HeladeriaSoft";
+import VisualGrid from "@/components/templates/VisualGrid";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -228,11 +229,11 @@ const common = `
             .app-wrapper { padding: 16px; display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 120px; } 
 
             /* --- HEADER AGRANDADO --- */
-            .urbano-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-shrink: 0; }
+            .urbano-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0; }
             .urbano-brand { display: flex; gap: 14px; align-items: center; text-align: left; }
             .urbano-logo { width: 60px; height: 60px; border-radius: 50%; border: 2px solid ${TEXT}; background-size: cover; background-position: center; flex-shrink: 0; }
             .urbano-names h4 { font-size: 20px; font-weight: 800; margin: 0; line-height: 1.1; color: ${TEXT}; text-transform: uppercase; }
-            .urbano-names span { font-size: 13px; color: ${DESC}; opacity: 0.8; margin-top: 2px; }
+            .urbano-names span { font-size: 13px; color: ${DESC}; opacity: 0.8; margin-top: 2px; line-height: 1.2; display: block; }
             .urbano-status { color: #000; font-size: 10px; font-weight: 900; padding: 5px 10px; border-radius: 10px; height: fit-content; text-transform: uppercase; }
             
             /* --- PROMO --- */
@@ -329,17 +330,21 @@ height: 26px !important;
             .sushi-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 20px; }
             .sushi-logo { width: 50px; height: 50px; border-radius: 50%; border: 2px solid ${THEME}; background-size: cover; background-position: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
             
-            /* PROMO SINCRONIZADA */
             .sushi-msg-box { 
-                margin: 0 20px 20px; 
-                background-color: ${PROMO_BG}; 
+                margin: 5px 15px 18px; 
+                /* Si el color es transparente o no existe, forzamos el gris oscuro del editor */
+                background-color: ${PROMO_BG === 'transparent' || !PROMO_BG ? '#1E1E1E' : PROMO_BG}; 
                 color: ${PROMO_TEXT}; 
-                border-left: 3px solid ${THEME}; 
-                padding: 10px 15px; 
+                border-left: 4px solid ${THEME}; 
+                padding: 10px 14px; 
                 font-size: 11px; 
                 font-weight: 700; 
                 text-align: left; 
-                border-radius: 0 10px 10px 0;
+                /* AQUÍ ESTÁ EL CAMBIO DE DISEÑO */
+                border-radius: 12px !important; 
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                display: flex;
+                align-items: center;
             }
             
             .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 15px; }

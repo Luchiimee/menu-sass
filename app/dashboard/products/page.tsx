@@ -204,18 +204,19 @@ const openEditModal = async (product: any) => {
               // --- 3. SUBIR A CLOUDINARY (Si pasó las pruebas) ---
               const formDataCloudinary = new FormData();
               formDataCloudinary.append('file', file);
-              formDataCloudinary.append('upload_preset', 'snappy_videos'); 
+              formDataCloudinary.append('upload_preset', 'snappy_videos');
 
-              const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-              const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+              
+              const cloudName = 'dlm6mc4i2';
+           const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
                   method: 'POST',
                   body: formDataCloudinary
               });
-
-              const data = await response.json();
+             const data = await response.json();
               if (data.secure_url) {
                   setFormData({ ...formData, video_url: data.secure_url, image_url: '' }); 
               } else {
+                  console.error("Error de Cloudinary:", data); // Esto te dirá el error si falla
                   throw new Error("Error al subir a Cloudinary");
               }
 

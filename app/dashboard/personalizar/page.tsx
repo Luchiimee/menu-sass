@@ -100,19 +100,19 @@ urban: {
     card_name: '#222222', card_desc: '#999999', card_price: '#000000', 
     btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false 
   },
- visualgrid: { 
+visualgrid: { 
     theme: '#ea580c', 
-    bg: '#1a1a1a', 
-    card: '#2a2a2a', 
+    bg: '#121212',           // Fondo negro puro (más premium)
+    card: '#1E1E1E',         // Gris muy oscuro para las tarjetas
     text: '#ffffff', 
-    desc: '#bbbbbb', 
+    desc: '#888888', 
     card_name: '#ffffff',
-    card_desc: '#bbbbbb',
+    card_desc: '#888888',
     card_price: '#ea580c',
     btn_bg: '#ea580c',
     btn_text: '#ffffff',
-    promo: '#1a1a1a', 
-    promo_text: '#ea580c',
+    promo_bg_color: '#1E1E1E', // Fondo oscuro para la promo
+    promo_text_color: '#ffffff', // Texto blanco
     banner: false 
   },
 pop: { 
@@ -244,6 +244,8 @@ const CUSTOM_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;900&display=swap');
   .preview-scroll { width: 100%; height: 100%; overflow-y: auto; scrollbar-width: none; padding-top: 35px; position: relative; display: flex; flex-direction: column; }
   .preview-scroll::-webkit-scrollbar { display: none; }
+  .preview-scroll > div { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .preview-scroll { padding-bottom: 80px !important; }
   .status-bar-fixed { position: absolute; top: 0; left: 0; width: 100%; height: 35px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 10px; font-weight: bold; z-index: 50; pointer-events: none; }
   @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   .animate-pop-in { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -253,7 +255,10 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => 
   const activeId = previewTemplateId || data?.template_id || 'classic';
   const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
   
-  const displayProds = products.length > 0 ? products : [
+  // --- 1. LÓGICA DE LIMITACIÓN A 5 PRODUCTOS REALES ---
+  const limitedUserProducts = products?.slice(0, 5) || [];
+
+  const displayProds = limitedUserProducts.length > 0 ? limitedUserProducts : [
     { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
     { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
     { id: 3, name: 'Granola de Coco', price: 3900, image_url: 'https://images.unsplash.com/photo-1517093602195-b40af9688b46?w=400' }
@@ -281,12 +286,12 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => 
     card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
   } : data;
 
- const props = { 
+  const props = { 
     restaurant: { ...renderData, categories: categories }, 
     products: displayProds,
-    isOpen: true,           // <--- Agregado (En el editor siempre se ve abierto)
-    onAddToCart: () => {},  // <--- Agregado (Función vacía para que no falle)
-    isMockup: true          // <--- Agregado (Para saber que es la vista previa)
+    isOpen: true,           
+    onAddToCart: () => {},  
+    isMockup: true          
   }
 
   return (
@@ -297,41 +302,43 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => 
           switch (activeId) {
             case 'urban': return <UrbanoDark {...props} />;
             case 'pop': return <PopVibrant {...props} />;
-            case 'visualgrid': return <VisualGrid {...props} />;
+            case 'visualgrid': 
+              return (
+                <div className="flex flex-col gap-4">
+                    <VisualGrid {...props} />
+                </div>
+              );
             case 'classic': return <ClassicDelivery {...props} />;
             case 'minimal': return <MinimalWhite {...props} />;
             case 'spotlight': return <SpotlightHero {...props} />;
             case 'elegant': return <ElegantSerif {...props} />;
             case 'bistro': return <BistroChalk {...props} />;
             case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => { }} />;
-case 'alterna-pro':
-  return (
-    <AlternaPro
-      restaurant={{ 
-        ...renderData, 
-        // Usamos .slice(0, 2) para que en el editor solo se vea "General" y una categoría más
-        // Así no se rompe el diseño del mockup aunque tengas 10 categorías reales.
-        categories: categories.length > 0 ? categories.slice(0, 2) : [
-          {id: 'cat-1', name: 'General'}, 
-          {id: 'cat-2', name: 'Pizzas'}
-        ] 
-      }}
-      products={displayProds}
-      onAddToCart={() => {}}
-      setSelectedProduct={(p: any) => console.log("Click:", p.name)}
-      isMockup={true}
-    />
-  );
- case 'icecream-v1':
+            case 'alterna-pro':
+              return (
+                <AlternaPro
+                  restaurant={{ 
+                    ...renderData, 
+                    categories: categories.length > 0 ? categories.slice(0, 2) : [
+                      {id: 'cat-1', name: 'General'}, 
+                      {id: 'cat-2', name: 'Pizzas'}
+                    ] 
+                  }}
+                  products={displayProds} // <--- Usa los 5 productos reales
+                  onAddToCart={() => {}}
+                  setSelectedProduct={(p: any) => console.log("Click:", p.name)}
+                  isMockup={true}
+                />
+              );
+            case 'icecream-v1':
               return (
                 <HeladeriaSoft 
                   restaurant={renderData} 
-                  products={displayProds} 
+                  products={displayProds} // <--- Usa los 5 productos reales
                   onAddToCart={() => {}} 
                   isMockup={true} 
                 />
               );
-
             default: return <ClassicDelivery {...props} />;
           }
         })()}
