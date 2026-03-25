@@ -9,16 +9,19 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Snappy | Tu Menú Digital",
   description: "Tu carta digital inteligente.",
-  // --- AHORA SÍ ESTÁ ADENTRO ---
   icons: {
-    icon: '/icon-192.png', 
+    icon: '/icon-192.png',
     apple: '/icon-512.png',
   },
-  // Agregamos esto para que WhatsApp y Google no usen lo de Vercel
   openGraph: {
     title: 'Snappy | Tu Menú Digital',
     description: 'La plataforma más rápida para tu carta digital.',
-    images: ['/icon-512.png'], 
+    images: ['/icon-512.png'],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Snappy',
   },
 };
 export const viewport: Viewport = {
