@@ -20,21 +20,18 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-   statusBarStyle: 'black-translucent',
+    statusBarStyle: 'black-translucent', // Mantiene la pantalla completa real
     title: 'Snappy',
   },
-  other: {
-    "apple-mobile-web-app-capable": "yes",
-    "mobile-web-app-capable": "yes",
-  }
 };
+
 export const viewport: Viewport = {
   themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover",
+  viewportFit: "cover", // Esto es lo que estira la app hasta los bordes
 };
 
 export default function RootLayout({
