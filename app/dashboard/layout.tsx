@@ -18,13 +18,18 @@ function GoogleAuthHandler() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const hasCode = searchParams.has('code');
-
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
-    if (hasCode || hasHash) console.log("Procesando login social...");
+    
+    if (hasCode || hasHash) {
+      console.log("Procesando login social...");
+      // Forzamos la limpieza de la URL. Esto ayuda a que iOS esconda la barra de navegación
+      setTimeout(() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 500);
+    }
   }, [searchParams]);
   return null;
 }
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -189,35 +194,29 @@ useEffect(() => {
 
   const supportMessage = encodeURIComponent(`Hola! Soy  ${restaurant.name}, necesito ayuda con mi panel.`);
 
-  // --- LÓGICA DE TIEMPO (Cambiamos 'profile' por 'profileData' para corregir el error) ---
+  
  // --- LÓGICA DE TIEMPO BLINDADA (Reemplazo corregido) ---
-  const trialDuration = 14;
+ const trialDuration = 14;
   let daysRemaining = 14;
   let isExpired = false;
   let showWarning = false;
-const needsRubro = restaurant.plan && !restaurant.onboarding_completed; 
-const needsPlan = !restaurant.plan;
+  const needsRubro = restaurant.plan && !restaurant.onboarding_completed; 
+  const needsPlan = !restaurant.plan;
+const isSubscriptionValid = restaurant.status === 'active' || restaurant.status === 'authorized' || 
+  restaurant.status === 'past_due';
 
-  // Solo calculamos si ya terminó de cargar y tenemos los datos del perfil
   if (!isLoading && profileData?.created_at) {
     const createdAt = new Date(profileData.created_at);
     const today = new Date();
-    
-    // Calculamos días usados reales
     const diffInMs = today.getTime() - createdAt.getTime();
     const daysUsed = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
     daysRemaining = trialDuration - daysUsed;
     const paymentConfigured = profileData?.payment_configured || false;
 
-    // Definimos estados de bloqueo y aviso
-    // --- CAMBIO DE SEGURIDAD ---
-isExpired = daysRemaining <= 0 && !paymentConfigured && restaurant.status !== 'active' && restaurant.status !== 'authorized';
+    // 2. CAMBIO AQUÍ: No expira si la suscripción es válida
+    isExpired = daysRemaining <= 0 && !paymentConfigured && !isSubscriptionValid;
     showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured;
-
-    console.log(`Días usados: ${daysUsed} | Quedan: ${daysRemaining} | Bloqueado: ${isExpired}`);
   }
-
   const bypassBlock = isAdmin;
 
  // Reemplaza tu handleLogout actual por este:
@@ -393,7 +392,7 @@ const menuItems = [
         </div>
       </aside>
 {/* --- MAIN CONTENT --- */}
-     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-16 lg:pt-0">
+     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-[env(safe-area-inset-top,4rem)] lg:pt-0">
         
         {/* Alerta de Pagos Pausados (Sticky) */}
         {restaurant.plan && restaurant.status === 'paused' && (
@@ -474,9 +473,10 @@ const menuItems = [
             const showSuspendedModal = isCancelled && !isSettingsPage;
             
             // Otros bloqueos (Falta plan o Rubro)
-          const showOnboardingBlock = !isLoading && 
-    (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
-    !isSettingsPage;
+        const showOnboardingBlock = !isLoading && 
+      (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
+      !isSettingsPage && 
+      !isSubscriptionValid;
     
 
             const isAnyBlocked = showSuspendedModal || showOnboardingBlock;

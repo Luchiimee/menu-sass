@@ -181,62 +181,69 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
   if (!userId) return;
   setProcessingPlan(planType);
   
-  // Guardamos si el usuario ya tenía un plan antes de esta acción
+  // 1. Detectamos si ya tiene un pago confirmado
+  const isSubscribed = restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized';
   const isChangingPlan = !!restaurant.subscription_plan;
 
   try {
     const autoSlug = `snappy-${Math.random().toString(36).substring(2, 7)}`;
 
-    // Usamos upsert para que funcione tanto para nuevos como para cambios de plan
-   const { data, error } = await supabase
-  .from('restaurants')
-  .upsert({ 
-    user_id: userId, 
-    subscription_plan: planType,
-    subscription_status: 'trialing',
-    trial_start_date: new Date().toISOString(),
-    name: restaurant?.name || 'Mi Restaurante',
-    slug: restaurant?.slug || autoSlug,
-    
-    // --- COLORES INICIALES (CLASSIC DELIVERY) ---
-    // Esto evita que Supabase use colores "basura" o vacíos
-    template_id: 'classic',
-    theme_color: '#d32f2f',       // Rojo
-    bg_color: '#ffffff',          // Blanco
-    text_color: '#ffffff',        // Blanco (nombre local)
-    description_color: '#ffffff', // Blanco (desc local)
-    promo_bg_color: '#ffebee',    // Rosa suave
-    promo_text_color: '#d32f2f',  // Rojo (texto promo)
-    card_name_color: '#000000',   // Negro (nombre producto)
-    card_price_color: '#d32f2f',  // Rojo (precio)
-    card_btn_bg: '#ffffff',       // Blanco (botón +)
-    card_btn_text: '#000000',     // Negro (cruz +)
-    card_color: '#ffffff',        // Blanco (fondo card)
-    
-    onboarding_completed: restaurant?.onboarding_completed || false 
-  }, {
-    onConflict: 'user_id' 
-  })
-  .select()
-  .single();
+    const { data, error } = await supabase
+      .from('restaurants')
+      .upsert({ 
+        user_id: userId, 
+        subscription_plan: planType,
+        
+        // --- LA LLAVE MAESTRA ---
+        // Si ya está activo, NO lo volvemos a 'trialing'. Mantenemos su estado para que no se bloquee.
+        subscription_status: isSubscribed ? restaurant.subscription_status : 'trialing',
+        
+        // Mantenemos la fecha de creación del trial original si ya existe
+        trial_start_date: restaurant?.trial_start_date || new Date().toISOString(),
+        
+        name: restaurant?.name || 'Mi Restaurante',
+        slug: restaurant?.slug || autoSlug,
+        
+        // Colores y Configuración
+        template_id: 'classic',
+        theme_color: '#d32f2f',
+        bg_color: '#ffffff',
+        text_color: '#ffffff',
+        description_color: '#ffffff',
+        promo_bg_color: '#ffebee',
+        promo_text_color: '#d32f2f',
+        card_name_color: '#000000',
+        card_price_color: '#d32f2f',
+        card_btn_bg: '#ffffff',
+        card_btn_text: '#000000',
+        card_color: '#ffffff',
+        
+        onboarding_completed: restaurant?.onboarding_completed || false 
+      }, {
+        onConflict: 'user_id' 
+      })
+      .select()
+      .single();
 
     if (error) throw error;
+    
     if (data) {
       setRestaurant(data);
-      // Avisamos al Layout para que actualice los permisos
+      
+      // Avisamos al Layout para que actualice la vista de inmediato
       window.dispatchEvent(new Event('profile-updated')); 
 
       if (isChangingPlan) {
-        // Si ya tenía plan, solo avisamos con un toast y NO mostramos el modal
-        toast.success(`Plan actualizado a ${planType.toUpperCase()} con éxito`);
+        // Si ya tenía un plan, solo mostramos el aviso de éxito
+        toast.success(`Plan cambiado a ${planType.toUpperCase()} con éxito`);
       } else {
-        // Si es la primerísima vez, mostramos el modal de bienvenida
+        // Si es la primera vez (usuario nuevo), mostramos el modal de bienvenida
         setShowPlanSuccessModal(true);
       }
     }
   } catch (error: any) { 
     console.error("Error al activar:", error.message);
-    toast.error("Error al activar el plan"); 
+    toast.error("Error al actualizar el plan"); 
   } finally { 
     setProcessingPlan(null); 
   }
@@ -303,40 +310,39 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
 
          {restaurant.subscription_plan === 'light' ? (
   <div className="space-y-3">
-    {/* SOLO mostramos "Suscripción Activa" si ya está AUTHORIZED. 
-        Si está en 'trialing' (prueba), 'unpaid' o 'cancelled', debe ver el botón. */}
-    {restaurant.subscription_status === 'authorized' ? (
-      <div className="bg-green-50 border border-green-100 p-4 rounded-2xl flex flex-col items-center gap-1 animate-in zoom-in-95">
-        <div className="bg-green-500 text-white p-1 rounded-full">
-          <Check size={14} strokeWidth={4} />
-        </div>
-        <p className="text-[10px] font-black text-green-700 uppercase tracking-tighter">Suscripción Activa</p>
-        <p className="text-[9px] text-green-600/70 font-bold italic">Tu plan está al día</p>
-      </div>
-    ) : (
-      <>
-        <button 
-          onClick={() => handleGoToPayment('light')} 
-          disabled={processingPlan === 'light'}
-          className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-black text-white hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
-        >
-          {processingPlan === 'light' ? <Loader2 className="animate-spin" size={16}/> : 
-           (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
-        </button>
-        <p className="text-[10px] text-gray-400 text-center font-bold italic uppercase tracking-tighter">
-          {restaurant.subscription_status === 'trialing' ? `Se debita el: ${getChargeDate()}` : 'Cobro inmediato'}
-        </p>
-      </>
-    )}
+   {(restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active') ? (
+  <div className="bg-green-50 border border-green-100 p-4 rounded-2xl flex flex-col items-center gap-1 animate-in zoom-in-95">
+    <div className="bg-green-500 text-white p-1 rounded-full">
+      <Check size={14} strokeWidth={4} />
+    </div>
+    <p className="text-[10px] font-black text-green-700 uppercase tracking-tighter">Suscripción Activa</p>
+    <p className="text-[9px] text-green-600/70 font-bold italic">Tu plan está al día</p>
+  </div>
+) : (
+  <>
+    <button 
+      onClick={() => handleGoToPayment('light')} 
+      disabled={processingPlan === 'light'}
+      className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-black text-white hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+    >
+      {processingPlan === 'light' ? <Loader2 className="animate-spin" size={16}/> : 
+       (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
+    </button>
+    <p className="text-[10px] text-gray-400 text-center font-bold italic uppercase tracking-tighter">
+      {restaurant.subscription_status === 'trialing' ? `Se debita el: ${getChargeDate()}` : 'Cobro inmediato'}
+    </p>
+  </>
+)}
   </div>
 ) : (
   <button 
-    onClick={() => handleActivateTrial('light')} 
-    disabled={processingPlan !== null}
-    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all disabled:opacity-50"
-  >
-    Activar 14 días gratis
-  </button>
+  onClick={() => handleActivateTrial('light')} 
+  disabled={processingPlan !== null}
+  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all disabled:opacity-50"
+>
+  {/* Si tiene plan dice "Cambiar Plan", si no tiene nada dice "Activar 14 días" */}
+  {restaurant.subscription_plan ? 'Cambiar Plan' : 'Activar 14 días gratis'}
+</button>
 )}
           </div>
 
@@ -395,12 +401,12 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
   </div>
 ) : (
   <button 
-    onClick={() => handleActivateTrial('plus')} 
-    disabled={processingPlan !== null}
-    className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
-  >
-    Activar 14 días gratis
-  </button>
+  onClick={() => handleActivateTrial('plus')} 
+  disabled={processingPlan !== null}
+  className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+>
+  {restaurant.subscription_plan ? 'Cambiar a este plan' : 'Activar 14 días gratis'}
+</button>
 )}
 </div>
           {/* MAX */}
