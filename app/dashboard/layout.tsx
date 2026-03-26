@@ -211,7 +211,8 @@ const needsPlan = !restaurant.plan;
     const paymentConfigured = profileData?.payment_configured || false;
 
     // Definimos estados de bloqueo y aviso
-    isExpired = daysRemaining <= 0 && !paymentConfigured && restaurant.status !== 'authorized';
+    // --- CAMBIO DE SEGURIDAD ---
+isExpired = daysRemaining <= 0 && !paymentConfigured && restaurant.status !== 'active' && restaurant.status !== 'authorized';
     showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured;
 
     console.log(`Días usados: ${daysUsed} | Quedan: ${daysRemaining} | Bloqueado: ${isExpired}`);
