@@ -475,9 +475,8 @@ const menuItems = [
             // Otros bloqueos (Falta plan o Rubro)
           const showOnboardingBlock = !isLoading && 
     (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
-    !isSettingsPage && 
-    !isTemplatesPage && // <--- CLAVE: Si está en templates, NO lo bloqueamos
-    pathname !== '/dashboard';
+    !isSettingsPage;
+    
 
             const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
 
@@ -512,40 +511,43 @@ const menuItems = [
                 )}
 
                 {/* MODAL DE ONBOARDING (El de Bienvenida o Configurar Rubro) */}
+{/* MODAL DE ONBOARDING (Sidebar libre + Centrado que te sigue) */}
 {showOnboardingBlock && !showSuspendedModal && (
-  <div className="absolute inset-0 z-[50] flex flex-col items-center justify-center p-6 text-center bg-transparent animate-in fade-in">
-    <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative">
-       
-       {needsRubro ? (
-         /* --- CASO A: YA TIENE PLAN, PERO LE FALTA EL RUBRO --- */
-         <>
-           <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <LayoutTemplate size={40} />
-           </div>
-           <h2 className="text-2xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
-           <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-             ¡Plan activado con éxito! 🚀 <br/> 
-             Ahora elegí el rubro de tu negocio para habilitar tu catálogo y empezar a vender.
-           </p>
-           <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
-             Elegir mi Rubro
-           </Link>
-         </>
-       ) : (
-         /* --- CASO B: NO TIENE PLAN (NUEVO O EXPIRADO) --- */
-         <>
-           <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Zap size={40} />
-           </div>
-           <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
-           <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-             Para activar tu menú y acceder a todas las funciones, primero debés elegir un plan.
-           </p>
-           <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
-             Ver Planes
-           </Link>
-         </>
-       )}
+  <div className="absolute inset-0 z-[50] pointer-events-none">
+    <div className="sticky top-0 h-screen w-full flex items-center justify-center p-6 bg-white/5 backdrop-blur-[2px]">
+      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative animate-in zoom-in-95 duration-300 pointer-events-auto text-center">
+        
+        {needsRubro ? (
+          /* --- CASO A: YA TIENE PLAN, PERO LE FALTA EL RUBRO --- */
+          <>
+            <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+               <LayoutTemplate size={40} />
+            </div>
+            <h2 className="text-2xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
+            <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+              ¡Plan activado con éxito! 🚀 <br/> 
+              Ahora elegí el rubro de tu negocio para habilitar tu catálogo y empezar a vender.
+            </p>
+            <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
+              Elegir mi Rubro
+            </Link>
+          </>
+        ) : (
+          /* --- CASO B: NO TIENE PLAN (NUEVO O EXPIRADO) --- */
+          <>
+            <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
+               <Zap size={40} />
+            </div>
+            <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
+            <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+              Para activar tu menú y acceder a todas las funciones, primero debés elegir un plan.
+            </p>
+            <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center">
+              Ver Planes
+            </Link>
+          </>
+        )}
+      </div>
     </div>
   </div>
 )}
