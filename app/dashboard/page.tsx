@@ -125,6 +125,7 @@ const loadDashboardData = async () => {
           .select('*')
           .eq('restaurant_id', rest.id)
           .neq('order_type', 'apertura')
+          .gte('created_at', today.toISOString())
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -584,8 +585,9 @@ const confirmDelete = async () => {
 
         {/* 3. BLOQUE: ACTIVIDAD RECIENTE */}
         {isPlus ? (
-          <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden p-8 text-gray-900">
-            <h2 className="text-lg font-black uppercase tracking-tighter mb-6 italic text-left">Actividad Reciente</h2>
+          
+         <div className="mt-12 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden p-8 text-gray-900">
+            <h2 className="text-lg font-black uppercase tracking-tighter mb-6 italic text-left">Actividad Reciente de Hoy</h2>
             <div className="space-y-4">
               {recentOrders.length > 0 ? (
                 recentOrders.map((order) => (
