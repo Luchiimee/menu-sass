@@ -1,18 +1,17 @@
 import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
-  return {
-    id: '/?source=pwa',
+  
+   return {
+    id: '/',                 // <--- Cambiado de '/?source=pwa' a '/' (Más estable)
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
     description: 'Gestiona tu menú digital sin comisiones en segundos',
-    start_url: '/login?source=pwa',
+    start_url: '/login',     // <--- Dejalo así, sin el ?source=pwa por ahora
     display: 'standalone',
-    display_override: ['standalone', 'fullscreen'],
     background_color: '#000000',
     theme_color: '#000000',
-    scope: '/', 
-    orientation: 'portrait', // Fija la app en vertical (corrige advertencia)
+    scope: '/', // Fija la app en vertical (corrige advertencia)
     
     icons: [
       // ELIMINAMOS EL FAVICON.ICO DE ACÁ
