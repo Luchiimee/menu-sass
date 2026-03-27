@@ -480,11 +480,13 @@ useEffect(() => {
                 setIsOpen(restaurantData.is_open ?? true);
                 setSaleType(restaurantData.sale_type);
 
-                if (restaurantData.onboarding_completed) {
+                // --- LÓGICA REFORZADA ---
+                if (restaurantData.onboarding_completed && restaurantData.sale_type) {
                     setShowOnboarding(false);
                     setIsOnboardingMandatory(false);
                     setStep(3); 
                 } else {
+                    // Si no completó o no tiene sale_type, FORZAMOS paso 1
                     setStep(1);
                     setShowOnboarding(true);
                     setIsOnboardingMandatory(true);
@@ -1027,9 +1029,25 @@ const finalTemplates = TEMPLATES.filter(t => {
       <style>{GALLERY_STYLES}</style>
       
       {/* 1. HEADER CON TÍTULO Y BOTÓN DE RUBRO (A LA IZQUIERDA) */}
+     {/* 1. HEADER CON TÍTULO Y MENSAJE DE ÉXITO DINÁMICO */}
       <header className="mb-10 pt-20 lg:pt-0 text-left relative z-10">
+        
+        {/* --- AGREGAMOS ESTE BLOQUE: Cartel de éxito post-onboarding --- */}
+        {saleType && (
+          <div className="mb-6 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-2xl animate-in slide-in-from-top-4 duration-500">
+            <div className="bg-emerald-500 text-white p-1 rounded-full">
+              <Check size={12} strokeWidth={4} />
+            </div>
+            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+              ¡Rubro configurado! Ahora personalizá tu diseño
+            </span>
+          </div>
+        )}
+
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Galería de Diseños</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">
+            Galería de Diseños
+          </h1>
           <p className="text-gray-500 text-xs sm:text-sm font-medium leading-tight">
             Elige el diseño perfecto para el link digital de tu negocio
           </p>

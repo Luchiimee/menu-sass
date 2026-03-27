@@ -485,10 +485,11 @@ const menuItems = [
             // Bloqueamos si está cancelado y NO es la página de configuración
             const showSuspendedModal = isCancelled && !isSettingsPage;
             
-            // Otros bloqueos (Falta plan o Rubro)
-       const showOnboardingBlock = !isLoading && 
+           
+      const showOnboardingBlock = !isLoading && 
   (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
   !isSettingsPage && 
+  !isTemplatesPage && // <--- Esta es la línea mágica
   !isSubscriptionValid;
     
 
@@ -532,7 +533,7 @@ const menuItems = [
       <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative animate-in zoom-in-95 duration-300 pointer-events-auto text-center">
         
         {needsRubro ? (
-          /* --- CASO A: YA TIENE PLAN, PERO LE FALTA EL RUBRO --- */
+          
           <>
             <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                <LayoutTemplate size={40} />
@@ -542,9 +543,15 @@ const menuItems = [
               ¡Plan activado con éxito! 🚀 <br/> 
               Ahora elegí el rubro de tu negocio para habilitar tu catálogo y empezar a vender.
             </p>
-            <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition">
-              Elegir mi Rubro
-            </Link>
+            <button 
+  onClick={() => {
+    // Forzamos la recarga en la página de templates para que detecte el paso 1
+    window.location.href = '/dashboard/templates';
+  }} 
+  className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition"
+>
+  ELEGIR MI RUBRO
+</button>
           </>
         ) : (
           /* --- CASO B: NO TIENE PLAN (NUEVO O EXPIRADO) --- */
