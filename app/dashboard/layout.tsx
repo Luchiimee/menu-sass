@@ -112,7 +112,7 @@ if (mounted) {
     }
 
    setProfileData({ ...profile, first_name: firstName, last_name: lastName }); 
-setIsAdmin(isSuperAdmin); 
+setIsAdmin(session.user.email === 'luchiimee2@gmail.com');
 setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
     // Definimos el nombre a mostrar en el sidebar
     let displayName = "Bienvenido";

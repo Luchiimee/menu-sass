@@ -232,10 +232,20 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
       
       // Avisamos al Layout para que actualice la vista de inmediato
       window.dispatchEvent(new Event('profile-updated')); 
-
-      if (isChangingPlan) {
-        // Si ya tenía un plan, solo mostramos el aviso de éxito
-        toast.success(`Plan cambiado a ${planType.toUpperCase()} con éxito`);
+if (isChangingPlan) {
+        // Calculamos la fecha para el mensaje
+        const fechaCobro = getChargeDate();
+        
+        // Mensaje detallado para evitar reclamos a soporte
+        toast.success(
+          <div className="flex flex-col gap-1">
+            <span className="font-bold text-sm">Plan cambiado a {planType.toUpperCase()}</span>
+            <span className="text-[10px] opacity-80 leading-tight">
+              El nuevo monto se verá reflejado en tu próximo cobro el día {fechaCobro}.
+            </span>
+          </div>, 
+          { duration: 5000, icon: '🚀' }
+        );
       } else {
         // Si es la primera vez (usuario nuevo), mostramos el modal de bienvenida
         setShowPlanSuccessModal(true);
@@ -243,7 +253,7 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
     }
   } catch (error: any) { 
     console.error("Error al activar:", error.message);
-    toast.error("Error al actualizar el plan"); 
+    toast.error("No se pudo actualizar el plan. Intenta de nuevo."); 
   } finally { 
     setProcessingPlan(null); 
   }

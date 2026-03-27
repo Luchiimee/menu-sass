@@ -502,12 +502,12 @@ const handleSaveBusinessInfo = async (subType: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user && tempType) {
-        // Guardamos que ya completó el paso inicial
+        // 1. Guardamos en la base de datos
         const { error } = await supabase.from('restaurants').update({ 
             business_type: tempType === 'unidad' ? 'gastronomico' : 'fraccionado',
             business_subtype: subType,
             sale_type: tempType, 
-            onboarding_completed: true // <--- Marcamos como terminado
+            onboarding_completed: true 
         }).eq('user_id', user.id);
 
         if (error) {
@@ -516,13 +516,20 @@ const handleSaveBusinessInfo = async (subType: string) => {
             return;
         }
         
-        // Actualizamos estados locales para que React dibuje la galería
+        // 2. ACTUALIZACIÓN DE ESTADOS LOCALES
         setSaleType(tempType);
         setShowOnboarding(false);
+        setIsOnboardingMandatory(false); // <--- IMPORTANTE: Rompe el bloqueo
         setStep(3); 
         
-        // Avisamos al Layout para que refresque si hay bloqueos
+        // 3. EL "GRITO" PARA EL LAYOUT
+        // Esto le avisa al DashboardLayout que ya puede quitar el desenfoque y el modal
         window.dispatchEvent(new Event('profile-updated'));
+
+        // 4. FEEDBACK VISUAL
+        toast.success("¡Rubro configurado! Ya puedes elegir tu diseño.");
+
+        // 5. REFRESH DE RUTA (Para limpiar estados de servidor)
         router.refresh(); 
     }
     setIsUpdatingType(false);
