@@ -202,11 +202,11 @@ const GALLERY_STYLES = `
       width: 100%;
   }
 
-  @media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
+@media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
   @media (min-width: 1550px) { .templates-grid { grid-template-columns: repeat(4, 1fr); } }
 
   /* 2. EL TELÉFONO (MOCKUP) - REGLA DE ORO: ALTURA FIJA */
-  .phone-preview {
+.phone-preview {
       width: 100%;
       max-width: 260px;
       aspect-ratio: 9/16; 
@@ -219,16 +219,9 @@ const GALLERY_STYLES = `
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
   }
 
-  @media (max-width: 768px) { 
-      .phone-preview { max-width: 160px; border-radius: 20px; } 
-  }
+@media (max-width: 768px) { .phone-preview { max-width: 160px; border-radius: 20px; } }
 
-  .preview-content { 
-      width: 100%; 
-      height: 100%; 
-      overflow: hidden; 
-      position: relative; 
-  }
+  .preview-content { width: 100%; height: 100%; overflow: hidden; position: relative; }
   
 
   /* INFO TEXTO ABAJO */
@@ -239,14 +232,7 @@ const GALLERY_STYLES = `
   /* --- ESTILOS DE TUS PLANTILLAS (EXACTOS) --- */
 
   /* URBANO DARK */
-  .urbano-dark, .sushi-visual, .classic-del, .minimal-white, .pop-vibrant, .spot-hero, .elegant-serif, .bistro-chalk, .market-pro {
-    height: 100% !important;
-    min-height: 100% !important;
-    max-height: 100% !important;
-    overflow: hidden !important;
-    display: flex;
-    flex-direction: column;
-}
+
   .urbano-dark { background: #121212; color: white; padding: 20px 10px; font-family: 'Inter', sans-serif; height: 100%;overflow: hidden;  display: flex; flex-direction: column; }
   .urbano-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .urbano-brand { display: flex; gap: 8px; align-items: center; }
@@ -331,7 +317,7 @@ const GALLERY_STYLES = `
   .minimal-btn { width: 16px; height: 16px; background: #222; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; border: none; }
 
   /* POP VIBRANT */
-  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; height: 100% display: flex; flex-direction: column; heigt:100%;}
+  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column;}
   .pop-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; background: #fff; border: 2px solid #000; padding: 6px; border-radius: 8px; box-shadow: 3px 3px 0 #000; position: relative; }
   .pop-logo { width: 30px; height: 30px; background: #FF1493; border: 2px solid #000; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: white; font-size: 7px; }
   .pop-title { font-weight: 900; font-size: 11px; text-transform: uppercase; color: #000; line-height: 1; }
@@ -670,7 +656,7 @@ const handleSaveBusinessInfo = async (subType: string) => {
           {/* Lista de Productos con imágenes correspondientes y botones + */}
           <div className="spot-list-mini">
            <div className="spot-item-mini">
-    {/* CAMBIÁ EL LINK EN ESTA LÍNEA (Aprox 408) */}
+  
     <div className="spot-thumb-mini" style={{backgroundImage:"url('https://images.unsplash.com/photo-1606471191009-63994c53433b?auto=format&fit=crop&w=100')"}}></div>
     <div className="spot-details-mini text-left">
       <h5>Milanesa Napo</h5>
@@ -715,7 +701,7 @@ const handleSaveBusinessInfo = async (subType: string) => {
           </div>
         </div>
       );
-// JUSTO DESPUÉS DE: switch (type) {
+
   case 'marketpro': return (
     <div className="market-pro">
       <div className="market-logo-wrap"><img src="https://placehold.co/100x100?text=Logo" alt="logo" /></div>
@@ -1136,42 +1122,45 @@ const finalTemplates = TEMPLATES.filter(t => {
           
 
           return (
-           <article key={t.id} className="template-item">
-              <div className="template-card">
-                <div className="phone-preview">
-                  <div className="preview-content">
-                    {/* ZOOM RESPONSIVE: 0.6 en mobile (para que entre todo) y 1.0 en PC */}
-                    <div className="w-full h-full origin-top flex flex-col"
-                         style={{ 
-                           zoom: typeof window !== 'undefined' && window.innerWidth < 768 ? '0.65' : '1.0',
-                           transformOrigin: 'top' 
-                         }}>
-                       {renderPreview(t.type)}
-                    </div>
-                  </div>
-                  
-               
+        <article key={t.id} className="template-item">
+  <div className="template-card">
+    <div className="phone-preview">
+      <div className="preview-content">
+        {/* ZOOM DINÁMICO: 0.45 para Alterna Pro, 0.52 para el resto en mobile */}
+        <div className="w-full h-full overflow-hidden"
+             style={{ 
+               zoom: typeof window !== 'undefined' && window.innerWidth < 768 
+                      ? (t.id === 'alterna-pro' ? '0.45' : '0.52') 
+                      : '0.82',
+               height: '100%',
+               width: '100%',
+               display: 'flex',
+               flexDirection: 'column'
+             }}>
+          {renderPreview(t.type)}
+        </div>
+      </div>
+      
+      {isLocked && (
+        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+          <Lock size={20} className="mb-2 opacity-80" />
+          <span className="font-bold text-[10px]">PREMIUM</span>
+        </div>
+      )}
+    </div>
 
-                  {isLocked && (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
-                      <Lock size={20} className="mb-2 opacity-80" />
-                      <span className="font-bold text-[10px]">PREMIUM</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="card-info">
-                  <h3 className="card-title">{t.name}</h3>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
-                    disabled={savingId === t.id || isSelected}
-                    className={`mt-2 text-[9px] font-black uppercase transition-colors ${isSelected ? 'text-emerald-500' : 'text-indigo-600 hover:underline'}`}
-                  >
-                    {isSelected ? 'En uso' : 'Seleccionar'}
-                  </button>
-                </div>
-              </div>
-            </article>
+    <div className="card-info text-center">
+      <h3 className="card-title mt-2">{t.name}</h3>
+      <button 
+        onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+        disabled={savingId === t.id || isSelected}
+        className={`mt-2 text-[10px] font-black uppercase transition-colors ${isSelected ? 'text-emerald-500' : 'text-indigo-600 hover:underline'}`}
+      >
+        {isSelected ? 'En uso' : 'Seleccionar'}
+      </button>
+    </div>
+  </div>
+</article>
           );
         })}
       </div>
