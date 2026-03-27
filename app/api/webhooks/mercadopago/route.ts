@@ -36,7 +36,7 @@ export async function POST(request: Request) {
                 await supabase
                     .from('restaurants')
                     .update({ 
-                        subscription_status: 'active',
+                        subscription_status: 'authorized',
                         mp_preapproval_id: id,
                         updated_at: new Date().toISOString()
                     })

@@ -43,7 +43,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [hasPhone, setHasPhone] = useState(true); 
   const [isCollapsed, setIsCollapsed] = useState(false); 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null); // Tu estado centralizado
+  const [profileData, setProfileData] = useState<any>(null); 
+  const isSuperAdmin = profileData?.email === 'luchiimee2@gmail.com' || isAdmin;
+  const isUGCUser = profileData?.email === 'sabrinaidiartcm@gmail.com';
+  const bypassBlock = isSuperAdmin || isUGCUser;
 const [restaurant, setRestaurant] = useState<{
     id?: string,
     name: string,
@@ -89,9 +92,8 @@ const [restaurant, setRestaurant] = useState<{
   .maybeSingle();
 
 if (mounted) {
-    const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
-    const isUGCUser = session.user.email === 'sabrinaidiartcm@gmail.com';
-    // --- NUEVA LÓGICA DE SINCRONIZACIÓN DE NOMBRE ---
+ 
+   
     let firstName = profile?.first_name;
     let lastName = profile?.last_name;
 
@@ -196,14 +198,22 @@ useEffect(() => {
 
   
  // --- LÓGICA DE TIEMPO BLINDADA (Reemplazo corregido) ---
- const trialDuration = 14;
+// --- LÓGICA DE TIEMPO BLINDADA ---
+
+  
+  const needsRubro = restaurant.plan && !restaurant.onboarding_completed; 
+  const needsPlan = !restaurant.plan;
+  
+  // Esta es la llave maestra: si el status es alguno de estos, la suscripción es válida
+const isSubscriptionValid = restaurant.status === 'active' || 
+                               restaurant.status === 'authorized' || 
+                               restaurant.status === 'past_due' || 
+                               bypassBlock; // <--- Si es VIP, la suscripción es válida
+
+  const trialDuration = 14;
   let daysRemaining = 14;
   let isExpired = false;
   let showWarning = false;
-  const needsRubro = restaurant.plan && !restaurant.onboarding_completed; 
-  const needsPlan = !restaurant.plan;
-const isSubscriptionValid = restaurant.status === 'active' || restaurant.status === 'authorized' || 
-  restaurant.status === 'past_due';
 
   if (!isLoading && profileData?.created_at) {
     const createdAt = new Date(profileData.created_at);
@@ -211,14 +221,13 @@ const isSubscriptionValid = restaurant.status === 'active' || restaurant.status 
     const diffInMs = today.getTime() - createdAt.getTime();
     const daysUsed = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
     daysRemaining = trialDuration - daysUsed;
+    
     const paymentConfigured = profileData?.payment_configured || false;
 
-    // 2. CAMBIO AQUÍ: No expira si la suscripción es válida
+    // Solo mostramos advertencias si NO tiene una suscripción válida Y no es VIP
     isExpired = daysRemaining <= 0 && !paymentConfigured && !isSubscriptionValid;
-    showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured;
+    showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured && !isSubscriptionValid;
   }
-  const bypassBlock = isAdmin;
-
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
   setIsLoading(true); // Ponemos el estado de carga para que el usuario espere
@@ -443,23 +452,24 @@ const menuItems = [
             </Link>
           </div>
         )}
-           {showWarning && (
-          <div className="bg-orange-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[50] animate-in slide-in-from-top-2">
-            <div className="flex items-center gap-3 text-left">
-              <AlertTriangle size={20} className="animate-pulse flex-shrink-0" />
-              <div>
-                <p className="font-bold text-sm">¡Tu prueba gratuita termina en {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'}!</p>
-                <p className="text-xs opacity-90">Configurá tu método de pago ahora para no perder acceso a tu panel.</p>
-              </div>
-            </div>
-            <Link 
-              href="/dashboard/settings" 
-              className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-gray-100 transition whitespace-nowrap shadow-sm"
-            >
-              Configurar Pago
-            </Link>
-          </div>
-        )}
+         {/* --- BANNER DE ADVERTENCIA DE TRIAL --- */}
+{showWarning && !isSubscriptionValid && (
+  <div className="bg-orange-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[50] animate-in slide-in-from-top-2">
+    <div className="flex items-center gap-3 text-left">
+      <AlertTriangle size={20} className="animate-pulse flex-shrink-0" />
+      <div>
+        <p className="font-bold text-sm">¡Tu prueba gratuita termina en {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'}!</p>
+        <p className="text-xs opacity-90">Configurá tu método de pago ahora para no perder acceso a tu panel.</p>
+      </div>
+    </div>
+    <Link 
+      href="/dashboard/settings" 
+      className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-gray-100 transition whitespace-nowrap shadow-sm"
+    >
+      Configurar Pago
+    </Link>
+  </div>
+)}
         {restaurant.plan && <TrialBanner />}
 
         {/* CONTENEDOR PRINCIPAL CON LÓGICA DE BLOQUEO LOCALIZADO */}
@@ -476,10 +486,10 @@ const menuItems = [
             const showSuspendedModal = isCancelled && !isSettingsPage;
             
             // Otros bloqueos (Falta plan o Rubro)
-        const showOnboardingBlock = !isLoading && 
-      (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
-      !isSettingsPage && 
-      !isSubscriptionValid;
+       const showOnboardingBlock = !isLoading && 
+  (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
+  !isSettingsPage && 
+  !isSubscriptionValid;
     
 
             const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
