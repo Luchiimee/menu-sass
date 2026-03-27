@@ -194,11 +194,11 @@ const GALLERY_STYLES = `
 
   /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
 .templates-grid { 
-      display: grid; 
-      grid-template-columns: repeat(2, 1fr); 
+   display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
     gap: 12px; 
-    padding: 0 4px;
-    padding-bottom: 5rem;
+    padding: 10px;
+    align-items: start
   }
     @media (max-width: 360px) {
     /* Si el celular es muy viejo/chico, pasamos a 1 sola columna para que no explote */
@@ -236,16 +236,16 @@ const GALLERY_STYLES = `
   }
 
 .phone-preview {
-    width: 100%;
-    max-width: 240px; /* Bajamos un poco el máximo en mobile */
-    margin: 0 auto;
+   width: 100%;
+    max-width: 155px; /* Tamaño ideal para que entren 2 en iPhone */
+    margin: 0 auto;  
     aspect-ratio: 9/16;
-    background: #f3f4f6;
+    background: white;
     position: relative;
     overflow: hidden;
-    border-radius: 24px; /* Un poco más redondeado y prolijo */
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 8px 20px -5px rgba(0,0,0,0.1);
 }
   
   .template-card:hover .phone-preview {
@@ -1180,14 +1180,14 @@ const finalTemplates = TEMPLATES.filter(t => {
                 <div className="phone-preview">
                   <div className="preview-content">
                     {/* ZOOM RESPONSIVE: 0.6 en mobile (para que entre todo) y 1.0 en PC */}
-                    <div className="w-full h-full origin-top flex flex-col"
-                         style={{ 
-                           zoom: typeof window !== 'undefined' && window.innerWidth < 768 ? '0.65' : '1.0',
-                           transformOrigin: 'top' 
-                         }}>
-                       {renderPreview(t.type)}
-                    </div>
-                  </div>
+                <div className="w-full h-full overflow-hidden"
+       style={{ 
+         zoom: typeof window !== 'undefined' && window.innerWidth < 768 ? '0.55' : '1.0',
+         transformOrigin: 'top center' 
+       }}>
+    {renderPreview(t.type)}
+  </div>
+</div>
                   
                
 

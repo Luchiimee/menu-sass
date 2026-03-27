@@ -277,7 +277,7 @@ const menuItems = [
     menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });
   }
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[100dvh] bg-gray-100 font-sans text-gray-900 overflow-hidden">
       <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -394,9 +394,8 @@ const menuItems = [
 {/* --- MAIN CONTENT --- */}
    <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col lg:pt-0">
   
-  {/* 1. ESPACIADOR PARA IPHONE (Safe Area + Respiro) */}
-  {/* Este div detecta el notch y le suma un poco más de aire en móvil */}
-  <div className="h-[env(safe-area-inset-top)] min-h-[4rem] lg:hidden w-full flex-shrink-0 bg-transparent" />
+
+<div className="h-[env(safe-area-inset-top,0px)] min-h-[60px] lg:hidden w-full bg-white border-b border-gray-100 flex-shrink-0" />
         
         {/* Alerta de Pagos Pausados (Sticky) */}
         {restaurant.plan && restaurant.status === 'paused' && (
