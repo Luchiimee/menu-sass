@@ -196,44 +196,39 @@ const GALLERY_STYLES = `
 .templates-grid { 
       display: grid; 
       grid-template-columns: repeat(2, 1fr); 
-      gap: 15px; 
-      padding: 10px 5px;
+      gap: 12px; 
+      padding: 10px 0;
       align-items: start;
-      max-width: 100%;
-  }
-  @media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
-  @media (min-width: 1550px) { .templates-grid { grid-template-columns: repeat(4, 1fr); } }
-  /* 2. EL MOCKUP (TELÉFONO) */
-  .template-card {
-      background: transparent;
-      border: none;
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      cursor: pointer;
+      width: 100%;
   }
 
+  @media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
+  @media (min-width: 1550px) { .templates-grid { grid-template-columns: repeat(4, 1fr); } }
+
+  /* 2. EL TELÉFONO (MOCKUP) - REGLA DE ORO: ALTURA FIJA */
   .phone-preview {
       width: 100%;
       max-width: 260px;
       aspect-ratio: 9/16; 
       margin: 0 auto;
-      background: #f8fafc;
+      background: white;
       position: relative;
       overflow: hidden;
       border-radius: 30px;
-      border: 1px solid rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.1);
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
   }
 
-  @media (max-width: 768px) { .phone-preview { max-width: 165px; border-radius: 20px; } }
-
-  .preview-content { width: 100%; height: 100%; overflow: hidden; position: relative; }
-  .template-card:hover .phone-preview {
-      transform: translateY(-5px);
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+  @media (max-width: 768px) { 
+      .phone-preview { max-width: 160px; border-radius: 20px; } 
   }
 
+  .preview-content { 
+      width: 100%; 
+      height: 100%; 
+      overflow: hidden; 
+      position: relative; 
+  }
   
 
   /* INFO TEXTO ABAJO */
