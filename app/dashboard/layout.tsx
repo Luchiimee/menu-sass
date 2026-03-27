@@ -392,7 +392,11 @@ const menuItems = [
         </div>
       </aside>
 {/* --- MAIN CONTENT --- */}
-     <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-[env(safe-area-inset-top,4rem)] lg:pt-0">
+   <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col lg:pt-0">
+  
+  {/* 1. ESPACIADOR PARA IPHONE (Safe Area + Respiro) */}
+  {/* Este div detecta el notch y le suma un poco más de aire en móvil */}
+  <div className="h-[env(safe-area-inset-top)] min-h-[4rem] lg:hidden w-full flex-shrink-0 bg-transparent" />
         
         {/* Alerta de Pagos Pausados (Sticky) */}
         {restaurant.plan && restaurant.status === 'paused' && (

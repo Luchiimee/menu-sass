@@ -195,10 +195,15 @@ const GALLERY_STYLES = `
   /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
 .templates-grid { 
       display: grid; 
-      grid-template-columns: repeat(2, 1fr); /* Fuerza 2 columnas en el celu */
-      gap: 1rem;                             /* Espacio más ajustado para mobile */
-      padding-bottom: 2rem; 
+      grid-template-columns: repeat(2, 1fr); 
+    gap: 12px; 
+    padding: 0 4px;
+    padding-bottom: 5rem;
   }
+    @media (max-width: 360px) {
+    /* Si el celular es muy viejo/chico, pasamos a 1 sola columna para que no explote */
+    .templates-grid { grid-template-columns: 1fr; gap: 20px; }
+}
 
   /* Tablets: de 2 columnas */
   @media (min-width: 700px) {
@@ -231,21 +236,17 @@ const GALLERY_STYLES = `
   }
 
 .phone-preview {
-      width: 100%;
-      max-width: 280px; /* EVITA QUE EL CELULAR SEA GIGANTE EN PC */
-      margin: 0 auto;   /* LO CENTRA EN LA COLUMNA */
-      aspect-ratio: 9/16; /* UN POQUITO MÁS CORTO PARA QUE SE VEA LLENO */
-      background: #f3f4f6;
-      position: relative;
-      overflow: hidden;
-      border-radius: 28px;
-      border: 1px solid rgba(0,0,0,0.06);
-      box-shadow: 0 15px 35px -5px rgba(0,0,0,0.08);
-      display: flex; 
-      justify-content: center; 
-     
-      
-  }
+    width: 100%;
+    max-width: 240px; /* Bajamos un poco el máximo en mobile */
+    margin: 0 auto;
+    aspect-ratio: 9/16;
+    background: #f3f4f6;
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px; /* Un poco más redondeado y prolijo */
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+}
   
   .template-card:hover .phone-preview {
       transform: translateY(-5px);
@@ -266,8 +267,8 @@ const GALLERY_STYLES = `
   .heart-btn.liked { color: #ef4444; }
 
   /* INFO TEXTO ABAJO */
-  .card-info { padding: 0.7rem 0; text-align: center; }
-  .card-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #111; }
+ .card-info { padding: 0.5rem 0; }
+.card-title { font-size: 0.7rem; font-weight: 800; }
 
   /* OVERLAY HISTORIAS */
   .story-overlay {
