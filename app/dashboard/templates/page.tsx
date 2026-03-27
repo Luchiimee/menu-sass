@@ -194,12 +194,12 @@ const GALLERY_STYLES = `
 
   /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
 .templates-grid { 
-   display: grid; 
+    display: grid; 
     grid-template-columns: repeat(2, 1fr); 
     gap: 12px; 
     padding: 10px;
-    align-items: start
-  }
+    align-items: start;
+}
     @media (max-width: 360px) {
     /* Si el celular es muy viejo/chico, pasamos a 1 sola columna para que no explote */
     .templates-grid { grid-template-columns: 1fr; gap: 20px; }
@@ -237,24 +237,33 @@ const GALLERY_STYLES = `
 
 .phone-preview {
     width: 100%;
-    max-width: 240px; /* Bajamos un poco el máximo en mobile */
+    max-width: 260px; /* Tamaño máximo para PC */
+    aspect-ratio: 9/16; /* Esto asegura que todas sean rectángulos perfectos */
     margin: 0 auto;
-    aspect-ratio: 9/16;
-    background: #f3f4f6;
+    background: #f8fafc;
     position: relative;
     overflow: hidden;
-    border-radius: 24px; /* Un poco más redondeado y prolijo */
+    border-radius: 30px;
     border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
 }
-  
   .template-card:hover .phone-preview {
       transform: translateY(-5px);
       box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
   }
+@media (max-width: 768px) {
+    .phone-preview {
+        max-width: 250px;
+        border-radius: 10px;
+    }
+}
 
-  .preview-content { width: 100%; height: 100%; background: white; overflow: hidden; position: relative; }
-
+.preview-content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
   /* BOTÓN CORAZÓN TIPO INSTAGRAM */
   .heart-btn {
       position: absolute; bottom: 12px; right: 12px; 
@@ -286,7 +295,15 @@ const GALLERY_STYLES = `
   /* --- ESTILOS DE TUS PLANTILLAS (EXACTOS) --- */
 
   /* URBANO DARK */
-  .urbano-dark { background: #121212; color: white; padding: 20px 10px; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .urbano-dark, .sushi-visual, .classic-del, .minimal-white, .pop-vibrant, .spot-hero, .elegant-serif, .bistro-chalk, .market-pro {
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+}
+  .urbano-dark { background: #121212; color: white; padding: 20px 10px; font-family: 'Inter', sans-serif; height: 100%;overflow: hidden;  display: flex; flex-direction: column; }
   .urbano-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .urbano-brand { display: flex; gap: 8px; align-items: center; }
   .urbano-logo { width: 32px; height: 32px; background: #333; border-radius: 50%; border: 2px solid white; background-size: cover; background-position: center; }
@@ -303,7 +320,7 @@ const GALLERY_STYLES = `
   .urbano-add-btn { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: none; font-size: 12px; }
 
   /* VISUAL GRID (CON HOVER) */
-  .sushi-visual { background: #1a1a1a; color: white; padding: 15px; font-family: 'Inter', sans-serif; min-height: 100vh;; display: flex; flex-direction: column;}
+  .sushi-visual { background: #1a1a1a; color: white; padding: 15px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column;}
   .sushi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .sushi-brand { display: flex; align-items: center; gap: 8px; }
   .sushi-logo { width: 30px; height: 30px; border-radius: 50%; background-size: cover; border: 2px solid #ea580c; flex-shrink: 0; }
@@ -341,7 +358,7 @@ const GALLERY_STYLES = `
   .sushi-item:hover .sushi-btn { display: block; }
 
   /* CLASSIC */
-  .classic-del { background: white; font-family: Arial, sans-serif;min-height: 100vh;; display: flex; flex-direction: column; }
+  .classic-del { background: white; font-family: Arial, sans-serif;min-height: 100vh;; display: flex; max-height: 100%; flex-direction: column; }
   .classic-header { background: #d32f2f; padding: 25px 8px;  color: white; text-align: center; position: relative; }
   .classic-logo { width: 26px; height: 26px; background: white; border-radius: 50%; color: #d32f2f; display: grid; place-items: center; font-size: 9px; margin: 0 auto 4px; font-weight: bold; }
   .classic-title { font-size: 11px; font-weight: bold; }
@@ -356,7 +373,7 @@ const GALLERY_STYLES = `
   .classic-btn { width: 18px; height: 18px; border: 1px solid #ddd; background: white; color: #555; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; }
 
   /* MINIMAL */
-  .minimal-white { background: white; padding: 20px 23px; text-align: center; font-family: 'Lato', sans-serif; color: #222; min-height: 100vh;; display: flex; flex-direction: column; }
+  .minimal-white { background: white; padding: 20px 23px; text-align: center; font-family: 'Lato', sans-serif; color: #222; height:100%; display: flex; flex-direction: column; }
   .minimal-header { margin-bottom: 15px; }
   .minimal-logo { width: 34px; height: 34px; background: #111; color: white; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; }
   .minimal-title { font-weight: 900; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
@@ -370,7 +387,7 @@ const GALLERY_STYLES = `
   .minimal-btn { width: 16px; height: 16px; background: #222; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; border: none; }
 
   /* POP VIBRANT */
-  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; height: 100% display: flex; flex-direction: column; heigt:100%;}
   .pop-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; background: #fff; border: 2px solid #000; padding: 6px; border-radius: 8px; box-shadow: 3px 3px 0 #000; position: relative; }
   .pop-logo { width: 30px; height: 30px; background: #FF1493; border: 2px solid #000; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: white; font-size: 7px; }
   .pop-title { font-weight: 900; font-size: 11px; text-transform: uppercase; color: #000; line-height: 1; }
@@ -416,7 +433,7 @@ const GALLERY_STYLES = `
   .spot-add-mini { width: 20px; height: 20px; background: #000; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
 
   /* ELEGANT */
-  .elegant-serif { background: #f9f5f0; padding: 15px; font-family: 'Playfair Display', serif; color: #333; text-align: center; min-height: 100vh; display: flex; flex-direction: column; }
+  .elegant-serif { background: #f9f5f0; padding: 15px; font-family: 'Playfair Display', serif; color: #333; text-align: center; height: 100%; display: flex; flex-direction: column; }
   .elegant-logo { width: 28px; height: 28px; margin: 0 auto 4px; border: 1px solid #D4AF37; border-radius: 50%; display: grid; place-items: center; color: #D4AF37; }
   .elegant-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
   .elegant-msg { background: #f0e8dc; border: 1px solid #e0d0b8; padding: 6px; font-size: 8px; color: #5c4b30; margin: 12px 0; font-style: italic; }
