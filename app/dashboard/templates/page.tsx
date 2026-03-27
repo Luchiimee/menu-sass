@@ -194,102 +194,51 @@ const GALLERY_STYLES = `
 
   /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
 .templates-grid { 
-    display: grid; 
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 12px; 
-    padding: 10px;
-    align-items: start;
-}
-    @media (max-width: 360px) {
-    /* Si el celular es muy viejo/chico, pasamos a 1 sola columna para que no explote */
-    .templates-grid { grid-template-columns: 1fr; gap: 20px; }
-}
-
-  /* Tablets: de 2 columnas */
-  @media (min-width: 700px) {
-    .templates-grid { grid-template-columns: repeat(2, 1fr); } 
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 15px; 
+      padding: 10px 5px;
+      align-items: start;
+      max-width: 100%;
   }
-
-  /* Laptops / PCs medianas: recién acá pasamos a 3 columnas */
- @media (min-width: 1100px) {
-    .templates-grid { 
-        grid-template-columns: repeat(3, 1fr); 
-        gap: 2rem; 
-    } 
-  }
-  /* Monitores Grandes: acá recién permitimos 4 columnas */
-@media (min-width: 1550px) {
-    .templates-grid { 
-        grid-template-columns: repeat(4, 1fr); 
-    } 
-  }
-  /* 2. CELULAR FLOTANTE (Sin la card blanca de fondo) */
+  @media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
+  @media (min-width: 1550px) { .templates-grid { grid-template-columns: repeat(4, 1fr); } }
+  /* 2. EL MOCKUP (TELÉFONO) */
   .template-card {
       background: transparent;
       border: none;
       transition: all 0.3s ease;
-      position: relative;
       display: flex;
       flex-direction: column;
-      height: 100%;
       cursor: pointer;
   }
 
-.phone-preview {
-    width: 100%;
-    max-width: 260px; /* Tamaño máximo para PC */
-    aspect-ratio: 9/16; /* Esto asegura que todas sean rectángulos perfectos */
-    margin: 0 auto;
-    background: #f8fafc;
-    position: relative;
-    overflow: hidden;
-    border-radius: 30px;
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
-}
+  .phone-preview {
+      width: 100%;
+      max-width: 260px;
+      aspect-ratio: 9/16; 
+      margin: 0 auto;
+      background: #f8fafc;
+      position: relative;
+      overflow: hidden;
+      border-radius: 30px;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+  }
+
+  @media (max-width: 768px) { .phone-preview { max-width: 165px; border-radius: 20px; } }
+
+  .preview-content { width: 100%; height: 100%; overflow: hidden; position: relative; }
   .template-card:hover .phone-preview {
       transform: translateY(-5px);
       box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
   }
-@media (max-width: 768px) {
-    .phone-preview {
-        max-width: 250px;
-        border-radius: 10px;
-    }
-}
 
-.preview-content {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-}
-  /* BOTÓN CORAZÓN TIPO INSTAGRAM */
-  .heart-btn {
-      position: absolute; bottom: 12px; right: 12px; 
-      background: white; color: #666; 
-      width: 30px; height: 30px; border-radius: 50%; 
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 20;
-      transition: all 0.2s;
-  }
-  .heart-btn.liked { color: #ef4444; }
+  
 
   /* INFO TEXTO ABAJO */
  .card-info { padding: 0.5rem 0; }
 .card-title { font-size: 0.7rem; font-weight: 800; }
-
-  /* OVERLAY HISTORIAS */
-  .story-overlay {
-      position: fixed; inset: 0; background: #000; z-index: 500;
-      display: flex; flex-direction: column;
-  }
-  .story-track {
-      display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100%;
-  }
-  .story-slide {
-      min-width: 100vw; display: flex; align-items: center; justify-content: center; scroll-snap-align: center;
-  }
 
 
   /* --- ESTILOS DE TUS PLANTILLAS (EXACTOS) --- */
