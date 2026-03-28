@@ -16,27 +16,44 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { planType, userId, email } = body;
 
-        // 1. Buscamos al restaurante para calcular el trial
+        // 1. Buscamos datos del restaurante (Trial y Suscripción Actual)
         const { data: restaurant, error: dbError } = await supabase
             .from('restaurants')
-            .select('created_at')
+            .select('created_at, mp_preapproval_id')
             .eq('user_id', userId)
             .single();
 
         if (dbError || !restaurant) throw new Error("Restaurante no encontrado");
 
-        // 2. Lógica de 14 días de prueba
+        const preapproval = new PreApproval(client);
+
+        // --- 2. LÓGICA DE LIMPIEZA (EVITAR DOBLE COBRO) ---
+        // Si el usuario ya tiene una suscripción vinculada, la cancelamos antes de crear la nueva
+        if (restaurant.mp_preapproval_id) {
+            try {
+                console.log(`Cancelando suscripción anterior: ${restaurant.mp_preapproval_id}`);
+                await preapproval.update({ 
+                    id: restaurant.mp_preapproval_id, 
+                    body: { status: 'cancelled' } 
+                });
+            } catch (err) {
+                console.error("Error al cancelar suscripción vieja (tal vez ya estaba cancelada):", err);
+            }
+        }
+
+        // 3. Lógica de 14 días de prueba (Mantenemos tu excelente lógica)
         const fechaRegistro = new Date(restaurant.created_at);
         const fechaFinTrial = new Date(fechaRegistro);
         fechaFinTrial.setDate(fechaRegistro.getDate() + 14);
 
         const hoy = new Date();
         
-        // Si el trial no venció, empieza al vencer. Si ya venció, empieza en 5 min.
+        // Si el trial no venció, el cobro empieza al vencer. 
+        // Si ya venció (o es cambio de plan), empieza en 5 min.
         let fechaInicioCobro = fechaFinTrial > hoy ? fechaFinTrial : hoy;
         fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
 
-        // 3. Precios actualizados
+        // 4. Precios actualizados
         const prices: Record<string, number> = {
             light: 7400,
             plus: 15900,
@@ -44,13 +61,12 @@ export async function POST(request: Request) {
         };
 
         const amount = prices[planType] || 7400;
-        const preapproval = new PreApproval(client);
 
-        // 4. Crear suscripción en Mercado Pago
+        // 5. Crear la NUEVA suscripción en Mercado Pago
         const response = await preapproval.create({
             body: {
                 reason: `Plan ${planType.toUpperCase()} - Snappy`,
-                external_reference: userId, // CLAVE para el webhook
+                external_reference: userId,
                 payer_email: email,
                 auto_recurring: {
                     frequency: 1,
