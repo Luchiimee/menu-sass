@@ -229,11 +229,26 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         setIsSending(false);
     } catch (err) { console.error("Error:", err); alert("Error al procesar el pedido."); setIsSending(false); }
 };
-    if (!cart || cart.length === 0 || !isVisible) {
-        if (cart.length > 0) return <button onClick={() => setIsVisible(true)} className="fixed bottom-6 right-6 bg-green-600 text-white p-4 rounded-full shadow-2xl z-[110] active:scale-90 transition-transform hover:scale-105"><ShoppingBag size={28} /><span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white">{cart.length}</span></button>;
+ if (!cart || cart.length === 0 || !isVisible) {
+        if (cart.length > 0) return (
+            /* Contenedor invisible que centra el área del botón en PC */
+            <div className="fixed bottom-6 inset-x-0 z-[110] pointer-events-none flex justify-center">
+                <div className="w-full max-w-md relative flex justify-end px-6">
+                    {/* El botón ahora es relativo a este contenedor de max-w-md */}
+                    <button 
+                        onClick={() => setIsVisible(true)} 
+                        className="pointer-events-auto bg-green-600 text-white p-4 rounded-full shadow-2xl active:scale-90 transition-transform hover:scale-105 relative"
+                    >
+                        <ShoppingBag size={28} />
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold border-2 border-white">
+                            {cart.length}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        );
         return null;
     }
-
 return (
     /* 1. OVERLAY: Ahora ocupa toda la pantalla con un fondo oscuro suave. Si tocan arriba del modal, se cierra. */
     <div 
