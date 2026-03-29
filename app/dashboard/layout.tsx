@@ -19,25 +19,25 @@ function GoogleAuthHandler() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Detectamos rastro de Google/Supabase
     const hasCode = searchParams.has('code');
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     
     if (hasCode || hasHash) {
-      console.log("🛠️ Limpiando rastro de autenticación para iOS Standalone...");
+      console.log("🚀 Limpiando rastro de Google para iOS Standalone...");
 
-      // 2. LIMPIEZA INSTANTÁNEA (Sin setTimeout largo)
-      // Esto elimina el hash y los códigos de la URL de inmediato.
-      // Usamos '/dashboard' a fuego para que coincida con el scope del manifest.
+      // 1. FORZAMOS LA RUTA LIMPIA: 
+      // En lugar de 'pathname', ponemos "/dashboard" a fuego. 
+      // Esto le dice a Safari: "Sigo en la misma App que declaré en el manifest".
       window.history.replaceState({}, document.title, "/dashboard");
 
-      // 3. EL HACK DE SAFARI: Si detectamos que es PWA (standalone)
-      // Forzamos un refresh interno para que el motor de Safari "recuerde" que es una App
+      // 2. EL REFRESH DINÁMICO:
+      // Solo si detectamos que es un iPhone en modo App (standalone)
       if (typeof window !== 'undefined' && (window.navigator as any).standalone) {
-        // Un delay mínimo de 100ms solo para que Supabase termine de procesar el token
         setTimeout(() => {
-          router.refresh();
-        }, 100);
+          // Un refresh suave asegura que el estado de sesión se asiente 
+          // y que la barra de Safari se esconda definitivamente.
+          router.refresh(); 
+        }, 150);
       }
     }
   }, [searchParams, router]);
