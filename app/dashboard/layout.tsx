@@ -16,18 +16,32 @@ import PushNotificationManager from '@/components/PushNotificationManager';
 
 function GoogleAuthHandler() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
   useEffect(() => {
+    // 1. Detectamos rastro de Google/Supabase
     const hasCode = searchParams.has('code');
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     
     if (hasCode || hasHash) {
-      console.log("Procesando login social...");
-      // Forzamos la limpieza de la URL. Esto ayuda a que iOS esconda la barra de navegación
-      setTimeout(() => {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }, 500);
+      console.log("🛠️ Limpiando rastro de autenticación para iOS Standalone...");
+
+      // 2. LIMPIEZA INSTANTÁNEA (Sin setTimeout largo)
+      // Esto elimina el hash y los códigos de la URL de inmediato.
+      // Usamos '/dashboard' a fuego para que coincida con el scope del manifest.
+      window.history.replaceState({}, document.title, "/dashboard");
+
+      // 3. EL HACK DE SAFARI: Si detectamos que es PWA (standalone)
+      // Forzamos un refresh interno para que el motor de Safari "recuerde" que es una App
+      if (typeof window !== 'undefined' && (window.navigator as any).standalone) {
+        // Un delay mínimo de 100ms solo para que Supabase termine de procesar el token
+        setTimeout(() => {
+          router.refresh();
+        }, 100);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
+
   return null;
 }
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
