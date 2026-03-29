@@ -347,7 +347,7 @@ const confirmDelete = async () => {
             <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Mostrar Alias para Transferencias</li>
             <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Dominio Personalizable</li>
         </ul>
-        <Link href="/dashboard/settings" className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm">
+        <Link href="/dashboard/settings?focus=phone" className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm">
             Prueba 14 días gratis
         </Link>
     </div>
@@ -374,7 +374,7 @@ const confirmDelete = async () => {
             <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Panel de Comandas (Cocina)</li>
             <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Acceso a todas las plantillas</li>
         </ul>
-        <Link href="/dashboard/settings" className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm">
+        <Link href="/dashboard/settings?focus=phone" className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm">
             Prueba 14 días gratis
         </Link>
     </div>
@@ -632,7 +632,7 @@ const confirmDelete = async () => {
                       <p className="text-sm text-gray-500 font-medium">Mejora tu plan para habilitar métricas y pedidos en tiempo real.</p>
                   </div>
               </div>
-              <Link href="/dashboard/settings" className="w-full md:w-auto bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-gray-800 transition-all">
+              <Link href="/dashboard/settings?focus=phone" className="w-full md:w-auto bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-gray-800 transition-all">
                   Ver Planes ⚡
               </Link>
           </div>

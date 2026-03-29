@@ -563,7 +563,7 @@ const menuItems = [
             <p className="text-gray-500 mb-8 text-sm leading-relaxed">
               Para activar tu menú y acceder a todas las funciones, primero debés elegir un plan.
             </p>
-            <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center">
+            <Link href="/dashboard/settings?focus=phone" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center">
               Ver Planes
             </Link>
           </>

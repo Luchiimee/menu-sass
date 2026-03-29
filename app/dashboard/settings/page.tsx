@@ -1,14 +1,14 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; 
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner'; 
 import { 
   Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, 
   CalendarDays, Mail, AlertTriangle, LogOut, Trash2, MessageCircle,
-  QrCode, Smartphone, BarChart3, Bell, Globe, ChevronDown, ChevronUp, Layout, Store,ArrowRight
+  QrCode, Smartphone, BarChart3, Bell, Globe, ChevronDown, ChevronUp, Layout, Store,ArrowRight,Phone, X
 } from 'lucide-react';
 
 const DAYS = [
@@ -21,8 +21,37 @@ const DAYS = [
   { key: 'sunday', label: 'Domingo' },
 ];
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter(); 
+  const searchParams = useSearchParams();
+  const focusPhone = searchParams.get('focus') === 'phone';
+  const [showHighlight, setShowHighlight] = useState(focusPhone);
+
+  // --- VALIDADOR AMIGABLE ---
+const validatePhone = () => {
+    if (!profile.phone || profile.phone.trim().length < 8) {
+      if (!showHighlight) {
+        setShowHighlight(true);
+        toast.error("WhatsApp requerido");
+      }
+      
+      // --- FIX DE SCROLL (Targeting Interno) ---
+      setTimeout(() => {
+        const input = document.getElementById('phone-input');
+        if (input) {
+          // 'center' hace que el input quede en medio de la pantalla
+          // Es mucho más fiable que calcular coordenadas en layouts complejos
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Esperamos a que termine el scroll para dar el foco
+          setTimeout(() => input.focus(), 500);
+        }
+      }, 100); // Pequeño delay para que React renderice el highlight primero
+      
+      return false;
+    }
+    return true;
+  };
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -69,6 +98,10 @@ export default function SettingsPage() {
             phone: profileData?.phone || '',
             email: user.email || '' 
         });
+if (profileData?.phone && profileData.phone.trim().length >= 8 && focusPhone) {
+            setShowHighlight(false);
+            router.replace('/dashboard/settings');
+        }
 
         // 4. Si la DB estaba vacía pero Google tenía el nombre, lo guardamos ahora mismo
         if (profileData && (!profileData.first_name || !profileData.last_name) && finalFirstName) {
@@ -97,7 +130,23 @@ export default function SettingsPage() {
     };
     loadData();
   }, []);
+useEffect(() => {
+    // Solo actuamos si se pide el foco Y ya terminó de cargar el esqueleto (loading es false)
+    if (focusPhone && !loading) { 
+      const timer = setTimeout(() => {
+        const input = document.getElementById('phone-input');
+        if (input) {
+          // Bajamos suavemente
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Damos foco al input para que se vea el cursor
+          setTimeout(() => input.focus(), 600);
+        }
+      }, 400); // 400ms es el tiempo ideal después de que desaparece el Loader
 
+      return () => clearTimeout(timer);
+    }
+  }, [focusPhone, loading]);
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -136,16 +185,22 @@ export default function SettingsPage() {
 
   // --- AUTO-GUARDADO DE PERFIL (CON REFRESH) ---
 const saveProfileData = async (newData: any) => {
-  if (!userId) return;
-  const { error } = await supabase.from('profiles').upsert({ id: userId, ...newData });
-  
-  if (!error) {
-    toast.success('Perfil actualizado');
+    if (!userId) return;
+    const { error } = await supabase.from('profiles').upsert({ id: userId, ...newData });
     
-    // ESTA LÍNEA ES EL "GRITO" QUE ESCUCHA TU LAYOUT
-    window.dispatchEvent(new Event('profile-updated')); 
-  }
-};
+    if (!error) {
+      toast.success('Perfil actualizado');
+      
+      // --- LIMPIEZA DE URL Y FOCO ---
+      // Si el usuario puso un teléfono válido y el highlight estaba activo, limpiamos la URL
+      if (newData.phone && newData.phone.length >= 8 && showHighlight) {
+        setShowHighlight(false);
+        router.replace('/dashboard/settings'); // Esto quita el ?focus=phone sin recargar
+      }
+
+      window.dispatchEvent(new Event('profile-updated')); 
+    }
+  };
   const updateProfile = (field: string, value: string) => {
     const newData = { ...profile, [field]: value };
     setProfile(newData);
@@ -178,6 +233,7 @@ const saveProfileData = async (newData: any) => {
 
 // --- ACTIVAR TRIAL 14 DÍAS (CORREGIDO PARA NO RESETEAR RUBRO) ---
 const handleActivateTrial = async (planType: 'light' | 'plus') => {
+  if (!validatePhone()) return;
   if (!userId) return;
   setProcessingPlan(planType);
   
@@ -260,6 +316,7 @@ if (isChangingPlan) {
 };
   // --- MERCADO PAGO ---
   const handleGoToPayment = async (planType: 'light' | 'plus') => {
+    if (!validatePhone()) return;
       setProcessingPlan(planType);
       try {
           const response = await fetch('/api/mercadopago/subscription', {
@@ -283,7 +340,19 @@ if (isChangingPlan) {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-24 px-4 pt-24 md:pt-10 animate-in fade-in duration-500">
-      
+      {/* --- CAPA SPOTLIGHT (Solo sombra y botón de cerrar) --- */}
+      {showHighlight && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm animate-in fade-in duration-500 cursor-pointer"
+          onClick={() => setShowHighlight(false)}
+        >
+          {/* Botón de cerrar flotante */}
+          <div className="absolute top-10 right-10 flex flex-col items-center gap-2 text-white/50 hover:text-white transition-all">
+             <X size={40} strokeWidth={1} />
+             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Cerrar</span>
+          </div>
+        </div>
+      )}
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -468,9 +537,40 @@ if (isChangingPlan) {
             </div>
         </div>
         
-        <div>
-            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">WhatsApp Personal</label>
-            <input value={profile.phone} onChange={(e) => updateProfile('phone', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
+      <div className="relative"> {/* Contenedor relativo para posicionar la flecha */}
+            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase tracking-widest">
+              WhatsApp Personal
+            </label>
+            
+            {/* --- TEXTO GUÍA + FLECHA (Solo visible en spotlight) --- */}
+            {showHighlight && (
+              <div className="absolute -top-14 left-0 z-[120] animate-in slide-in-from-bottom-2 duration-500">
+                <div className="bg-blue-600 text-white px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2 whitespace-nowrap">
+                  <span className="text-[11px] font-black uppercase tracking-tighter italic">Ingresá tu WhatsApp aquí</span>
+                  <ArrowRight size={16} className="rotate-90 animate-bounce" />
+                </div>
+                {/* Triangulito de la burbuja */}
+                <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-blue-600 ml-6"></div>
+              </div>
+            )}
+
+            <input 
+                id="phone-input"
+                value={profile.phone} 
+                onChange={(e) => updateProfile('phone', e.target.value)} 
+                placeholder="Ej: 11 1234 5678"
+                className={`w-full p-4 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none transition-all duration-500 ${
+                  showHighlight 
+                  ? 'relative z-[110] ring-4 ring-blue-500 scale-[1.05] bg-white shadow-2xl' 
+                  : 'focus:ring-2 ring-black/5'
+                }`} 
+            />
+            
+            {showHighlight && (
+               <p className="absolute -bottom-10 left-0 text-[10px] font-bold text-blue-400 uppercase tracking-widest z-[110] animate-pulse">
+                  Dato necesario para soporte y actualizaciones
+               </p>
+            )}
         </div>
 
         {/* --- NUEVO CAMPO: CORREO ELECTRÓNICO --- */}
@@ -629,5 +729,12 @@ if (isChangingPlan) {
   </div>
 )}
     </div>
+  );
+}
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="animate-spin text-gray-300" size={40} /></div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }
