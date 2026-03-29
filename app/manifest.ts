@@ -2,18 +2,18 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    // Usamos /login como identidad y punto de inicio, pero LIMPIO
-    id: '/login', 
-    start_url: '/login', 
+    // 1. Identidad en la RAÍZ (Fundamental para iOS)
+    id: '/', 
+    start_url: '/login', // Pero que arranque en el login
     
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
     description: 'Gestiona tu menú digital sin comisiones en segundos',
-    display: 'standalone',
-    display_override: ['standalone', 'fullscreen'],
+    display: 'standalone', 
+    // Quitamos display_override para evitar conflictos en versiones viejas de iOS
     background_color: '#000000',
     theme_color: '#000000',
-    scope: '/', // Esto es lo que permite navegar a /dashboard sin que salgan barras
+    scope: '/', 
     orientation: 'portrait',
     
     icons: [

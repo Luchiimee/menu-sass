@@ -11,7 +11,9 @@ export const metadata: Metadata = {
   description: "Tu carta digital inteligente.",
   icons: {
     icon: '/icon-192.png',
-    apple: '/icon-512.png',
+    // 💡 CAMBIO: iOS ama el tamaño 180x180. 
+    // Si no tienes uno de ese tamaño, usa el de 192, pero asegúrate de que esté bien declarado.
+    apple: '/icon-192.png', 
   },
   appleWebApp: {
     capable: true,
