@@ -208,6 +208,7 @@ useEffect(() => {
 const isSubscriptionValid = restaurant.status === 'active' || 
                                restaurant.status === 'authorized' || 
                                restaurant.status === 'past_due' || 
+                               restaurant.status === 'paused'
                                bypassBlock; // <--- Si es VIP, la suscripción es válida
 
   const trialDuration = 14;
@@ -405,33 +406,50 @@ const menuItems = [
   
 
 <div className="h-[env(safe-area-inset-top,0px)] min-h-[60px] lg:hidden w-full bg-white border-b border-gray-100 flex-shrink-0" />
-        
-        {/* Alerta de Pagos Pausados (Sticky) */}
-        {restaurant.plan && restaurant.status === 'paused' && (
-          <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60]">
-            <div className="flex items-center gap-2 text-left">
-              <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
-              <p className="font-bold text-sm">Tu plan está pausado por falta de pago.</p>
-            </div>
-            <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-red-600 px-4 py-1 rounded-full text-xs font-bold uppercase hover:bg-gray-100 transition whitespace-nowrap">
-              Solucionar
-            </button>
-          </div>
-        )}
+
+{/* --- FASE 1: PAST_DUE (Mercado Pago re-intentando cobro) --- */}
 {restaurant.plan && restaurant.status === 'past_due' && (
-          <div className="bg-orange-500 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60] animate-in slide-in-from-top-2">
-            <div className="flex items-center gap-3 text-left">
-              <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
-              <div>
-                <p className="font-bold text-sm">Tuvimos un problema al cobrar tu suscripción.</p>
-                <p className="text-xs opacity-90">El sistema hará un nuevo intento pronto. Mantené tu local activo actualizando tu medio de pago.</p>
-              </div>
-            </div>
-            <button onClick={() => router.push('/dashboard/settings')} className="bg-white text-orange-600 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition whitespace-nowrap shadow-sm">
-              Actualizar Tarjeta
-            </button>
-          </div>
-        )}
+  <div className="bg-orange-500 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60] animate-in slide-in-from-top-2">
+    <div className="flex items-center gap-3 text-left">
+      <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
+      <div>
+        <p className="font-bold text-sm leading-none">Problema con el cobro automático</p>
+        <p className="text-[10px] opacity-90 uppercase font-black tracking-wider mt-1">
+          El sistema hará un nuevo intento pronto. Asegurate de tener fondos disponibles.
+        </p>
+      </div>
+    </div>
+    <button 
+      onClick={() => router.push('/dashboard/settings')} 
+      className="bg-white text-orange-600 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition shadow-sm active:scale-95"
+    >
+      Actualizar Pago
+    </button>
+  </div>
+)}
+
+{/* --- FASE 2: PAUSED (Último aviso - 3 días de gracia antes de Cancelar) --- */}
+{restaurant.plan && restaurant.status === 'paused' && (
+  <div className="bg-red-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60] animate-in slide-in-from-top-2 border-b-2 border-white/20">
+    <div className="flex items-center gap-3 text-left">
+      <div className="bg-white/20 p-2 rounded-lg animate-bounce hidden sm:block">
+        <Clock size={20} className="text-white"/>
+      </div>
+      <div>
+        <p className="font-black text-sm uppercase italic leading-none">¡Plan Pausado por falta de pago!</p>
+        <p className="text-[10px] font-bold opacity-90 uppercase tracking-tight mt-1">
+          Tenés 3 días para regularizar tu situación antes de la baja definitiva de tu cuenta.
+        </p>
+      </div>
+    </div>
+    <button 
+      onClick={() => router.push('/dashboard/settings')} 
+      className="bg-white text-red-600 px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-tighter hover:bg-gray-100 transition shadow-xl active:scale-95"
+    >
+      SOLUCIONAR AHORA
+    </button>
+  </div>
+)}
         {/* --- BANNER DE TELÉFONO PERSONAL (GLOBAL) --- */}
         {!isLoading && !hasPhone && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm relative z-20 animate-in slide-in-from-top-full">
