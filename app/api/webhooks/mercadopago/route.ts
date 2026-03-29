@@ -10,6 +10,7 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+// ... (imports y config inicial igual)
 
 export async function POST(request: Request) {
     try {
@@ -26,59 +27,40 @@ export async function POST(request: Request) {
             
             console.log(`Webhook MP: Recibido estado '${status}' para el usuario ${userId}`);
 
-            if (!userId) {
-                 console.error("Webhook Error: No hay external_reference en la suscripción");
-                 return NextResponse.json({ error: 'No userId' }, { status: 400 });
-            }
+            if (!userId) return NextResponse.json({ error: 'No userId' }, { status: 400 });
 
-            // --- CASO 1: PAGO EXITOSO O SUSCRIPCIÓN ACTIVA ---
+            // --- CASO 1: SUSCRIPCIÓN ACTIVA (authorized) ---
             if (status === 'authorized') {
-                await supabase
-                    .from('restaurants')
-                    .update({ 
-                        subscription_status: 'authorized',
-                        mp_preapproval_id: id,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('user_id', userId);
+                await supabase.from('restaurants').update({ 
+                    subscription_status: 'authorized',
+                    mp_preapproval_id: id,
+                    updated_at: new Date().toISOString()
+                }).eq('user_id', userId);
 
-                await supabase
-                    .from('profiles')
-                    .update({ payment_configured: true })
-                    .eq('id', userId);
-
-                console.log(`✅ Suscripción y llave maestra activadas para: ${userId}`);
+                await supabase.from('profiles').update({ 
+                    payment_configured: true 
+                }).eq('id', userId);
             }
 
-            // --- CASO 2: PAGO FALLIDO / EN REINTENTOS ---
-            // Mercado Pago pone el estado 'pending' cuando falla el cobro e inicia sus 4 intentos
+            // --- CASO 2: FALLO TEMPORAL / RE-INTENTOS (pending) ---
+            // Mercado Pago re-intenta 4 veces. Mientras tanto, mostramos el banner NARANJA.
             else if (status === 'pending') {
-                await supabase
-                    .from('restaurants')
-                    .update({ 
-                        subscription_status: 'past_due', // Usamos este estado para el banner naranja
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('user_id', userId);
-
-                console.log(`⚠️ Pago fallido para ${userId}. Suscripción en estado 'past_due' (reintentando).`);
+                await supabase.from('restaurants').update({ 
+                    subscription_status: 'past_due', 
+                    updated_at: new Date().toISOString()
+                }).eq('user_id', userId);
             }
 
-            // --- CASO 3: CANCELADA DEFINTIVAMENTE ---
-            // MP lo pasa a 'cancelled' si fallan los 4 intentos o si el usuario/vos la cancelan a mano
+            // --- CASO 3: MP SE RINDIÓ O SE CANCELÓ (cancelled) ---
+            // Aquí aplicamos tu lógica: En lugar de bloquearlo al instante, 
+            // lo pasamos a 'paused' para activar el banner ROJO de 3 días de gracia.
             else if (status === 'cancelled') {
-                await supabase
-                    .from('restaurants')
-                    .update({ 
-                        subscription_status: 'cancelled', // Esto bloquea el panel en layout.tsx
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('user_id', userId);
+                await supabase.from('restaurants').update({ 
+                    subscription_status: 'paused', // <--- CAMBIO CLAVE: Activa el banner rojo
+                    updated_at: new Date().toISOString()
+                }).eq('user_id', userId);
 
-                // Opcional: Podrías poner payment_configured: false si querés que tengan que hacer todo de nuevo
-                // await supabase.from('profiles').update({ payment_configured: false }).eq('id', userId);
-
-                console.log(`❌ Suscripción CANCELADA para: ${userId}`);
+                console.log(`⚠️ Suscripción enviada a periodo de gracia (paused) para: ${userId}`);
             }
         }
 
