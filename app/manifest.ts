@@ -4,7 +4,7 @@ import { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/', 
-    start_url: '/', // Arrancamos en la raíz
+    start_url: '/login', // Arrancamos en la raíz
     scope: '/',     // Abarcamos todo el dominio
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
