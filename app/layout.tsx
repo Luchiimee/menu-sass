@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner'; 
-import Script from 'next/script'; // 1. Importamos el componente de Scripts
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,11 +12,6 @@ export const metadata: Metadata = {
   icons: {
     icon: '/icon-192.png',
     apple: '/icon-512.png',
-  },
-  openGraph: {
-    title: 'Snappy | Tu Menú Digital',
-    description: 'La plataforma más rápida para tu carta digital.',
-    images: ['/icon-512.png'],
   },
   appleWebApp: {
     capable: true,
@@ -42,7 +37,28 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {/* --- CÓDIGO DEL PIXEL DE META (CECI) --- */}
+        {/* --- FIX ANTIBARRAS iOS (Dentro del Head y corregido) --- */}
+        <Script id="ios-pwa-fix" strategy="beforeInteractive">
+          {`
+            (function(document,navigator,standalone) {
+                if ((standalone in navigator) && navigator[standalone]) {
+                    var cnode, remNodes = document.querySelectorAll('link[rel=stylesheet], style');
+                    document.addEventListener('click', function(e) {
+                        cnode = e.target;
+                        while (cnode.tagName !== 'A' && cnode.parentElement) {
+                            cnode = cnode.parentElement;
+                        }
+                        if ('href' in cnode && cnode.href.indexOf('http') !== -1 && (cnode.href.indexOf(document.location.host) !== -1 || cnode.pathname !== document.location.pathname)) {
+                            e.preventDefault();
+                            window.location.assign(cnode.href);
+                        }
+                    }, false);
+                }
+            })(document,window.navigator,'standalone');
+          `}
+        </Script>
+
+        {/* --- PIXEL DE META --- */}
         <Script id="fb-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
@@ -59,16 +75,12 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={inter.className}>
-        {/* --- RESPALDO PARA NAVEGADORES SIN JS --- */}
         <noscript>
           <img 
-            height="1" 
-            width="1" 
-            style={{ display: 'none' }}
+            height="1" width="1" style={{ display: 'none' }}
             src="https://www.facebook.com/tr?id=1093678972956224&ev=PageView&noscript=1"
           />
         </noscript>
-
         {children}
         <Toaster position="top-center" richColors closeButton />
       </body>

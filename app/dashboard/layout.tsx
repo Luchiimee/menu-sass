@@ -16,31 +16,26 @@ import PushNotificationManager from '@/components/PushNotificationManager';
 
 function GoogleAuthHandler() {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   useEffect(() => {
     const hasCode = searchParams.has('code');
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     
     if (hasCode || hasHash) {
-      console.log("🚀 Limpiando rastro de Google para iOS Standalone...");
-
-      // 1. FORZAMOS LA RUTA LIMPIA: 
-      // En lugar de 'pathname', ponemos "/dashboard" a fuego. 
-      // Esto le dice a Safari: "Sigo en la misma App que declaré en el manifest".
+      // 1. Limpieza visual inmediata
       window.history.replaceState({}, document.title, "/dashboard");
 
-      // 2. EL REFRESH DINÁMICO:
-      // Solo si detectamos que es un iPhone en modo App (standalone)
-      if (typeof window !== 'undefined' && (window.navigator as any).standalone) {
-        setTimeout(() => {
-          // Un refresh suave asegura que el estado de sesión se asiente 
-          // y que la barra de Safari se esconda definitivamente.
-          router.refresh(); 
-        }, 150);
+      // 2. DETECCIÓN DE iOS STANDALONE
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isStandalone = (window.navigator as any).standalone;
+
+      if (isIOS && isStandalone) {
+        // El truco maestro: Forzamos una navegación de nivel superior.
+        // Esto obliga a Safari a re-centrar el viewport y esconder las barras.
+        window.location.replace("/dashboard");
       }
     }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   return null;
 }

@@ -26,14 +26,15 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const handleGoogleLogin = async () => {
+ const handleGoogleLogin = async () => {
     setIsLoading(true)
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${origin}/auth/callback?next=/dashboard`,
+          // Eliminamos el ?next=/dashboard para que la URL de retorno sea lo más corta posible
+          redirectTo: `${origin}/auth/callback`, 
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
