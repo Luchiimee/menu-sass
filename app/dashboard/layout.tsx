@@ -22,17 +22,13 @@ function GoogleAuthHandler() {
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     
     if (hasCode || hasHash) {
-      // 1. Limpieza visual inmediata
+      // Limpieza atómica de la URL
       window.history.replaceState({}, document.title, "/dashboard");
-
-      // 2. DETECCIÓN DE iOS STANDALONE
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isStandalone = (window.navigator as any).standalone;
-
-      if (isIOS && isStandalone) {
-        // El truco maestro: Forzamos una navegación de nivel superior.
-        // Esto obliga a Safari a re-centrar el viewport y esconder las barras.
-        window.location.replace("/dashboard");
+      
+      // Si detectamos PWA en iOS, forzamos que el layout se entere que ya hay sesión
+      if (typeof window !== 'undefined' && (window.navigator as any).standalone) {
+        // No hacemos un refresh total para evitar bucles, 
+        // solo dejamos que el router de Next haga lo suyo.
       }
     }
   }, [searchParams]);

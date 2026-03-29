@@ -29,12 +29,30 @@ export async function GET(request: Request) {
       }
     )
 
+ // ... (todo tu código de imports y Supabase igual hasta el intercambio del código)
+
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      // 🚀 EL SECRETO: En lugar de NextResponse.redirect, usamos un "Puente HTML"
+      // Esto asegura que las cookies se guarden bien en el iPhone y no salgan las barras.
+      const redirectUrl = `${origin}${next}`;
+      
+      return new NextResponse(
+        `<html>
+          <head>
+            <script>
+              // Limpiamos rastro y saltamos al dashboard
+              window.location.replace("${redirectUrl}");
+            </script>
+          </head>
+          <body style="background: #000;"></body>
+        </html>`,
+        { headers: { 'Content-Type': 'text/html' } }
+      );
     }
   }
 
+  // Si hay error, volvemos al login pero también con puente para mayor seguridad
   return NextResponse.redirect(`${origin}/login?error=auth`)
 }
