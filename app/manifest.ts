@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next'
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    // Sincronizamos ID y Start URL con el parámetro que puso Gino
-    id: '/login?source=pwa', 
-    start_url: '/login?source=pwa', 
+    // Usamos /login como identidad y punto de inicio, pero LIMPIO
+    id: '/login', 
+    start_url: '/login', 
     
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
@@ -12,11 +13,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display_override: ['standalone', 'fullscreen'],
     background_color: '#000000',
     theme_color: '#000000',
-    scope: '/', // El scope DEBE ser la raíz para que no salgan barras al navegar
+    scope: '/', // Esto es lo que permite navegar a /dashboard sin que salgan barras
     orientation: 'portrait',
     
     icons: [
-      // ELIMINAMOS EL FAVICON.ICO DE ACÁ
       {
         src: '/icon-192.png',
         sizes: '192x192',
@@ -36,15 +36,12 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
     ],
-    
-    // Agregamos un screenshot temporal para que PWABuilder no moleste (corrige advertencia)
-    // Podés usar el mismo ícono por ahora solo para pasar este filtro técnico.
     screenshots: [
       {
         src: '/icon-512.png',
         sizes: '512x512',
         type: 'image/png',
-        form_factor: 'narrow' // Indica que es formato celular
+        form_factor: 'narrow' 
       }
     ]
   }
