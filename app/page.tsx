@@ -1,5 +1,6 @@
 "use client";
-
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from '@supabase/ssr';
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -118,6 +119,28 @@ const TUTORIALS: Tutorial[] = [
   },
 ];
 export default function LandingPage() {
+  const router = useRouter();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // 2. Agregá este useEffect al principio del componente
+  useEffect(() => {
+    const checkPWAFlow = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+      if (session) {
+        // Si ya está logueado, al dashboard directo (sin barras)
+        router.replace('/dashboard');
+      } else if (isStandalone) {
+        // Si es la App y no está logueado, al login
+        router.replace('/login');
+      }
+    };
+    checkPWAFlow();
+  }, [router, supabase]);
   const [tutorialToast, setTutorialToast] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('restaurante');
   const [isMenuOpen, setIsMenuOpen] = useState(false);

@@ -41,10 +41,12 @@ export async function GET(request: Request) {
       return new NextResponse(
         `<html>
           <head>
-            <script>
-              // Limpiamos rastro y saltamos al dashboard
-              window.location.replace("${redirectUrl}");
-            </script>
+           <script>
+  // Pequeña espera para que iOS guarde la cookie de sesión
+  setTimeout(function() {
+    window.location.replace("${redirectUrl}");
+  }, 50); 
+</script>
           </head>
           <body style="background: #000;"></body>
         </html>`,

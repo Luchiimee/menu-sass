@@ -1,19 +1,16 @@
 import { MetadataRoute } from 'next'
 
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    // 1. Identidad en la RAÍZ (Fundamental para iOS)
     id: '/', 
-    start_url: '/login', // Pero que arranque en el login
-    
+    start_url: '/', // Arrancamos en la raíz
+    scope: '/',     // Abarcamos todo el dominio
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
-    description: 'Gestiona tu menú digital sin comisiones en segundos',
     display: 'standalone', 
-    // Quitamos display_override para evitar conflictos en versiones viejas de iOS
     background_color: '#000000',
     theme_color: '#000000',
-    scope: '/', 
     orientation: 'portrait',
     
     icons: [
