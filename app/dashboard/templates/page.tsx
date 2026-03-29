@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw, Heart, Sparkles } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw, Heart, Sparkles,ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -1174,15 +1174,36 @@ const finalTemplates = TEMPLATES.filter(t => {
       )}
     </div>
 
-    <div className="card-info text-center">
-      <h3 className="card-title mt-2">{t.name}</h3>
-      <button 
-        onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
-        disabled={savingId === t.id || isSelected}
-        className={`mt-2 text-[10px] font-black uppercase transition-colors ${isSelected ? 'text-emerald-500' : 'text-indigo-600 hover:underline'}`}
-      >
-        {isSelected ? 'En uso' : 'Seleccionar'}
-      </button>
+   <div className="card-info text-center flex flex-col items-center">
+      <h3 className="card-title mt-2 text-slate-800">{t.name}</h3>
+      
+      {isSelected ? (
+        /* --- ESTADO: YA SELECCIONADO (Botón Personalizar) --- */
+        <div className="flex flex-col items-center gap-2 mt-2 w-full px-2 animate-in fade-in zoom-in-95 duration-300">
+           <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+             <Check size={10} strokeWidth={4}/> Diseño en uso
+           </span>
+           <Link 
+             href="/dashboard/personalizar"
+             className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.1em] hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95"
+           >
+             Ir a Personalizar <ArrowRight size={12} strokeWidth={3} />
+           </Link>
+        </div>
+      ) : (
+        /* --- ESTADO: NO SELECCIONADO (Botón Seleccionar) --- */
+        <button 
+          onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+          disabled={savingId === t.id}
+          className="mt-3 text-[10px] font-black uppercase transition-all text-indigo-600 hover:text-indigo-800 hover:tracking-widest disabled:opacity-50 flex items-center gap-1"
+        >
+          {savingId === t.id ? (
+            <><Loader2 size={10} className="animate-spin"/> Activando...</>
+          ) : (
+            'Seleccionar'
+          )}
+        </button>
+      )}
     </div>
   </div>
 </article>
