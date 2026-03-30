@@ -628,6 +628,16 @@ function MenuContent({
   };
   // --- DETECTOR SEGURO DE SALIDA ---
   useEffect(() => {
+    const handleAndroidPrompt = (e: any) => {
+      // 1. Esto le dice a Chrome: "No muestres tu barrita de instalar, yo me encargo"
+      e.preventDefault(); 
+      console.log("Cartel de Android bloqueado para el cliente.");
+    };
+
+    window.addEventListener('beforeinstallprompt', handleAndroidPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleAndroidPrompt);
+  }, []);
+  useEffect(() => {
     const handleBeforeUnload = (e: any) => {
       // Esto hace que el navegador pregunte "¿Seguro que quieres salir?"
       // si algo intenta refrescar la página.
