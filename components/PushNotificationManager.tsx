@@ -24,10 +24,10 @@ export default function PushNotificationManager({ mobile = false }: { mobile?: b
           (window.navigator as any).standalone === true;
 
         // iOS necesita PWA instalada para push
-        if (isIOS && !isStandalone) {
-          setStatus('ios-install');
-          return;
-        }
+      if (isIOS && !isStandalone) {
+  setStatus('not-supported');
+  return;
+}
 
         // Verificar APIs
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
