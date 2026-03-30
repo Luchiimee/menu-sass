@@ -66,23 +66,20 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
       </div>
 
 {/* --- MENÚ DESPLEGABLE "MÁS" REDISEÑADO (FULL SCREEN) --- */}
-      {isMenuOpen && (
-        <div 
-  style={{ 
-    paddingTop: 'env(safe-area-inset-top)', 
-    height: 'calc(64px + env(safe-area-inset-top))' 
-  }} 
-  className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm"
->
+     {isMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-[60] animate-in fade-in duration-200">
           {/* Fondo oscuro con blur */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
           
-          {/* Contenedor Pantalla Completa (top-0) */}
-          <div className="absolute top-0 inset-x-0 bottom-0 bg-white shadow-2xl animate-in slide-in-from-bottom-5 duration-300 flex flex-col overflow-y-auto pb-24">
+          {/* Contenedor Pantalla Completa */}
+          <div 
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+            className="absolute top-0 inset-x-0 bottom-0 bg-white shadow-2xl animate-in slide-in-from-bottom-5 duration-300 flex flex-col overflow-y-auto pb-24"
+          >
             
             {/* CABECERA DE PERFIL + BOTÓN CERRAR */}
-            <div className="p-6 pt-12 bg-slate-50 border-b flex items-center justify-between">
-               <div className="flex items-center gap-4">
+            <div className="p-6 pt-8 bg-slate-50 border-b flex items-center justify-between">
+                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-black rounded-xl overflow-hidden border-2 border-white shadow-md">
                      {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="logo" /> : <Store className="w-full h-full p-2 text-white" />}
                   </div>
@@ -92,15 +89,15 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
                        {displaySubtext} {displaySubtext?.includes('Plus') && <Zap size={14} className="text-blue-600 fill-current"/>}
                      </p>
                   </div>
-               </div>
+                </div>
 
-               {/* BOTÓN CERRAR (X) */}
-               <button 
-                  onClick={() => setIsMenuOpen(false)} 
-                  className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 text-slate-400 active:scale-90 transition-all"
-               >
-                  <X size={24} strokeWidth={2.5} />
-               </button>
+                {/* BOTÓN CERRAR (X) */}
+                <button 
+                   onClick={() => setIsMenuOpen(false)} 
+                   className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 text-slate-400 active:scale-90 transition-all"
+                >
+                   <X size={24} strokeWidth={2.5} />
+                </button>
             </div>
 
             <div className="p-4 space-y-6">
