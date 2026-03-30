@@ -591,7 +591,7 @@ export default function LandingPage() {
           </div>
           <p className="text-gray-400 text-sm leading-relaxed">
             <b>Android Chrome:</b> 3 puntitos {`>`} "Agregar a inicio".
-            <br /> <b>iOS Chrome:</b> Compartir {`>`} Mas {`>`}"Agregar al inicio".
+            <br /> <b>iOS Chrome:</b> No compatible.
             <br /> <b>iOS Safari:</b> 3 puntitos {`>`} Compartir {`>`} Mas {`>`} "Agregar a inicio".
           </p>
         </div>

@@ -182,7 +182,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         }
 
         // 2. CONSTRUCCIÓN DEL MENSAJE (Se mantiene igual)
-        let mensaje = `*¡Hola! Nuevo Pedido* 🍔\nRef: ${orderRef}\n------------------\n`;
+       let mensaje = `*¡Hola! Nuevo Pedido*\nRef: ${orderRef}\n------------------\n`;
         mensaje += `👤 *Nombre:* ${nombre}\n`;
         if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
         mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
