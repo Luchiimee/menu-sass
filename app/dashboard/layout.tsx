@@ -274,7 +274,7 @@ const handleLogout = async () => {
     // 5. SALIDA FINAL
     await supabase.auth.signOut();
     
-    // 6. BLINDAJE: Usamos replace para que NO se pueda volver atrás con el botón del celu
+    
     window.location.replace('/login'); 
   }
 };
