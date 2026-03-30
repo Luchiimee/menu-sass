@@ -292,8 +292,8 @@ const menuItems = [
     menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });
   }
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden pb-[env(safe-area-inset-bottom)]">
-    <style jsx global>{`
+    <div className="flex flex-col lg:flex-row h-screen bg-white overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+   <style jsx global>{`
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     `}</style>
@@ -407,7 +407,7 @@ const menuItems = [
         </div>
       </aside>
 {/* --- MAIN CONTENT --- */}
-<main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col lg:pt-0">
+<main className="flex-1 overflow-y-auto relative bg-gray-100 w-full min-w-0 flex flex-col lg:pt-0">
     {/* Div espaciadora: Le da aire al contenido en móviles y mantiene el fondo blanco arriba */}
     <div className="h-[env(safe-area-inset-top)] bg-white w-full flex-shrink-0 lg:hidden" />
 
