@@ -407,17 +407,17 @@ const menuItems = [
         </div>
       </aside>
 {/* --- MAIN CONTENT --- */}
-   <main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col lg:pt-0">
+<main className="flex-1 overflow-y-auto relative bg-gray-50 w-full min-w-0 flex flex-col pt-[env(safe-area-inset-top)] lg:pt-0">
   
+    {/* Div espaciadora: Le da aire al contenido en móviles y mantiene el fondo blanco arriba */}
+    <div className="h-2 lg:hidden w-full bg-white flex-shrink-0" />
 
-<div className="h-[env(safe-area-inset-top,0px)] min-h-[60px] lg:hidden w-full bg-white border-b border-gray-100 flex-shrink-0" />
-
-{/* --- FASE 1: PAST_DUE (Mercado Pago re-intentando cobro) --- */}
-{restaurant.plan && restaurant.status === 'past_due' && (
-  <div className="bg-orange-500 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60] animate-in slide-in-from-top-2">
-    <div className="flex items-center gap-3 text-left">
-      <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
-      <div>
+    {/* --- FASE 1: PAST_DUE (Mercado Pago re-intentando cobro) --- */}
+    {restaurant.plan && restaurant.status === 'past_due' && (
+      <div className="bg-orange-500 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[60] animate-in slide-in-from-top-2">
+        <div className="flex items-center gap-3 text-left">
+          <AlertTriangle size={20} className="animate-pulse flex-shrink-0"/>
+          <div>
         <p className="font-bold text-sm leading-none">Problema con el cobro automático</p>
         <p className="text-[10px] opacity-90 uppercase font-black tracking-wider mt-1">
           El sistema hará un nuevo intento pronto. Asegurate de tener fondos disponibles.
