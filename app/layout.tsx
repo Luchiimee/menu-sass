@@ -75,6 +75,13 @@ export default function RootLayout({
             fbq('track', 'PageView');
           `}
         </Script>
+        <Script id="block-android-install" strategy="afterInteractive">
+          {`
+            window.addEventListener('beforeinstallprompt', (e) => {
+              e.preventDefault();
+            });
+          `}
+        </Script>
       </head>
       <body className={inter.className}>
         <noscript>
