@@ -604,6 +604,7 @@ const menuItems = [
   displaySubtext={getPlanLabel()} 
   logoUrl={restaurant.logo_url}
   isAdmin={isAdmin} // <--- Enviamos el logo aquí
+  onLogout={handleLogout}
 />
     </div>
   );

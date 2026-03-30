@@ -26,8 +26,9 @@ interface MobileNavProps {
   displaySubtext: string;
   logoUrl?: string | null;
   isAdmin?: boolean;
+  onLogout: () => Promise<void>;
 }
-export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmin }: MobileNavProps) {
+export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmin, onLogout }: MobileNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -133,10 +134,13 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
 
               {/* BOTÓN SALIR AL FINAL */}
               <div className="pt-4 border-t border-slate-100">
-                <Link href="/login" className="flex items-center gap-4 p-4 rounded-2xl font-black text-red-500 active:bg-red-50 transition-colors">
-                   <div className="p-2 bg-red-50 rounded-xl"><LogOut size={20} /></div>
-                   Cerrar Sesión
-                </Link>
+                <button 
+                  onClick={onLogout} 
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl font-black text-red-500 active:bg-red-50 transition-colors"
+                >
+                    <div className="p-2 bg-red-50 rounded-xl"><LogOut size={20} /></div>
+                    Cerrar Sesión
+                </button>
               </div>
             </div>
           </div>
