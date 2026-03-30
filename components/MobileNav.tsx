@@ -47,7 +47,7 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
   return (
     <>
       {/* --- HEADER SUPERIOR --- */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-[calc(64px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm">
          <div className="flex items-center gap-3">
             <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" /> : <Store size={20} />}
@@ -67,7 +67,13 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
 
 {/* --- MENÚ DESPLEGABLE "MÁS" REDISEÑADO (FULL SCREEN) --- */}
       {isMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[60] animate-in fade-in duration-200">
+        <div 
+  style={{ 
+    paddingTop: 'env(safe-area-inset-top)', 
+    height: 'calc(64px + env(safe-area-inset-top))' 
+  }} 
+  className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b z-40 flex items-center justify-between px-4 shadow-sm"
+>
           {/* Fondo oscuro con blur */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
           
