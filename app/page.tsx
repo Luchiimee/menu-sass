@@ -5,40 +5,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRight,
-  Check,
-  Zap,
-  QrCode,
-  MessageCircle,
-  Menu,
-  X,
-  Layout,
-  Smartphone,
-  MousePointer2,
-  HelpCircle,
-  CreditCard,
-  PlayCircle,
-  BarChart3,
-  PlusCircle,
-  Globe,
-  Copy,
-  ExternalLink,
-  Layers,
-  Settings,
-  ListChecks,
-  Printer,
-  Bell,
-  ShieldCheck,
-  ShoppingBag,
-  Utensils,
-  Carrot,
-  Candy,
-  Ticket,
-  Percent,
-  SmartphoneNfc,
-  Store,
-  Monitor,
-  Wallet,
+  ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout, 
+  Smartphone, MousePointer2, HelpCircle, CreditCard, PlayCircle, 
+  BarChart3, PlusCircle, Globe, Copy, ExternalLink, Layers, 
+  Settings, ListChecks, Printer, Bell, ShieldCheck, ShoppingBag, 
+  Utensils, Carrot, Candy, Ticket, Percent, SmartphoneNfc, 
+  Store, Monitor, Wallet, Fish, Coffee, Pizza, CheckCircle2,
+  UtensilsCrossed, Search
 } from "lucide-react";
 
 
@@ -118,12 +91,285 @@ const TUTORIALS: Tutorial[] = [
     isAvailable: false 
   },
 ];
+// --- 1. DATA DE DISEÑOS ---
+const DISENOS_INFO: any = {
+  marketpro: { label: 'Market Pro', color: 'bg-emerald-500', desc: 'Diseño tipo App nativa. Ideal para catálogos con muchos productos.' },
+  urban: { label: 'Urban Dark', color: 'bg-zinc-900', desc: 'Estilo nocturno y premium. Resalta la fotografía.' },
+  visualgrid: { label: 'Visual Grid', color: 'bg-orange-500', desc: 'Grilla visual impactante. Ideal para videos y fotos XL.' },
+ elegant: { label: 'Minimal', color: 'bg-stone-200', desc: 'Estilo limpio, centrado y tipografía moderna. La opción más elegante.' }
+};
+
+// --- 2. DATA DE CONTENIDO (LO QUE ME PEDISTE) ---
+const PREVIEW_STYLES = `
+  .preview-viewport { width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden; text-align: left; position: relative; }
+  .preview-viewport::-webkit-scrollbar { display: none; }
+
+  /* --- ESPACIADO DE SEGURIDAD PARA LA ISLA (NOTCH) --- */
+  .safe-top { padding-top: 45px !important; }
+
+  /* MARKET PRO & URBAN (Grid) */
+  .m-header { padding: 45px 10px 10px; text-align: center; } /* <-- Aumentado a 45px */
+  .m-logo { width: 45px; height: 45px; border-radius: 50%; border: 1.5px solid #000; margin: 0 auto 8px; background-size: cover; background-position: center; }
+  .m-search { margin: 0 12px 10px; background: #f3f4f6; border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 6px; color: #9ca3af; font-size: 8px; }
+  .m-banner { width: calc(100% - 24px); margin: 0 12px 12px; aspect-ratio: 16/8; border-radius: 12px; object-fit: cover; }
+  .m-cats { display: flex; gap: 5px; padding: 0 12px 12px; overflow-x: hidden; }
+  .m-pill { padding: 4px 10px; background: #f3f4f6; border-radius: 15px; font-size: 7px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+  .m-pill.active { background: #000; color: #fff; }
+  
+  .m-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 12px 20px; }
+  .m-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 10px; padding: 4px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+  .m-img-box { aspect-ratio: 3/4; border-radius: 6px; overflow: hidden; margin-bottom: 4px; background: #eee; }
+  .m-tit { font-size: 7px; font-weight: 900; text-transform: uppercase; line-height: 1.1; height: 16px; display: flex; align-items: center; justify-content: center; color: #111; }
+  .m-price { font-size: 8px; font-weight: 900; color: #059669; margin: 2px 0; }
+  .m-btn { width: 100%; background: #000; color: #fff; font-size: 6px; font-weight: 900; text-transform: uppercase; padding: 5px; border-radius: 5px; }
+
+  /* URBAN DARK (Filas) */
+  .u-container { background: #121212; color: #ffffff; padding: 45px 12px 12px; height: 100%; display: flex; flex-direction: column; } /* <-- Agregado 45px */
+  .u-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+  .u-brand { display: flex; gap: 8px; align-items: center; }
+  .u-logo { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #fff; background-size: cover; background-position: center; }
+  .u-names h4 { font-size: 13px; font-weight: 800; margin: 0; line-height: 1.1; color: #fff; }
+  .u-names span { font-size: 9px; color: #888; display: block; }
+  .u-status { background: #22c55e; color: #000; font-size: 8px; font-weight: 800; padding: 3px 6px; border-radius: 12px; }
+  .u-msg { background: #1E1E1E; padding: 8px; border-radius: 8px; font-size: 9px; color: #fff; margin-bottom: 15px; border-left: 3px solid #ea580c; font-weight: 700; }
+  .u-item { background: #1E1E1E; padding: 10px; border-radius: 14px; display: flex; gap: 10px; margin-bottom: 10px; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+  .u-img { width: 65px; height: 65px; background-size: cover; border-radius: 10px; background-position: center; flex-shrink: 0; background-color: #333; }
+  .u-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .u-tit { font-weight: 800; font-size: 12px; color: #fff; margin-bottom: 2px; }
+  .u-desc { font-size: 8px; color: #888; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .u-price { color: #ea580c; font-weight: 900; font-size: 12px; margin-top: 4px; }
+  .u-add-btn { position: absolute; bottom: 10px; right: 10px; width: 24px; height: 24px; background: #ffffff; color: #121212; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+
+  /* VISUAL GRID (Sushi) */
+  .s-visual { background: #121212; color: white; min-height: 100%; padding-top: 45px; } /* ✅ Margen de seguridad */
+  .s-header { padding: 0 12px 15px; display: flex; align-items: center; gap: 8px; }
+  .s-logo { width: 35px; height: 35px; border-radius: 50%; border: 1.5px solid #ea580c; flex-shrink: 0; }
+  .s-promo-capsule { background: #1a1a1a; border-left: 4px solid #ea580c; border-radius: 30px; padding: 8px 15px; margin: 0 12px 15px; display: flex; align-items: center; gap: 6px; font-size: 8px; font-weight: 800; color: white; }
+  .s-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 20px; }
+  .s-item { aspect-ratio: 1/1.2; border-radius: 15px; position: relative; overflow: hidden; }
+  .s-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); padding: 8px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .s-tit { font-size: 10px; font-weight: 900; line-height: 1.1; text-transform: uppercase; color: white; margin-bottom: 2px; }
+  .s-price { font-size: 11px; font-weight: 900; color: #ea580c; }
+
+  /* MINIMAL (Minimalist) */
+  .minimal-container { background: #ffffff; padding: 45px 15px 20px; text-align: center; font-family: 'Inter', sans-serif; color: #111; height: 100%; display: flex; flex-direction: column; } /* <-- Aumentado a 45px */
+  .minimal-header { margin-bottom: 12px; position: relative; flex-shrink: 0; }
+  .minimal-logo { width: 36px; height: 36px; background: #111; color: #fff; border-radius: 50%; margin: 0 auto 8px; display: grid; place-items: center; background-size: cover; border: 1px solid rgba(0,0,0,0.05); }
+  .minimal-title { font-weight: 900; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #111; }
+  .minimal-desc { font-size: 8px; color: #777; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; }
+  .minimal-msg { border: 1px solid rgba(0,0,0,0.05); background: #fafafa; padding: 8px; font-size: 9px; margin: 15px 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; color: #111; flex-shrink: 0; }
+  .minimal-item { padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); background: #fff; display: flex; justify-content: space-between; align-items: center; }
+  .minimal-text-group { flex: 1; text-align: left; padding-right: 10px; }
+  .minimal-prod { font-weight: 700; font-size: 13px; color: #111; line-height: 1.2; }
+  .minimal-prod-desc { font-size: 9px; color: #999; margin-top: 2px; opacity: 0.7; line-height: 1.3; }
+  .minimal-price { font-weight: 900; font-size: 11px; color: #000; }
+  .minimal-btn { width: 24px; height: 24px; background-color: #111; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+`;
+
+const PREVIEW_CONTENT: any = {
+  hamburgueseria: {
+    title: "KRUSTY BURGER",
+    description: "Hamburguesería Premium", // <-- Agregado
+    accent: "#ea580c",
+    banner: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600", // <-- Foto de portada
+    products: [
+      { id: 'u1', n: "Cheese Lover", p: "9000", v: "/videos/cheese-lover.mp4" },
+      { id: 'u4', n: "Hambur Completa", p: "7500", v: "/videos/hambur-completa.mp4" },
+      { id: 'u2', n: "Papas King", p: "4200", i: "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=200" }
+    ]
+  },
+  sushi: {
+    title: "SUSHI BAR",
+    description: "El mejor sushi de la ciudad",
+    accent: "#ea580c",
+    banner: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600", // <-- Foto de portada
+    products: [
+      { id: 's1', n: "Dragon Roll", p: "12000", v: "/videos/dragon-sushi.mp4" },
+      { id: 's2', n: "California Roll", p: "11500", i: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=400" },
+      { id: 's3', n: "Sashimi Mix", p: "9500", i: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400" }
+    ]
+  },
+  cafeteria: {
+    title: "CAFE CHICAGO",
+    description: "Specialty Coffee & Bakery",
+    accent: "#a855f7",
+    banner: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600", // <-- Foto de portada
+    products: [
+      { id: 'm1', n: "Flat White", p: "3200", v: "/videos/cafeteria.mp4" },
+      { id: 'm2', n: "Croissant", p: "2500", i: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=200" },
+      { id: 'm3', n: "Latte Art", p: "3500", i: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200" }
+    ]
+  },
+  pizeria: {
+    title: "DON CORLEONE",
+    description: "Auténtica Pizza Napolitana",
+    accent: "#d32f2f",
+    banner: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600", // <-- Foto de portada
+    products: [
+      { id: 'p1', n: "Muzza Familiar", p: "11000", i: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200" },
+      { id: 'p2', n: "Napolitana", p: "13500", v: "/videos/pizzeria.mp4" }
+    ]
+  }
+};
+const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) => {
+  const data = PREVIEW_CONTENT[rubro] || PREVIEW_CONTENT.hamburgueseria;
+  
+  return (
+    <div className="w-full h-full relative">
+      <style>{PREVIEW_STYLES}</style>
+      
+      {/* 1. DISEÑO VISUAL GRID (SUSHI) */}
+{template === 'visualgrid' && (
+        <div className="preview-viewport s-visual">
+          <div className="s-header">
+            <div className="s-logo bg-[#ea580c] flex items-center justify-center text-[8px] font-black italic">SUSHI</div>
+            <div className="text-left leading-none">
+              <h4 className="font-black italic text-sm text-white">SUSHI BAR</h4>
+              <p className="text-[7px] opacity-40 uppercase">Premium Sushi</p>
+            </div>
+          </div>
+          <div className="s-promo-capsule">
+            <span>🍣</span> Happy Hour: 2x1 en Rolls.
+          </div>
+          <div className="s-grid">
+            {data.products.map((p: any, i: number) => (
+              <div key={i} className="s-item">
+                 {p.v ? <video src={p.v} autoPlay loop muted playsInline className="w-full h-full object-cover" /> : <img src={p.i} className="w-full h-full object-cover" />}
+                 <div className="s-overlay">
+                   <div className="s-tit text-white">{p.n}</div>
+                   <div className="s-price">${p.p}</div>
+                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2. DISEÑO URBAN DARK (FILAS HORIZONTALES) */}
+      {template === 'urban' && (
+        <div className="preview-viewport u-container">
+          <div className="u-top">
+            <div className="u-brand">
+              <div className="u-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=MK')"}}></div>
+              <div className="u-names">
+                <h4>{data.title}</h4>
+                <span>{data.description}</span>
+              </div>
+            </div>
+            <div className="u-status">ABIERTO</div>
+          </div>
+          
+          <div className="u-msg">PROMO: Envío gratis {rubro === 'hamburgueseria' ? '> $15.000' : 'en tu primera compra'}</div>
+          
+          <div className="flex-1">
+            {data.products.map((p: any, i: number) => (
+              <div key={i} className="u-item">
+                <div className="u-img">
+                   {p.v ? <video src={p.v} autoPlay loop muted playsInline className="w-full h-full object-cover rounded-[10px]" /> : <img src={p.i} className="w-full h-full object-cover rounded-[10px]" />}
+                </div>
+                <div className="u-info">
+                  <div className="u-tit">{p.n}</div>
+                  <div className="u-desc">{p.d || 'Delicioso producto preparado con los mejores ingredientes...'}</div>
+                  <div className="u-price">${p.p}</div>
+                </div>
+                <button className="u-add-btn">+</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. DISEÑO MARKET PRO (GRILLA 3 COLUMNAS) */}
+      {template === 'marketpro' && (
+        <div className="preview-viewport bg-white">
+          <div className="m-header">
+             <div className="m-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=MK')"}}></div>
+             <h4 className="font-black italic uppercase text-xs text-gray-900">{data.title}</h4>
+             <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-gray-400">{data.description}</p>
+          </div>
+          
+          <div className="m-search">
+            <Search size={10}/> <span>Buscar producto...</span>
+          </div>
+
+          <img src={data.banner} className="m-banner shadow-sm" alt="Portada" />
+
+          <div className="m-cats">
+            <div className="m-pill active">Todos</div>
+            <div className="m-pill">Favoritos</div>
+          </div>
+
+          <div className="m-grid">
+            {data.products.map((p: any, i: number) => (
+              <div key={i} className="m-card">
+                <div className="m-img-box shadow-inner">
+                   {p.v ? <video src={p.v} autoPlay loop muted playsInline className="w-full h-full object-cover" /> : <img src={p.i} className="w-full h-full object-cover" />}
+                </div>
+                <div>
+                  <div className="m-tit text-gray-900">{p.n}</div>
+                  <div className="m-price">${p.p}</div>
+                  <button className="m-btn mt-1">Elegir</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+  {/* ✅ 4. DISEÑO MINIMAL (REEMPLAZA A ELEGANT) */}
+      {template === 'elegant' && (
+        <div className="preview-viewport minimal-container">
+          <div className="minimal-header">
+            <div className="minimal-logo">
+               <Coffee size={16}/>
+            </div>
+            <div className="minimal-title">{data.title}</div>
+            <div className="minimal-desc">{data.description}</div>
+          </div>
+
+          <div className="minimal-msg">
+            {rubro === 'cafeteria' ? 'CAFÉ DE ESPECIALIDAD' : 'ENVÍOS GRATIS'}
+          </div>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar">
+            {data.products.map((p: any, i: number) => (
+              <div key={i} className="minimal-item">
+                <div className="minimal-text-group">
+                  <div className="minimal-prod">{p.n}</div>
+                  <div className="minimal-prod-desc">{p.d || 'Preparado con ingredientes frescos del día...'}</div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="minimal-price">${p.p}</div>
+                  <button className="minimal-btn">+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LandingPage() {
   const router = useRouter();
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // --- ESTADOS CORREGIDOS (SIN DUPLICADOS) ---
+  const [activeTab, setActiveTab] = useState('marketpro'); 
+  const [activeRubro, setActiveRubro] = useState('hamburgueseria');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [aliasCopied, setAliasCopied] = useState(false);
+  const [videoStep, setVideoStep] = useState<'idle' | 'choosing' | 'playing'>('idle');
+  const [videoSource, setVideoSource] = useState('');
+  const [activeTutorialData, setActiveTutorialData] = useState<any>(null);
+  const [showSoonToast, setShowSoonToast] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
+  const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
 
   // 2. Agregá este useEffect al principio del componente
   useEffect(() => {
@@ -141,16 +387,9 @@ export default function LandingPage() {
     };
     checkPWAFlow();
   }, [router, supabase]);
-  const [tutorialToast, setTutorialToast] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState('restaurante');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [aliasCopied, setAliasCopied] = useState(false);
-  const [videoStep, setVideoStep] = useState<'idle' | 'choosing' | 'playing'>('idle');
-  const [videoSource, setVideoSource] = useState('');
-  const [activeTutorialData, setActiveTutorialData] = useState<any>(null);
-  
-  // Nuevo estado para controlar el mensaje de "Próximamente"
-  const [showSoonToast, setShowSoonToast] = useState(false);
+
+
+ 
 
   // Función para manejar la apertura de tutoriales con validación de disponibilidad
   const openTutorial = (video: any) => {
@@ -600,109 +839,110 @@ export default function LandingPage() {
   </div>
 </section>
 
-  {/* --- SECCIÓN: DISEÑOS QUE ENAMORAN (ESPACIO PARA GIFS COMPLETOS) --- */}
-      <section id="disenos" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold tracking-tight uppercase mb-4">
-              DISEÑOS QUE ENAMORAN
-            </h2>
-            <p className="text-gray-500 text-lg">
-              Menús interactivos que reflejan la identidad de tu marca.
-            </p>
-          </div>
+  {/* --- SECCIÓN: DISEÑOS QUE ENAMORAN (CON VIDEOS DINÁMICOS) --- */}
+<section id="disenos" className="py-24 bg-white relative border-y border-gray-100">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="text-center mb-16">
+      <h2 className="text-4xl font-extrabold tracking-tight uppercase mb-4 italic">
+        DISEÑOS QUE ENAMORAN
+      </h2>
+      <p className="text-gray-500 text-lg font-medium">
+        Elegí un diseño y un rubro para ver la experiencia real.
+      </p>
+    </div>
 
-          {/* SELECTOR DE PLANTILLA */}
-          <div className="flex flex-wrap justify-center gap-3 mb-12">
-            {[
-              { id: 'restaurante', label: 'Restaurante', color: 'bg-orange-500' },
-              { id: 'kiosco', label: 'Kiosco', color: 'bg-red-600' },
-              { id: 'minimal', label: 'Minimal', color: 'bg-black' },
-              { id: 'urban', label: 'Urban Dark', color: 'bg-[#121212]' }
-            ].map((tab) => (
+    {/* SELECTORES COMBINADOS */}
+    <div className="flex flex-col items-center gap-8 mb-16">
+      {/* 1. ELEGIR PLANTILLA */}
+      <div className="flex flex-col items-center gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">1. Seleccioná el Estilo</span>
+        <div className="flex flex-wrap justify-center gap-3 bg-gray-50 p-2 rounded-3xl border border-gray-100">
+          {['marketpro', 'urban', 'visualgrid', 'elegant'].map((id) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all 
+                ${activeTab === id ? 'bg-black text-white shadow-lg scale-105' : 'text-gray-400 hover:text-black'}`}
+            >
+              {DISENOS_INFO[id].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. ELEGIR RUBRO */}
+      <div className="flex flex-col items-center gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">2. Seleccioná el Rubro</span>
+        <div className="flex flex-wrap justify-center gap-2">
+          {[
+            { id: 'hamburgueseria', label: 'Hamburguesería', icon: UtensilsCrossed },
+            { id: 'sushi', label: 'Sushi Bar', icon: Fish },
+            { id: 'cafeteria', label: 'Cafetería', icon: Coffee },
+            { id: 'pizeria', label: 'Pizzería', icon: Pizza }
+          ].map((r) => {
+            const Icon = r.icon;
+            return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border-2 
-                  ${activeTab === tab.id 
-                    ? `${tab.color} text-white border-transparent shadow-md scale-105` 
+                key={r.id}
+                onClick={() => setActiveRubro(r.id)}
+                className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase flex items-center gap-2 transition-all border-2
+                  ${activeRubro === r.id 
+                    ? 'bg-green-500 text-white border-green-500 shadow-md scale-105' 
                     : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200'}`}
               >
-                {tab.label}
+                <Icon size={14}/> {r.label}
               </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 relative">
-            {/* MOCKUP DE CELULAR (Borde fino 6px) */}
-            <div className="relative border-gray-900 bg-black border-[6px] rounded-[2.8rem] h-[600px] w-[300px] shadow-2xl overflow-hidden">
-              
-              {/* Dynamic Island */}
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[70px] h-[18px] bg-black rounded-full z-30"></div>
-
-              {/* Pantalla interior */}
-              <div className="w-full h-full bg-white rounded-[2.4rem] overflow-hidden relative z-20">
-                
-                {/* --- ESPACIO PARA TUS GIFS --- */}
-                <div className="h-full w-full">
-                  {activeTab === 'restaurante' && (
-                    <img 
-                      src="/02.png" 
-                      alt="Restaurante Demo" 
-                      className="w-full h-full object-cover animate-in fade-in duration-500"
-                    />
-                  )}
-
-                  {activeTab === 'kiosco' && (
-                    <img 
-                      src="/kiosco.png" 
-                      alt="Kiosco Demo" 
-                      className="w-full h-full object-cover animate-in fade-in duration-500"
-                    />
-                  )}
-
-                  {activeTab === 'minimal' && (
-                    <img 
-                      src="/minimal.png" 
-                      alt="Minimal Demo" 
-                      className="w-full h-full object-cover animate-in fade-in duration-500"
-                    />
-                  )}
-
-                  {activeTab === 'urban' && (
-                    <img 
-                      src="/01.png" 
-                      alt="Urban Dark Demo" 
-                      className="w-full h-full object-cover animate-in fade-in duration-500"
-                    />
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            {/* BOTÓN FLOTANTE */}
-            <Link 
-              href="/demo" 
-              className="md:absolute md:left-[calc(50%+170px)] bg-white text-black border-2 border-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-black hover:text-white transition-all flex items-center gap-2 group"
-            >
-              Probar Demo <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          {/* MAS PLANTILLAS */}
-          <div className="mt-16 text-center">
-            <div className="inline-block bg-gray-50 border border-gray-100 px-6 py-4 rounded-3xl">
-              <p className="text-gray-500 text-sm font-medium">
-                ¿Buscás un estilo diferente? Tenemos <span className="text-black font-extrabold">+10 plantillas exclusivas</span>.
-              </p>
-              <Link href="/login" className="text-orange-600 font-black text-xs uppercase tracking-wider mt-2 inline-block hover:underline">
-                Creá tu cuenta gratis para verlas todas →
-              </Link>
-            </div>
-          </div>
+            );
+          })}
         </div>
-      </section>
+      </div>
+    </div>
+
+    <div className="flex flex-col md:flex-row items-center justify-center gap-16">
+      {/* MOCKUP CELULAR DINÁMICO */}
+      <div className="relative border-gray-950 bg-black border-[12px] rounded-[3.5rem] h-[640px] w-[320px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.3)] overflow-hidden group transition-all duration-500 hover:scale-[1.02]">
+        {/* Dynamic Island */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100px] h-[28px] bg-black rounded-b-3xl z-40 shadow-sm"></div>
+        
+        {/* Pantalla con el Video */}
+        <div className="w-full h-full bg-white rounded-[2.6rem] overflow-hidden relative z-20">
+        <MenuPreview 
+    key={`${activeTab}-${activeRubro}`} 
+    template={activeTab} 
+    rubro={activeRubro} 
+  />
+          {/* Overlay de brillo para que parezca cristal */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none" />
+        </div>
+      </div>
+
+      {/* TEXTO INFORMATIVO DINÁMICO */}
+      <div className="max-w-sm text-left space-y-8 animate-in slide-in-from-right-10 duration-700">
+        <div className="space-y-4">
+          <div className={`w-14 h-2 rounded-full ${DISENOS_INFO[activeTab].color}`}></div>
+          <h3 className="text-5xl font-black uppercase italic tracking-tighter leading-none text-gray-900">
+            {DISENOS_INFO[activeTab].label}
+          </h3>
+          <p className="text-gray-500 text-lg font-medium leading-relaxed">
+            {DISENOS_INFO[activeTab].desc} <br/> 
+            Diseño adaptado para resaltar lo mejor de tu <b>{activeRubro}</b>.
+          </p>
+        </div>
+        
+        <div className="space-y-4 border-l-4 border-gray-100 pl-6">
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Carga instantánea</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Navegación táctil</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Optimizado para móviles</div>
+        </div>
+
+        <Link href="/login" className="inline-flex items-center gap-4 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
+          QUIERO ESTE DISEÑO <Zap size={18} fill="currentColor"/>
+        </Link>
+      </div>
+    </div>
+  </div>
+</section>
+      
 
     {/* --- SECCIÓN TUTORIALES (CON SISTEMA DE AVISOS) --- */}
 <section className="py-24 bg-gray-50 relative">
