@@ -4,7 +4,7 @@ import CartFooter from "../CartFooter";
 import { useState } from "react";
 import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone,Check } from "lucide-react";
 
-export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isMockup = false }: any) {
+export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -46,7 +46,7 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
     return false;
   };
 
-  const isOpenNow = checkIfOpen();
+const isOpenNow = isOpen;
   const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
   const titleFont = restaurant.title_font || 'Inter';
   const descFont = restaurant.desc_font || 'Inter';

@@ -1944,7 +1944,8 @@ function MenuContent({
             restaurant={restaurant}
             products={allProducts}
             categories={restaurant.categories || []}
-            fetchedExtras={restaurant.fetched_extras} // <-- AGREGÁ ESTA LÍNEA
+            fetchedExtras={restaurant.fetched_extras} 
+            isOpen={isOpen}
             onAddToCart={(product: any, qty: number) => {
               for (let i = 0; i < qty; i++) {
                 addToCart(product);
