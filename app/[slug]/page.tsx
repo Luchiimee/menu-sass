@@ -1160,13 +1160,17 @@ function MenuContent({
                       >
                         {/* Imagen con desenfoque al tocar (Video Flow) */}
                       <div className="absolute inset-0 transition-all duration-500 overflow-hidden bg-zinc-900">
-  {prod.video_url ? (
-    <video 
-      src={prod.video_url} 
-      autoPlay muted loop playsInline 
-      className="w-full h-full object-cover transition-all duration-500"
-      style={{ filter: isActive ? "brightness(0.2) blur(8px)" : "none" }}
-    />
+ {prod.video_url ? (
+  <video 
+    src={prod.video_url} 
+    autoPlay 
+    muted 
+    loop 
+    playsInline // <-- Esta es clave
+    preload="auto"
+    className="w-full h-full object-cover transition-all duration-500"
+    style={{ filter: isActive ? "brightness(0.2) blur(8px)" : "none" }}
+  />
   ) : (
     <div
       className="w-full h-full bg-cover bg-center transition-all duration-500"

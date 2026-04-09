@@ -90,27 +90,36 @@ export default function VisualGrid({ restaurant, products }: any) {
               }}
             >
               {/* --- FONDO: IMAGEN O VIDEO --- */}
-              <div style={{ position: 'absolute', inset: 0 }}>
-                {p.video_url ? (
-                  <video 
-                    src={p.video_url} 
-                    autoPlay muted loop playsInline 
-                    style={{ 
-                      width: '100%', height: '100%', objectFit: 'cover',
-                      filter: isActive ? 'brightness(0.3) blur(4px)' : 'none',
-                      transition: 'all 0.5s ease'
-                    }} 
-                  />
-                ) : (
-                  <div style={{ 
-                    width: '100%', height: '100%', 
-                    backgroundImage: `url('${p.image_url || 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200'}')`,
-                    backgroundSize: 'cover', backgroundPosition: 'center',
-                    filter: isActive ? 'brightness(0.3) blur(4px)' : 'none',
-                    transition: 'all 0.5s ease'
-                  }} />
-                )}
-              </div>
+          <div style={{ 
+    position: 'absolute', 
+    inset: 0,
+    filter: isActive ? 'brightness(0.3) blur(4px)' : 'none', // Movimos el filtro acá
+    transition: 'all 0.5s ease' // Movimos la transición acá
+}}>
+  {p.video_url ? (
+    <video 
+      src={p.video_url} 
+      autoPlay 
+      loop 
+      muted 
+      playsInline 
+      preload="auto"
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        objectFit: 'cover'
+      }} 
+    />
+  ) : (
+    <div style={{ 
+      width: '100%', 
+      height: '100%', 
+      backgroundImage: `url('${p.image_url || 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200'}')`,
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center'
+    }} />
+  )}
+</div>
               {/* --- 1. MODO EXPANDIDO (Al tocar, como en el video) --- */}
               {isActive ? (
                 <div style={{ 
