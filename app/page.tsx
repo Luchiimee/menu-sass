@@ -935,9 +935,12 @@ export default function LandingPage() {
           <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Optimizado para móviles</div>
         </div>
 
-        <Link href="/login" className="inline-flex items-center gap-4 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
+        <Link href="/login" className="inline-flex items-center gap-1 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
           QUIERO ESTE DISEÑO <Zap size={18} fill="currentColor"/>
         </Link>
+        <Link href="/demo" className="inline-flex items-center justify-center gap-2 border-2 border-gray-200 text-gray-400 px-10 py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:border-black hover:text-black transition-all w-full">
+     VER DEMO COMPLETA <ArrowRight size={16} />
+  </Link>
       </div>
     </div>
   </div>
