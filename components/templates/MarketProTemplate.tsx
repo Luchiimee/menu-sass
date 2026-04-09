@@ -14,37 +14,8 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
   const [showInfo, setShowInfo] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
 
-  // --- LÓGICA DE APERTURA (MANUAL + AUTOMÁTICA) ---
-  const checkIfOpen = () => {
-    // 1. PRIORIDAD: CONTROL MANUAL (Switch verde de base de datos)
-    const estadoManual = restaurant.is_open ?? restaurant.manual_open;
-    if (estadoManual !== undefined && estadoManual !== null) {
-      return estadoManual;
-    }
+  
 
-    // 2. SI NO HAY MANUAL, USAMOS LOS HORARIOS
-    const hours = restaurant.business_hours;
-    if (!hours) return false;
-    const now = new Date();
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const config = hours[days[now.getDay()]];
-    
-    if (!config || !config.isOpen) return false;
-    
-    const currentMin = now.getHours() * 60 + now.getMinutes();
-    const toMin = (t: string) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-    
-    const s1 = toMin(config.open);
-    const e1 = toMin(config.close);
-    if (s1 !== null && e1 !== null && currentMin >= s1 && currentMin <= e1) return true;
-    
-    if (config.isSplit) {
-      const s2 = toMin(config.open2);
-      const e2 = toMin(config.close2);
-      if (s2 !== null && e2 !== null && currentMin >= s2 && currentMin <= e2) return true;
-    }
-    return false;
-  };
 
 const isOpenNow = isOpen;
   const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
