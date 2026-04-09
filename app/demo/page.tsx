@@ -53,7 +53,14 @@ const REAL_TEMPLATES_CSS = `
 .market-pill.active { background: #000; color: #fff; }
 .market-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; }
 .market-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 15px; padding: 6px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-.market-img-box { aspect-ratio: 16/13; border-radius: 10px; overflow: hidden; margin-bottom: 5px; }
+.market-img-box { 
+    /* ✅ CAMBIAMOS DE 16/13 A 3/4 (MÁS VERTICAL) */
+    aspect-ratio: 3/4; 
+    border-radius: 10px; 
+    overflow: hidden; 
+    margin-bottom: 5px; 
+    position: relative; /* Necesario para que el video absoluto se posicione bien */
+}
 .market-img { width: 100%; height: 100%; object-fit: cover; }
 .market-tit { font-size: 9px; font-weight: 900; text-transform: uppercase; line-height: 1.1; height: 22px; display: flex; align-items: center; justify-content: center; }
 .market-price { font-size: 10px; font-weight: 900; color: #059669; margin: 4px 0; }
@@ -139,8 +146,28 @@ const REAL_TEMPLATES_CSS = `
   .sushi-status-btn { background: white; color: black; font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 4px; }
 
   /* BANNER PROMO (UN SOLO ACENTO NARANJA) */
-  .sushi-promo-banner { border-left: 3px solid #ea580c; padding-left: 12px; margin: 10px 0 25px; }
-  .sushi-promo-text { color: white; font-size: 12px; font-weight: 600; }
+ .sushi-promo-banner { 
+  background: #1a1a1a; /* Fondo oscuro */
+  border-left: 6px solid #ea580c; /* El borde grueso naranja */
+  border-radius: 50px; /* Hace que sea una cápsula */
+  padding: 12px 20px; 
+  margin: 10px 5px 25px; 
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4); /* Sombra para profundidad */
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+  .sushi-promo-text { 
+  color: white; 
+  font-size: 11px; 
+  font-weight: 800; 
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Espacio entre el emoji y el texto */
+  letter-spacing: -0.01em;
+}
 
   /* CARDS SIN BORDES NARANJAS */
   .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px !important; }
@@ -521,7 +548,23 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
       <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-end justify-center sm:items-center p-0 sm:p-4">
         <div className="relative w-full max-w-sm bg-white overflow-hidden shadow-2xl flex flex-col max-h-[90vh] rounded-t-[2.5rem] sm:rounded-[2.5rem] animate-in slide-in-from-bottom-20 sm:zoom-in-95">
           <div className="relative aspect-[16/12] w-full bg-gray-50">
-            <img src={selectedProduct.i} alt={selectedProduct.n} className="w-full h-full object-cover" />
+            {selectedProduct.v ? (
+    <video 
+      src={selectedProduct.v} 
+      autoPlay 
+      loop 
+      muted 
+      playsInline 
+      preload="auto"
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <img 
+      src={selectedProduct.i || '/placeholder.png'} 
+      alt={selectedProduct.n} 
+      className="w-full h-full object-cover" 
+    />
+  )}
             <button onClick={() => { setSelectedProduct(null); setQuantityDemo(1); setSelectedExtrasDemo([]); }} className="absolute top-4 right-4 bg-white/90 p-2 rounded-full shadow-lg border border-gray-100 z-10">
               <X size={18} className="text-gray-900" />
             </button>
@@ -630,7 +673,17 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
         return (
           <div key={p.id} className="market-card flex flex-col justify-between">
             <div>
-              <div className="market-img-box"><img src={p.i} className="market-img" alt={p.n} /></div>
+              <div className="market-img-box">
+  {p.v ? (
+    <video 
+      src={p.v} 
+      autoPlay loop muted playsInline 
+      className="market-img"
+    />
+  ) : (
+    <img src={p.i} className="market-img" alt={p.n} />
+  )}
+</div>
               <div className="market-tit text-gray-900">{p.n}</div>
               <div className="market-price">${p.p}</div>
             </div>
@@ -726,17 +779,47 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
   <div className="sushi-status-btn">Abierto</div>
 </div>
 
-    <div className="sushi-promo-banner">
-      <p className="sushi-promo-text">Lunes de promo muzzarella la 2da al 50%</p>
-    </div>
+   <div className="sushi-promo-banner">
+  <p className="sushi-promo-text">
+    <span>🍣</span> 
+    {template === 'visualgrid' ? 'Happy Hour: 2x1 en Rolls.' : 'Lunes de promo muzzarella la 2da al 50%'}
+  </p>
+</div>
 
     <div className="grid grid-cols-2 gap-[10px]">
       {DEMO_PRODUCTS.visualgrid.map(p => {
         const isExpanded = expandedId === p.id;
         const qty = cart[p.id] || 0;
 
-        return (
-          <div key={p.id} className="sushi-item" style={{backgroundImage: `url(${p.i})`}} onClick={() => !isExpanded && setExpandedId(p.id)}>
+       return (
+  <div 
+    key={p.id} 
+    className="sushi-item" 
+    style={{ position: 'relative', overflow: 'hidden' }} // Aseguramos que nada se escape
+    onClick={() => !isExpanded && setExpandedId(p.id)}
+  >
+    {/* --- NUEVA CAPA DE FONDO (IMAGEN O VIDEO) --- */}
+    <div 
+      className="absolute inset-0 transition-all duration-500"
+      style={{ filter: isExpanded ? 'brightness(0.3) blur(4px)' : 'none' }}
+    >
+      {p.v ? (
+        <video 
+          src={p.v} 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          preload="auto"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div 
+          className="w-full h-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${p.i})` }} 
+        />
+      )}
+    </div>
             {!isExpanded ? (
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent p-4 flex flex-col justify-end text-left">
                 <span className="font-black italic uppercase text-sm">{p.n}</span>
@@ -1208,18 +1291,40 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
 // --- DATA DE PRODUCTOS (VA AL FINAL DEL ARCHIVO) ---
 const DEMO_PRODUCTS: Record<string, any[]> = {
 urban: [
-  { id: 'u1', n: 'Doble Black Bacon', d: 'Medallón 180g + Cheddar', p: 8500, i: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300', extras: [{id:'e1', n:'Extra Bacon', p:1500}, {id:'e2', n:'Cheddar Fundido', p:1200}] },
-  { id: 'u2', n: 'Papas King Cheddar', d: 'Panceta y verdeo crunchy', p: 4200, i: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=300', extras: [{id:'e3', n:'Doble Porción', p:2000}] },
-  { id: 'u3', n: 'Crispy Chicken', d: 'Pollo frito + Alioli', p: 7800, i: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300' },
-  { id: 'u4', n: 'Aros de Cebolla', d: 'X10 unidades con BBQ', p: 3500, i: 'https://images.unsplash.com/photo-1625938146369-adc83368bda7?w=400', extras: [{id:'e4', n:'Salsa Picante', p:500}] },
-  // EXTRAS OCULTOS (Solución para que no tire $NaN en tu carrito simple)
-  { id: 'e1', n: 'Extra Bacon', p: 1500, isExtra: true },
-  { id: 'e2', n: 'Cheddar Fundido', p: 1200, isExtra: true },
-  { id: 'e3', n: 'Doble Porción', p: 2000, isExtra: true },
-  { id: 'e4', n: 'Salsa Picante', p: 500, isExtra: true }
-],
-  visualgrid: [
-    { id: 's1', n: 'Niguiri Salmón', p: 12500, i: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400', d: 'Fina lámina de salmón sobre arroz shari.' },
+    { 
+      id: 'u1', 
+      n: 'Cheese Lover', 
+      d: 'Medallón de carne, triple queso (cheddar, mozzarella y azul), cebolla caramelizada y salsa suave. Ideal para los fanáticos del queso.', 
+      p: 8500, 
+      i: '/videos/cheese-lover.mp4', // <--- Poné el nombre de tu archivo
+      v: '/videos/cheese-lover.mp4', // <--- USAMOS 'v' PARA EL VIDEO
+      extras: [{id:'e1', n:'Extra Bacon', p:1500}, {id:'e2', n:'Cheddar Fundido', p:1200}] 
+    },
+    { id: 'u2', n: 'Papas King Cheddar', d: 'Panceta y verdeo crunchy', p: 4200, i: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=300', extras: [{id:'e3', n:'Doble Porción', p:2000}] },
+    { id: 'u3', n: 'Crispy Chicken', d: 'Pollo frito + Alioli', p: 7800, i: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300' },
+    { 
+      id: 'u4', 
+      n: 'Hamburguesa completa', 
+      d: 'Medallon de carne lechuga, tomate y queso', 
+      p: 3500, 
+      i: '/videos/hambur-completa.mp4', 
+      v: '/videos/hambur-completa.mp4', // <--- VIDEO 2
+      extras: [{id:'e4', n:'Salsa Picante', p:500}] 
+    },
+    { id: 'e1', n: 'Extra Bacon', p: 1500, isExtra: true },
+    { id: 'e2', n: 'Cheddar Fundido', p: 1200, isExtra: true },
+    { id: 'e3', n: 'Doble Porción', p: 2000, isExtra: true },
+    { id: 'e4', n: 'Salsa Picante', p: 500, isExtra: true }
+  ],
+visualgrid: [
+    { 
+      id: 's1', 
+      n: 'Dragon Roll', 
+      p: 12500, 
+      i: '/videos/dragon-sushi.mp4', 
+      v: '/videos/dragon-sushi.mp4', // <--- VIDEO SUSHI
+      d: 'Roll relleno de langostinos tempura y pepino, cubierto con palta en láminas y salsa teriyaki.' 
+    },
     { 
       id: 's2', 
       n: 'Roll California', 
