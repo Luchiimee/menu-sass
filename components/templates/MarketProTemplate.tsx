@@ -174,9 +174,12 @@ const isOpenNow = isOpen;
           <h2 className="text-[10px] font-black uppercase italic tracking-tighter" style={{ color: restaurant.cat_title_color || '#000000' }}>Recomendados para vos</h2>
         </div>
         <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
-          {products?.filter((p: any) => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && (selectedCategory === "todos" || p.category_id === selectedCategory)).slice(0, 6).map((product: any) => (
-            <ProductCard key={`featured-${product.id}`} product={product} />
-          ))}
+         {products?.filter((p: any) => 
+  p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+  (selectedCategory === "todos" || p.category_id === selectedCategory)
+).map((product: any) => ( 
+  <ProductCard key={`featured-${product.id}`} product={product} />
+))}
         </div>
       </section>
 
