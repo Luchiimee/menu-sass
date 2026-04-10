@@ -1073,196 +1073,248 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl mx-auto items-end">
-            {/* Light */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-end">
+  
+{/* Plan 1: Light */}
+      <div className="bg-white border border-gray-200 rounded-3xl p-8 transition flex flex-col hover:shadow-xl">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
+        <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
+        <div className="mb-6">
+          <span className="text-3xl font-black text-gray-900">$7.400</span>
+          <span className="text-gray-400 text-sm">/mes</span>
+        </div>
+        <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+            <span><b>Hasta 15 Productos</b></span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+            <span>Catálogo Digital Interactivo</span>
+          </li>
+          <li className="flex items-start gap-3 text-left group relative cursor-help">
+      <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+      <div className="flex items-center gap-1.5">
+        <span><b>Snapplink:</b> Hasta 2 enlaces</span>
+        <HelpCircle size={13} className="text-gray-400 group-hover:text-green-600 transition-colors" />
+        
+        <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
+          <p className="font-black uppercase text-green-600 mb-1">Bio-Link Esencial</p>
+          Mantené tu perfil organizado. Un solo link para tu biografía con botones directos a tu <b>Menú Digital y tu WhatsApp</b>.
+        </div>
+      </div>
+    </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+            <span><b>Código QR</b> para tu local</span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+            <span>Link para <b>Redes Sociales</b></span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+            <span>Configuración de <b>Horarios</b></span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
+            <span>Pedidos directos a WhatsApp</span>
+          </li>
+        </ul>
+        <Link href="/login" className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm">Prueba 14 días gratis</Link>
+      </div>
 
-            <div className="bg-white border border-gray-200 rounded-3xl p-8 transition flex flex-col h-full hover:shadow-xl">
-              <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
+      {/* Plan 2: GO */}
+      <div className="bg-white border-2 border-blue-500 rounded-[35px] p-8 transition flex flex-col shadow-lg relative z-20">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase whitespace-nowrap">Ideal Crecimiento</div>
+        <h3 className="text-lg font-bold text-blue-600 mb-1">GO</h3>
+        <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
+        <div className="mb-6">
+          <span className="text-3xl font-black text-gray-900">$11.900</span>
+          <span className="text-gray-400 text-sm">/mes</span>
+        </div>
+        <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <span><b>Hasta 60 Productos</b></span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <span>Sube <b>Imágenes o Videos</b> 🎥</span>
+          </li>
+          <li className="flex items-start gap-3 text-left group relative cursor-help">
+    <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+    <div className="flex items-center gap-1.5">
+      <span><b>Snapplink:</b> Hasta 4 enlaces</span>
+      <HelpCircle size={13} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+      
+      <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
+        <p className="font-black uppercase text-blue-600 mb-1">Bio-Link</p>
+        Un solo link para tu biografía que contiene botones para tus enlaces más importantes (<b>Menú, WhatsApp y Redes</b>). <br/><i>Límite: 4 botones.</i>
+      </div>
+    </div>
+  </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <span>Pedidos al <b>Panel o WhatsApp</b></span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <span><b>Seguimiento en vivo</b> (Dueño y Cliente)</span>
+          </li>
+         <li className="flex items-start gap-3 text-left group relative cursor-help">
+  <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+  <div className="flex items-center gap-1.5">
+    <span><b>Descuentos automáticos</b> por monto</span>
+    <HelpCircle size={13} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+    
+    {/* TOOLTIP EXPLICATIVO */}
+    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
+      <p className="font-black uppercase text-blue-600 mb-1">Ventas inteligentes</p>
+      Puedes crear reglas automáticas: por ejemplo, si superan cierto monto el <b>envío es gratis</b> o se <b>descuenta un monto/porcentaje</b> del total. Una experiencia de compra superior para tu cliente.
+    </div>
+  </div>
+</li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <span>Gestión de Cupones y Promos</span>
+          </li>
+        </ul>
+        <Link href="/login" className="block w-full py-3 rounded-xl bg-blue-500 text-white text-center font-bold hover:bg-blue-600 transition text-sm">Prueba 14 días gratis</Link>
+      </div>
 
-              <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">
-                Para empezar
-              </p>
+ 
+{/* Plan 3: Plus */}
+<div className="bg-gray-900 text-white border-2 border-gray-900 rounded-[35px] p-8 relative shadow-2xl flex flex-col z-10 transition hover:scale-[1.02]">
+  <div className="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl rounded-tr-xl uppercase">
+    Más Elegido
+  </div>
+  
+  <h3 className="text-xl font-bold text-green-400 mb-1 flex items-center gap-2">
+    Plus <Zap size={18} fill="currentColor" />
+  </h3>
+  <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Profesional</p>
+  
+  <div className="mb-6">
+    <span className="text-4xl font-black text-white">$15.900</span>
+    <span className="text-gray-400 text-sm">/mes</span>
+  </div>
 
-              <div className="mb-6">
-                <span className="text-3xl font-black">$7.400</span>
+  <ul className="space-y-4 text-sm text-gray-300 flex-1 mb-8">
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span><b>Productos Ilimitados</b> ✨</span>
+    </li>
 
-                <span className="text-gray-400 text-sm">/mes</span>
-              </div>
+    {/* --- SNAPPLINK: EXPLICACIÓN MEJORADA --- */}
+    <li className="flex items-start gap-3 text-left group relative cursor-help">
+  <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+  <div className="flex items-center gap-1.5">
+    <span><b>Snapplink:</b> Enlaces ilimitados</span>
+    <HelpCircle size={13} className="text-gray-500 group-hover:text-green-400 transition-colors" />
+    
+    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
+      <p className="font-black uppercase text-green-600 mb-1">Bio-Link Premium</p>
+      Centralizá todos tus enlaces sin límites. Agregá botones para cada red social, canales de atención y múltiples menús en una sola página profesional.
+    </div>
+  </div>
+</li>
 
-              <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-600 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  <b>Hasta 15 Productos</b>
-                </li>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span><b>Panel Pro</b> y Gestión de Caja</span>
+    </li>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span><b>Gestión de 2 Sucursales</b> (PRÓX.)</span>
+    </li>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span>Impresión de Tickets y <b>Mesas</b></span>
+    </li>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span><b>Seguimiento en Vivo</b> 🚀</span>
+    </li>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span>Acceso a todas las plantillas</span>
+    </li>
+  </ul>
 
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-600 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Catálogo Digital Interactivo
-                </li>
+  <Link 
+    href="/login" 
+    className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm shadow-lg"
+  >
+    Prueba 14 días gratis
+  </Link>
+</div>
 
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-600 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Pedidos directos a WhatsApp
-                </li>
+{/* Plan 4: Max */}
+<div className="bg-white border border-gray-200 rounded-3xl p-8 flex flex-col h-full relative overflow-hidden transition hover:shadow-2xl">
+  {/* BADGE DE PRÓXIMAMENTE */}
+  <div className="absolute top-4 -right-8 bg-gray-100 text-gray-500 text-[8px] font-black px-10 py-1 rotate-45 uppercase tracking-widest border-b border-gray-200">
+    Próximamente
+  </div>
 
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-600 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Mostrar Alias para Transferencias
-                </li>
+  <h3 className="text-lg font-bold text-gray-900 mb-1">Max</h3>
+  <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Escalabilidad Total</p>
+  
+  {/* PRECIO BORROSO */}
+  <div className="mb-6 select-none">
+    <span className="text-3xl font-black text-gray-900 blur-[5px]">$28.600</span>
+    <span className="text-gray-400 text-sm ml-1">/mes</span>
+  </div>
 
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-600 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Dominio Personalizable
-                </li>
-              </ul>
+  <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
+      <span><b>Gestión de hasta 4 sucursales</b></span>
+    </li>
 
-              <Link
-  href="/login"
-  className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm"
->
-  Prueba 14 días gratis
-</Link>
-            </div>
+    {/* --- INTEGRACIÓN CON BILLETERAS CON TOOLTIP --- */}
+    <li className="flex items-start gap-3 text-left group relative cursor-help">
+      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
+      <div className="flex items-center gap-1.5">
+        <span><b>Integración con billeteras virtuales</b></span>
+        <HelpCircle size={13} className="text-gray-300 group-hover:text-black transition-colors" />
+        
+        {/* TOOLTIP EXPLICATIVO */}
+        <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
+          <p className="font-black uppercase text-blue-600 mb-1">Cobros Automatizados</p>
+          Vinculá tu cuenta de <b>Mercado Pago o Ualá</b> para que tus clientes paguen directamente desde tu catálogo digital. Cobros rápidos, seguros y automáticos.
+        </div>
+      </div>
+    </li>
 
-            {/* Plus */}
+    <li className="flex items-start gap-3 text-left group relative cursor-help">
+      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
+      <div className="flex items-center gap-1.5">
+        <span><b>Envíos por rango geográfico</b></span>
+        <HelpCircle size={13} className="text-gray-300 group-hover:text-black transition-colors" />
+        
+        <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
+          <p className="font-black uppercase text-black mb-1">Logística Inteligente</p>
+          Calculá el costo de envío exacto según la ubicación del cliente por radios de distancia (km).
+        </div>
+      </div>
+    </li>
 
-            <div className="bg-gray-900 text-white border-2 border-gray-900 rounded-[35px] p-8 relative shadow-2xl scale-105 z-10 flex flex-col h-full">
-              <div className="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl rounded-tr-xl">
-                MÁS ELEGIDO
-              </div>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
+      <span><b>Snapplink Premium:</b> Diseños exclusivos</span>
+    </li>
+  </ul>
 
-              <h3 className="text-xl font-bold text-green-400 mb-1 flex items-center gap-2">
-                Plus <Zap size={18} fill="currentColor" />
-              </h3>
+  <button 
+    disabled 
+    className="w-full py-3 rounded-xl bg-gray-50 text-gray-400 font-bold cursor-not-allowed uppercase text-[10px] tracking-widest border border-gray-100"
+  >
+    Muy pronto
+  </button>
+</div>
 
-              <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider tracking-tighter">
-                Profesional
-              </p>
-
-              <div className="mb-6">
-                <span className="text-4xl font-black text-white">$15.900</span>
-
-                <span className="text-gray-400 text-sm">/mes</span>
-              </div>
-
-              <ul className="space-y-4 text-sm text-gray-300 flex-1 font-medium mb-8">
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-400 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  <b>Productos Ilimitados</b> ✨
-                </li>
-
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-400 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Todo lo del plan Light
-                </li>
-
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-400 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  <b>Seguimiento de Pedido en Vivo</b> 🚀
-                </li>
-
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-400 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  <b>QR Inteligente</b>
-                </li>
-
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-400 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Panel de Comandas (Cocina)
-                </li>
-
-                <li className="flex gap-3">
-                  <Check
-                    size={16}
-                    className="text-green-400 mt-0.5 flex-shrink-0"
-                  />{" "}
-                  Acceso a todas las plantillas
-                </li>
-              </ul>
-
-              <Link
-                href="/login"
-                className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm"
-              >
-                Prueba 14 días gratis
-              </Link>
-            </div>
-
-            {/* Max (BORROSO) */}
-
-            <div className="bg-white border border-gray-200 rounded-3xl p-8 flex flex-col h-full opacity-60 grayscale-[0.5]">
-              <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-2 py-1 rounded-lg mb-4 w-fit">
-                PRÓXIMAMENTE
-              </span>
-
-              <h3 className="text-lg font-bold text-gray-900 mb-1">Max</h3>
-
-              <p className="text-xs text-gray-400 mb-6 font-bold uppercase">
-                Escalabilidad
-              </p>
-
-              <div className="mb-8 blur-[4px] select-none">
-                <span className="text-3xl font-black">$28.600</span>
-
-                <span className="text-gray-400 text-sm">/mes</span>
-              </div>
-
-              <ul className="space-y-4 text-sm text-gray-500 flex-1 mb-8 font-medium">
-                <li className="flex gap-3">
-                  <Check size={16} /> Todo lo del plan Plus
-                </li>
-
-                <li className="flex gap-3">
-                  <Check size={16} /> Panel Pro para Caja
-                </li>
-
-                <li className="flex gap-3">
-                  <Check size={16} /> Integración Mercado Pago
-                </li>
-
-                <li className="flex gap-3">
-                  <Check size={16} /> Gestión de hasta 2 sucursales
-                </li>
-              </ul>
-
-              <button
-                disabled
-                className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-bold cursor-not-allowed"
-              >
-                Próximamente
-              </button>
-            </div>
-          </div>
+</div>
         </div>
       </section>
 

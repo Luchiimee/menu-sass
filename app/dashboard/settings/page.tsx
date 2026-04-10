@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { 
   Loader2, Save, User, Clock, CreditCard, Lock, Check, Zap, Tag, 
   CalendarDays, Mail, AlertTriangle, LogOut, Trash2, MessageCircle,
-  QrCode, Smartphone, BarChart3, Bell, Globe, ChevronDown, ChevronUp, Layout, Store,ArrowRight,Phone, X
+  QrCode, Smartphone, BarChart3, Bell, Globe, ChevronDown, ChevronUp, Layout, Store,ArrowRight,Phone, X,HelpCircle
 } from 'lucide-react';
 
 const DAYS = [
@@ -52,6 +52,7 @@ const validatePhone = () => {
     }
     return true;
   };
+  const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -153,14 +154,44 @@ useEffect(() => {
     router.refresh();
   };
 
- const handleDeleteAccount = async () => {
-    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nAl eliminar tu cuenta se borrará tu menú, tus productos y se CANCELARÁ cualquier suscripción activa de forma permanente.");
+ // --- FUNCIÓN: CANCELAR SUSCRIPCIÓN (NUEVA) ---
+  const handleCancelSubscription = async () => {
+    const confirmCancel = confirm(
+      "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\n" +
+      "Dejarás de pagar mensualmente. Tu menú y productos se guardarán por 6 meses por si decides volver.\n\n" +
+      "¿Confirmar cancelación?"
+    );
+
+    if (!confirmCancel) return;
+
+    setLoading(true);
+    try {
+        const response = await fetch('/api/mercadopago/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, mpPreapprovalId: restaurant.mp_preapproval_id })
+        });
+
+        if (response.ok) {
+            toast.success("Suscripción cancelada correctamente.");
+            window.location.reload();
+        }
+    } catch (error) {
+        toast.error("Error al cancelar. Contactate con soporte.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  // --- FUNCIÓN: ELIMINAR CUENTA (RESTAURADA) ---
+  const handleDeleteAccount = async () => {
+    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nAl eliminar tu cuenta se borrará tu menú y se CANCELARÁ cualquier suscripción activa de forma permanente.");
     if (!confirm1) return;
 
     const confirm2 = confirm("ESTA ACCIÓN NO SE PUEDE DESHACER. ¿Eliminar definitivamente?");
     if (!confirm2) return;
 
-    setLoading(true); // Usamos el loader para que no toque nada mientras borramos
+    setLoading(true);
     try {
         const response = await fetch('/api/user/delete', {
             method: 'POST',
@@ -169,18 +200,18 @@ useEffect(() => {
         });
 
         if (response.ok) {
-            toast.success("Cuenta eliminada con éxito");
+            toast.success("Cuenta eliminada");
             await supabase.auth.signOut();
             router.push('/login');
         } else {
             throw new Error("Error en el servidor");
         }
-    } catch (error: any) { 
-        toast.error("No se pudo eliminar la cuenta por completo. Contactate con soporte."); 
+    } catch (error) { 
+        toast.error("No se pudo eliminar la cuenta por completo."); 
     } finally {
         setLoading(false);
     }
-};
+  };
 
 
   // --- AUTO-GUARDADO DE PERFIL (CON REFRESH) ---
@@ -232,12 +263,12 @@ const saveProfileData = async (newData: any) => {
   };
 
 // --- ACTIVAR TRIAL 14 DÍAS (CORREGIDO PARA NO RESETEAR RUBRO) ---
-const handleActivateTrial = async (planType: 'light' | 'plus') => {
+// --- ACTIVAR TRIAL (ACTUALIZADO CON PLAN GO) ---
+const handleActivateTrial = async (planType: 'light' | 'go' | 'plus') => {
   if (!validatePhone()) return;
   if (!userId) return;
   setProcessingPlan(planType);
   
-  // 1. Detectamos si ya tiene un pago confirmado
   const isSubscribed = restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized';
   const isChangingPlan = !!restaurant.subscription_plan;
 
@@ -249,85 +280,47 @@ const handleActivateTrial = async (planType: 'light' | 'plus') => {
       .upsert({ 
         user_id: userId, 
         subscription_plan: planType,
-        
-        // --- LA LLAVE MAESTRA ---
-        // Si ya está activo, NO lo volvemos a 'trialing'. Mantenemos su estado para que no se bloquee.
         subscription_status: isSubscribed ? restaurant.subscription_status : 'trialing',
-        
-        // Mantenemos la fecha de creación del trial original si ya existe
         trial_start_date: restaurant?.trial_start_date || new Date().toISOString(),
-        
         name: restaurant?.name || 'Mi Restaurante',
         slug: restaurant?.slug || autoSlug,
-        
-        // Colores y Configuración
-        template_id: 'classic',
-        theme_color: '#d32f2f',
-        bg_color: '#ffffff',
-        text_color: '#ffffff',
-        description_color: '#ffffff',
-        promo_bg_color: '#ffebee',
-        promo_text_color: '#d32f2f',
-        card_name_color: '#000000',
-        card_price_color: '#d32f2f',
-        card_btn_bg: '#ffffff',
-        card_btn_text: '#000000',
-        card_color: '#ffffff',
-        
         onboarding_completed: restaurant?.onboarding_completed || false 
-      }, {
-        onConflict: 'user_id' 
-      })
-      .select()
-      .single();
+      }, { onConflict: 'user_id' })
+      .select().single();
 
     if (error) throw error;
     
     if (data) {
       setRestaurant(data);
-      
-      // Avisamos al Layout para que actualice la vista de inmediato
       window.dispatchEvent(new Event('profile-updated')); 
-if (isChangingPlan) {
-        // Calculamos la fecha para el mensaje
+      if (isChangingPlan) {
         const fechaCobro = getChargeDate();
-        
-        // Mensaje detallado para evitar reclamos a soporte
-        toast.success(
-          <div className="flex flex-col gap-1">
-            <span className="font-bold text-sm">Plan cambiado a {planType.toUpperCase()}</span>
-            <span className="text-[10px] opacity-80 leading-tight">
-              El nuevo monto se verá reflejado en tu próximo cobro el día {fechaCobro}.
-            </span>
-          </div>, 
-          { duration: 5000, icon: '🚀' }
-        );
+        toast.success(`Plan cambiado a ${planType.toUpperCase()}. Próximo cobro: ${fechaCobro}`, { duration: 5000 });
       } else {
-        // Si es la primera vez (usuario nuevo), mostramos el modal de bienvenida
         setShowPlanSuccessModal(true);
       }
     }
   } catch (error: any) { 
-    console.error("Error al activar:", error.message);
-    toast.error("No se pudo actualizar el plan. Intenta de nuevo."); 
+    toast.error("Error al actualizar el plan."); 
   } finally { 
     setProcessingPlan(null); 
   }
 };
-  // --- MERCADO PAGO ---
-  const handleGoToPayment = async (planType: 'light' | 'plus') => {
-    if (!validatePhone()) return;
-      setProcessingPlan(planType);
-      try {
-          const response = await fetch('/api/mercadopago/subscription', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ planType, userId, email: profile.email })
-          });
-          const data = await response.json();
-          if (data.url) window.location.href = data.url;
-      } catch (error) { toast.error("Error"); } finally { setProcessingPlan(null); }
-  };
+
+// --- MERCADO PAGO (ACTUALIZADO CON PLAN GO) ---
+const handleGoToPayment = async (planType: 'light' | 'go' | 'plus') => {
+  if (!validatePhone()) return;
+  setProcessingPlan(planType);
+  try {
+    const response = await fetch('/api/mercadopago/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType, userId, email: profile.email })
+    });
+    const data = await response.json();
+    if (data.url) window.location.href = data.url;
+  } catch (error) { toast.error("Error en el pago"); } finally { setProcessingPlan(null); }
+};
 
   const getChargeDate = () => {
     const dateBase = restaurant.created_at ? new Date(restaurant.created_at) : new Date();
@@ -335,7 +328,33 @@ if (isChangingPlan) {
     chargeDate.setDate(dateBase.getDate() + 14);
     return chargeDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
   };
+ const renderPlanButton = (plan: 'light' | 'go' | 'plus') => {
+    const isActive = restaurant.subscription_plan === plan;
+    const isAuthorized = restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active';
+    const colorClass = plan === 'light' ? 'bg-black' : plan === 'go' ? 'bg-blue-600' : 'bg-emerald-600';
 
+    if (isActive) {
+      if (isAuthorized) {
+        return (
+          <div className={`${plan === 'light' ? 'bg-green-50' : 'bg-blue-50'} p-3 rounded-2xl flex items-center justify-center gap-2 border border-current opacity-70`}>
+            <Check size={14} className="text-green-600" />
+            <span className="text-[10px] font-black uppercase tracking-tighter">Suscripción al día</span>
+          </div>
+        );
+      }
+      return (
+        <button onClick={() => handleGoToPayment(plan)} disabled={processingPlan === plan} className={`w-full py-3 rounded-2xl font-black text-[10px] uppercase text-white ${colorClass} hover:opacity-90 transition-all`}>
+          {processingPlan === plan ? <Loader2 className="animate-spin mx-auto" size={16}/> : (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
+        </button>
+      );
+    }
+
+    return (
+      <button onClick={() => handleActivateTrial(plan)} disabled={processingPlan !== null} className={`w-full py-3 rounded-2xl font-black text-[10px] uppercase border-2 border-gray-100 hover:border-black transition-all`}>
+        {restaurant.subscription_plan ? 'Cambiar a este plan' : 'Activar 14 días gratis'}
+      </button>
+    );
+  };
   if (loading) return <div className="flex h-[80vh] w-full items-center justify-center"><Loader2 className="animate-spin text-gray-300" size={40} /></div>;
 
   return (
@@ -361,199 +380,220 @@ if (isChangingPlan) {
           </div>
       </div>
 
-      {/* SECCIÓN PLANES */}
-      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-          
-          {/* LIGHT */}
-        <div className={`p-8 rounded-[2rem] border-2 flex flex-col transition-all bg-white relative ${restaurant.subscription_plan === 'light' ? 'border-black shadow-lg' : 'border-gray-100'}`}>
+   {/* SECCIÓN PLANES (ACORDEÓN PERFECTO + TOOLTIPS) */}
+{/* SECCIÓN PLANES (ACORDEÓN INDEPENDIENTE + FIX DE ALTURA) */}
+<section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
     
-    {/* REEMPLAZO DESDE ACÁ: Este div organiza el título y el badge para que no se tapen */}
-    <div className="flex justify-between items-start mb-6">
-        <div>
-            <h3 className="font-bold text-gray-400 text-[10px] uppercase tracking-widest text-left">Para empezar</h3>
-            <p className="text-3xl font-black text-gray-900 mt-1">Light <span className="text-xl text-gray-400 font-bold">$7.400<small>/mes</small></span></p>
+    {/* --- PLAN LIGHT --- */}
+    <div className={`p-6 rounded-[2.5rem] border-2 flex flex-col transition-all bg-white relative ${restaurant.subscription_plan === 'light' ? 'border-black shadow-lg' : 'border-gray-100'}`}>
+        <div className="flex justify-between items-start mb-4 text-left">
+            <div>
+                <h3 className="font-bold text-gray-400 text-[9px] uppercase tracking-widest leading-none">Para empezar</h3>
+                <p className="text-2xl font-black text-gray-900 mt-1">Light <span className="text-xs text-gray-400 font-bold">$10.000</span></p>
+            </div>
+            {restaurant.subscription_plan === 'light' && <span className="bg-black text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>}
         </div>
-        {restaurant.subscription_plan === 'light' && (
-            <span className="bg-black text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shrink-0">
-                Plan Activo
-            </span>
-        )}
-    </div>
-              <ul className="space-y-3 flex-1 mb-8">
-                  <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-green-500 shrink-0"/> Hasta 15 Productos</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-green-500 shrink-0"/> Catálogo Digital Interactivo</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-green-500 shrink-0"/> Pedidos directos a WhatsApp</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-green-500 shrink-0"/> Mostrar Alias para Transferencias</li>
-                  <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-green-500 shrink-0"/> Dominio Personalizable</li>
-              </ul>
 
-         {restaurant.subscription_plan === 'light' ? (
-  <div className="space-y-3">
-   {(restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active') ? (
-  <div className="bg-green-50 border border-green-100 p-4 rounded-2xl flex flex-col items-center gap-1 animate-in zoom-in-95">
-    <div className="bg-green-500 text-white p-1 rounded-full">
-      <Check size={14} strokeWidth={4} />
-    </div>
-    <p className="text-[10px] font-black text-green-700 uppercase tracking-tighter">Suscripción Activa</p>
-    <p className="text-[9px] text-green-600/70 font-bold italic">Tu plan está al día</p>
-  </div>
-) : (
-  <>
-    <button 
-      onClick={() => handleGoToPayment('light')} 
-      disabled={processingPlan === 'light'}
-      className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-black text-white hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
-    >
-      {processingPlan === 'light' ? <Loader2 className="animate-spin" size={16}/> : 
-       (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
-    </button>
-    <p className="text-[10px] text-gray-400 text-center font-bold italic uppercase tracking-tighter">
-      {restaurant.subscription_status === 'trialing' ? `Se debita el: ${getChargeDate()}` : 'Cobro inmediato'}
-    </p>
-  </>
-)}
-  </div>
-) : (
-  <button 
-  onClick={() => handleActivateTrial('light')} 
-  disabled={processingPlan !== null}
-  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all disabled:opacity-50"
->
-  {/* Si tiene plan dice "Cambiar Plan", si no tiene nada dice "Activar 14 días" */}
-  {restaurant.subscription_plan ? 'Cambiar Plan' : 'Activar 14 días gratis'}
-</button>
-)}
-          </div>
+        <ul className="space-y-2 mb-4">
+            <li className="flex gap-2 text-[10px] font-bold text-gray-600"><Check size={12} className="text-green-500 shrink-0"/> 15 Productos</li>
+            <li className="flex items-start gap-2 text-[10px] font-bold text-gray-600 group relative cursor-help">
+              <Check size={12} className="text-green-500 shrink-0 mt-0.5"/> 
+              <div className="flex items-center gap-1">
+                <span>Snapplink (2 links)</span>
+                <HelpCircle size={10} className="text-gray-300" />
+                <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium">
+                  Un solo link para tu bio con botones directos a tu <b>Menú y WhatsApp</b>.
+                </div>
+              </div>
+            </li>
 
-         
-       {/* --- PLAN PLUS --- */}
-<div className={`p-8 rounded-[2rem] border-2 flex flex-col transition-all bg-white relative shadow-2xl scale-100 xl:scale-105 z-10 border-blue-500`}>
-    
-    {/* ENCABEZADO CORREGIDO: Organiza Profesional, Plus y el Badge sin solaparse */}
-    <div className="flex justify-between items-start mb-6">
-        <div className="text-left">
-            <h3 className="font-bold text-blue-500 text-[10px] uppercase tracking-widest">Profesional ✨</h3>
-            <p className="text-4xl font-black text-gray-900 mt-1">Plus <span className="text-xl text-gray-400 font-bold">$15.900</span></p>
-        </div>
-        {restaurant.subscription_plan === 'plus' && (
-            <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shrink-0">
-                Plan Activo
-            </span>
-        )}
-    </div>
+            {expandedPlan === 'light' && (
+                <div className="pt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-green-500 shrink-0"/> Código QR propio</li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-green-500 shrink-0"/> Horarios de Atención</li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-green-500 shrink-0"/> Pedidos a WhatsApp</li>
+                </div>
+            )}
+        </ul>
 
-    <ul className="space-y-3 flex-1 mb-8">
-        <li className="flex gap-3 text-xs font-extrabold text-gray-700"><Zap size={16} className="text-blue-500 shrink-0"/> Productos Ilimitados</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-blue-500 shrink-0"/> Todo lo del plan Light</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-blue-500 shrink-0"/> Seguimiento de Pedido en Vivo ✨</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-blue-500 shrink-0"/> QR Inteligente 🚀</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-blue-500 shrink-0"/> Panel de Comandas (Cocina)</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-600"><Check size={16} className="text-blue-500 shrink-0"/> Acceso a todas las plantillas</li>
-    </ul>
-
- {restaurant.subscription_plan === 'plus' ? (
-  <div className="space-y-3">
-    {/* Misma lógica: Si no es authorized, puede configurar o pagar */}
-    {restaurant.subscription_status === 'authorized' ? (
-      <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex flex-col items-center gap-1 animate-in zoom-in-95">
-        <div className="bg-blue-500 text-white p-1 rounded-full">
-          <Check size={14} strokeWidth={4} />
-        </div>
-        <p className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">Suscripción Activa</p>
-        <p className="text-[9px] text-blue-600/70 font-bold italic">Tu plan está al día</p>
-      </div>
-    ) : (
-      <>
         <button 
-          onClick={() => handleGoToPayment('plus')} 
-          disabled={processingPlan === 'plus'}
-          className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+            onClick={() => setExpandedPlan(expandedPlan === 'light' ? null : 'light')}
+            className="mb-4 text-[9px] font-black uppercase text-gray-400 hover:text-black transition-colors flex items-center justify-center gap-1"
         >
-          {processingPlan === 'plus' ? <Loader2 className="animate-spin" size={16}/> : 
-           (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
+            {expandedPlan === 'light' ? '- Ver menos' : '+ Ver detalles'}
         </button>
-        <p className="text-[10px] text-blue-400 text-center font-bold italic uppercase tracking-tighter">
-          {restaurant.subscription_status === 'trialing' ? `Se debita el: ${getChargeDate()}` : 'Cobro inmediato'}
-        </p>
-      </>
-    )}
-  </div>
-) : (
-  <button 
-  onClick={() => handleActivateTrial('plus')} 
-  disabled={processingPlan !== null}
-  className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
->
-  {restaurant.subscription_plan ? 'Cambiar a este plan' : 'Activar 14 días gratis'}
-</button>
-)}
-</div>
-          {/* MAX */}
-        <div className="p-8 rounded-[2rem] border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col opacity-70">
-    <div className="mb-6 text-center">
-        <h3 className="font-bold text-purple-600 text-[10px] uppercase tracking-widest">Escalabilidad</h3>
-        
-        {/* Cambiamos <p> por <div> para evitar el error de hidratación */}
-        <div className="text-3xl font-black text-gray-900 mt-1 flex items-center justify-center gap-2">
-            Max 
-            <div className="relative inline-flex items-center">
-                {/* El precio con un blur de 6px que lo hace ilegible pero con estilo */}
-                <span className="text-xl text-gray-400 font-bold select-none blur-[6px] tracking-tight">
-                    $28.600
-                </span>
-                
-                {/* Capa de brillo opcional para dar efecto de 'vidrio' por encima */}
-                <div className="absolute inset-0 bg-white/10 rounded-md pointer-events-none border border-white/20"></div>
+        {renderPlanButton('light')}
+    </div>
+
+    {/* --- PLAN GO --- */}
+    <div className={`p-6 rounded-[2.5rem] border-2 flex flex-col transition-all bg-white relative ${restaurant.subscription_plan === 'go' ? 'border-blue-500 shadow-lg' : 'border-blue-50'}`}>
+        <div className="flex justify-between items-start mb-4 text-left">
+            <div>
+                <h3 className="font-bold text-blue-500 text-[9px] uppercase tracking-widest leading-none">Más Potencia</h3>
+                <p className="text-2xl font-black text-gray-900 mt-1">GO <span className="text-xs text-gray-400 font-bold">$16.900</span></p>
+            </div>
+            {restaurant.subscription_plan === 'go' && <span className="bg-blue-600 text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>}
+        </div>
+
+        <ul className="space-y-2 flex-1 mb-4">
+            <li className="flex gap-2 text-[10px] font-bold text-gray-700"><Zap size={12} className="text-blue-500 shrink-0"/> 60 Productos</li>
+            
+            <li className="flex items-start gap-2 text-[10px] font-bold text-gray-700 group relative cursor-help">
+              <Check size={12} className="text-blue-500 shrink-0 mt-0.5"/> 
+              <div className="flex items-center gap-1">
+                <span>Imágenes o Videos 🎥</span>
+                <HelpCircle size={10} className="text-gray-300" />
+                <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium border border-white/10">
+                  Subí <b>videos cortos</b> de tus platos para vender más.
+                </div>
+              </div>
+            </li>
+
+            {expandedPlan === 'go' && (
+                <div className="pt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-blue-500 shrink-0"/> Snapplink (4 links)</li>
+                    <li className="flex items-start gap-2 text-[10px] font-medium text-gray-500 group relative cursor-help">
+                        <Check size={12} className="text-blue-500 shrink-0 mt-0.5"/>
+                        <div className="flex items-center gap-1">
+                          <span>Descuentos por monto</span>
+                          <HelpCircle size={10} className="text-gray-300"/>
+                        </div>
+                        <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-2xl">
+                            Ej: "Envío gratis si superan $20.000". Automático para el cliente.
+                        </div>
+                    </li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-blue-500 shrink-0"/> Seguimiento en Vivo</li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-blue-500 shrink-0"/> Gestión de Cupones</li>
+                </div>
+            )}
+        </ul>
+
+        <button 
+            onClick={() => setExpandedPlan(expandedPlan === 'go' ? null : 'go')}
+            className="mb-4 text-[9px] font-black uppercase text-gray-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-1"
+        >
+            {expandedPlan === 'go' ? '- Ver menos' : '+ Ver detalles'}
+        </button>
+        {renderPlanButton('go')}
+    </div>
+
+    {/* --- PLAN PLUS --- */}
+    <div className={`p-6 rounded-[2.5rem] border-2 flex flex-col transition-all bg-white relative ${restaurant.subscription_plan === 'plus' ? 'border-emerald-500 shadow-lg' : 'border-emerald-50'}`}>
+        <div className="flex justify-between items-start mb-4 text-left">
+            <div>
+                <h3 className="font-bold text-emerald-600 text-[9px] uppercase tracking-widest leading-none">Profesional ✨</h3>
+                <p className="text-2xl font-black text-gray-900 mt-1">Plus <span className="text-xs text-gray-400 font-bold">$27.000</span></p>
+            </div>
+            {restaurant.subscription_plan === 'plus' && <span className="bg-emerald-600 text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>}
+        </div>
+
+        <ul className="space-y-2 mb-4">
+            <li className="flex gap-2 text-[10px] font-bold text-gray-700"><Zap size={12} className="text-emerald-500 shrink-0"/> Productos Ilimitados</li>
+            <li className="flex gap-2 text-[10px] font-bold text-gray-700"><Check size={12} className="text-emerald-500 shrink-0"/> Panel Pro y Caja</li>
+            
+            {expandedPlan === 'plus' && (
+                <div className="pt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <li className="flex items-start gap-2 text-[10px] font-medium text-gray-500 group relative cursor-help">
+                      <Check size={12} className="text-emerald-500 shrink-0 mt-0.5"/> 
+                      <div className="flex items-center gap-1">
+                        <span>Snapplink Ilimitado</span>
+                        <HelpCircle size={10} className="text-gray-300" />
+                        <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium">
+                          Sin límites: Redes, Web, Reservas y más.
+                        </div>
+                      </div>
+                    </li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-emerald-500 shrink-0"/> 2 Sucursales (PRÓX.)</li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-emerald-500 shrink-0"/> Tickets y Comandas</li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-500"><Check size={12} className="text-emerald-500 shrink-0"/> Gestión de Mesas</li>
+                </div>
+            )}
+        </ul>
+
+        <button 
+            onClick={() => setExpandedPlan(expandedPlan === 'plus' ? null : 'plus')}
+            className="mb-4 text-[9px] font-black uppercase text-gray-400 hover:text-emerald-600 transition-colors flex items-center justify-center gap-1"
+        >
+            {expandedPlan === 'plus' ? '- Ver menos' : '+ Ver detalles'}
+        </button>
+        {renderPlanButton('plus')}
+    </div>
+
+    {/* --- PLAN MAX (FIXED PARA QUE NO SE ESTIRE) --- */}
+    <div className="p-6 rounded-[2.5rem] border-2 border-dashed border-gray-100 bg-gray-50/50 flex flex-col relative overflow-hidden transition hover:shadow-2xl">
+        <div className="absolute top-3 -right-8 bg-gray-100 text-gray-400 text-[7px] font-black px-10 py-1 rotate-45 uppercase tracking-widest border-b border-gray-200">
+            Próximamente
+        </div>
+
+        <div className="flex justify-between items-start mb-4 text-left">
+            <div>
+                <h3 className="font-bold text-purple-600 text-[9px] uppercase tracking-widest leading-none">Escalabilidad</h3>
+                <div className="text-2xl font-black text-gray-900 mt-1 flex items-center gap-2">
+                    Max 
+                    <span className="text-sm text-gray-300 font-bold blur-[5px] select-none">$28.600</span>
+                </div>
             </div>
         </div>
-    </div>
 
-    <ul className="space-y-3 flex-1 mb-8">
-        <li className="flex gap-3 text-xs font-bold text-gray-500"><Check size={16} className="text-purple-400 shrink-0"/> Todo lo del plan Plus</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-500"><Layout size={16} className="text-purple-400 shrink-0"/> Panel Pro para Caja</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-500"><CreditCard size={16} className="text-purple-400 shrink-0"/> Integración Mercado Pago</li>
-        <li className="flex gap-3 text-xs font-bold text-gray-500"><Store size={16} className="text-purple-400 shrink-0"/> Gestión de hasta 2 sucursales</li>
-    </ul>
-    
-    <button disabled className="w-full py-3.5 rounded-2xl font-black text-xs bg-gray-200 text-gray-400 cursor-not-allowed uppercase">
-        Muy Pronto
-    </button>
-</div>
-      </section>
+        <ul className="space-y-2 mb-4">
+            <li className="flex gap-2 text-[10px] font-bold text-gray-500"><Check size={12} className="text-purple-400 shrink-0"/> 4 Sucursales</li>
+            <li className="flex items-start gap-2 text-[10px] font-bold text-gray-500 group relative cursor-help">
+              <Check size={12} className="text-purple-400 shrink-0 mt-0.5"/> 
+              <div className="flex items-center gap-1">
+                <span>Billeteras Virtuales</span>
+                <HelpCircle size={10} className="text-gray-300" />
+                <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium">
+                  Cobra directo con <b>Mercado Pago y Ualá</b>.
+                </div>
+              </div>
+            </li>
+
+            {expandedPlan === 'max' && (
+                <div className="pt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <li className="flex items-start gap-2 text-[10px] font-medium text-gray-400 group relative cursor-help">
+                      <Check size={12} className="text-purple-300 shrink-0 mt-0.5"/> 
+                      <div className="flex items-center gap-1">
+                        <span>Envíos por Rango</span>
+                        <HelpCircle size={10} className="text-gray-300" />
+                        <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium">
+                          Costo de envío exacto por radio (km).
+                        </div>
+                      </div>
+                    </li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-400"><Check size={12} className="text-purple-300 shrink-0"/> Snapplink Premium</li>
+                    <li className="flex gap-2 text-[10px] font-medium text-gray-400"><Check size={12} className="text-purple-300 shrink-0"/> Soporte VIP 24/7</li>
+                </div>
+            )}
+        </ul>
+
+        <button 
+            onClick={() => setExpandedPlan(expandedPlan === 'max' ? null : 'max')}
+            className="mb-4 text-[9px] font-black uppercase text-gray-400 hover:text-purple-600 transition-colors flex items-center justify-center gap-1"
+        >
+            {expandedPlan === 'max' ? '- Ver menos' : '+ Ver detalles'}
+        </button>
+        <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-black uppercase text-[9px] tracking-widest border border-gray-200">Próximamente</button>
+    </div>
+</section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-4 space-y-6">
-          <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+         <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
     <h2 className="font-bold text-xl mb-6">Mis Datos</h2>
     <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="text-left">
                 <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Nombre</label>
                 <input value={profile.first_name} onChange={(e) => updateProfile('first_name', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
             </div>
-            <div>
+            <div className="text-left">
                 <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Apellido</label>
                 <input value={profile.last_name} onChange={(e) => updateProfile('last_name', e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 ring-black/5" />
             </div>
         </div>
         
-      <div className="relative"> {/* Contenedor relativo para posicionar la flecha */}
-            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase tracking-widest">
-              WhatsApp Personal
-            </label>
-            
-            {/* --- TEXTO GUÍA + FLECHA (Solo visible en spotlight) --- */}
-            {showHighlight && (
-              <div className="absolute -top-14 left-0 z-[120] animate-in slide-in-from-bottom-2 duration-500">
-                <div className="bg-blue-600 text-white px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2 whitespace-nowrap">
-                  <span className="text-[11px] font-black uppercase tracking-tighter italic">Ingresá tu WhatsApp aquí</span>
-                  <ArrowRight size={16} className="rotate-90 animate-bounce" />
-                </div>
-                {/* Triangulito de la burbuja */}
-                <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-blue-600 ml-6"></div>
-              </div>
-            )}
-
+        <div className="text-left">
+            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase tracking-widest">WhatsApp Personal</label>
             <input 
                 id="phone-input"
                 value={profile.phone} 
@@ -565,51 +605,59 @@ if (isChangingPlan) {
                   : 'focus:ring-2 ring-black/5'
                 }`} 
             />
+        </div>
+
+        <div className="text-left">
+            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Correo de Acceso</label>
+            <input value={profile.email} disabled className="w-full p-3 bg-gray-100 border-none rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed outline-none" />
+        </div>
+
+        <div className="pt-4 flex flex-col gap-3">
+            <button onClick={handlePasswordReset} className="w-full py-3 text-[10px] font-black text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">
+                Cambiar Contraseña
+            </button>
             
-            {showHighlight && (
-               <p className="absolute -bottom-10 left-0 text-[10px] font-bold text-blue-400 uppercase tracking-widest z-[110] animate-pulse">
-                  Dato necesario para soporte y actualizaciones
-               </p>
+            <button onClick={handleLogout} className="md:hidden w-full py-3 text-[10px] font-black text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 tracking-widest uppercase">
+                <LogOut size={16}/> Cerrar sesión
+            </button>
+
+            {/* --- ZONA 1: CANCELAR SUSCRIPCIÓN (AMBER) --- */}
+            {restaurant.subscription_plan && (
+                <div className="mt-4 p-5 bg-amber-50 border border-amber-100 rounded-[1.5rem] text-left animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-center gap-2 text-amber-800 mb-2">
+                        <Clock size={16} />
+                        <span className="text-[11px] font-black uppercase tracking-tighter">Gestionar Plan</span>
+                    </div>
+                    <p className="text-[10px] text-amber-700 font-bold leading-relaxed mb-4">
+                        Si cancelas hoy, tu menú seguirá <b>activo hasta el {getChargeDate()}</b>. <br/><br/>
+                        Guardaremos tus productos y configuración por <b>6 meses</b> por si decides volver. Pasado ese tiempo, los datos se eliminarán definitivamente.
+                    </p>
+                    <button 
+                        onClick={handleCancelSubscription}
+                        className="w-full py-3 bg-white border border-amber-200 text-amber-700 rounded-xl text-[10px] font-black uppercase hover:bg-amber-100 transition shadow-sm active:scale-95"
+                    >
+                        Cancelar suscripción solamente
+                    </button>
+                </div>
             )}
+
+            {/* --- ZONA 2: ELIMINAR CUENTA (RED) --- */}
+            <div className="mt-4 p-5 bg-red-50 border border-red-100 rounded-[1.5rem] text-left">
+                <div className="flex items-center gap-2 text-red-800 mb-2">
+                    <Trash2 size={16} />
+                    <span className="text-[11px] font-black uppercase tracking-tighter text-red-600">Eliminar Cuenta</span>
+                </div>
+                <p className="text-[10px] text-red-700 font-bold leading-relaxed mb-4">
+                    Esta es una acción final. Se cancelará tu plan y se <b>borrarán todos tus datos de forma inmediata</b> (menú, link, productos y estadísticas). No podrás recuperar la información.
+                </p>
+                <button 
+                    onClick={handleDeleteAccount} 
+                    className="w-full py-3 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-red-700 transition active:scale-95"
+                >
+                    Eliminar mi cuenta definitivamente
+                </button>
+            </div>
         </div>
-
-        {/* --- NUEVO CAMPO: CORREO ELECTRÓNICO --- */}
-        <div>
-            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Correo Electrónico</label>
-            <input 
-                value={profile.email} 
-                disabled 
-                className="w-full p-3 bg-gray-100 border-none rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed outline-none" 
-                title="El correo no se puede cambiar ya que es tu identificador de acceso"
-            />
-        </div>
-
-       <div className="pt-2 flex flex-col gap-3">
-    <button onClick={handlePasswordReset} className="w-full py-3 text-xs font-bold text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">
-        Cambiar Contraseña
-    </button>
-    
-    <button onClick={handleLogout} className="md:hidden w-full py-3 text-xs font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 tracking-widest uppercase">
-        <LogOut size={16}/> Cerrar sesión
-    </button>
-
-    {/* --- CARTEL DE AVISO DE CANCELACIÓN --- */}
-    <div className="mt-4 p-4 bg-red-50/50 border border-red-100 rounded-2xl text-left">
-        <p className="text-[11px] font-bold text-red-800 leading-relaxed">
-            <span className="flex items-center gap-1.5 mb-1 uppercase tracking-tighter">
-                <AlertTriangle size={14} /> ¿Deseas cancelar tu plan?
-            </span>
-            Al eliminar tu cuenta, tu suscripción en <b>Mercado Pago se cancelará automáticamente</b> y todos tus datos se borrarán de forma permanente.
-        </p>
-    </div>
-
-    <button 
-        onClick={handleDeleteAccount} 
-        className="w-full py-3 text-[10px] font-black text-red-400 hover:text-red-600 transition flex items-center justify-center gap-2 uppercase tracking-widest"
-    >
-        <Trash2 size={14}/> Eliminar mi cuenta definitivamente
-    </button>
-</div>
     </div>
 </section>
         </div>
@@ -629,7 +677,7 @@ if (isChangingPlan) {
   <div className="p-8 pt-0 animate-in slide-in-from-top-4 duration-300 relative">
     
     {/* --- LÓGICA DE BLOQUEO VISUAL --- */}
-    {restaurant.always_open && (
+    {restaurant.subscription_plan !== 'light' && restaurant.always_open && (
       <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-[2.5rem] p-6">
         <div className="bg-gray-900 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 border border-white/10">
           <div className="bg-amber-500 p-2 rounded-xl text-black">
@@ -646,7 +694,7 @@ if (isChangingPlan) {
     )}
 
     {/* Agregamos la lógica para que el grid se vea gris y no sea clickeable si always_open es true */}
-    <div className={`grid grid-cols-1 xl:grid-cols-2 gap-6 transition-all duration-500 ${restaurant.always_open ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
+   <div className={`grid grid-cols-1 xl:grid-cols-2 gap-6 transition-all duration-500 ${restaurant.subscription_plan !== 'light' && restaurant.always_open ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
         {DAYS.map((day) => {
             const dayData = restaurant.business_hours?.[day.key] || {};
             const { isOpen, isSplit, open, close, open2, close2 } = dayData;

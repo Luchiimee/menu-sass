@@ -29,10 +29,34 @@ export async function POST(request: Request) {
 
             if (!userId) return NextResponse.json({ error: 'No userId' }, { status: 400 });
 
-            // --- CASO 1: SUSCRIPCIÓN ACTIVA (authorized) ---
+          // --- CASO 1: SUSCRIPCIÓN ACTIVA (authorized) ---
             if (status === 'authorized') {
+                const mpReason = subData.reason || "";
+                // Obtenemos el monto que realmente pagó el usuario
+                const mpAmount = Number(subData.auto_recurring?.transaction_amount || 0);
+                
+                let confirmedPlan = 'light'; 
+
+                if (mpReason.toLowerCase().includes('plus')) {
+                    // SI PAGA EL PRECIO NUEVO ($27.000) O MÁS -> ES PLUS
+                    if (mpAmount >= 27000) {
+                        confirmedPlan = 'plus';
+                    } 
+                    // SI PAGA EL PRECIO VIEJO ($15.900) -> SE QUEDA EN GO
+                    else {
+                        confirmedPlan = 'go';
+                    }
+                } 
+                else if (mpReason.toLowerCase().includes('go')) {
+                    confirmedPlan = 'go';
+                } 
+                else if (mpReason.toLowerCase().includes('max')) {
+                    confirmedPlan = 'max';
+                }
+
                 await supabase.from('restaurants').update({ 
                     subscription_status: 'authorized',
+                    subscription_plan: confirmedPlan, // <--- RE-CONFIRMAMOS SEGÚN EL PRECIO
                     mp_preapproval_id: id,
                     updated_at: new Date().toISOString()
                 }).eq('user_id', userId);
@@ -40,20 +64,11 @@ export async function POST(request: Request) {
                 await supabase.from('profiles').update({ 
                     payment_configured: true 
                 }).eq('id', userId);
+                
+                console.log(`✅ Pago de $${mpAmount} procesado. Plan: ${confirmedPlan.toUpperCase()} para: ${userId}`);
             }
 
-            // --- CASO 2: FALLO TEMPORAL / RE-INTENTOS (pending) ---
-            // Mercado Pago re-intenta 4 veces. Mientras tanto, mostramos el banner NARANJA.
-            else if (status === 'pending') {
-                await supabase.from('restaurants').update({ 
-                    subscription_status: 'past_due', 
-                    updated_at: new Date().toISOString()
-                }).eq('user_id', userId);
-            }
-
-            // --- CASO 3: MP SE RINDIÓ O SE CANCELÓ (cancelled) ---
-            // Aquí aplicamos tu lógica: En lugar de bloquearlo al instante, 
-            // lo pasamos a 'paused' para activar el banner ROJO de 3 días de gracia.
+          
             else if (status === 'cancelled') {
                 await supabase.from('restaurants').update({ 
                     subscription_status: 'paused', // <--- CAMBIO CLAVE: Activa el banner rojo

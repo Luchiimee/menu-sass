@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video } from 'lucide-react';
+import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
 
@@ -129,10 +129,12 @@ if (cats) setCategories(cats);
   }, [supabase]);
 
 const openCreateModal = () => {
-    if (currentPlan === 'light' && !isAdmin && products.length >= 15) {
-         if (confirm("🚀 Límite de 15 productos alcanzado. ¿Pasar al plan Plus para productos ilimitados?")) {
-             router.push('/dashboard/settings');
-         }
+    // Si llegó al límite de su plan y no es Admin
+    if (!isAdmin && products.length >= maxProds) {
+         const nextPlan = currentPlan === 'light' ? 'GO (hasta 60 productos)' : 'Plus (Ilimitados)';
+if (confirm(`🚀 Límite de ${maxProds} productos alcanzado. ¿Pasar al plan ${nextPlan}?`)) {
+    router.push('/dashboard/settings');
+}
          return; 
     }
     setEditingId(null);
@@ -173,6 +175,12 @@ const openEditModal = async (product: any) => {
       const isVideo = file.type.startsWith('video/');
 
       try {
+        if (isVideo && isVideoDisabled) {
+         setToast("❌ Tu plan actual no admite videos. Sube una imagen o mejora al Plan GO. 🎥");
+         setTimeout(() => setToast(null), 5000);
+         setUploading(false);
+         return;
+     }
           if (isVideo) {
               // --- 1. VALIDAR PESO (Máx 10MB) ---
               if (file.size > 10 * 1024 * 1024) {
@@ -366,7 +374,8 @@ if (loading) return (
     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Cargando catálogo...</p>
   </div>
 );
-
+const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
+  const isVideoDisabled = currentPlan === 'light' && !isAdmin;
   return (
    <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-4 md:pt-4 font-sans">
         
@@ -566,20 +575,24 @@ if (loading) return (
                                 <tr key={p.id} className="hover:bg-slate-50/50 group transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3 text-left">
-                                         <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100 relative">
+                                      <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100 relative group">
     {p.image_url ? (
         <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
     ) : p.video_url ? (
         <>
-            {/* Generamos una miniatura automática del video cambiando .mp4 por .jpg */}
-            <img 
-                src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} 
-                className="w-full h-full object-cover opacity-80" 
-                alt={p.name}
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <Video size={12} className="text-white drop-shadow-md" />
+            <img src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} className={`w-full h-full object-cover ${isVideoDisabled ? 'blur-[2px] opacity-40' : 'opacity-80'}`} alt={p.name}/>
+            <div className="absolute inset-0 flex items-center justify-center">
+                {isVideoDisabled ? (
+                    <AlertTriangle size={14} className="text-red-600 animate-pulse" />
+                ) : (
+                    <Video size={12} className="text-white" />
+                )}
             </div>
+            {isVideoDisabled && (
+                <div className="absolute -bottom-0.5 inset-x-0 bg-red-600 text-[6px] text-white font-black text-center py-0.5 uppercase">
+                    Error
+                </div>
+            )}
         </>
     ) : (
         <ImageIcon className="p-3 text-gray-300 w-full h-full"/>
@@ -634,36 +647,42 @@ if (loading) return (
                     {products.map((p) => (
                         <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
   <div className="aspect-square bg-gray-100 relative overflow-hidden group">
-    {/* --- LÓGICA DE IMAGEN / VIDEO --- */}
     {p.image_url ? (
         <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
     ) : p.video_url ? (
         <>
+            {/* Si es Light, desenfocamos la miniatura del video */}
             <img 
                 src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} 
-                className="w-full h-full object-cover" 
+                className={`w-full h-full object-cover ${isVideoDisabled ? 'blur-[3px] opacity-50 grayscale' : ''}`} 
                 alt={p.name}
             />
-            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md p-1.5 rounded-lg border border-white/20">
-                <Video size={14} className="text-white" />
-            </div>
+            
+            {isVideoDisabled ? (
+                /* --- AVISO PARA PLAN LIGHT --- */
+                <div className="absolute inset-0 bg-red-600/20 flex flex-col items-center justify-center p-2 text-center">
+                    <AlertTriangle size={24} className="text-red-600 mb-1 drop-shadow-md" />
+                    <p className="text-[8px] font-black text-red-700 uppercase leading-tight bg-white/90 px-2 py-1 rounded-lg shadow-sm">
+                        Video no disponible <br/> en Plan Light
+                    </p>
+                    <p className="text-[7px] font-bold text-gray-900 mt-1 drop-shadow-sm">Cambiá a imagen para mostrar en catálogo</p>
+                </div>
+            ) : (
+                <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md p-1.5 rounded-lg border border-white/20">
+                    <Video size={14} className="text-white" />
+                </div>
+            )}
         </>
     ) : (
         <ImageIcon className="p-10 text-gray-200 w-full h-full"/>
     )}
-
-    {/* --- BOTONES RESTAURADOS (Lápiz y Tachito) --- */}
+    
+    {/* Botones de acción (Lápiz/Tacho) se mantienen igual */}
     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <button 
-            onClick={(e) => { e.stopPropagation(); openEditModal(p); }} 
-            className="bg-white p-2 rounded-full shadow-lg text-blue-500 hover:scale-110 transition active:scale-95"
-        >
+        <button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="bg-white p-2 rounded-full shadow-lg text-blue-500 hover:scale-110 transition active:scale-95">
             <Edit2 size={12}/>
         </button>
-        <button 
-            onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} 
-            className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95"
-        >
+        <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95">
             <Trash2 size={12}/>
         </button>
     </div>
@@ -746,20 +765,20 @@ if (loading) return (
             <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
                 <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
                     <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-                        {currentPlan === 'light' && !isAdmin && (
+              {currentPlan !== 'plus' && currentPlan !== 'max' && !isAdmin && (
     <div className="flex flex-col items-end mr-2">
         <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black ${products.length >= 15 ? 'text-red-500' : 'text-gray-400'}`}>
-                {products.length}/15
+            <span className={`text-[10px] font-black ${products.length >= maxProds ? 'text-red-500' : 'text-gray-400'}`}>
+                {products.length}/{maxProds}
             </span>
             <div className="w-16 h-1 bg-gray-100 rounded-full overflow-hidden">
                 <div 
-                    className={`h-full transition-all duration-500 ${products.length >= 15 ? 'bg-red-500' : 'bg-violet-500'}`}
-                    style={{ width: `${Math.min((products.length / 15) * 100, 100)}%` }}
+                    className={`h-full transition-all duration-500 ${products.length >= maxProds ? 'bg-red-500' : currentPlan === 'go' ? 'bg-blue-500' : 'bg-violet-500'}`}
+                    style={{ width: `${Math.min((products.length / maxProds) * 100, 100)}%` }}
                 />
             </div>
         </div>
-        <span className="text-[8px] font-bold text-gray-300 uppercase tracking-tighter">Límite de productos</span>
+        <span className="text-[8px] font-bold text-gray-300 uppercase tracking-tighter">Capacidad del Plan</span>
     </div>
 )}
                         <h2 className="font-bold text-lg text-gray-900">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h2>
@@ -790,14 +809,29 @@ if (loading) return (
                     <Loader2 className="animate-spin text-violet-500 mb-2" size={30} />
                     <span className="text-xs font-bold text-violet-700">Subiendo archivo...</span>
                 </div>
-            ) : formData.video_url ? (
-                <>
-                    <video src={formData.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Archivo</p>
-                    </div>
-                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] text-white font-bold rounded-lg uppercase tracking-widest flex items-center gap-1"><Video size={12}/> Video</div>
-                </>
+           ) : formData.video_url ? (
+    <>
+        <video src={formData.video_url} autoPlay loop muted playsInline className={`w-full h-full object-cover ${isVideoDisabled ? 'blur-md opacity-40' : ''}`} />
+        
+        {isVideoDisabled ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                <div className="bg-red-50 text-red-600 p-3 rounded-2xl mb-2 shadow-xl border border-red-100">
+                    <AlertTriangle size={32} />
+                </div>
+                <h4 className="text-red-700 font-black text-xs uppercase tracking-tighter">Acción requerida</h4>
+                <p className="text-[10px] text-gray-500 font-bold max-w-[200px] mt-1">
+                    Bajaste al <b>Plan Light</b>. Debes cambiar este video por una imagen o no se mostrará en tu catálogo.
+                </p>
+            </div>
+        ) : (
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Archivo</p>
+            </div>
+        )}
+        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] text-white font-bold rounded-lg uppercase tracking-widest flex items-center gap-1">
+            <Video size={12}/> Video
+        </div>
+    </>
             ) : formData.image_url ? (
                 <>
                     <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
@@ -821,9 +855,12 @@ if (loading) return (
                         
                         {/* Bloque de textos juntos */}
                         <div className="space-y-0.5">
-                            <p className="text-[13px] font-bold text-gray-700">Sube Foto o Video animado</p>
-                            <p className="text-[10px] text-gray-400 font-medium">Duración ideal: 3 a 5 segundos</p>
-                            <p className="text-[9px] text-gray-300 font-bold uppercase tracking-tight">Máximo 10MB</p>
+                           <p className="text-[13px] font-bold text-gray-700">
+    {isVideoDisabled ? 'Sube tu imagen' : 'Sube Foto o Video animado'}
+</p>
+<p className="text-[10px] text-gray-400 font-medium">
+    {isVideoDisabled ? 'Formato JPG, PNG o WEBP' : 'Duración ideal: 3 a 5 segundos'}
+</p>
                         </div>
                     </div>
                 </>

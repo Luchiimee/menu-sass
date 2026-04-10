@@ -8,7 +8,7 @@ import {
     DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, 
     CheckCircle, XCircle, ChefHat, ArrowRight, Store, Loader2, 
     Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck,
-    QrCode, Plus, Trash2
+    QrCode, Plus, Trash2, Layers
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,11 +18,13 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
   const [isPlus, setIsPlus] = useState(false);
+  const [isLight, setIsLight] = useState(false);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 const [couponPendingDelete, setCouponPendingDelete] = useState<string | null>(null);
-  
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+const [upgradeModalInfo, setUpgradeModalInfo] = useState({ title: '', desc: '', plan: '' });
   const [hasPlan, setHasPlan] = useState(false);
 
   const [stats, setStats] = useState({ orders: 0, revenue: 0, views: 0 });
@@ -86,20 +88,23 @@ const loadDashboardData = async () => {
 
     // 4. Cargamos sus datos normalmente (se verán de fondo tras el vidrio)
     setRestaurantId(rest.id);
-    setAlwaysOpen(rest.always_open || false);
+    setRestaurantId(rest.id);
     setSlug(rest.slug || '');
     setPromoMessage(rest.promo_message || '');
     setShowPromo(rest.show_promo || false);
 
-    const plan = rest.subscription_plan;
+   const plan = rest.subscription_plan;
     setHasPlan(!!plan); 
-    setIsPlus(plan === 'plus' || plan === 'max');
+    setIsPlus(plan === 'go' || plan === 'plus' || plan === 'max');
+    setIsLight(plan === 'light');
+
+    // SI ES LIGHT, FORZAMOS QUE ESTÉ APAGADO (FALSE), SINO USAMOS LO DE LA DB
+    setAlwaysOpen(plan === 'light' ? false : (rest.always_open || false));
 
     const origin = window.location.origin;
     setStoreLink(`${origin}/${rest.slug}`);
     
-      // CARGA DE STATS (Solo si es Plus)
-      if (plan === 'plus' || plan === 'max') {
+      if (plan === 'go' || plan === 'plus' || plan === 'max') {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -300,112 +305,120 @@ const confirmDelete = async () => {
 };
   if (loading) return <div className="h-[60vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2"/> Cargando...</div>;
 
-  // --- PANTALLA DE BIENVENIDA Y PLANES ---
+  // --- PANTALLA DE BIENVENIDA Y PLANES (REDiseño informativo) ---
   if (isNewUser) {
     return (
       <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-4 md:pt-0">
         
-        <div className="text-center space-y-6 mb-10">
-            <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-purple-900/20 p-3">
+        {/* 1. HEADER DE BIENVENIDA */}
+        <div className="text-center space-y-4 mb-6">
+            <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center mx-auto shadow-xl p-3">
                 <Image src="/logo.svg" alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
             </div>
             <div>
-                <h1 className="text-4xl font-black text-gray-900 tracking-tight">¡Bienvenido a Snappy! 🚀</h1>
-                <p className="text-lg text-gray-500 mt-2">Configura tu negocio en segundos. Primero, elige cómo quieres crecer.</p>
+                <h1 className="text-4xl font-black text-gray-900 tracking-tight italic uppercase leading-none">¡Bienvenido a Snappy! 🚀</h1>
+                <p className="text-sm text-gray-500 mt-2 font-bold uppercase tracking-widest">Elegí tu plan para empezar a vender</p>
             </div>
-            <div className="bg-blue-50 border border-blue-100 p-5 rounded-2xl max-w-3xl mx-auto text-left shadow-sm">
-                <div className="flex items-start gap-4">
-                    <div className="bg-blue-100 p-2 rounded-full text-blue-600 shrink-0"><ShieldCheck size={24}/></div>
-                    <div>
-                        <h3 className="font-bold text-blue-900 text-lg">Prueba 14 días GRATIS con total tranquilidad</h3>
-                        <p className="text-sm text-blue-800 mt-1 mb-2 leading-relaxed">No te cobraremos nada hoy. Tienes dos opciones:</p>
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-blue-700">
-                            <li className="flex items-center gap-2 bg-white/60 p-2 rounded-lg border border-blue-100"><CreditCard size={16}/> <span><b>Configurar ahora:</b> Se debita en 14 días.</span></li>
-                            <li className="flex items-center gap-2 bg-white/60 p-2 rounded-lg border border-blue-100"><Clock size={16}/> <span><b>Esperar:</b> Configura el pago luego.</span></li>
-                        </ul>
-                    </div>
+        </div>
+
+        {/* 2. BLOQUE DE SEGURIDAD (LO QUE HABÍAMOS SACADO) */}
+        <div className="bg-blue-50 border border-blue-100 p-5 rounded-[2rem] max-w-4xl mx-auto shadow-sm">
+            <div className="flex flex-col md:flex-row items-center gap-6 text-left">
+                <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-200 shrink-0">
+                    <ShieldCheck size={28}/>
+                </div>
+                <div className="space-y-1">
+                    <h3 className="font-black text-blue-900 text-lg leading-tight">Probá gratis por 14 días con total tranquilidad</h3>
+                    <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                        Podés configurar tu pago ahora y el primer débito se hará **recién en 14 días**. 
+                        Si decidís no seguir, podés dar de baja el plan en **cualquier momento** desde configuración sin cargos.
+                    </p>
                 </div>
             </div>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-end">
-    {/* Plan Light - Sincronizado con Landing */}
-    <div className="bg-white border border-gray-200 p-8 rounded-3xl hover:shadow-xl transition flex flex-col h-full text-gray-900">
-        <div className="mb-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
-            <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
-            <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-black text-gray-900">$7.400</span>
-                <span className="text-sm text-gray-400">/mes</span>
-            </div>
-        </div>
-        <hr className="border-gray-100 my-4"/>
-        <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> <b>Hasta 15 Productos</b></li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Catálogo Digital Interactivo</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Pedidos directos a WhatsApp</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Mostrar Alias para Transferencias</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-600 flex-shrink-0"/> Dominio Personalizable</li>
-        </ul>
-        <Link href="/dashboard/settings?focus=phone" className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm">
-            Prueba 14 días gratis
-        </Link>
-    </div>
+        {/* 3. GRILLA DE PLANES (Cards Chicas + Info Detallada) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto px-4 mt-8">
+            
+            {/* PLAN LIGHT: Inicial */}
+            <Link href="/dashboard/settings?focus=phone" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-black transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+                <div className="w-10 h-10 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-black group-hover:text-white transition-colors">
+                    <ShoppingBag size={20} />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Para Empezar</h3>
+                <p className="text-2xl font-black text-gray-900">Light</p>
+                <div className="my-3 py-2 border-y border-gray-50">
+                    <p className="text-xl font-black text-gray-800">$10.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                </div>
+                <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
+                   <b>Ideal para:</b> Emprendimientos pequeños. <br/> 
+                   15 productos, fotos y pedidos directos a tu WhatsApp.
+                </p>
+                <span className="mt-4 text-[9px] font-black uppercase text-blue-600 group-hover:underline">Elegir este plan →</span>
+            </Link>
 
-    {/* Plan Plus - El "Más Elegido" de la Landing */}
-    <div className="bg-gray-900 text-white p-8 rounded-[35px] shadow-2xl transform md:-translate-y-4 flex flex-col relative overflow-hidden border-2 border-gray-900 h-full z-10">
-        <div className="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl">MÁS ELEGIDO</div>
-        <div className="mb-4">
-            <h3 className="text-xl font-bold text-green-400 mb-1 flex items-center gap-2">
-                Plus <Zap size={18} fill="currentColor" />
-            </h3>
-            <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Profesional</p>
-            <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-black text-white">$15.900</span>
-                <span className="text-sm text-gray-400">/mes</span>
-            </div>
-        </div>
-        <hr className="border-gray-800 my-4"/>
-        <ul className="space-y-4 text-sm text-gray-300 flex-1 font-medium mb-8">
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> <b>Productos Ilimitados</b> ✨</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Todo lo del plan Light</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> <b>Seguimiento de Pedido en Vivo</b> 🚀</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> <b>QR Inteligente</b></li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Panel de Comandas (Cocina)</li>
-            <li className="flex gap-3"><CheckCircle2 size={18} className="text-green-400 flex-shrink-0"/> Acceso a todas las plantillas</li>
-        </ul>
-        <Link href="/dashboard/settings?focus=phone" className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm">
-            Prueba 14 días gratis
-        </Link>
-    </div>
+            {/* PLAN GO: El Profesional */}
+            <Link href="/dashboard/settings?focus=phone" className="group bg-blue-50 border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-blue-600 transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
+                <div className="absolute top-0 right-0 bg-blue-600 text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">EL MÁS ELEGIDO</div>
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+                    <Zap size={20} fill="currentColor" />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1">Profesional</h3>
+                <p className="text-2xl font-black text-gray-900">Plan GO</p>
+                <div className="my-3 py-2 border-y border-blue-100">
+                    <p className="text-xl font-black text-blue-600">$16.900 <span className="text-[10px] text-gray-400">/mes</span></p>
+                </div>
+                <p className="text-[10px] text-blue-900 font-medium leading-relaxed flex-1">
+                   <b>Ideal para:</b> Negocios que crecen. <br/> 
+                   60 productos, **videos animado**, cupones y monitor de pedidos.
+                </p>
+                <span className="mt-4 text-[9px] font-black uppercase text-blue-600 group-hover:underline">Elegir este plan →</span>
+            </Link>
 
-    {/* Plan Max - Próximamente */}
-    <div className="bg-white border border-gray-200 p-8 rounded-3xl flex flex-col h-full opacity-60 grayscale-[0.5]">
-        <div className="mb-4">
-            <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-2 py-1 rounded-lg mb-4 w-fit inline-block">PRÓXIMAMENTE</span>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Max</h3>
-            <p className="text-xs text-gray-400 mb-6 font-bold uppercase">Escalabilidad</p>
-            <div className="mb-8 blur-[4px] select-none">
-                <span className="text-3xl font-black text-gray-900">$28.600</span>
-                <span className="text-gray-400 text-sm">/mes</span>
+            {/* PLAN PLUS: Gestión Física */}
+            <Link href="/dashboard/settings?focus=phone" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-emerald-500 transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <Crown size={20} />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-1">Locales Físicos</h3>
+                <p className="text-2xl font-black text-gray-900">Plus</p>
+                <div className="my-3 py-2 border-y border-gray-50">
+                    <p className="text-xl font-black text-gray-800">$27.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                </div>
+                <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
+                   <b>Ideal para:</b> Salones y locales. <br/> 
+                   Productos ilimitados, **impresión de tickets** y gestión de mesas.
+                </p>
+                <span className="mt-4 text-[9px] font-black uppercase text-emerald-600 group-hover:underline">Elegir este plan →</span>
+            </Link>
+
+            {/* PLAN MAX: Premium */}
+            <div className="bg-gray-50 border-2 border-dashed border-gray-200 p-6 rounded-[2.5rem] flex flex-col text-center opacity-60 grayscale relative overflow-hidden">
+                <div className="absolute top-3 -right-8 bg-gray-100 text-gray-400 text-[7px] font-black px-10 py-1 rotate-45 uppercase tracking-widest border-b">PRÓXIMAMENTE</div>
+                <div className="w-10 h-10 bg-gray-200 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Layers size={20} />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Escalabilidad</h3>
+                <p className="text-2xl font-black text-gray-400 italic">Max</p>
+                <div className="my-3 py-2 border-y border-gray-100">
+                    <p className="text-xl font-black text-gray-300">$38.000 <span className="text-[10px]">/mes</span></p>
+                </div>
+                <p className="text-[10px] text-gray-400 font-medium leading-relaxed flex-1">
+                   <b>Ideal para:</b> Cadenas y franquicias. <br/> 
+                   Control de sucursales, inventario avanzado e integración Mercado Pago.
+                </p>
+                <button disabled className="mt-4 text-[9px] font-black uppercase text-gray-400 cursor-not-allowed">No disponible</button>
             </div>
         </div>
-        <hr className="border-gray-100 my-4"/>
-        <ul className="space-y-4 text-sm text-gray-500 flex-1 mb-8 font-medium">
-            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Todo lo del plan Plus</li>
-            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Panel Pro para Caja</li>
-            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Integración Mercado Pago</li>
-            <li className="flex gap-3"><CheckCircle2 size={16} className="flex-shrink-0"/> Gestión de hasta 2 sucursales</li>
-        </ul>
-        <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-bold cursor-not-allowed">
-            Próximamente
-        </button>
-    </div>
-</div>
+
+        <div className="text-center pt-6">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">
+                Sin contratos de largo plazo ● Da de baja cuando quieras
+            </p>
+        </div>
       </div>
     );
   }
-
  // --- DASHBOARD REAL (CUANDO YA TIENE PLAN) ---
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-6 md:pt-0 relative">
@@ -452,17 +465,19 @@ const confirmDelete = async () => {
                   <Zap size={20} className="text-orange-500 fill-orange-500" />
                   <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Mensaje Promo</h3>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <button 
-                    onClick={handleTogglePromo}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${showPromo ? 'bg-green-500' : 'bg-gray-200'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPromo ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                  <span className={`text-[8px] font-black uppercase ${showPromo ? 'text-green-600' : 'text-gray-400'}`}>
-                    {showPromo ? 'Visible' : 'Oculto'}
-                  </span>
-                </div>
+             <div className="flex flex-col items-end gap-1">
+  <button 
+    onClick={handleTogglePromo}
+    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${showPromo ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-gray-200'}`}
+  >
+    {/* LA BOLITA BLANCA */}
+    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPromo ? 'translate-x-6' : 'translate-x-1'}`} />
+  </button>
+  
+  <span className={`text-[8px] font-black uppercase ${showPromo ? 'text-green-600' : 'text-gray-400'}`}>
+    {showPromo ? 'Visible' : 'Oculto'}
+  </span>
+</div>
               </div>
               <div className="space-y-4">
                 <textarea 
@@ -478,6 +493,7 @@ const confirmDelete = async () => {
               </div>
             </div>
 
+            {/* --- CARD: ESTADO DEL LOCAL (FIXED) --- */}
             <div className="bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden relative group">
               <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors duration-500 ${alwaysOpen ? 'bg-green-500' : 'bg-amber-500'}`} />
               <div className="flex items-center justify-between mb-4">
@@ -493,13 +509,29 @@ const confirmDelete = async () => {
                  <div className="flex flex-col items-end gap-1">
                     <button 
                       onClick={async () => {
-                          const nuevoEstado = !alwaysOpen;
-                          setAlwaysOpen(nuevoEstado);
-                          await supabase.from('restaurants').update({ always_open: nuevoEstado }).eq('id', restaurantId);
+                        if (isLight) {
+                            setUpgradeModalInfo({
+                                title: "Apertura Manual",
+                                desc: "Controlá el estado de tu local en tiempo real. Esta función te permite abrir o cerrar fuera de tus horarios configurados.",
+                                plan: "GO"
+                            });
+                            setShowUpgradeModal(true);
+                            return;
+                        }
+                        const nuevoEstado = !alwaysOpen;
+                        setAlwaysOpen(nuevoEstado);
+                        await supabase.from('restaurants').update({ always_open: nuevoEstado }).eq('id', restaurantId);
                       }}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${alwaysOpen ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'bg-slate-200'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${alwaysOpen ? 'bg-green-500' : 'bg-slate-200'} ${isLight ? 'opacity-70' : ''}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${alwaysOpen ? 'translate-x-6' : 'translate-x-1'}`} />
+                      
+                      {/* CANDADITO MEJORADO: A la derecha y más visible */}
+                      {isLight && (
+                        <div className="absolute right-1.5 text-gray-500/50">
+                          <Lock size={10} strokeWidth={3} />
+                        </div>
+                      )}
                     </button>
                     <span className={`text-[8px] font-black uppercase ${alwaysOpen ? 'text-green-600' : 'text-amber-600'}`}>
                       {alwaysOpen ? 'Manual' : 'Automático'}
@@ -523,7 +555,27 @@ const confirmDelete = async () => {
           </div>
 
           {/* --- COLUMNA DERECHA (GESTIÓN DE CUPONES) --- */}
-          <div className="lg:col-span-8 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm space-y-6 h-full">
+          <div className="lg:col-span-8 bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm space-y-6 h-full relative overflow-hidden">
+            {isLight && (
+    <div 
+     onClick={() => {
+    setUpgradeModalInfo({
+        title: "Gestión de Cupones",
+        desc: "Creá códigos de descuento personalizados para fidelizar a tus clientes y aumentar tus ventas.",
+        plan: "GO"
+    });
+    setShowUpgradeModal(true);
+}}
+      className="absolute inset-0 z-20 bg-white/40 backdrop-blur-[2px] cursor-pointer flex flex-col items-center justify-center gap-2 animate-in fade-in duration-500"
+    >
+      <div className="bg-gray-900 text-white p-3 rounded-2xl shadow-xl">
+        <Lock size={24} />
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 bg-white px-3 py-1 rounded-full shadow-sm border">
+        Disponible en Plan GO
+      </p>
+    </div>
+  )}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-left">
                 <Crown size={20} className="text-purple-500 fill-purple-500" />
@@ -627,10 +679,10 @@ const confirmDelete = async () => {
                   <div className="bg-blue-50 p-4 rounded-3xl text-blue-600">
                       <Lock size={28}/>
                   </div>
-                  <div>
-                      <h3 className="font-black text-gray-900 uppercase tracking-tighter">Historial de Pedidos</h3>
-                      <p className="text-sm text-gray-500 font-medium">Mejora tu plan para habilitar métricas y pedidos en tiempo real.</p>
-                  </div>
+                 <div>
+    <h3 className="font-black text-gray-900 uppercase tracking-tighter">Historial de Pedidos</h3>
+    <p className="text-sm text-gray-500 font-medium">Subí al Plan GO para habilitar métricas y pedidos en tiempo real.</p>
+</div>
               </div>
               <Link href="/dashboard/settings?focus=phone" className="w-full md:w-auto bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-gray-800 transition-all">
                   Ver Planes ⚡
@@ -689,6 +741,47 @@ const confirmDelete = async () => {
           </div>
         </div>
    )}
+   {/* --- MODAL DE UPGRADE PRO REUTILIZABLE --- */}
+{showUpgradeModal && (
+  <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
+      
+      {/* Decoración de fondo */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50 rounded-full opacity-50 blur-3xl"></div>
+      
+      <div className="relative z-10">
+        <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <Lock size={30} />
+        </div>
+        
+        <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase italic tracking-tighter">
+          {upgradeModalInfo.title}
+        </h3>
+        
+        <p className="text-gray-500 text-xs mb-8 font-medium leading-relaxed px-2">
+          {upgradeModalInfo.desc} <br/><br/>
+          Subí al <span className="text-blue-600 font-black">Plan {upgradeModalInfo.plan}</span> para desbloquear esta y muchas funciones más.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          <Link 
+            href="/dashboard/settings?focus=phone" 
+            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+          >
+            Ver Planes <Zap size={14} fill="currentColor" />
+          </Link>
+          
+          <button 
+            onClick={() => setShowUpgradeModal(false)}
+            className="w-full py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors"
+          >
+            Tal vez más tarde
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

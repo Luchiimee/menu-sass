@@ -16,7 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  LayoutList, Pencil, X, Search,
+  LayoutList, Pencil, X, Search,Lock
 } from "lucide-react";
 import Link from "next/link";
 
@@ -65,6 +65,9 @@ function OrdersContent() {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [businessType, setBusinessType] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalInfo, setUpgradeModalInfo] = useState({ title: '', desc: '', plan: '' });
 
   // --- FUNCIONES DE APOYO UI (Se mantienen igual) ---
 const getStatusBadge = (status: string, orderType?: string) => {
@@ -288,14 +291,15 @@ const loadOrders = async () => {
       if (!user) return;
       const { data: rest } = await supabase.from("restaurants").select("*").eq("user_id", user.id).single();
       
-      if (rest) {
-        setRestaurantName(rest.name); 
-        setRestaurantId(rest.id); 
-        setRestaurantPhone(rest.phone);
-        setReceiveWhatsapp(rest.receive_whatsapp ?? true);
-        setBusinessType(rest.business_type);
-        setIsLocked(rest.subscription_plan === "light" && user.email !== 'luchiimee2@gmail.com');
-      }
+   if (rest) {
+    setRestaurantName(rest.name); 
+    setRestaurantId(rest.id); 
+    setRestaurantPhone(rest.phone);
+    setReceiveWhatsapp(rest.receive_whatsapp ?? true);
+    setBusinessType(rest.business_type);
+    setCurrentPlan(rest.subscription_plan); // <--- AGREGÁ ESTA LÍNEA
+    setIsLocked(rest.subscription_plan === "light" && user.email !== 'luchiimee2@gmail.com');
+}
 
       // --- AGREGADO: Cargar la vista guardada (Grilla o Lista) ---
       const savedView = localStorage.getItem("ordersView");
@@ -385,11 +389,11 @@ useEffect(() => {
               <Zap size={32} fill="currentColor" />
             </div>
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic">Gestor de Pedidos</h2>
-            <p className="text-gray-500 mb-8 text-sm">Panel de control exclusivo del <b>Plan Plus</b>.</p>
-            <div className="flex flex-col gap-3">
-               <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg uppercase text-xs tracking-widest">
-                 Actualizar a Plus <Zap size={18} fill="currentColor" className="inline ml-1" />
-               </Link>
+           <p className="text-gray-500 mb-8 text-sm">Panel de control exclusivo del <b>Plan GO</b>.</p>
+<div className="flex flex-col gap-3">
+   <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg uppercase text-xs tracking-widest text-center no-underline">
+      Actualizar a GO <Zap size={18} fill="currentColor" className="inline ml-1" />
+   </Link>
                <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600">
                  Volver al inicio
                </button>
@@ -518,7 +522,28 @@ useEffect(() => {
                         </div>
                         <div className={`ml-2 p-1.5 rounded-full transition-all ${showTables ? 'bg-blue-100 text-blue-600 rotate-180' : 'bg-gray-200 text-gray-500'}`}><ChevronDown size={20} strokeWidth={3} /></div>
                     </button>
-                    <button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 shadow-md flex items-center justify-center gap-2"><Plus size={14} /> Crear Mesa</button>
+          <button 
+    onClick={() => {
+        if (currentPlan === 'go') {
+            setUpgradeModalInfo({
+                title: "Gestión de Salón",
+                desc: "Habilitá el control de mesas y comandas para organizar tu salón de forma profesional.",
+                plan: "Plus"
+            });
+            setShowUpgradeModal(true);
+            return;
+        }
+        setIsModalOpen(true);
+    }} 
+    className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md flex items-center justify-center gap-2 transition-all ${
+        currentPlan === 'go' 
+        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+        : 'bg-blue-600 text-white hover:bg-blue-700'
+    }`}
+>
+    {currentPlan === 'go' ? <Lock size={14} /> : <Plus size={14} />} 
+    Crear Mesa
+</button>
                 </div>
 
                 {showTables && (
@@ -630,7 +655,28 @@ useEffect(() => {
                         )}
 
                    <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
-    <button onClick={() => handlePrint(order)} className="w-full bg-gray-50 text-gray-400 hover:bg-gray-100 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all"><Printer size={14} /> Ticket</button>
+  <button 
+    onClick={() => {
+        if (currentPlan === 'go') {
+            setUpgradeModalInfo({
+                title: "Impresión de Tickets",
+                desc: "Generá comprobantes físicos para tus clientes y cocina, optimizá la entrega de tus pedidos.",
+                plan: "Plus"
+            });
+            setShowUpgradeModal(true);
+            return;
+        }
+        handlePrint(order);
+    }} 
+    className={`w-full py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all border ${
+        currentPlan === 'go'
+        ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+        : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border-transparent'
+    }`}
+>
+    {currentPlan === 'go' ? <Lock size={14} /> : <Printer size={14} />} 
+    Ticket
+</button>
     
     {/* 1. PENDIENTE -> PREPARAR */}
     {order.status === "pendiente" && (
@@ -703,6 +749,47 @@ useEffect(() => {
           </div>
         )}
       </div>
+      {/* --- MODAL DE UPGRADE PRO REUTILIZABLE --- */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
+            
+            {/* Decoración de fondo */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50 rounded-full opacity-50 blur-3xl"></div>
+            
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <Lock size={30} />
+              </div>
+              
+              <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase italic tracking-tighter">
+                {upgradeModalInfo.title}
+              </h3>
+              
+              <p className="text-gray-500 text-xs mb-8 font-medium leading-relaxed px-2 text-center">
+                {upgradeModalInfo.desc} <br/><br/>
+                Subí al <span className="text-blue-600 font-black">Plan {upgradeModalInfo.plan}</span> para desbloquear esta y muchas funciones más.
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <Link 
+                  href="/dashboard/settings?focus=phone" 
+                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 no-underline"
+                >
+                  Ver Planes <Zap size={14} fill="currentColor" />
+                </Link>
+                
+                <button 
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="w-full py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors bg-transparent border-none cursor-pointer"
+                >
+                  Tal vez más tarde
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

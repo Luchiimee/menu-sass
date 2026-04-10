@@ -2389,7 +2389,7 @@ function MenuContent({
   );
 }
 
-// --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y EVITAR REFRESH) ---
+// --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y LÓGICA DE PAUSA) ---
 export default function MenuPage({
   params,
 }: {
@@ -2416,7 +2416,7 @@ export default function MenuPage({
     return () => {
       active = false;
     };
-  }, []); // Array vacío para cargar una sola vez
+  }, []); 
 
   if (loading)
     return (
@@ -2424,8 +2424,42 @@ export default function MenuPage({
         <Loader2 className="animate-spin text-black" size={40} />
       </div>
     );
+    
   if (!restaurant) return notFound();
 
+  // --- LÓGICA DE MENÚ PAUSADO (CANCELACIÓN DE PLAN) ---
+  if (restaurant.subscription_status === 'cancelled') {
+    return (
+        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 p-8 text-center font-sans">
+            <div className="w-24 h-24 bg-amber-50 text-amber-600 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-amber-900/5">
+                <Clock size={48} strokeWidth={1.5} className="animate-pulse" />
+            </div>
+            
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter text-gray-900 mb-4 leading-none">
+                {restaurant.name}
+            </h1>
+            
+            <div className="max-w-xs space-y-4">
+                <p className="text-gray-500 font-bold text-sm leading-relaxed uppercase tracking-widest italic">
+                    Este menú se encuentra temporalmente pausado.
+                </p>
+                <div className="h-[2px] w-12 bg-gray-200 mx-auto" />
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em]">
+                    Vuelve a visitarnos pronto
+                </p>
+            </div>
+
+            <a 
+                href="https://snappy.uno" 
+                className="mt-20 flex items-center gap-2 text-[10px] font-black text-gray-300 hover:text-blue-500 transition-colors uppercase tracking-widest no-underline"
+            >
+                Snappy Menú Digital <Zap size={12} fill="currentColor" />
+            </a>
+        </div>
+    );
+  }
+
+  // --- SI EL PLAN ESTÁ ACTIVO, SE MUESTRA NORMAL ---
   return (
     <CartProvider>
       <MenuContent

@@ -185,15 +185,17 @@ useEffect(() => {
     return () => window.removeEventListener('popstate', handleBackButton);
   }, [pathname, router]);
   // --- FUNCIONES AUXILIARES ---
-  const getPlanLabel = () => {
+const getPlanLabel = () => {
       if (restaurant.plan === 'plus') return 'Plan Plus';
+      if (restaurant.plan === 'go') return 'Plan GO'; // <--- AGREGADO
       if (restaurant.plan === 'light') return 'Plan Light';
       if (restaurant.plan === 'max') return 'Plan Max';
       return 'Free';
   };
 
   const getPlanColor = () => {
-      if (restaurant.plan === 'plus') return 'text-blue-600';
+      if (restaurant.plan === 'plus') return 'text-emerald-600'; // Plus es Esmeralda
+      if (restaurant.plan === 'go') return 'text-blue-600';     // GO es Azul
       if (restaurant.plan === 'light') return 'text-black';
       if (restaurant.plan === 'max') return 'text-purple-600';
       return 'text-gray-400';
@@ -278,15 +280,50 @@ const handleLogout = async () => {
     window.location.replace('/login'); 
   }
 };
-const menuItems = [
-  { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Personalizar', href: '/dashboard/personalizar', icon: Palette },
-  { name: 'Plantillas', href: '/dashboard/templates', icon: LayoutTemplate },
-  { name: 'Mis Productos', href: '/dashboard/products', icon: UtensilsCrossed },
-  { name: 'Caja', href: '/dashboard/analytics', icon: BarChart3 }, // Siempre visible
-  { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingBag }, // Siempre visible
-  { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
-];
+const plan = restaurant.plan;
+  const isLight = plan === 'light';
+  const isGo = plan === 'go';
+  const hasNoPlan = !plan;
+
+ const menuItems = [
+    { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+    { 
+      name: 'Personalizar', 
+      href: '/dashboard/personalizar', 
+      icon: Palette,
+      locked: hasNoPlan,
+      msg: "Elegí un plan primero para empezar a diseñar tu marca. 🎨" 
+    },
+    { 
+      name: 'Plantillas', 
+      href: '/dashboard/templates', 
+      icon: LayoutTemplate,
+      locked: hasNoPlan,
+      msg: "Seleccioná un plan para elegir la estructura de tu menú. 📐"
+    },
+    { 
+      name: 'Mis Productos', 
+      href: '/dashboard/products', 
+      icon: UtensilsCrossed,
+      locked: hasNoPlan,
+      msg: "Para cargar tus productos, primero activá tu prueba gratuita. 🍕"
+    },
+    { 
+      name: 'Caja', 
+      href: '/dashboard/analytics', 
+      icon: BarChart3, 
+      locked: hasNoPlan || isLight || isGo, 
+      msg: hasNoPlan ? "Elegí un plan para empezar." : "Esta sección es exclusiva del Plan Plus. 💎"
+    }, 
+    { 
+      name: 'Pedidos', 
+      href: '/dashboard/orders', 
+      icon: ShoppingBag, 
+      locked: hasNoPlan || isLight, 
+      msg: hasNoPlan ? "Elegí un plan para gestionar pedidos." : "La gestión de pedidos requiere Plan GO. 🚀"
+    }, 
+    { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
+  ];
 
   if (isAdmin) {
     menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });
@@ -337,17 +374,40 @@ const menuItems = [
         </div>
         
        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-hide">
-          {menuItems.map((item) => {
+      {menuItems.map((item) => {
             const isActive = pathname === item.href;
+            // Si el item está bloqueado por el plan
+            const isLocked = item.locked; 
+
             return (
               <Link 
                 key={item.href} 
-                href={item.href} 
-                className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2 rounded-lg text-xs font-bold transition-all ${isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50 hover:text-black'}`}
+                href={isLocked ? '#' : item.href} // Si está bloqueado, el link no hace nada
+                onClick={(e) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                    
+                    alert(item.msg);
+                  }
+                }}
+                className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2 rounded-lg text-xs font-bold transition-all 
+                  ${isLocked ? 'opacity-50 cursor-not-allowed text-gray-400' : isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50 hover:text-black'}`}
                 title={isCollapsed ? item.name : ''}
               >
-                <item.icon size={18} /> 
-                {!isCollapsed && <span>{item.name}</span>}
+                <div className="relative">
+                  <item.icon size={18} /> 
+                  {isLocked && (
+                    <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm text-black">
+                      <Lock size={8} />
+                    </div>
+                  )}
+                </div>
+                {!isCollapsed && (
+                  <div className="flex items-center justify-between w-full">
+                    <span>{item.name}</span>
+                    {isLocked && <Lock size={12} className="opacity-60" />}
+                  </div>
+                )}
               </Link>
             );
           })}
@@ -499,104 +559,92 @@ const menuItems = [
           
         
 {(() => {
-            // 1. LÓGICA DE BLOQUEO GLOBAL
-            const isCancelled = restaurant.status === 'cancelled';
-            const isSettingsPage = pathname === '/dashboard/settings';
-            const isTemplatesPage = pathname === '/dashboard/templates';
-            
-            // Bloqueamos si está cancelado y NO es la página de configuración
-            const showSuspendedModal = isCancelled && !isSettingsPage;
-            
-           
-      const showOnboardingBlock = !isLoading && 
-  (needsPlan || needsRubro || (isExpired && !bypassBlock)) && 
-  !isSettingsPage && 
-  !isTemplatesPage && // <--- Esta es la línea mágica
-  !isSubscriptionValid;
+    // 1. LÓGICA DE BLOQUEO GLOBAL
+    const isCancelled = restaurant.status === 'cancelled';
+    const isSettingsPage = pathname === '/dashboard/settings';
+    const isDashboardPage = pathname === '/dashboard';
+    const isTemplatesPage = pathname === '/dashboard/templates';
     
+    // Si está cancelado, bloqueamos todo menos settings
+    const showSuspendedModal = isCancelled && !isSettingsPage;
 
-            const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
+    // LÓGICA DE ONBOARDING ESTRICTA
+    // Si no tiene plan: bloqueamos TODO excepto Inicio y Settings.
+    // Si tiene plan pero falta rubro: bloqueamos todo excepto Templates (donde elige rubro).
+    const showOnboardingBlock = !isLoading && 
+        ((needsPlan && !isDashboardPage && !isSettingsPage) || 
+         (needsRubro && !isTemplatesPage && !isSettingsPage)) && 
+        !isSubscriptionValid && !bypassBlock;
 
-            return (
-              <>
-                {/* EL CONTENIDO: Se desenfoca si hay cualquier bloqueo activo */}
-                <div className={`h-full transition-all duration-700 ${isAnyBlocked ? 'blur-md pointer-events-none opacity-40 select-none grayscale' : ''}`}>
-                  {children}
-                </div>
+    const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
 
-                {/* MODAL DE PANEL SUSPENDIDO (Global) */}
-              {showSuspendedModal && (
-                  <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white/95 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl border border-red-100 text-center w-full max-w-[320px] animate-in zoom-in-95 duration-500 relative">
-                      <div className="w-16 h-16 bg-red-50 text-red-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4 shadow-inner">
-                        <Lock size={32} />
-                      </div>
-                      <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Panel Suspendido</h3>
-                      <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase tracking-widest leading-relaxed text-center">
-                        Tu suscripción está vencida. Podés navegar el menú lateral, pero para gestionar tu local debés regularizar el pago.
-                      </p>
-                      
-                      {/* BOTÓN PAGAR -> Manda a Settings */}
-                      <Link 
-                        href="/dashboard/settings"
-                        className="mt-8 block w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-red-200 active:scale-95 transition-all text-center"
-                      >
-                        PAGAR
-                      </Link>
-                    </div>
-                  </div>
-                )}
+    return (
+      <>
+        {/* EL CONTENIDO: Se desenfoca si hay cualquier bloqueo activo */}
+        <div className={`h-full transition-all duration-700 ${isAnyBlocked ? 'blur-md pointer-events-none opacity-40 select-none grayscale' : ''}`}>
+          {children}
+        </div>
 
-                {/* MODAL DE ONBOARDING (El de Bienvenida o Configurar Rubro) */}
-{/* MODAL DE ONBOARDING (Sidebar libre + Centrado que te sigue) */}
-{showOnboardingBlock && !showSuspendedModal && (
-  <div className="absolute inset-0 z-[50] pointer-events-none">
-    <div className="sticky top-0 h-screen w-full flex items-center justify-center p-6 bg-white/5 backdrop-blur-[2px]">
-      <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md relative animate-in zoom-in-95 duration-300 pointer-events-auto text-center">
-        
-        {needsRubro ? (
-          
-          <>
-            <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-               <LayoutTemplate size={40} />
+        {/* MODAL DE PANEL SUSPENDIDO (Por falta de pago) */}
+        {showSuspendedModal && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white/95 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl border border-red-100 text-center w-full max-w-[320px] animate-in zoom-in-95 duration-500 relative">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <Lock size={32} />
+              </div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Panel Suspendido</h3>
+              <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase tracking-widest leading-relaxed text-center">
+                Tu suscripción está vencida. Por favor, regularizá tu pago para seguir gestionando tu local.
+              </p>
+              <Link href="/dashboard/settings" className="mt-8 block w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-red-200 active:scale-95 transition-all text-center no-underline">
+                PAGAR
+              </Link>
             </div>
-            <h2 className="text-2xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
-            <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-              ¡Plan activado con éxito! 🚀 <br/> 
-              Ahora elegí el rubro de tu negocio para habilitar tu catálogo y empezar a vender.
-            </p>
-            <button 
-  onClick={() => {
-    // Forzamos la recarga en la página de templates para que detecte el paso 1
-    window.location.href = '/dashboard/templates';
-  }} 
-  className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition"
->
-  ELEGIR MI RUBRO
-</button>
-          </>
-        ) : (
-          /* --- CASO B: NO TIENE PLAN (NUEVO O EXPIRADO) --- */
-          <>
-            <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
-               <Zap size={40} />
-            </div>
-            <h2 className="text-2xl font-black mb-4 uppercase italic">¡Bienvenido!</h2>
-            <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-              Para activar tu menú y acceder a todas las funciones, primero debés elegir un plan.
-            </p>
-            <Link href="/dashboard/settings?focus=phone" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center">
-              Ver Planes
-            </Link>
-          </>
+          </div>
         )}
-      </div>
-    </div>
-  </div>
-)}
-              </>
-            );
-          })()}
+
+        {/* MODAL DE ONBOARDING (Sidebar libre + Centrado que te sigue) */}
+        {showOnboardingBlock && !showSuspendedModal && (
+          <div className="fixed inset-0 z-[50] flex items-center justify-center p-6 bg-black/5 backdrop-blur-[2px] pointer-events-none">
+            <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md text-center animate-in zoom-in-95 duration-300 pointer-events-auto">
+                
+                {needsPlan ? (
+                    /* --- CASO A: NO ELIGIÓ PLAN TODAVÍA --- */
+                    <>
+                        <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <Zap size={40} fill="currentColor" />
+                        </div>
+                        <h2 className="text-2xl font-black mb-4 uppercase italic">Activá tu Prueba</h2>
+                        <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+                            Para acceder a esta sección y configurar tu local, primero debés <b>elegir un plan</b>. 
+                            <br/><span className="text-blue-600 font-bold">¡Tenés 14 días gratis!</span>
+                        </p>
+                        <Link href="/dashboard" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline">
+                             VER PLANES DISPONIBLES
+                        </Link>
+                    </>
+                ) : (
+                    /* --- CASO B: TIENE PLAN PERO NO ELIGIÓ RUBRO --- */
+                    <>
+                        <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <Store size={40} />
+                        </div>
+                        <h2 className="text-2xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
+                        <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+                            ¡Plan activado! 🚀 <br/> 
+                            Ahora necesitamos saber qué vendés para adaptar tu catálogo y habilitar tus productos.
+                        </p>
+                        <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline">
+                            ELEGIR MI RUBRO
+                        </Link>
+                    </>
+                )}
+            </div>
+          </div>
+        )}
+      </>
+    );
+})()}
         </div>
       </main>
      <MobileNav 

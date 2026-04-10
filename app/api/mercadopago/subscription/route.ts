@@ -54,13 +54,16 @@ export async function POST(request: Request) {
         fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
 
         // 4. Precios actualizados
-        const prices: Record<string, number> = {
-            light: 7400,
-            plus: 15900,
-            max: 28600
+       const prices: Record<string, number> = {
+            light: 10000,
+            go: 16900,
+            plus: 27000,
+            max: 0 // Aún no disponible para cobro
         };
-
-        const amount = prices[planType] || 7400;
+if (!prices[planType] || prices[planType] === 0) {
+            throw new Error("El plan seleccionado no está disponible para suscripción actualmente.");
+        }
+       const amount = prices[planType];
 
         // 5. Crear la NUEVA suscripción en Mercado Pago
         const response = await preapproval.create({
