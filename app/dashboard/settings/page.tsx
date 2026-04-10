@@ -256,12 +256,20 @@ const saveProfileData = async (newData: any) => {
       saveHours(updatedHours);
   };
 
-  const handlePasswordReset = async () => {
-      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, { redirectTo: `${window.location.origin}/dashboard/settings` });
-      if (error) toast.error("Error");
-      else toast.success("Email enviado");
-  };
+ const handlePasswordReset = async () => {
+      if (!profile.email) return toast.error("No hay un correo asociado");
 
+      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, { 
+          // 🚀 LE MANDAMOS EL PARÁMETRO 'next' HACIA NUESTRA NUEVA PÁGINA
+          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings/new-password` 
+      });
+      
+      if (error) {
+          toast.error("Error al enviar el correo");
+      } else {
+          toast.success("¡Correo enviado! Revisá tu bandeja de entrada.");
+      }
+  };
 // --- ACTIVAR TRIAL 14 DÍAS (CORREGIDO PARA NO RESETEAR RUBRO) ---
 // --- ACTIVAR TRIAL (ACTUALIZADO CON PLAN GO) ---
 const handleActivateTrial = async (planType: 'light' | 'go' | 'plus') => {
