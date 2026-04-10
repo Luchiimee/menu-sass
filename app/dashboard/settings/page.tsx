@@ -328,12 +328,25 @@ const handleGoToPayment = async (planType: 'light' | 'go' | 'plus') => {
     chargeDate.setDate(dateBase.getDate() + 14);
     return chargeDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
   };
- const renderPlanButton = (plan: 'light' | 'go' | 'plus') => {
+const renderPlanButton = (plan: 'light' | 'go' | 'plus') => {
     const isActive = restaurant.subscription_plan === plan;
     const isAuthorized = restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active';
+    const isCancelled = restaurant.subscription_status === 'cancelled'; // <--- DETECTAMOS CANCELACIÓN
     const colorClass = plan === 'light' ? 'bg-black' : plan === 'go' ? 'bg-blue-600' : 'bg-emerald-600';
 
     if (isActive) {
+      // SI EL PLAN ESTÁ CANCELADO PERO ES EL QUE TIENE ELEGIDO
+      if (isCancelled) {
+        return (
+          <button 
+            onClick={() => handleGoToPayment(plan)} 
+            className="w-full py-3 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white hover:bg-orange-600 transition-all shadow-lg animate-pulse"
+          >
+            Reactivar Plan ⚡
+          </button>
+        );
+      }
+
       if (isAuthorized) {
         return (
           <div className={`${plan === 'light' ? 'bg-green-50' : 'bg-blue-50'} p-3 rounded-2xl flex items-center justify-center gap-2 border border-current opacity-70`}>
@@ -342,6 +355,7 @@ const handleGoToPayment = async (planType: 'light' | 'go' | 'plus') => {
           </div>
         );
       }
+      
       return (
         <button onClick={() => handleGoToPayment(plan)} disabled={processingPlan === plan} className={`w-full py-3 rounded-2xl font-black text-[10px] uppercase text-white ${colorClass} hover:opacity-90 transition-all`}>
           {processingPlan === plan ? <Loader2 className="animate-spin mx-auto" size={16}/> : (restaurant.subscription_status === 'trialing' ? 'Configurar Pago' : 'PAGAR')}
@@ -622,22 +636,37 @@ const handleGoToPayment = async (planType: 'light' | 'go' | 'plus') => {
             </button>
 
             {/* --- ZONA 1: CANCELAR SUSCRIPCIÓN (AMBER) --- */}
-            {restaurant.subscription_plan && (
-                <div className="mt-4 p-5 bg-amber-50 border border-amber-100 rounded-[1.5rem] text-left animate-in fade-in slide-in-from-top-2 duration-500">
-                    <div className="flex items-center gap-2 text-amber-800 mb-2">
-                        <Clock size={16} />
-                        <span className="text-[11px] font-black uppercase tracking-tighter">Gestionar Plan</span>
+        {restaurant.subscription_plan && (
+                <div className={`mt-4 p-5 border rounded-[1.5rem] text-left animate-in fade-in slide-in-from-top-2 duration-500 ${restaurant.subscription_status === 'cancelled' ? 'bg-orange-50 border-orange-200' : 'bg-amber-50 border-amber-100'}`}>
+                    <div className={`flex items-center gap-2 mb-2 ${restaurant.subscription_status === 'cancelled' ? 'text-orange-700' : 'text-amber-800'}`}>
+                        {restaurant.subscription_status === 'cancelled' ? <AlertTriangle size={16} /> : <Clock size={16} />}
+                        <span className="text-[11px] font-black uppercase tracking-tighter">
+                            {restaurant.subscription_status === 'cancelled' ? 'Suscripción en proceso de baja' : 'Gestionar Suscripción'}
+                        </span>
                     </div>
-                    <p className="text-[10px] text-amber-700 font-bold leading-relaxed mb-4">
-                        Si cancelas hoy, tu menú seguirá <b>activo hasta el {getChargeDate()}</b>. <br/><br/>
-                        Guardaremos tus productos y configuración por <b>6 meses</b> por si decides volver. Pasado ese tiempo, los datos se eliminarán definitivamente.
+                    
+                    <p className={`text-[10px] font-bold leading-relaxed mb-4 ${restaurant.subscription_status === 'cancelled' ? 'text-orange-800' : 'text-amber-700'}`}>
+                        {restaurant.subscription_status === 'cancelled' 
+                            ? `Ya solicitaste la cancelación. Tu menú seguirá online hasta el ${getChargeDate()}. Después de esa fecha, el link público se pausará automáticamente.`
+                            : `Si cancelas hoy, tu menú seguirá activo hasta el ${getChargeDate()}. Guardaremos tus productos y configuración por 6 meses por si decides volver.`
+                        }
                     </p>
-                    <button 
-                        onClick={handleCancelSubscription}
-                        className="w-full py-3 bg-white border border-amber-200 text-amber-700 rounded-xl text-[10px] font-black uppercase hover:bg-amber-100 transition shadow-sm active:scale-95"
-                    >
-                        Cancelar suscripción solamente
-                    </button>
+
+                    {restaurant.subscription_status === 'cancelled' ? (
+                        <button 
+                            onClick={() => handleGoToPayment(restaurant.subscription_plan)}
+                            className="w-full py-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-orange-700 transition shadow-md active:scale-95"
+                        >
+                            Reactivar mi suscripción ahora
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={handleCancelSubscription}
+                            className="w-full py-3 bg-white border border-amber-200 text-amber-700 rounded-xl text-[10px] font-black uppercase hover:bg-amber-100 transition shadow-sm active:scale-95"
+                        >
+                            Cancelar suscripción solamente
+                        </button>
+                    )}
                 </div>
             )}
 

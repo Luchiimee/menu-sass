@@ -1080,7 +1080,7 @@ export default function LandingPage() {
         <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
         <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
         <div className="mb-6">
-          <span className="text-3xl font-black text-gray-900">$7.400</span>
+          <span className="text-3xl font-black text-gray-900">$10.000</span>
           <span className="text-gray-400 text-sm">/mes</span>
         </div>
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
@@ -1130,7 +1130,7 @@ export default function LandingPage() {
         <h3 className="text-lg font-bold text-blue-600 mb-1">GO</h3>
         <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
         <div className="mb-6">
-          <span className="text-3xl font-black text-gray-900">$11.900</span>
+          <span className="text-3xl font-black text-gray-900">$16.900</span>
           <span className="text-gray-400 text-sm">/mes</span>
         </div>
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
@@ -1196,7 +1196,7 @@ export default function LandingPage() {
   <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Profesional</p>
   
   <div className="mb-6">
-    <span className="text-4xl font-black text-white">$15.900</span>
+    <span className="text-4xl font-black text-white">$27.000</span>
     <span className="text-gray-400 text-sm">/mes</span>
   </div>
 
@@ -1262,7 +1262,7 @@ export default function LandingPage() {
   
   {/* PRECIO BORROSO */}
   <div className="mb-6 select-none">
-    <span className="text-3xl font-black text-gray-900 blur-[5px]">$28.600</span>
+    <span className="text-3xl font-black text-gray-900 blur-[5px]">$38.000</span>
     <span className="text-gray-400 text-sm ml-1">/mes</span>
   </div>
 
