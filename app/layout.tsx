@@ -11,8 +11,6 @@ export const metadata: Metadata = {
   description: "Tu carta digital inteligente.",
   icons: {
     icon: '/icon-192.png',
-    // 💡 CAMBIO: iOS ama el tamaño 180x180. 
-    // Si no tienes uno de ese tamaño, usa el de 192, pero asegúrate de que esté bien declarado.
     apple: '/icon-192.png', 
   },
   appleWebApp: {
@@ -23,12 +21,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  
+  themeColor: "#000000", 
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover",
+  viewportFit: "cover", 
 };
 
 export default function RootLayout({

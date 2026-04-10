@@ -22,14 +22,12 @@ function GoogleAuthHandler() {
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     
     if (hasCode || hasHash) {
-      // Limpieza atómica de la URL
-      window.history.replaceState({}, document.title, "/dashboard");
-      
-      // Si detectamos PWA en iOS, forzamos que el layout se entere que ya hay sesión
-      if (typeof window !== 'undefined' && (window.navigator as any).standalone) {
-        // No hacemos un refresh total para evitar bucles, 
-        // solo dejamos que el router de Next haga lo suyo.
-      }
+      // Limpieza atómica: eliminamos los parámetros pero nos quedamos en la ruta actual
+      // Esto le dice a Android Chrome: "Ya procesé el login, ahora soy una App limpia"
+      const url = new URL(window.location.href);
+      url.search = "";
+      url.hash = "";
+      window.history.replaceState({}, document.title, url.pathname);
     }
   }, [searchParams]);
 

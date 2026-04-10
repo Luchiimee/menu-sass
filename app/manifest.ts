@@ -3,9 +3,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: '/', 
-    start_url: '/login', // Arrancamos en la raíz
-    scope: '/',     // Abarcamos todo el dominio
+    id: 'snappy-pwa', // Un ID fijo ayuda a Chrome a identificar la app
+    start_url: '/login', // <--- Mantenemos el inicio en login como pediste
+    scope: '/',          // <--- Abarcamos todo para que el Dashboard no sea "externo"
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
     display: 'standalone', 
