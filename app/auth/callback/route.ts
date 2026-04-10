@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    // 👇 AQUÍ ESTÁ EL CAMBIO: Agregamos 'await' antes de cookies()
     const cookieStore = await cookies()
 
     const supabase = createServerClient(
@@ -19,34 +18,41 @@ export async function GET(request: Request) {
           get(name: string) {
             return cookieStore.get(name)?.value
           },
+          // 🛡️ AGREGAMOS TRY/CATCH AQUÍ:
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) {
+              // Si falla es normal en ciertos entornos de servidor, 
+              // el Middleware se encargará del resto.
+            }
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options })
+            try {
+              cookieStore.set({ name, value: '', ...options })
+            } catch (error) {
+              // Lo mismo aquí para el borrado.
+            }
           },
         },
       }
     )
 
- // ... (todo tu código de imports y Supabase igual hasta el intercambio del código)
-
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // 🚀 EL SECRETO: En lugar de NextResponse.redirect, usamos un "Puente HTML"
-      // Esto asegura que las cookies se guarden bien en el iPhone y no salgan las barras.
       const redirectUrl = `${origin}${next}`;
       
       return new NextResponse(
         `<html>
           <head>
-           <script>
-  // Pequeña espera para que iOS guarde la cookie de sesión
-  setTimeout(function() {
-    window.location.replace("${redirectUrl}");
-  }, 50); 
-</script>
+            <script>
+              // 🚀 SUBIMOS A 100ms: Para darle tiempo a Chrome/iOS 
+              // de guardar esa cookie GIGANTE de Google.
+              setTimeout(function() {
+                window.location.replace("${redirectUrl}");
+              }, 100); 
+            </script>
           </head>
           <body style="background: #000;"></body>
         </html>`,
@@ -55,6 +61,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Si hay error, volvemos al login pero también con puente para mayor seguridad
   return NextResponse.redirect(`${origin}/login?error=auth`)
 }
