@@ -15,6 +15,7 @@ import OrderListener from '@/components/OrderListener';
 import PushNotificationManager from '@/components/PushNotificationManager'; 
 
 function GoogleAuthHandler() {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -22,14 +23,17 @@ function GoogleAuthHandler() {
     const hasHash = typeof window !== 'undefined' && window.location.hash.includes('access_token');
     
     if (hasCode || hasHash) {
-      // Limpieza atómica: eliminamos los parámetros pero nos quedamos en la ruta actual
-      // Esto le dice a Android Chrome: "Ya procesé el login, ahora soy una App limpia"
-      const url = new URL(window.location.href);
-      url.search = "";
-      url.hash = "";
-      window.history.replaceState({}, document.title, url.pathname);
+      // 1. Limpiamos la URL inmediatamente para que Chrome Android "se calme"
+      // Usamos el pathname actual para no mover al usuario de donde está
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      
+      // 2. Forzamos un refresh suave de los datos de sesión
+      router.refresh();
+      
+      
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   return null;
 }
