@@ -19,7 +19,16 @@ import {
   LayoutList, Pencil, X, Search,Lock
 } from "lucide-react";
 import Link from "next/link";
-
+const CUSTOM_STYLES = `
+  @keyframes blink-attention {
+    0%, 100% { background-color: #f97316; color: white; border-color: #ea580c; }
+    50% { background-color: white; color: #f97316; border-color: #f97316; }
+  }
+  .animate-table-call {
+    animation: blink-attention 1s infinite;
+    border-width: 3px !important;
+  }
+`;
 // --- INTERFAZ PARA MESAS ---
 interface Table {
     id: string;
@@ -37,7 +46,10 @@ function OrdersContent() {
   // --- INICIALIZACIÓN DE HOOKS ---
   const router = useRouter(); // <--- ESTA ES LA LÍNEA QUE SOLUCIONA EL ERROR
   const searchParams = useSearchParams();
-  
+  const [selectedTableForDetail, setSelectedTableForDetail] = useState<any>(null); // Mesa seleccionada para ver detalle
+const [allProducts, setAllProducts] = useState<any[]>([]); // Lista de productos para agregar
+const [isAddingItem, setIsAddingItem] = useState(false); // Estado de carga al agregar
+const [showAddTools, setShowAddTools] = useState(false);
   // ESTADOS DE LA TABLA Y EDICIÓN
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
@@ -46,6 +58,15 @@ function OrdersContent() {
   date.setDate(date.getDate() + offset);
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
 };
+// Estados para Reservas
+  const [isResModalOpen, setIsResModalOpen] = useState(false);
+  const [resTable, setResTable] = useState<any>(null);
+  const [resData, setResData] = useState({ name: '', guests: '', date: '', time: '', description: '' });
+const [productSearch, setProductSearch] = useState("");
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualPrice, setManualPrice] = useState("");
+  const [manualDesc, setManualDesc] = useState("");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("grid");
@@ -134,10 +155,90 @@ const getStatusBadge = (status: string, orderType?: string) => {
     setIsModalOpen(true);
   };
 
+ // --- FUNCIONES DE GESTIÓN DE MESAS ---
+
+  const resetAttention = async (id: string) => {
+    await supabase.from('tables').update({ needs_attention: false }).eq('id', id);
+    if (restaurantId) fetchTables(restaurantId); 
+  };
+
   const toggleTableStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'libre' ? 'reservada' : 'libre';
     await supabase.from('tables').update({ status: newStatus }).eq('id', id);
-    fetchTables(restaurantId!); 
+    if (restaurantId) fetchTables(restaurantId); 
+  };
+
+const addItemToOrder = async (order: any, customItem?: { name: string, price: number }) => {
+    if (isAddingItem) return;
+    setIsAddingItem(true);
+    const newItem = {
+        id: customItem ? `manual-${Date.now()}` : Math.random().toString(36).substr(2, 9),
+        name: customItem ? customItem.name : '',
+        price: customItem ? customItem.price : 0,
+        quantity: 1,
+        uniqueId: Math.random().toString(36).substr(2, 9),
+        extrasList: []
+    };
+    const updatedItems = [...(order.items || []), newItem];
+    const newTotal = Number(order.total) + Number(newItem.price);
+
+    try {
+        const { error } = await supabase.from('orders').update({ items: updatedItems, total: newTotal }).eq('id', order.id);
+        if (!error) {
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, items: updatedItems, total: newTotal } : o));
+            setSelectedTableForDetail((prev: any) => ({ ...prev, activeOrder: { ...prev.activeOrder, items: updatedItems, total: newTotal } }));
+            setManualName(""); setManualPrice(""); setManualDesc(""); setIsManualMode(false);
+        }
+    } catch (err) { console.error(err); } finally { setIsAddingItem(false); }
+  };
+
+  const occupyTableManual = async (mesa: any) => {
+    if (!restaurantId) return;
+    const { error } = await supabase.from("orders").insert({
+        restaurant_id: restaurantId,
+        table_number: mesa.name,
+        customer_name: "Cliente Local",
+        order_type: "mesa",
+        status: "recibido",
+        total: 0,
+        items: [],
+        payment_method: "efectivo"
+    });
+    if (!error) loadOrders();
+  };
+
+  const saveReservation = async () => {
+    if (!resTable || !resData.name || !resData.guests) {
+        alert("Nombre y cantidad de personas son obligatorios.");
+        return;
+    }
+    const reservationDetails = {
+        name: resData.name,
+        guests: resData.guests,
+        description: resData.description || "", 
+        datetime: `${resData.date}T${resData.time}`
+    };
+    const { error } = await supabase
+        .from('tables')
+        .update({ status: 'reservada', reservation_info: reservationDetails })
+        .eq('id', resTable.id);
+    if (!error) {
+        fetchTables(restaurantId!);
+        setIsResModalOpen(false);
+        setResData({ name: '', guests: '', date: '', time: '', description: '' });
+    }
+  };
+
+  const deleteReservation = async (tableId: string) => {
+    if (!confirm("¿Eliminar la reserva de esta mesa?")) return;
+    const { error } = await supabase
+        .from('tables')
+        .update({ status: 'libre', reservation_info: null })
+        .eq('id', tableId);
+    if (!error) {
+        fetchTables(restaurantId!);
+        setIsResModalOpen(false);
+    }
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -151,16 +252,15 @@ const getStatusBadge = (status: string, orderType?: string) => {
     await supabase.from("orders").delete().eq("id", id);
   };
 
- // --- 1. WHATSAPP ---
   const toggleWhatsapp = async () => {
     if (!receiveWhatsapp && (!restaurantPhone || restaurantPhone.trim() === "")) {
-      setShowPhoneAlert(true); return;
+      setShowPhoneAlert(true); 
+      return;
     }
     const newValue = !receiveWhatsapp;
     setReceiveWhatsapp(newValue);
     await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
   };
-
   // --- 2. CARGA DE PEDIDOS (UNIFICADA) ---
 // --- 2. CARGA DE PEDIDOS (CON FIX DE ZONA HORARIA ARG) ---
 const loadOrders = async () => {
@@ -223,18 +323,25 @@ const loadOrders = async () => {
     printWindow.document.write(`
         <html>
             <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto; color: #000;">
-                <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-                    <h2 style="margin:0; font-size: 18px;">${restaurantName.toUpperCase()}</h2>
-                    <p style="margin: 5px 0; font-size: 12px;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
-                    <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
-                </div>
+              <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+    <h2 style="margin:0; font-size: 18px;">${restaurantName.toUpperCase()}</h2>
+  
+    ${order.order_type === 'mesa' ? `<h1 style="margin: 5px 0; font-size: 24px;">MESA ${order.table_number}</h1>` : ''}
+    <p style="margin: 5px 0; font-size: 12px;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
+    <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
+</div>
 
-                <div style="font-size: 12px; margin-bottom: 10px;">
-                    <p style="margin: 2px 0;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
-                    <p style="margin: 2px 0;"><strong>ENTREGA:</strong> ${order.order_type.toUpperCase()}</p>
-                    <p style="margin: 2px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida.toUpperCase()}</p>
-                    <p style="margin: 2px 0;"><strong>PAGO:</strong> ${order.payment_method.toUpperCase()}</p>
-                </div>
+              <div style="font-size: 12px; margin-bottom: 10px;">
+    <p style="margin: 2px 0;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
+    <p style="margin: 2px 0;"><strong>ENTREGA:</strong> ${order.order_type.toUpperCase()}</p>
+    <p style="margin: 2px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida.toUpperCase()}</p>
+    
+  
+    ${order.order_type !== 'mesa' 
+        ? `<p style="margin: 2px 0;"><strong>PAGO:</strong> ${order.payment_method.toUpperCase()}</p>` 
+        : ''
+    }
+</div>
                 
                 <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 5px 0; margin-bottom: 10px;">
                     ${itemsHtml}
@@ -309,6 +416,21 @@ const loadOrders = async () => {
     };
     initApp();
   }, []);
+useEffect(() => {
+    const fetchProducts = async () => {
+      if (!restaurantId) return;
+      console.log("🔍 Cargando productos para ID:", restaurantId);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .order('name', { ascending: true }); 
+      
+      if (error) console.error("❌ Error Supabase:", error);
+      setAllProducts(data || []);
+    };
+    fetchProducts();
+  }, [restaurantId]);
 
   useEffect(() => {
     loadOrders();
@@ -339,6 +461,37 @@ useEffect(() => {
       window.removeEventListener('visibilitychange', handleVisibility); 
     };
   }, [restaurantId, isLocked, selectedDate]);
+const getActiveOrderForTable = (tableName: string) => {
+    return orders.find(o => 
+        o.order_type === 'mesa' && 
+        o.table_number === tableName && 
+        // 🚀 AHORA: Solo se libera si está 'completado' o 'cancelado'
+        // 'entregado' significa que sigue en la mesa comiendo
+        !['completado', 'cancelado'].includes(o.status)
+    );
+};
+// 🚀 AGREGAR ESTO EN orders/page.tsx dentro de un useEffect
+useEffect(() => {
+    if (!restaurantId || isLocked) return;
+
+    // Suscripción en tiempo real para las MESAS (Llamado al mozo)
+    const tablesChannel = supabase
+        .channel('tables_realtime')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'tables',
+            filter: `restaurant_id=eq.${restaurantId}` 
+        }, (payload) => {
+            console.log("🔔 Cambio en mesas detectado:", payload);
+            fetchTables(restaurantId); // Recargamos las mesas automáticamente
+        })
+        .subscribe();
+
+    return () => { 
+        supabase.removeChannel(tablesChannel); 
+    };
+}, [restaurantId, isLocked]);
 
 // --- LÓGICA DE BÚSQUEDA INTELIGENTE (Corregida) ---
   const filteredOrders = orders.filter(order => {
@@ -374,7 +527,7 @@ useEffect(() => {
   }
  return (
 <div className="max-w-6xl mx-auto min-h-screen p-2 pt-2 md:pt-2 lg:pt-8 relative font-sans">
-      
+      <style dangerouslySetInnerHTML={{ __html: CUSTOM_STYLES }} />
       {/* --- LÓGICA DE BLOQUEO --- */}
       {isLocked && (
         <div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/60 flex items-center justify-center p-4">
@@ -511,6 +664,7 @@ useEffect(() => {
         </div>
 
         {/* --- GESTIÓN DE MESAS --- */}
+      {/* --- GESTIÓN DE MESAS (BLOQUE CORREGIDO) --- */}
         <div className="px-2 mb-8">
             <div className="bg-white border border-gray-100 rounded-[1.5rem] shadow-sm overflow-hidden">
                 <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 bg-slate-50/30">
@@ -522,48 +676,171 @@ useEffect(() => {
                         </div>
                         <div className={`ml-2 p-1.5 rounded-full transition-all ${showTables ? 'bg-blue-100 text-blue-600 rotate-180' : 'bg-gray-200 text-gray-500'}`}><ChevronDown size={20} strokeWidth={3} /></div>
                     </button>
-          <button 
-    onClick={() => {
-        if (currentPlan === 'go') {
-            setUpgradeModalInfo({
-                title: "Gestión de Salón",
-                desc: "Habilitá el control de mesas y comandas para organizar tu salón de forma profesional.",
-                plan: "Plus"
-            });
-            setShowUpgradeModal(true);
-            return;
-        }
-        setIsModalOpen(true);
-    }} 
-    className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md flex items-center justify-center gap-2 transition-all ${
-        currentPlan === 'go' 
-        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
-        : 'bg-blue-600 text-white hover:bg-blue-700'
-    }`}
->
-    {currentPlan === 'go' ? <Lock size={14} /> : <Plus size={14} />} 
-    Crear Mesa
-</button>
+                    <button 
+                        onClick={() => {
+                            if (currentPlan === 'go') {
+                                setUpgradeModalInfo({
+                                    title: "Gestión de Salón",
+                                    desc: "Habilitá el control de mesas y comandas para organizar tu salón de forma profesional.",
+                                    plan: "Plus"
+                                });
+                                setShowUpgradeModal(true);
+                                return;
+                            }
+                            setIsModalOpen(true);
+                        }} 
+                        className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md flex items-center justify-center gap-2 transition-all ${
+                            currentPlan === 'go' 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                    >
+                        {currentPlan === 'go' ? <Lock size={14} /> : <Plus size={14} />} 
+                        Crear Mesa
+                    </button>
                 </div>
 
                 {showTables && (
-                    <div className="p-6">
+                    <div className="p-6 bg-white border-t border-gray-100 animate-in fade-in slide-in-from-top-2">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {availableTables.map((mesa) => (
-                                <div key={mesa.id} className="bg-white p-5 rounded-[1.5rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-sm relative group hover:border-blue-200 transition-all">
-                                    <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => openEditModal(mesa)} className="bg-gray-50 p-2 rounded-full text-blue-600 shadow-sm hover:bg-blue-50"><Pencil size={14} /></button>
-                                        <button onClick={() => { if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="bg-gray-50 p-2 rounded-full text-red-500 shadow-sm hover:bg-red-50"><Trash2 size={14} /></button>
-                                    </div>
-                                    <span className="text-4xl mt-4 mb-2">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span>
-                                    <span className="font-black text-sm text-gray-900 uppercase mb-1">{mesa.name}</span>
-                                    <p className="text-[10px] text-gray-500 font-bold italic mb-4 line-clamp-1">{mesa.description || "Sin descripción"}</p>
-                                    <button onClick={() => toggleTableStatus(mesa.id, mesa.status)} className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${mesa.status === 'reservada' ? 'bg-red-50 border-red-600 text-red-600' : 'bg-green-50 border-green-600 text-green-700'}`}>
-                                        {mesa.status === 'reservada' ? 'Ocupada' : 'Libre'}
-                                    </button>
-                                </div>
-                            ))}
+   {availableTables.map((mesa: any) => {
+    const activeOrder = getActiveOrderForTable(mesa.name);
+    const isOccupied = !!activeOrder;
+    const isCalling = mesa.needs_attention;
+const reservation = mesa.reservation_info;
+    let isComingSoon = false;
+
+    if (reservation && reservation.datetime) {
+        const resTime = new Date(reservation.datetime).getTime();
+        const now = new Date().getTime();
+        const diffHours = (resTime - now) / (1000 * 60 * 60);
+        if (diffHours > 0 && diffHours <= 5) isComingSoon = true;
+    }
+    return (
+        <div 
+            key={mesa.id} 
+            onClick={() => isOccupied && setSelectedTableForDetail({ ...mesa, activeOrder })}
+           className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col min-h-[250px] shadow-sm group active:scale-[0.98] ${
+    isCalling ? 'animate-table-call cursor-pointer' : 
+    isOccupied ? 'border-orange-500 bg-orange-50/20 cursor-pointer' : 
+    isComingSoon ? 'border-blue-400 bg-blue-50/30 cursor-pointer shadow-blue-100' : // <-- Color para reserva próxima
+    'border-gray-100 bg-white cursor-default'
+}`}
+        >
+            {/* ✏️ BOTONES DE EDICIÓN (Arriba derecha) */}
+            <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1.5 bg-white shadow-md rounded-full text-blue-600 hover:bg-blue-50"><Pencil size={12} /></button>
+                <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1.5 bg-white shadow-md rounded-full text-red-500 hover:bg-red-50"><Trash2 size={12} /></button>
+            </div>
+
+            {/* 🔔 BOTÓN PARA APAGAR LLAMADO (Arriba izquierda) */}
+            {isCalling && (
+                <button onClick={(e) => { e.stopPropagation(); resetAttention(mesa.id); }} className="absolute -top-2 -left-2 bg-black text-white p-2 rounded-full z-20 border-2 border-white shadow-lg animate-bounce"><Check size={16} strokeWidth={4}/></button>
+            )}
+
+            {/* CABECERA: Nombre Mesa e Icono */}
+            <div className="flex justify-between items-start mb-2">
+                <span className="font-black text-xs uppercase bg-gray-100 px-3 py-1 rounded-lg text-gray-600">{mesa.name}</span>
+                <span className="text-2xl">{isCalling ? '🔔' : isOccupied ? '🔥' : '🍽️'}</span>
+            </div>
+
+            {isOccupied ? (
+                <div className="flex-1 flex flex-col justify-between">
+                    {/* INFO DEL CLIENTE */}
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest leading-none">Mesa Ocupada</p>
+                        <p className="text-sm font-black text-gray-900 truncate uppercase tracking-tighter">{activeOrder.customer_name}</p>
+                        <div className="flex justify-between items-center bg-white/50 p-2 rounded-xl border border-orange-100">
+                             <span className="text-[8px] font-black text-gray-400 uppercase">Total</span>
+                             <span className="text-sm font-black text-gray-900">${activeOrder.total}</span>
                         </div>
+                    </div>
+
+                    {/* 🔘 BOTONES DE SEGUIMIENTO Y DETALLE */}
+                    <div className="mt-4 space-y-2">
+                        <div className="grid grid-cols-1 gap-1.5">
+                            {activeOrder.status === 'pendiente' && (
+                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'recibido'); }} className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Tomar Pedido</button>
+                            )}
+                            {activeOrder.status === 'recibido' && (
+                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'en_proceso'); }} className="w-full py-2.5 bg-orange-500 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Enviar a Cocina</button>
+                            )}
+                            {activeOrder.status === 'en_proceso' && (
+                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'listo'); }} className="w-full py-2.5 bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Plato Listo</button>
+                            )}
+                            {activeOrder.status === 'listo' && (
+                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'entregado'); }} className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Entregado</button>
+                            )}
+                           {activeOrder.status === 'entregado' && (
+    <button 
+        onClick={(e) => { 
+            e.stopPropagation(); 
+            if(confirm("¿Confirmar pago y liberar mesa?")) updateStatus(activeOrder.id, 'completado'); 
+        }} 
+        className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg flex items-center justify-center gap-1 active:scale-95 transition-all"
+    >
+        <Banknote size={12} /> Confirmar Pago
+    </button>
+)}
+                        </div>
+                        
+                        {/* Botón ver detalle decorativo (el clic real lo hace la card) */}
+                        <div className="text-center">
+                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-0.5 group-hover:text-blue-500 group-hover:border-blue-500 transition-colors">
+                                + Ver Detalle / Sumar
+                            </span>
+                        </div>
+                    </div>
+                </div>
+           ) : (
+                /* 🍽️ ESTADO DISPONIBLE: BOTONES DE ACCIÓN */
+                <div className="flex-1 flex flex-col justify-center items-center gap-3">
+                    <p className="text-[10px] text-gray-300 font-black uppercase tracking-[0.2em]">Disponible</p>
+                    
+                    <div className="grid grid-cols-1 w-full gap-2 px-2">
+                        {/* BOTÓN OCUPAR MANUAL */}
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); occupyTableManual(mesa); }}
+                            className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
+                        >
+                            <User size={12} /> Ocupar Mesa
+                        </button>
+
+                        {/* BOTÓN RESERVAR */}
+                        {mesa.status === 'reservada' ? (
+        <button 
+            onClick={(e) => { 
+                e.stopPropagation(); 
+                setResTable(mesa); 
+                // Cargamos los datos existentes al modal para poder verlos/editarlos
+                setResData({
+                    name: mesa.reservation_info?.name || '',
+                    guests: mesa.reservation_info?.guests || '',
+                    date: mesa.reservation_info?.datetime?.split('T')[0] || '',
+                    time: mesa.reservation_info?.datetime?.split('T')[1] || '',
+                    description: mesa.reservation_info?.description || ''
+                });
+                setIsResModalOpen(true); 
+            }}
+            className="w-full py-2.5 bg-blue-50 text-blue-600 border-2 border-blue-200 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+            <List size={12} /> Ver Reserva
+        </button>
+    ) : (
+        <button 
+            onClick={(e) => { e.stopPropagation(); setResTable(mesa); setIsResModalOpen(true); }}
+            className="w-full py-2.5 bg-white border-2 border-blue-600 text-blue-600 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+            <CalendarIcon size={12} /> Reservar
+        </button>
+    )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+})}
+              </div>
                     </div>
                 )}
             </div>
@@ -654,66 +931,70 @@ useEffect(() => {
                             </div>
                         )}
 
-                   <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
-  <button 
-    onClick={() => {
-        if (currentPlan === 'go') {
-            setUpgradeModalInfo({
-                title: "Impresión de Tickets",
-                desc: "Generá comprobantes físicos para tus clientes y cocina, optimizá la entrega de tus pedidos.",
-                plan: "Plus"
-            });
-            setShowUpgradeModal(true);
-            return;
-        }
-        handlePrint(order);
-    }} 
-    className={`w-full py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all border ${
-        currentPlan === 'go'
-        ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
-        : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border-transparent'
-    }`}
->
-    {currentPlan === 'go' ? <Lock size={14} /> : <Printer size={14} />} 
-    Ticket
-</button>
+  <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
+    {/* Botón de Ticket (Siempre visible para todos) */}
+    <button 
+        onClick={() => handlePrint(order)} 
+        className={`w-full py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all border ${
+            currentPlan === 'go'
+            ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border-transparent'
+        }`}
+    >
+        {currentPlan === 'go' ? <Lock size={14} /> : <Printer size={14} />} 
+        Ticket
+    </button>
     
-    {/* 1. PENDIENTE -> PREPARAR */}
-    {order.status === "pendiente" && (
-        <div className="flex gap-2">
-            <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
-            <button onClick={() => updateStatus(order.id, "en_proceso")} className="bg-gray-900 text-white hover:bg-black px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
-                {businessType === 'fraccionado' || businessType === 'unidad' ? (
-                    <><ShoppingBag size={14} /> Preparar</>
-                ) : (
-                    <><ChefHat size={14} /> Cocinar</>
-                )}
-            </button>
+    {/* 🚀 LÓGICA DE SEPARACIÓN: MESA vs DELIVERY */}
+    {order.order_type === 'mesa' ? (
+        /* 🍽️ SI ES MESA: No mostramos botones de flujo, solo info */
+        <div className="py-3 px-4 bg-indigo-50 rounded-xl border border-indigo-100 text-center animate-in fade-in">
+            <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                Gestionado desde panel de salón
+            </p>
         </div>
-    )}
-
-    {/* 2. EN PROCESO -> ENVIAR */}
-    {order.status === "en_proceso" && (
-        <button onClick={() => updateStatus(order.id, "en_camino")} className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-xl text-xs font-black uppercase w-full">
-            {order.order_type === 'mesa' ? 'Listo para servir' : (businessType === 'fraccionado' || businessType === 'unidad' ? 'Pedido Enviado' : 'Enviar Pedido')}
-        </button>
-    )}
-
-    {/* 3. EN CAMINO -> ENTREGADO */}
-    {order.status === "en_camino" && (
-        <div className="flex flex-col gap-2">
-            {order.customer_phone && order.order_type !== 'mesa' && (
-                <a href={getWhatsAppLink(order.customer_phone, "notify")} className="w-full bg-green-500 text-white hover:bg-green-600 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-md no-underline"><MessageCircle size={14} fill="currentColor" /> Notificar Salida</a>
+    ) : (
+        /* 🛵 SI ES DELIVERY/RETIRO: Flujo normal con "Tomar Pedido" inicial */
+        <>
+            {order.status === "pendiente" && (
+                <div className="flex gap-2">
+                    <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
+                    <button onClick={() => updateStatus(order.id, "recibido")} className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
+                        <Check size={14} /> Tomar Pedido
+                    </button>
+                </div>
             )}
-            <button onClick={() => updateStatus(order.id, "entregado")} className="w-full bg-orange-500 text-white hover:bg-orange-600 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-md">
-                <CheckCircle size={14} /> {(businessType === 'fraccionado' || businessType === 'unidad' ? 'Entregado' : 'Pedido Finalizado')}
-            </button>
-        </div>
+
+            {order.status === "recibido" && (
+                <button onClick={() => updateStatus(order.id, "en_proceso")} className="w-full bg-orange-500 text-white py-3 rounded-xl text-xs font-black uppercase">
+                    {businessType === 'fraccionado' ? 'Preparar Paquete' : 'Enviar a Cocina'}
+                </button>
+            )}
+{order.status === "en_proceso" && (
+    <button 
+        onClick={() => updateStatus(order.id, "en_camino")} 
+        className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase animate-in zoom-in text-center"
+    >
+        {/* 🚀 CAMBIO DE TEXTO SEGÚN TIPO */}
+        {order.order_type === 'retiro' ? 'Notificar: Pedido Listo' : 'Enviar Pedido'}
+    </button>
+)}
+
+{order.status === "en_camino" && (
+    <button 
+        onClick={() => updateStatus(order.id, "entregado")} 
+        className="w-full bg-green-600 text-white py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-md animate-in zoom-in text-center"
+    >
+        <CheckCircle size={14} /> 
+        {order.order_type === 'retiro' ? 'Entregar al Cliente' : 'Finalizar Pedido'}
+    </button>
+)}
+        </>
     )}
 
-    {/* 4. FINALIZADOS */}
+    {/* BOTONES COMUNES PARA TODOS AL FINALIZAR (Chat / Borrar) */}
     {(order.status === "completado" || order.status === "entregado" || order.status === "cancelado") && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 animate-in zoom-in">
             {order.customer_phone && (
                 <a href={getWhatsAppLink(order.customer_phone, "chat")} className="flex-1 bg-green-50 text-green-700 border border-green-100 px-3 py-3 rounded-xl hover:bg-green-100 transition-all flex items-center justify-center gap-2 font-black text-[10px] no-underline uppercase">Chat Directo</a>
             )}
@@ -790,6 +1071,221 @@ useEffect(() => {
           </div>
         </div>
       )}
+      {/* 🛒 MODAL POS: DETALLE DE MESA Y AGREGAR PRODUCTOS */}
+{selectedTableForDetail && (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-end bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+        <div className="bg-white w-full max-w-md h-full rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-500">
+            {/* Header del Modal */}
+            <div className="p-8 border-b flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{selectedTableForDetail.name}</span>
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 mt-2">
+                        {selectedTableForDetail.activeOrder.customer_name}
+                    </h3>
+                </div>
+                <button onClick={() => setSelectedTableForDetail(null)} className="p-3 bg-white rounded-full shadow-lg text-gray-400 hover:text-gray-900 transition-all active:scale-90"><X size={24} strokeWidth={3}/></button>
+            </div>
+
+            {/* Cuerpo con scroll */}
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                <div className="space-y-3">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Consumo de la mesa</p>
+                    {selectedTableForDetail.activeOrder.items?.map((item: any, i: number) => (
+                        <div key={i} className="flex justify-between items-center bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-black text-gray-800 leading-none mb-1">{item.name}</span>
+                                <span className="text-[10px] font-bold text-blue-600 uppercase">Cantidad: {item.quantity}</span>
+                            </div>
+                            <span className="text-sm font-black text-gray-900">${item.price * item.quantity}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* 🔍 SECCIÓN DE ADICIÓN DE PRODUCTOS */}
+              {/* 🛒 SECCIÓN DE ADICIÓN DE PRODUCTOS (POS) */}
+                <div className="pt-6 border-t border-dashed border-gray-200">
+                    {!showAddTools ? (
+                        /* 1. BOTÓN PRINCIPAL (Lo primero que se ve) */
+                        <button 
+                            onClick={() => setShowAddTools(true)}
+                            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
+                        >
+                            <Plus size={18} strokeWidth={3} /> Agregar al pedido
+                        </button>
+                    ) : (
+                        /* 2. PANEL DESPLEGADO */
+                        <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Añadir nuevos items</p>
+                                <button onClick={() => { setShowAddTools(false); setIsManualMode(false); }} className="p-1 text-gray-400 hover:text-red-500"><X size={16} /></button>
+                            </div>
+
+                            {/* SELECTOR: LISTA O MANUAL */}
+                            <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+                                <button onClick={() => setIsManualMode(false)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${!isManualMode ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Mis Productos</button>
+                                <button onClick={() => setIsManualMode(true)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${isManualMode ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400'}`}>Carga Manual</button>
+                            </div>
+
+                            {isManualMode ? (
+                                /* 📝 CARGA MANUAL CON NOMBRE, DESC Y PRECIO */
+                                <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 space-y-3 animate-in fade-in">
+                                    <input type="text" placeholder="Nombre (Ej: Descorche)" value={manualName} onChange={(e) => setManualName(e.target.value)} className="w-full p-3 bg-white rounded-xl border-none text-xs font-bold shadow-sm outline-none" />
+                                    <input type="text" placeholder="Descripción (Ej: Vino tinto)" value={manualDesc} onChange={(e) => setManualDesc(e.target.value)} className="w-full p-3 bg-white rounded-xl border-none text-xs font-bold shadow-sm outline-none" />
+                                    <input type="number" placeholder="Precio ($)" value={manualPrice} onChange={(e) => setManualPrice(e.target.value)} className="w-full p-3 bg-white rounded-xl border-none text-xs font-bold shadow-sm outline-none" />
+                                    <button 
+                                        onClick={() => {
+                                            addItemToOrder(selectedTableForDetail.activeOrder, { name: manualName, price: Number(manualPrice) });
+                                            setManualName(""); setManualDesc(""); setManualPrice("");
+                                        }}
+                                        disabled={!manualName || !manualPrice || isAddingItem}
+                                        className="w-full py-3 bg-orange-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 disabled:opacity-50"
+                                    >
+                                        {isAddingItem ? 'Agregando...' : 'Confirmar Item Manual'}
+                                    </button>
+                                </div>
+                            ) : (
+                                /* 🔎 BUSCADOR Y LISTA DE PRODUCTOS CARGADOS */
+                                <div className="space-y-3 animate-in fade-in">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        <input 
+                                            type="text" placeholder="Buscar mi producto..." 
+                                            value={productSearch} onChange={(e) => setProductSearch(e.target.value)}
+                                            className="w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border-none text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
+                                        {allProducts
+                                            .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                                            .map((prod) => (
+                                                <button 
+                                                    key={prod.id}
+                                                    onClick={() => addItemToOrder(selectedTableForDetail.activeOrder, { name: prod.name, price: Number(prod.price) })}
+                                                    disabled={isAddingItem}
+                                                    className="flex justify-between items-center p-4 bg-white hover:bg-blue-600 hover:text-white group rounded-2xl border border-gray-100 transition-all text-left shadow-sm active:scale-95"
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-black uppercase tracking-tight">{prod.name}</span>
+                                                        <span className="text-[8px] font-bold text-gray-400 group-hover:text-blue-100 uppercase italic line-clamp-1">{prod.description}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-[11px] font-black text-blue-600 group-hover:text-white">${prod.price}</span>
+                                                        <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg group-hover:bg-white/20 group-hover:text-white"><Plus size={14} strokeWidth={4}/></div>
+                                                    </div>
+                                                </button>
+                                            ))
+                                        }
+                                        {allProducts.length > 0 && allProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                                            <div className="text-center py-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase">No encontramos "{productSearch}"</p>
+                                                <button onClick={() => setIsManualMode(true)} className="mt-2 text-[9px] font-black text-blue-600 uppercase underline">Crear item manual</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            
+            {/* 💰 FOOTER COMPACTO (Se esconde al agregar productos) */}
+            {!showAddTools && (
+                <div className="p-6 bg-gray-900 text-white rounded-t-[2.5rem] animate-in slide-in-from-bottom-5 duration-300">
+                    <div className="flex justify-between items-end mb-4 px-2">
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Total acumulado</span>
+                            <span className="text-2xl font-black italic tracking-tighter text-white">
+                                ${selectedTableForDetail.activeOrder.total}
+                            </span>
+                        </div>
+                        <Zap size={22} className="text-yellow-400 fill-yellow-400 opacity-50" />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        {/* Botón Imprimir más chico */}
+                        <button 
+                            onClick={() => handlePrint(selectedTableForDetail.activeOrder)}
+                            className="w-full py-3 bg-white/10 text-white border border-white/20 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all"
+                        >
+                            <Printer size={16} /> Imprimir Comanda
+                        </button>
+
+                        {/* Botón Pagar más chico */}
+                        <button 
+                            onClick={() => { 
+                                if(confirm("¿Cerrar mesa y marcar como pagado?")) {
+                                    updateStatus(selectedTableForDetail.activeOrder.id, 'completado');
+                                    setSelectedTableForDetail(null);
+                                }
+                            }}
+                            className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
+                        >
+                            <CheckCircle size={16} /> Confirmar Pago y Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+        </div>
+    </div>
+)}
+{isResModalOpen && (
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95">
+            <div className="flex justify-between items-start mb-6">
+                <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">
+                    {resTable?.status === 'reservada' ? 'Detalle Reserva' : 'Nueva Reserva'}: {resTable?.name}
+                </h3>
+                {resTable?.status === 'reservada' && (
+                    <button onClick={() => deleteReservation(resTable.id)} className="p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors">
+                        <Trash2 size={18} />
+                    </button>
+                )}
+            </div>
+            
+            <div className="space-y-4">
+                <div>
+                    <label className="text-[9px] font-black text-blue-600 uppercase ml-2">Nombre del Cliente *</label>
+                    <input type="text" placeholder="Ej: Juan Pérez" value={resData.name} onChange={e => setResData({...resData, name: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-blue-600" />
+                </div>
+
+                <div className="flex gap-2">
+                    <div className="flex-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Fecha</label>
+                        <input type="date" value={resData.date} onChange={e => setResData({...resData, date: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none" />
+                    </div>
+                    <div className="w-32">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Hora</label>
+                        <input type="time" value={resData.time} onChange={e => setResData({...resData, time: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none" />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="text-[9px] font-black text-blue-600 uppercase ml-2">Cantidad de Personas *</label>
+                    <input type="number" placeholder="Ej: 4" value={resData.guests} onChange={e => setResData({...resData, guests: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none" />
+                </div>
+
+                <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Notas / Descripción</label>
+                    <textarea placeholder="Ej: Traen torta..." value={resData.description} onChange={e => setResData({...resData, description: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none h-20 resize-none" />
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                    <button onClick={() => { setIsResModalOpen(false); setResData({ name: '', guests: '', date: '', time: '', description: '' }); }} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cerrar</button>
+                    <button 
+                        onClick={saveReservation} 
+                        disabled={!resData.name || !resData.guests}
+                        className={`flex-[2] py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all ${(!resData.name || !resData.guests) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white active:scale-95'}`}
+                    >
+                        {resTable?.status === 'reservada' ? 'Actualizar' : 'Confirmar Reserva'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
     </div>
   );
 }

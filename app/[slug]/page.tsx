@@ -25,6 +25,7 @@ import AlternaPro from "@/components/templates/AlternaPro";
 import UrbanoDark from "@/components/templates/UrbanoDark";
 import HeladeriaSoft from "@/components/templates/HeladeriaSoft";
 import VisualGrid from "@/components/templates/VisualGrid";
+import BioModern from "@/components/templates/bio/BioModern";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -32,56 +33,66 @@ const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 // --- 1. DATOS ---
 async function getRestaurant(slug: string) {
-  // A. Traemos el restaurante y sus categorías
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select(`*, categories (id, name)`)
-    .eq("slug", slug)
-    .single();
+  // Limpiamos el slug por si viene con espacios o mayúsculas
+  const cleanSlug = slug.toLowerCase().trim();
+  console.log("🔍 Buscando página para:", cleanSlug);
 
-  if (!restaurant) return null;
+  // A. Buscamos primero en la tabla de BIOS (Independiente)
+ const { data: bioData, error: bioError } = await supabase
+  .from("snappylinks")
+  .select(`*, restaurant:restaurants(*)`)
+  .eq("slug", cleanSlug)
+  .maybeSingle();
 
-  // B. Traemos los productos
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .eq("restaurant_id", restaurant.id)
-    .order("name", { ascending: true });
-
-  const { data: allExtras } = await supabase
-    .from("extras")
-    .select(`*, product_extras (product_id)`)
-    .eq("restaurant_id", restaurant.id);
-
-  // --- EL TRUCO ESTÁ ACÁ: Agrupamos los productos en las categorías ---
-  const productsList = products || [];
-  const categoriesWithProducts = (restaurant.categories || []).map(
-    (cat: any) => ({
-      ...cat,
-      products: productsList.filter(
-        (p: any) => String(p.category_id) === String(cat.id),
-      ),
-    }),
-  );
-
-  // C. Agregamos una categoría "General" para productos sin categoría asignada
-  const orphanedProducts = productsList.filter((p: any) => !p.category_id);
-  if (orphanedProducts.length > 0) {
-    categoriesWithProducts.push({
-      id: "general",
-      name: "General",
-      products: orphanedProducts,
-    });
-  }
-
+if (bioData) {
+  console.log("✅ BIO ENCONTRADA EN SNAPPYLINKS");
   return {
-    ...restaurant,
-    categories: categoriesWithProducts, // <--- Ahora las categorías tienen sus productos
-    fetched_products: productsList,
-    fetched_extras: allExtras || [],
+    ...bioData.restaurant, // Info base (nombre local, logo original)
+    snappylink_bio: bioData.bio,
+    snappylink_links: bioData.links,
+    snappylink_template_id: bioData.template_id,
+    is_bio_active: bioData.is_active,
+    
+    // 🚀 NUEVOS CAMPOS AGREGADOS:
+    snappylink_title: bioData.title, 
+    snappylink_bg_color: bioData.bg_color,
+    snappylink_bg_img: bioData.bg_img,
+    snappylink_btn_color: bioData.btn_color,
+    snappylink_btn_text_color: bioData.btn_text_color,
+    snappylink_shadow_color: bioData.shadow_color,
+    
+    page_type: 'bio'
   };
 }
 
+  // B. Si no estaba en Bios, buscamos en la tabla de MENÚS
+  const { data: menuData, error: menuError } = await supabase
+    .from("restaurants")
+    .select(`*, categories (id, name)`)
+    .eq("slug", cleanSlug)
+    .maybeSingle();
+
+  if (menuData) {
+    console.log("✅ MENÚ ENCONTRADO EN RESTAURANTS");
+    const { data: products } = await supabase.from("products").select("*").eq("restaurant_id", menuData.id).order("name", { ascending: true });
+    const { data: allExtras } = await supabase.from("extras").select(`*, product_extras (product_id)`).eq("restaurant_id", menuData.id);
+
+    const categoriesWithProducts = (menuData.categories || []).map((cat: any) => ({
+      ...cat,
+      products: (products || []).filter((p: any) => String(p.category_id) === String(cat.id)),
+    }));
+
+    return { 
+      ...menuData, 
+      categories: categoriesWithProducts, 
+      fetched_products: products || [], 
+      fetched_extras: allExtras || [], 
+      page_type: 'menu' 
+    };
+  }
+
+  return null;
+}
 // --- 2. HORARIOS ---
 function checkIsOpen(businessHours: any) {
   if (!businessHours) return true;
@@ -2062,6 +2073,7 @@ function MenuContent({
             planType={restaurant.subscription_plan}
             receiveWhatsapp={restaurant.receive_whatsapp}
             businessType={restaurant.business_type}
+            restaurantName={restaurant.name}
           />
         </div>
       </div>
@@ -2388,13 +2400,71 @@ function MenuContent({
     </main>
   );
 }
+function BioContent({ restaurant }: { restaurant: any }) {
+  // 🎨 Definimos el fondo (Prioridad: Imagen > Color > Blanco)
+  const mainStyle = {
+    backgroundColor: restaurant.snappylink_bg_color || "#ffffff",
+    backgroundImage: restaurant.snappylink_bg_img ? `url(${restaurant.snappylink_bg_img})` : 'none',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed', // Para que la imagen no scrollee (opcional)
+  };
+  
+  // 🖋️ Título (Prioridad: Título personalizado > Nombre del comercio)
+  const displayTitle = restaurant.snappylink_title || restaurant.name;
+  
+  return (
+    <main className="min-h-screen flex flex-col" style={mainStyle}>
+      <div className="max-w-[500px] mx-auto w-full flex-1 flex flex-col items-center pt-16 px-6 relative z-10">
+        
+        {/* HEADER (Logo) */}
+        <div className="w-24 h-24 rounded-full border-4 shadow-xl overflow-hidden mb-6" 
+             style={{ borderColor: restaurant.snappylink_btn_color || restaurant.theme_color }}>
+          <img src={restaurant.snappylink_logo_url || restaurant.logo_url || '/placeholder.png'} 
+               className="w-full h-full object-cover" alt="logo" />
+        </div>
+        
+        {/* TEXTOS (Título y Bio) */}
+        <div className="text-center space-y-2 mb-10">
+          <h1 className="font-black text-2xl uppercase italic tracking-tighter leading-none" 
+              style={{ color: restaurant.snappylink_btn_text_color || restaurant.text_color }}>
+            {displayTitle}
+          </h1>
+          <p className="text-xs font-medium opacity-70 max-w-xs" 
+             style={{ color: restaurant.description_color }}>
+            {restaurant.snappylink_bio}
+          </p>
+        </div>
 
+        {/* DISEÑO DINÁMICO (Los botones adentro de BioModern ya usan estos datos) */}
+        <div className="w-full">
+          {(() => {
+            switch (restaurant.snappylink_template_id) { 
+              case 'bio-modern': return <BioModern data={restaurant} />;
+              default: return <BioModern data={restaurant} />;
+            }
+          })()}
+        </div>
+
+        {/* FOOTER */}
+        <div className="mt-auto py-10">
+          <a href="https://snappy.uno" target="_blank" className="no-underline opacity-30 hover:opacity-100 transition-opacity">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-2">
+              Potenciado por <Zap size={12} className="fill-yellow-400 text-yellow-400" /> Snappy
+            </p>
+          </a>
+        </div>
+      </div>
+      
+      {/* Overlay para que si la imagen es muy clara, se lea el texto (opcional) */}
+      {restaurant.snappylink_bg_img && (
+        <div className="absolute inset-0 bg-black/20 pointer-events-none z-0"></div>
+      )}
+    </main>
+  );
+}
 // --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y LÓGICA DE PAUSA) ---
-export default function MenuPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -2409,65 +2479,34 @@ export default function MenuPage({
           setLoading(false);
         }
       } catch (error) {
+        console.error("Error en carga:", error);
         if (active) setLoading(false);
       }
     }
     load();
-    return () => {
-      active = false;
-    };
-  }, []); 
+    return () => { active = false; };
+  }, [params]);
 
-  if (loading)
-    return (
-      <div className="h-screen flex items-center justify-center bg-white">
-        <Loader2 className="animate-spin text-black" size={40} />
-      </div>
-    );
-    
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-black" size={40} />
+    </div>
+  );
+  
   if (!restaurant) return notFound();
 
-  // --- LÓGICA DE MENÚ PAUSADO (CANCELACIÓN DE PLAN) ---
-  if (restaurant.subscription_status === 'cancelled') {
-    return (
-        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 p-8 text-center font-sans">
-            <div className="w-24 h-24 bg-amber-50 text-amber-600 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-amber-900/5">
-                <Clock size={48} strokeWidth={1.5} className="animate-pulse" />
-            </div>
-            
-            <h1 className="text-3xl font-black uppercase italic tracking-tighter text-gray-900 mb-4 leading-none">
-                {restaurant.name}
-            </h1>
-            
-            <div className="max-w-xs space-y-4">
-                <p className="text-gray-500 font-bold text-sm leading-relaxed uppercase tracking-widest italic">
-                    Este menú se encuentra temporalmente pausado.
-                </p>
-                <div className="h-[2px] w-12 bg-gray-200 mx-auto" />
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em]">
-                    Vuelve a visitarnos pronto
-                </p>
-            </div>
-
-            <a 
-                href="https://snappy.uno" 
-                className="mt-20 flex items-center gap-2 text-[10px] font-black text-gray-300 hover:text-blue-500 transition-colors uppercase tracking-widest no-underline"
-            >
-                Snappy Menú Digital <Zap size={12} fill="currentColor" />
-            </a>
-        </div>
-    );
+  // 🚀 SI EL SLUG ERA DE UNA BIO
+  if (restaurant.page_type === 'bio') {
+    if (restaurant.is_bio_active === false) return notFound();
+    return <BioContent restaurant={restaurant} />;
   }
 
-  // --- SI EL PLAN ESTÁ ACTIVO, SE MUESTRA NORMAL ---
+  // 🍔 SI EL SLUG ERA DE UN MENÚ
   return (
     <CartProvider>
       <MenuContent
         restaurant={restaurant}
-        isOpen={
-          restaurant.always_open ||
-          (restaurant.is_open && checkIsOpen(restaurant.business_hours))
-        }
+        isOpen={restaurant.always_open || (restaurant.is_open && checkIsOpen(restaurant.business_hours))}
       />
     </CartProvider>
   );

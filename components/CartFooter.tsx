@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User, MessageCircle } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 
 interface Table {
@@ -13,10 +13,11 @@ interface Table {
     restaurant_id: string;
 }
 
-export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, businessType }: any) {
+export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, businessType, restaurantName }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
+    const [waiterNotified, setWaiterNotified] = useState(false);
 
     const [nombre, setNombre] = useState('');
     const [telCliente, setTelCliente] = useState('');
@@ -61,7 +62,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
 
     useEffect(() => {
         if (activeOrderId) {
-            if (planType !== 'plus' && planType !== 'max') {
+           if (planType !== 'go' && planType !== 'plus' && planType !== 'max') {
                 const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 15 * 60 * 1000); 
                 return () => clearTimeout(timer);
             }
@@ -82,57 +83,120 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
         }
     }, [metodoEnvio, restaurantId, supabase]);
 
-    if (activeOrderId) {
-        if (planType === 'plus' || planType === 'max') {
-            return (
-                <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
-                    <div className="w-full h-[85vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col">
-                        <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-[130] shadow-sm"><X size={20} className="text-gray-400" /></button>
-                       
-<OrderTracker 
-  orderId={activeOrderId} 
-  restaurantPhone={phone} 
-  businessType={businessType || "gastronomico"} // <--- USAMOS LA PROP AQUÍ
-  onStatusChange={(status: string) => setOrderStatus(status)} 
-/>
-                    </div>
-                </div>
-            );
-        }
+if (activeOrderId) {
+    if (planType === 'go' || planType === 'plus' || planType === 'max') {
+        const isMesa = metodoEnvio === 'mesa';
+        
+        const tableStatusText: any = {
+            'pendiente': 'Estamos revisando tu pedido...',
+            'recibido': '¡Pedido Tomado! ✅',
+            'en_proceso': 'Tu pedido ya está en cocina 🔥',
+            'listo': '¡Plato Listo! Enseguida te lo alcanzan 🍽️',
+            'entregado': '¡Que lo disfrutes! ✨',
+            'completado': '¡Que lo disfrutes! ✨',
+        };
+
+       const handleCallWaiter = async () => {
+    if (!nroMesa) return;
+    
+    try {
+        // Notificamos a la base de datos
+        await supabase.from('tables')
+            .update({ needs_attention: true })
+            .eq('name', nroMesa)
+            .eq('restaurant_id', restaurantId);
+        
+        // Activamos el aviso visual en el botón
+        setWaiterNotified(true);
+        
+        // A los 5 segundos, el botón vuelve a la normalidad para que pueda llamar de nuevo si hace falta
+        setTimeout(() => setWaiterNotified(false), 5000);
+    } catch (error) {
+        console.error("Error al llamar al mozo:", error);
+    }
+};
 
         return (
-            <div className="fixed inset-0 z-[120] bg-gray-900/40 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
-                <div className="w-full bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl border border-green-100 relative animate-in slide-in-from-bottom-10 md:max-w-md overflow-hidden flex flex-col">
-                    <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors z-10"><X size={24} className="text-gray-400" /></button>
-                    <div className="text-center space-y-6 pt-10 pb-8 px-8 flex-1">
-                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600 mb-4 animate-in zoom-in duration-300 shadow-inner"><CheckCircle2 size={48} /></div>
-                        <div>
-                            <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">¡Pedido Enviado!</h2>
-                            <p className="text-gray-500 text-sm mt-2 font-medium px-2 leading-relaxed">
-                                Si tenés dudas o querés consultar algo, envianos un WhatsApp.
-                            </p>
+            <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
+                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-white rounded-t-[3rem] md:rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
+                    
+                    <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full z-[130]"><X size={20} className="text-gray-400" /></button>
+                    
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10 flex flex-col">
+                
+                        {/* 🟦 HEADER AZUL: EXCLUSIVO DE MESA */}
+                        {isMesa && (
+                            <div className="bg-indigo-600 text-white rounded-[2rem] p-5 mb-8 text-left shadow-lg">
+                                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-1">Tu Mesa: {nroMesa}</p>
+                                <h4 className="text-base font-black leading-tight">{tableStatusText[orderStatus] || 'Procesando...'}</h4>
+                            </div>
+                        )}
+
+                        {/* 🔘 TRACKER CENTRAL */}
+                        <div className="flex-1 flex flex-col justify-center">
+                            <OrderTracker 
+                                orderId={activeOrderId} 
+                                restaurantPhone={phone} 
+                                businessType={metodoEnvio === 'mesa' ? 'mesa' : (metodoEnvio === 'retiro' ? 'retiro' : 'gastronomico')} 
+                                onStatusChange={(s: string) => setOrderStatus(s)} 
+                            />
                         </div>
-                        <div className="pt-2">
-                            <button 
-                                onClick={() => {
-                                    const cleanPhone = String(phone).replace(/\D/g, '');
-                                    window.location.href = `whatsapp://send?phone=${cleanPhone}`;
-                                }}
-                                className="w-full bg-green-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl text-lg active:scale-95"
-                            >
-                                <MessageSquare size={24} /> Enviar WhatsApp
-                            </button>
-                            <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 hover:text-gray-600 transition-colors">Volver al menú</button>
+
+                        {/* 🔘 BOTONES DE ACCIÓN INFERIORES */}
+                        <div className="mt-8 space-y-3 pb-4">
+                            {isMesa ? (
+                                <>
+                                   <button 
+    onClick={handleCallWaiter} 
+    disabled={waiterNotified}
+    className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all shadow-sm ${
+        waiterNotified 
+        ? 'bg-green-100 text-green-700 border-2 border-green-200' 
+        : 'bg-white border-2 border-orange-500 text-orange-600 active:scale-95'
+    }`}
+>
+    {waiterNotified ? (
+        <><Check size={18} /> ¡Mozo notificado!</>
+    ) : (
+        <><MessageSquare size={18} /> Llamar Mozo</>
+    )}
+</button>
+                                    {(orderStatus === 'entregado' || orderStatus === 'completado') && (
+                                        <button onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}&text=Pedir cuenta Mesa ${nroMesa}`)} className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in">
+                                            <Wallet size={18} /> Pagar Cuenta
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {(orderStatus === 'entregado' || orderStatus === 'completado') ? (
+                                        <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="w-full bg-gray-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest">Finalizar Pedido</button>
+                                    ) : (
+                                        <button onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)} className="w-full bg-green-600 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg">
+                                            <MessageCircle size={18} /> Consultar por WhatsApp
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                            
                         </div>
                     </div>
-                    <div className="p-4 text-center bg-gray-900 border-t border-gray-800">
-                        <p className="text-[10px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">Potenciado por <Zap size={12} className="text-yellow-400/50 fill-yellow-400/50"/> Snappy</p>
-                    </div>
+
+                    <a 
+    href="https://snappy.uno" 
+    target="_blank" 
+    rel="noreferrer" 
+    className="block p-4 bg-gray-900 border-t border-gray-800 hover:bg-black transition-all duration-300 no-underline"
+>
+    <p className="text-[9px] font-black text-white/40 flex items-center justify-center gap-1 uppercase tracking-[0.2em]">
+        Potenciado por <Zap size={10} className="text-yellow-400 fill-yellow-400"/> Snappy
+    </p>
+</a>
                 </div>
             </div>
         );
     }
-
+}
     const subtotal = cart.reduce((acc: number, item: any) => {
         const extrasTotal = (item.extrasList || []).reduce((a: number, b: any) => a + (b.price * b.quantity), 0);
         return acc + (item.price + extrasTotal) * item.quantity;
@@ -339,28 +403,52 @@ return (
                         </div>
                     )}
                 </div>
+{metodoEnvio !== 'mesa' && (
+    <div className="space-y-3 animate-in fade-in duration-300">
+        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+            Medio de Pago
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+            <button 
+                onClick={() => setMetodoPago('efectivo')} 
+                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}
+            >
+                <Wallet size={18} /> Efectivo
+            </button>
+            <button 
+                onClick={() => setMetodoPago('transferencia')} 
+                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}
+            >
+                <Landmark size={18} /> Transferencia
+            </button>
+        </div>
 
-                <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Medio de Pago</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setMetodoPago('efectivo')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}><Wallet size={18} /> Efectivo</button>
-                        <button onClick={() => setMetodoPago('transferencia')} className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}><Landmark size={18} /> Transferencia</button>
+        {/* Lógica de Alias para Transferencia */}
+        {metodoPago === 'transferencia' && aliasMp && (
+            <div className="space-y-2">
+                <div 
+                    onClick={handleCopyAlias} 
+                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
+                >
+                    <div className={copied ? 'text-white' : 'text-blue-900'}>
+                        <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
+                            {copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}
+                        </p>
+                        <p className="text-sm font-black">{aliasMp}</p>
                     </div>
-                    {metodoPago === 'transferencia' && aliasMp && (
-                        <div className="space-y-2">
-                            <div onClick={handleCopyAlias} className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}>
-                                <div className={copied ? 'text-white' : 'text-blue-900'}><p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">{copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}</p><p className="text-sm font-black">{aliasMp}</p></div>
-                                {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
-                            </div>
-                            {copied && (
-                                <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
-                                    <MessageSquare size={16} className="text-blue-500" />
-                                    <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
                 </div>
+                
+                {copied && (
+                    <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
+                        <MessageSquare size={16} className="text-blue-500" />
+                        <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
+                    </div>
+                )}
+            </div>
+        )}
+    </div>
+)}
 
                 <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Deja aquí alguna nota" value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
 
@@ -380,7 +468,20 @@ return (
                         <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
                         <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
-                    <button onClick={handleSendOrder} disabled={isSending} className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10">{isSending ? <Loader2 className="animate-spin" size={24} /> : <><Send size={24} /> Enviar Pedido</>}</button>
+                   <button 
+    onClick={handleSendOrder} 
+    disabled={isSending} 
+    className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
+>
+    {isSending ? (
+        <Loader2 className="animate-spin" size={24} />
+    ) : (
+        <>
+            <Send size={24} /> 
+            {metodoEnvio === 'mesa' ? 'Pedir ahora' : 'Enviar Pedido'}
+        </>
+    )}
+</button>
                 </div>
             </div>
         </div>

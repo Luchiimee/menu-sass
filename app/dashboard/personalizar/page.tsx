@@ -7,11 +7,11 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, 
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
+import BioModern from '../../../components/templates/bio/BioModern';
 
-// Componentes
 import UrbanoDark from '../../../components/templates/UrbanoDark';
 import PopVibrant from '../../../components/templates/PopVibrant';
 import VisualGrid from '../../../components/templates/VisualGrid';
@@ -24,220 +24,27 @@ import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 import AlternaPro from '../../../components/templates/AlternaPro';
 import HeladeriaSoft from '../../../components/templates/HeladeriaSoft';
 
-const ColorRow = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => (
-    <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors">
-        <span className="text-xs font-bold text-gray-700">{label}</span>
-        <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-gray-400 uppercase">{value}</span>
-            <div className="relative w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden">
-                <input 
-                    type="color" 
-                    value={value || '#000000'} // <--- FALLBACK AGREGADO
-                    onChange={(e) => onChange(e.target.value)} 
-                    className="absolute inset-0 scale-150 cursor-pointer bg-transparent border-none"
-                />
-            </div>
-        </div>
-    </div>
-);
-
 const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
-    <div className="flex flex-col items-center gap-2">
-        <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg overflow-hidden transition-transform active:scale-90">
-            <input 
-                type="color" 
-                value={value || '#000000'} // <--- FALLBACK AGREGADO
-                onChange={(e) => onChange(e.target.value)} 
-                className="absolute inset-0 scale-[2] cursor-pointer bg-transparent border-none"
-            />
-        </div>
-        <span className="text-[8px] font-black uppercase text-gray-400 text-center leading-tight px-1">{label}</span>
+  <div className="flex flex-col items-center gap-2">
+    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg overflow-hidden transition-transform active:scale-90">
+      <input type="color" value={value || '#000000'} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 scale-[2] cursor-pointer bg-transparent border-none" />
     </div>
+    <span className="text-[8px] font-black uppercase text-gray-400 text-center leading-tight px-1">{label}</span>
+  </div>
 );
 
-const MARKETPRO_ASSETS = {
-  // Un logo circular de comida prolijo
-  logo: 'https://images.unsplash.com/photo-1512152272829-e3139592d56f?auto=format&fit=crop&w=100&q=80',
-  // Banner de hamburguesas (este ya te funcionaba bien)
-  banner: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80',
-  // Hamburguesa de producto
-  burger: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
-  // PAPAS FRITAS (Link nuevo y verificado que no se rompe)
-  fries: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?auto=format&fit=crop&w=150&q=80',
-};
-
-// 1. COLORES POR DEFECTO
 const TEMPLATE_DEFAULTS: any = {
-classic: { 
-    theme: '#d32f2f',       // Rojo
-    bg: '#ffffff',          // Blanco
-    text: '#ffffff',        // Blanco (sobre rojo)
-    desc: '#ffffff',        // Blanco (sobre rojo)
-    card_name: '#000000', 
-    card_desc: '#666666', 
-    card_price: '#d32f2f', 
-    btn_bg: '#ffffff', 
-    btn_text: '#000000', 
-    promo_bg_color: '#ffebee', // Rosa suave (Antes estaba como promo_bg)
-    promo_text_color: '#d32f2f', // Texto rojo (Antes estaba como promo_text)
-    banner: false 
-},
-urban: { 
-    theme: '#ea580c',     // El naranja queda solo para los acentos (como el precio)
-    bg: '#121212', 
-    text: '#ffffff', 
-    desc: '#888888', 
-    card_name: '#ffffff', 
-    card_desc: '#888888', 
-    card_price: '#ea580c', // El precio sigue naranja como en la foto
-    btn_bg: '#ffffff',     // <--- CAMBIO: Botón "+" blanco por defecto
-    promo_bg: '#1E1E1E', 
-    promo_text: '#ffffff', // <--- CAMBIO: Texto de promo blanco por defecto
-    banner: false 
-},
-  minimal: { 
-    theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', 
-    card_name: '#222222', card_desc: '#999999', card_price: '#000000', 
-    btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false 
-  },
-visualgrid: { 
-    theme: '#ea580c', 
-    bg: '#121212',           // Fondo negro puro (más premium)
-    card: '#1E1E1E',         // Gris muy oscuro para las tarjetas
-    text: '#ffffff', 
-    desc: '#888888', 
-    card_name: '#ffffff',
-    card_desc: '#888888',
-    card_price: '#ea580c',
-    btn_bg: '#ea580c',
-    btn_text: '#ffffff',
-    promo_bg_color: '#1E1E1E', // Fondo oscuro para la promo
-    promo_text_color: '#ffffff', // Texto blanco
-    banner: false 
-  },
-pop: { 
-    theme: '#FF1493', 
-    bg: '#fffbe6', 
-    card: '#ffffff', 
-    text: '#000000', 
-    desc: '#444444', 
-    card_name: '#FF1493', 
-    card_desc: '#444444', 
-    card_price: '#000000', 
-    card_shadow_color: '#000000', // <--- IMPORTANTE: Aseguramos que los bordes sean negros por defecto
-    btn_bg: '#ffffff', 
-    btn_text: '#FF1493', 
-    promo_bg: '#FFD700', 
-    promo_text: '#000000', 
-    banner: false 
-  },
- spotlight: { 
-    theme: '#FFD700',      // Dorado para acentos
-    bg: '#ffffff', 
-    card: '#ffffff', 
-    text: '#000000', 
-    desc: '#666666', 
-    card_name: '#000000', 
-    card_desc: '#666666', 
-    card_price: '#000000', 
-    btn_bg: '#000000',     // Botones negros
-    btn_text: '#ffffff', 
-    promo: '#fff3e0',      // Fondo naranja muy suave para promo
-    promo_text: '#000000',
-    banner: true,
-    // --- NUEVOS CAMPOS HERO ---
-    hero_badge_bg: '#FFD700',
-    hero_badge_color: '#000000',
-    hero_title_color: '#ffffff',
-    hero_price_color: '#FFD700'
-  },
-  elegant: { 
-    theme: '#D4AF37',        // Dorado característico
-    bg: '#f9f5f0',           // Crema suave de fondo
-    text: '#333333',         // Texto oscuro para el nombre
-    desc: '#777777',         // Gris para la descripción
-    card_name: '#333333',    // Nombre del producto
-    card_color: '#f9f5f0',   // Mismo crema para que se funda
-    card_desc: '#888888',    // Descripción del producto
-    card_price: '#D4AF37',   // Precio en dorado
-    btn_bg: '#D4AF37',       // Botón + en dorado
-    btn_text: '#ffffff',     // Cruz del botón en blanco
-    promo_bg: '#f0e8dc',     // Crema más oscuro para la promo
-    promo_text: '#5c4b30',   // Texto marrón oscuro para promo
-    banner: false 
-  },
-bistro: { 
-    theme: '#e6c87e', 
-    bg: '#222222', 
-    text: '#eeeeee', 
-    desc: '#aaaaaa', 
-    card_name: '#ffffff', 
-    card: '#222222',       /* <--- CORREGIDO (Antes decía card_color) */
-    card_desc: '#999999', 
-    card_price: '#e6c87e', 
-    btn_bg: '#e6c87e', 
-    btn_text: '#222222', 
-    promo: '#333333',      /* <--- CORREGIDO (Antes decía promo_bg) */
-    promo_text: '#e6c87e', 
-    banner: false 
-  },
-marketpro: { 
-    theme: '#000000', 
-    bg: '#ffffff', 
-    text: '#000000', 
-    desc: '#999999', 
-    card_name: '#000000', 
-    card_desc: '#999999', 
-    card_price: '#059669', 
-    btn_bg: '#000000', 
-    btn_text: '#ffffff', 
-    promo_bg: '#f3f4f6', 
-    promo_text: '#000000', 
-    banner: true,
-    // --- VARIABLES DE MARKET PRO ---
-    cat_bg_color: '#f3f4f6',
-    cat_text_color: '#999999',
-    cat_title_color: '#000000',
-    cat_active_bg_color: '#000000',   // <--- NUEVO: Fondo Cat Activa
-    cat_active_text_color: '#ffffff', // <--- NUEVO: Texto Cat Activa
-    search_bg_color: '#f3f4f6',
-    search_icon_color: '#9ca3af',
-    card_show_bg: true, 
-    card_color: '#ffffff'
-  },
- 'icecream-v1': { 
-    theme: '#6366f1',        // Indigo moderno
-    bg: '#f8fafc',           // Slate 50 (Blanco azulado muy limpio)
-    text: '#0f172a',         // Slate 900 (Casi negro)
-    desc: '#64748b',         // Slate 500 (Gris suave)
-    card_name: '#0f172a',    
-    card_desc: '#64748b', 
-    card_price: '#6366f1',   
-    btn_bg: '#6366f1', 
-    btn_text: '#ffffff', 
-    promo_bg: '#eef2ff',     // Indigo muy clarito
-    promo_text: '#4f46e5',   // Indigo fuerte
-    banner: false
-},
-// Buscá TEMPLATE_DEFAULTS y reemplazá 'alterna-pro' por esto:
-'alterna-pro': { 
-    theme: '#ea580c',        // Naranja Eco
-    bg: '#fafaf9',           // Crema suave (NO NEGRO)
-    text: '#111827',         // Nombre local
-    desc: '#94a3b8', 
-    card_name: '#111827',    // Texto del producto (Visible)
-    card_desc: '#94a3b8', 
-    card_price: '#ea580c',   // Botón precio
-    btn_bg: '#ea580c', 
-    btn_text: '#ffffff', 
-    promo_bg: '#ffffff', 
-    promo_text: '#ea580c', 
-    banner: false,
-    cat_bg_color: '#ffffff',
-    cat_text_color: '#64748b',
-    cat_active_bg_color: '#000000',
-    cat_active_text_color: '#ffffff'
-},
+  classic: { theme: '#d32f2f', bg: '#ffffff', text: '#ffffff', desc: '#ffffff', card_name: '#000000', card_desc: '#666666', card_price: '#d32f2f', btn_bg: '#ffffff', btn_text: '#000000', promo_bg_color: '#ffebee', promo_text_color: '#d32f2f', banner: false },
+  urban: { theme: '#ea580c', bg: '#121212', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ffffff', promo_bg: '#1E1E1E', promo_text: '#ffffff', banner: false },
+  minimal: { theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', card_name: '#222222', card_desc: '#999999', card_price: '#000000', btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false },
+  visualgrid: { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg_color: '#1E1E1E', promo_text_color: '#ffffff', banner: false },
+  pop: { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', card_name: '#FF1493', card_desc: '#444444', card_price: '#000000', card_shadow_color: '#000000', btn_bg: '#ffffff', btn_text: '#FF1493', promo_bg: '#FFD700', promo_text: '#000000', banner: false },
+  spotlight: { theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', card_name: '#000000', card_desc: '#666666', card_price: '#000000', btn_bg: '#000000', btn_text: '#ffffff', promo: '#fff3e0', promo_text: '#000000', banner: true, hero_badge_bg: '#FFD700', hero_badge_color: '#000000', hero_title_color: '#ffffff', hero_price_color: '#FFD700' },
+  elegant: { theme: '#D4AF37', bg: '#f9f5f0', text: '#333333', desc: '#777777', card_name: '#333333', card_color: '#f9f5f0', card_desc: '#888888', card_price: '#D4AF37', btn_bg: '#D4AF37', btn_text: '#ffffff', promo_bg: '#f0e8dc', promo_text: '#5c4b30', banner: false },
+  bistro: { theme: '#e6c87e', bg: '#222222', text: '#eeeeee', desc: '#aaaaaa', card_name: '#ffffff', card: '#222222', card_desc: '#999999', card_price: '#e6c87e', btn_bg: '#e6c87e', btn_text: '#222222', promo: '#333333', promo_text: '#e6c87e', banner: false },
+  marketpro: { theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', card_name: '#000000', card_desc: '#999999', card_price: '#059669', btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#f3f4f6', promo_text: '#000000', banner: true, cat_bg_color: '#f3f4f6', cat_text_color: '#999999', cat_title_color: '#000000', cat_active_bg_color: '#000000', cat_active_text_color: '#ffffff', search_bg_color: '#f3f4f6', search_icon_color: '#9ca3af', card_show_bg: true, card_color: '#ffffff' },
+  'icecream-v1': { theme: '#6366f1', bg: '#f8fafc', text: '#0f172a', desc: '#64748b', card_name: '#0f172a', card_desc: '#64748b', card_price: '#6366f1', btn_bg: '#6366f1', btn_text: '#ffffff', promo_bg: '#eef2ff', promo_text: '#4f46e5', banner: false },
+  'alterna-pro': { theme: '#ea580c', bg: '#fafaf9', text: '#111827', desc: '#94a3b8', card_name: '#111827', card_desc: '#94a3b8', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg: '#ffffff', promo_text: '#ea580c', banner: false, cat_bg_color: '#ffffff', cat_text_color: '#64748b', cat_active_bg_color: '#000000', cat_active_text_color: '#ffffff' },
 };
 
 const CUSTOM_STYLES = `
@@ -250,95 +57,116 @@ const CUSTOM_STYLES = `
   @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   .animate-pop-in { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 `;
-// --- ESTE BLOQUE VA ARRIBA DE TODO, FUERA DE EDITORPAGE ---
-const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => {
+
+// ── PhoneMockup: acepta activeTab para mostrar vista SnappyLinks ──────────────
+const PhoneMockup = ({ data, products, categories, previewTemplateId, activeTab }: any) => {
   const activeId = previewTemplateId || data?.template_id || 'classic';
   const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
   
-  // --- 1. LÓGICA DE LIMITACIÓN A 5 PRODUCTOS REALES ---
-  const limitedUserProducts = products?.slice(0, 5) || [];
+  // --- LÓGICA DE PRODUCTOS POR DEFECTO RECUPERADA ---
+  const displayProds = (products && products.length > 0) 
+    ? products.slice(0, 5) 
+    : [
+        { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
+        { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
+        { id: 3, name: 'Granola de Coco', price: 3900, image_url: 'https://images.unsplash.com/photo-1517093602195-b40af9688b46?w=400' }
+      ];
 
-  const displayProds = limitedUserProducts.length > 0 ? limitedUserProducts : [
-    { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
-    { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
-    { id: 3, name: 'Granola de Coco', price: 3900, image_url: 'https://images.unsplash.com/photo-1517093602195-b40af9688b46?w=400' }
-  ];
-
-  const isPreviewMode = !!previewTemplateId;
-
-  const renderData = isPreviewMode ? {
+  const renderData = {
     ...data,
-    theme_color: defaults.theme, 
-    bg_color: defaults.bg,
-    text_color: defaults.text, 
-    description_color: defaults.desc,
-    card_name_color: defaults.card_name, 
-    card_color: defaults.card || defaults.bg, 
-    card_price_color: defaults.card_price,
-    card_btn_bg: defaults.btn_bg,     
-    promo_bg_color: defaults.promo_bg_color || defaults.promo,  
-    promo_text_color: defaults.promo_text_color || defaults.promo_text,      
-    card_btn_text: defaults.btn_text, 
-    cat_bg_color: data.cat_bg_color,
-    cat_text_color: data.cat_text_color,
-    cat_active_bg_color: data.cat_active_bg_color,    
-    cat_active_text_color: data.cat_active_text_color,
+    theme_color: data.theme_color || defaults.theme,
+    bg_color: data.bg_color || defaults.bg,
+    text_color: data.text_color || defaults.text,
+    description_color: data.description_color || defaults.desc,
+  };
+  
+ 
+
+  
+// ── VISTA SNAPPYLINKS (DENTRO DE PhoneMockup) ──────────────
+if (activeTab === 'snappylinks') {
+    // 🎨 Definimos los estilos en vivo usando las nuevas variables
+    const bioStyles = {
+        backgroundColor: data.snappylink_bg_color || '#ffffff',
+        backgroundImage: data.snappylink_bg_img ? `url(${data.snappylink_bg_img})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        color: data.snappylink_text_color || '#000000'
+    };
+
+    return (
+      <div className="h-full w-full flex flex-col items-center pt-14 px-6 space-y-6 animate-in fade-in duration-500 overflow-y-auto no-scrollbar" 
+           style={bioStyles}>
+        
+        {/* LOGO */}
+        <div className="w-20 h-20 rounded-full border-2 shadow-xl overflow-hidden shrink-0" 
+             style={{ borderColor: data.snappylink_btn_color || data.theme_color }}>
+          <img src={data.snappylink_logo_url || data.logo_url || '/placeholder.png'} className="w-full h-full object-cover" alt="logo" />
+        </div>
+
+        {/* TEXTOS */}
+      <div className="text-center space-y-2">
+  <h2 className="font-black text-lg uppercase italic tracking-tighter leading-none" 
+      style={{ color: data.snappylink_title_color || '#000000' }}> {/* 🚀 AQUÍ APLICAMOS EL COLOR DEL TÍTULO EN VIVO */}
+    {data.snappylink_title || data.name}
+  </h2>
+  <p className="text-[10px] font-medium leading-relaxed" 
+     style={{ color: data.snappylink_desc_color || '#666666' }}> {/* 🚀 AQUÍ APLICAMOS EL COLOR DE LA BIO EN VIVO */}
+    {data.snappylink_bio || 'Tu bio aparecerá aquí.'}
+  </p>
+</div>
+
+        {/* BOTONES DINÁMICOS */}
+        <div className="w-full pt-4 pb-10">
+          {(() => {
+            switch (data.snappylink_template_id) {
+              case 'bio-modern': 
+                return <BioModern data={data} />; // BioModern ya usa data.snappylink_btn_color, etc.
+              default: 
+                return <BioModern data={data} />;
+            }
+          })()}
+        </div>
+
+        <div className="mt-auto pb-6">
+          <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em]">Potenciado por Snappy</p>
+        </div>
+      </div>
+    );
+}
+
+  // ── VISTA MENÚ ─────────────────────────────────────────────────────────────
+  const isPreviewMode = !!previewTemplateId;
+  const finalRenderData = isPreviewMode ? {
+    ...data,
+    theme_color: defaults.theme, bg_color: defaults.bg, text_color: defaults.text, description_color: defaults.desc,
+    card_name_color: defaults.card_name, card_color: defaults.card || defaults.bg, card_price_color: defaults.card_price,
+    card_btn_bg: defaults.btn_bg, promo_bg_color: defaults.promo_bg_color || defaults.promo,
+    promo_text_color: defaults.promo_text_color || defaults.promo_text, card_btn_text: defaults.btn_text,
+    cat_bg_color: data.cat_bg_color, cat_text_color: data.cat_text_color,
+    cat_active_bg_color: data.cat_active_bg_color, cat_active_text_color: data.cat_active_text_color,
     card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
   } : data;
 
-  const props = { 
-    restaurant: { ...renderData, categories: categories }, 
-    products: displayProds,
-    isOpen: true,           
-    onAddToCart: () => {},  
-    isMockup: true          
-  }
+  const props = { restaurant: { ...finalRenderData, categories }, products: displayProds, isOpen: true, onAddToCart: () => {}, isMockup: true };
 
   return (
     <div className="relative w-full h-full bg-white flex flex-col">
       <div className="status-bar-fixed" style={{ color: 'black' }}><span>9:41</span><span>📶</span></div>
-      <div className="preview-scroll" style={{ backgroundColor: renderData.bg_color }}>
+      <div className="preview-scroll" style={{ backgroundColor: finalRenderData.bg_color }}>
         {(() => {
           switch (activeId) {
             case 'urban': return <UrbanoDark {...props} />;
             case 'pop': return <PopVibrant {...props} />;
-            case 'visualgrid': 
-              return (
-                <div className="flex flex-col gap-4">
-                    <VisualGrid {...props} />
-                </div>
-              );
+            case 'visualgrid': return <div className="flex flex-col gap-4"><VisualGrid {...props} /></div>;
             case 'classic': return <ClassicDelivery {...props} />;
             case 'minimal': return <MinimalWhite {...props} />;
             case 'spotlight': return <SpotlightHero {...props} />;
             case 'elegant': return <ElegantSerif {...props} />;
             case 'bistro': return <BistroChalk {...props} />;
-            case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => { }} />;
-            case 'alterna-pro':
-              return (
-                <AlternaPro
-                  restaurant={{ 
-                    ...renderData, 
-                    categories: categories.length > 0 ? categories.slice(0, 2) : [
-                      {id: 'cat-1', name: 'General'}, 
-                      {id: 'cat-2', name: 'Pizzas'}
-                    ] 
-                  }}
-                  products={displayProds} // <--- Usa los 5 productos reales
-                  onAddToCart={() => {}}
-                  setSelectedProduct={(p: any) => console.log("Click:", p.name)}
-                  isMockup={true}
-                />
-              );
-            case 'icecream-v1':
-              return (
-                <HeladeriaSoft 
-                  restaurant={renderData} 
-                  products={displayProds} // <--- Usa los 5 productos reales
-                  onAddToCart={() => {}} 
-                  isMockup={true} 
-                />
-              );
+            case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
+            case 'alterna-pro': return <AlternaPro restaurant={{ ...finalRenderData, categories: categories.length > 0 ? categories.slice(0,2) : [{id:'cat-1',name:'General'},{id:'cat-2',name:'Pizzas'}] }} products={displayProds} onAddToCart={() => {}} setSelectedProduct={() => {}} isMockup={true} />;
+            case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
             default: return <ClassicDelivery {...props} />;
           }
         })()}
@@ -346,8 +174,11 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId }: any) => 
     </div>
   );
 };
+
+// ── EDITORPAGE ────────────────────────────────────────────────────────────────
 export default function EditorPage() {
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [activeTab, setActiveTab] = useState<'menu' | 'snappylinks'>('menu');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
@@ -357,210 +188,157 @@ export default function EditorPage() {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showBioContent, setShowBioContent] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
- const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
+  const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
+const [showBioDesigns, setShowBioDesigns] = useState(false);
+  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+ const [data, setData] = useState<any>({
+  id: null, name: '', slug: '', description: '', delivery_cost: 0, address: '', instagram: '',
+  facebook: '', tiktok: '', opening_hours: '', google_maps_link: '', phone: '',
+  promo_message: '', show_promo: true, theme_color: '#d32f2f', bg_color: '#ffffff',
+  text_color: '#ffffff', description_color: '#ffffff', promo_bg_color: '#ffebee',
+  promo_text_color: '#d32f2f', card_name_color: '#000000', card_desc_color: '#666666',
+  card_price_color: '#d32f2f', card_btn_bg: '#ffffff', template_id: 'classic',
+  show_banner: false, hero_badge_text: 'DESTACADO', hero_title: '', hero_price: 0,
+  hero_description: '', card_shadow_color: '#000000', title_font: 'Inter', desc_font: 'Inter',
+  desc_size: '10px', search_bg_color: '#f3f4f6', search_icon_color: '#9ca3af',
+  cat_bg_color: '#f3f4f6', cat_text_color: '#999999', cat_title_color: '#000000',
+  card_show_bg: true, card_btn_text: '#000000', business_type: 'gastronomico', pricing_type: 'unit',
+  card_name_bg: '#ffffff', snappylink_slug: '', 
+  snappylink_bio: '', 
+  snappylink_links: [],
+  is_bio_active: true,
+  snappylink_template_id: 'bio-modern',
 
-const [data, setData] = useState<any>({
-    id: null, 
-    name: '', 
-    slug: '',
-    description: '', 
-    delivery_cost: 0,    
-    address: '',        
-    instagram: '',     
-    facebook: '',       
-    tiktok: '',         
-    opening_hours: '',  
-    google_maps_link: '',
-    phone: '',
-    promo_message: '', 
-    show_promo: true, 
-    // COLORES POR DEFECTO (Classic Style)
-    theme_color: '#d32f2f',       // Rojo Header
-    bg_color: '#ffffff',          // Fondo Blanco
-    text_color: '#ffffff',        // Nombre Local (Sobre Rojo)
-    description_color: '#ffffff', // Descripción Local (Sobre Rojo)
-    promo_bg_color: '#ffebee',    // Rosa suave Promo
-    promo_text_color: '#d32f2f',  // Texto Promo Rojo
-    card_name_color: '#000000',   // Producto Negro
-    card_desc_color: '#666666',   // Descripción Producto Gris
-    card_price_color: '#d32f2f',  // Precio Rojo
-    card_btn_bg: '#ffffff',       // Botón MAS Blanco
-    template_id: 'classic', 
-    show_banner: false,  
-    hero_badge_text: 'DESTACADO', 
-    hero_title: '', 
-    hero_price: 0, 
-    hero_description: '',
-card_shadow_color: '#000000',
-    
-    // --- NUEVOS CAMPOS PARA EL CONTROL PRO ---
-    title_font: 'Inter',
-    desc_font: 'Inter',
-    desc_size: '10px',
-    search_bg_color: '#f3f4f6',
-    search_icon_color: '#9ca3af',
-    cat_bg_color: '#f3f4f6',
-    cat_text_color: '#999999',
-    cat_title_color: '#000000',
-    card_show_bg: true,
-    card_btn_text: '#000000',
-    business_type: 'gastronomico',
-    card_name_bg: '#ffffff',
-  });
+  // 🚀 NUEVOS CAMPOS DE DISEÑO BIO (Agregalos acá abajo)
+  snappylink_title: '', 
+  snappylink_bg_color: '#ffffff', 
+  snappylink_bg_img: '', 
+  snappylink_btn_color: '#000000', 
+  snappylink_btn_text_color: '#ffffff', 
+  snappylink_shadow_color: '#000000',
+  snappylink_title_color: '#000000', 
+snappylink_desc_color: '#666666',
+});
 
   const [products, setProducts] = useState<any[]>([]);
+
   useEffect(() => {
-  const fetchProducts = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    const fetchProducts = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data: rest } = await supabase.from('restaurants').select('id').eq('user_id', session.user.id).single();
+      if (rest) {
+        const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id);
+        if (prods) setProducts(prods);
+      }
+    };
+    fetchProducts();
+  }, []);
 
-    // Traemos el ID del restaurante primero
-    const { data: rest } = await supabase
-      .from('restaurants')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (rest) {
-      const { data: prods } = await supabase
-        .from('products')
-        .select('*')
-        .eq('restaurant_id', rest.id);
-      
-      if (prods) setProducts(prods);
-    }
-  };
-  fetchProducts();
-}, []);
   const [newProd, setNewProd] = useState({ name: '', price: '', description: '', image_url: '' });
 
-  // --- LÓGICA DE AUTOGUARDADO ---
- // --- 1. FUNCIÓN DE CARGA INICIAL (SOLUCIONA EL "ENVENENAMIENTO") ---
- useEffect(() => {
+  useEffect(() => {
     if (unsavedChanges && data.id) {
-      const timeout = setTimeout(() => {
-        handleSave();
-      }, 2000); 
+      const timeout = setTimeout(() => { handleSave(); }, 2000);
       return () => clearTimeout(timeout);
     }
   }, [data, unsavedChanges]);
-    useEffect(() => {
-        let mounted = true;
-        const loadData = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session?.user) return; 
 
-                const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single(); 
-                
-             if(rest && mounted) {
-                    const tId = rest.template_id || 'classic';
-                    const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
+  useEffect(() => {
+    let mounted = true;
+    const loadData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single();
+        if (rest && mounted) {
+          const { data: bioData } = await supabase
+        .from('snappylinks')
+        .select('*')
+        .eq('restaurant_id', rest.id)
+        .maybeSingle();
+          const tId = rest.template_id || 'classic';
+          const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
+          // ── BUSCÁ EL setData({ ... }) DENTRO DE loadData ──
+setData({
+  ...rest, 
+  template_id: tId,
+  theme_color: rest.theme_color || defaults.theme,
+  bg_color: rest.bg_color || defaults.bg,
+  text_color: rest.text_color || defaults.text,
+  description_color: rest.description_color || defaults.desc,
+  promo_bg_color: rest.promo_bg_color || defaults.promo,
+  promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
+  card_name_color: rest.card_name_color || defaults.card_name,
+  card_color: rest.card_color || defaults.card || defaults.bg,
+  card_desc_color: rest.card_desc_color || defaults.card_desc,
+  card_price_color: rest.card_price_color || defaults.card_price,
+  card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
+  card_btn_text: rest.card_btn_text || defaults.btn_text,
+  card_show_bg: rest.card_show_bg !== undefined ? rest.card_show_bg : true,
+  cat_bg_color: rest.cat_bg_color || '#f3f4f6',
+  cat_text_color: rest.cat_text_color || '#999999',
+  cat_active_bg_color: rest.cat_active_bg_color || '#000000',
+  cat_active_text_color: rest.cat_active_text_color || '#ffffff',
+  search_bg_color: rest.search_bg_color || '#f3f4f6',
+  search_icon_color: rest.search_icon_color || '#9ca3af',
+  name: rest.name || 'Mi Restaurante',
+  description: rest.description || 'Disfrutá de los mejores sabores.',
 
-                    setData({
-                        ...rest,
-                        template_id: tId,
-                        theme_color: rest.theme_color || defaults.theme,
-                        bg_color: rest.bg_color || defaults.bg,
-                        text_color: rest.text_color || defaults.text,
-                        description_color: rest.description_color || defaults.desc,
-                        promo_bg_color: rest.promo_bg_color || defaults.promo,
-                        promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
-                        
-                        // Variables de producto
-                        card_name_color: rest.card_name_color || defaults.card_name,
-                        card_color: rest.card_color || defaults.card || defaults.bg,
-                        card_desc_color: rest.card_desc_color || defaults.card_desc,
-                        card_price_color: rest.card_price_color || defaults.card_price,
-                        card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
-                        card_btn_text: rest.card_btn_text || defaults.btn_text,
-                        card_show_bg: rest.card_show_bg !== undefined ? rest.card_show_bg : true,
-
-                        // --- NUEVO: CARGAR COLORES DE CATEGORÍAS Y BUSCADOR ---
-                        cat_bg_color: rest.cat_bg_color || '#f3f4f6',
-                        cat_text_color: rest.cat_text_color || '#999999',
-                        cat_active_bg_color: rest.cat_active_bg_color || '#000000',
-                        cat_active_text_color: rest.cat_active_text_color || '#ffffff',
-                        search_bg_color: rest.search_bg_color || '#f3f4f6',
-                        search_icon_color: rest.search_icon_color || '#9ca3af',
-                        
-                        name: rest.name || 'Mi Restaurante',
-                        description: rest.description || 'Disfrutá de los mejores sabores.',
-                    });
-                    // ... resto de la función igual
-                    setIsLocked(!rest.subscription_plan);
-                    const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
-                    if(prods && mounted) setProducts(prods);
-
-                    const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', rest.id).order('sort_order', { ascending: true });
-                    if(cats && mounted) setCategories(cats);
-                }
-            } catch (error) { console.error(error); } finally { if(mounted) setLoading(false); }
-        };
-        loadData();
-        return () => { mounted = false; };
-    }, []);
-
-    // --- 2. CONFIGURACIÓN DINÁMICA DEL PANEL (QUITA EL BANNER INNECESARIO) ---
- const getTemplateConfig = () => {
-        const id = data.template_id || 'classic';
-        return { 
-          editable: true,
-          group: id, 
-          showClassicBanner: id === 'classic', 
-          showBannerImg: ['spotlight', 'marketpro'].includes(id), 
-          // ACÁ AGREGAMOS 'elegant' PARA QUE TE DEJE CAMBIAR EL COLOR DORADO (ACENTO)
-          showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id),
-          showCard: true,
-          showHeroEditor: id === 'spotlight',
-          showSearch: id === 'marketpro',
-          showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
-          showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id) 
-        };
+  // 🚀 DATOS DESDE LA TABLA INDEPENDIENTE (bioData)
+  snappylink_slug: bioData?.slug || rest.slug + 'bio',
+  snappylink_bio: bioData?.bio || '',
+  snappylink_links: bioData?.links || [],
+  is_bio_active: bioData?.is_active !== undefined ? bioData.is_active : true,
+  snappylink_template_id: bioData?.template_id || 'bio-modern',
+  
+  // 🎨 CAMPOS DE DISEÑO PERSONALIZADO (bioData)
+  snappylink_title: bioData?.title || rest.name, 
+  snappylink_bg_color: bioData?.bg_color || '#ffffff',
+  snappylink_bg_img: bioData?.bg_img || '',
+  snappylink_btn_color: bioData?.btn_color || rest.theme_color || '#000000',
+  snappylink_btn_text_color: bioData?.btn_text_color || '#000000',
+  snappylink_shadow_color: bioData?.shadow_color || '#000000',
+  snappylink_title_color: bioData?.title_color || '#000000',
+snappylink_desc_color: bioData?.desc_color || '#666666',
+});
+          setIsLocked(!rest.subscription_plan);
+          const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
+          if (prods && mounted) setProducts(prods);
+          const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', rest.id).order('sort_order', { ascending: true });
+          if (cats && mounted) setCategories(cats);
+        }
+      } catch (error) { console.error(error); } finally { if (mounted) setLoading(false); }
     };
-    const tConfig = getTemplateConfig();
+    loadData();
+    return () => { mounted = false; };
+  }, []);
 
-    // --- 3. CAMBIO DE PLANTILLA (BOTÓN "USAR ESTE DISEÑO") ---
-const applyTemplate = (templateId: string) => {
+  const getTemplateConfig = () => {
+    const id = data.template_id || 'classic';
+    return {
+      editable: true, group: id,
+      showClassicBanner: id === 'classic',
+      showBannerImg: ['spotlight', 'marketpro'].includes(id),
+      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id),
+      showCard: true, showHeroEditor: id === 'spotlight', showSearch: id === 'marketpro',
+      showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
+      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id),
+    };
+  };
+  const tConfig = getTemplateConfig();
+
+  const applyTemplate = (templateId: string) => {
     const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
-    
-    // Creamos el objeto con los valores de la plantilla elegida
-    const cleanData = {
-        ...data, 
-        template_id: templateId,
-        theme_color: defaults.theme,
-        bg_color: defaults.bg,
-        text_color: defaults.text,
-        description_color: defaults.desc,
-        promo_bg_color: defaults.promo_bg_color || defaults.promo || '#ffebee',
-        promo_text_color: defaults.promo_text_color || defaults.theme || '#d32f2f',
-        card_name_color: defaults.card_name,
-        card_color: defaults.card || defaults.bg,
-        card_desc_color: defaults.card_desc,
-        card_price_color: defaults.card_price,
-        card_btn_bg: defaults.btn_bg,
-        card_btn_text: defaults.btn_text,
-        show_banner: defaults.banner,
-        // Reseteamos también los colores pro para que no arrastre basura
-        cat_bg_color: defaults.cat_bg_color || '#f3f4f6',
-        cat_text_color: defaults.cat_text_color || '#999999',
-        cat_active_bg_color: defaults.cat_active_bg_color || '#000000',     
-        cat_active_text_color: defaults.cat_active_text_color || '#ffffff'
-    };
-
-    setData(cleanData);
+    setData({ ...data, template_id: templateId, theme_color: defaults.theme, bg_color: defaults.bg, text_color: defaults.text, description_color: defaults.desc, promo_bg_color: defaults.promo_bg_color || defaults.promo || '#ffebee', promo_text_color: defaults.promo_text_color || defaults.theme || '#d32f2f', card_name_color: defaults.card_name, card_color: defaults.card || defaults.bg, card_desc_color: defaults.card_desc, card_price_color: defaults.card_price, card_btn_bg: defaults.btn_bg, card_btn_text: defaults.btn_text, show_banner: defaults.banner, cat_bg_color: defaults.cat_bg_color || '#f3f4f6', cat_text_color: defaults.cat_text_color || '#999999', cat_active_bg_color: defaults.cat_active_bg_color || '#000000', cat_active_text_color: defaults.cat_active_text_color || '#ffffff' });
     setUnsavedChanges(true);
     setPreviewTemplateId(null);
-    
-    // OPCIONAL: Forzamos el guardado inmediato para limpiar la DB ya mismo
-    handleSave(); 
-};
+    handleSave();
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.length) return;
     setUploading(true);
@@ -570,7 +348,7 @@ const applyTemplate = (templateId: string) => {
       await supabase.storage.from('images').upload(fileName, file);
       const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
       setData({ ...data, [field]: publicUrl });
-      setUnsavedChanges(true); 
+      setUnsavedChanges(true);
     } catch (error) { alert('Error subiendo imagen'); } finally { setUploading(false); }
   };
 
@@ -580,657 +358,898 @@ const applyTemplate = (templateId: string) => {
     const file = e.target.files[0];
     const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
     try {
-        await supabase.storage.from('images').upload(fileName, file);
-        const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
-        setNewProd({ ...newProd, image_url: publicUrl });
+      await supabase.storage.from('images').upload(fileName, file);
+      const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+      setNewProd({ ...newProd, image_url: publicUrl });
     } catch (error) { alert('Error subiendo imagen de producto'); } finally { setUploading(false); }
   };
 
-const handleSave = async () => {
-    if (!data.id || !data.slug) return;
+ const handleSave = async () => {
+  if (!data.id || !data.slug) return;
+  try {
+    // 1. Guardamos la info del local en la tabla 'restaurants' (lo que ya tenías)
+    const { id, created_at, categories, products, fetched_extras, ...updates } = data;
+    const restaurantUpdates = { ...updates };
     
-    try {
-      // 1. VERIFICACIÓN DE DOMINIO ÚNICO
-      const { data: existingRestaurant, error: checkError } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('slug', data.slug)
-        .neq('id', data.id) // Que no sea mi propio restaurante
-        .maybeSingle();
+    // Limpiamos campos que no pertenecen a la tabla 'restaurants'
+    delete restaurantUpdates.snappylink_slug;
+    delete restaurantUpdates.snappylink_bio;
+    delete restaurantUpdates.snappylink_links;
+    delete restaurantUpdates.is_bio_active;
+    delete restaurantUpdates.snappylink_template_id;
+    delete restaurantUpdates.snappylink_title;
+    delete restaurantUpdates.snappylink_bg_color;
+    delete restaurantUpdates.snappylink_bg_img;
+    delete restaurantUpdates.snappylink_btn_color;
+    delete restaurantUpdates.snappylink_btn_text_color;
+    delete restaurantUpdates.snappylink_shadow_color;
+    delete restaurantUpdates.snappylink_title_color; // 🚀 Limpiamos los nuevos
+    delete restaurantUpdates.snappylink_desc_color;  // 🚀 Limpiamos los nuevos
 
-      if (existingRestaurant) {
-        alert(`❌ El nombre "snappy.uno/${data.slug}" ya está en uso. Por favor, elegí otro.`);
-        return; // Cortamos el guardado
-      }
+    await supabase.from('restaurants').update(restaurantUpdates).eq('id', data.id);
 
-      // 2. PROCEDER CON EL GUARDADO SI ESTÁ DISPONIBLE
-      const { id, created_at, categories, products, fetched_extras, ...updates } = data; 
+    // 2. 🚀 GUARDADO EN SNAPPYLINKS (Aquí es donde agregás los campos)
+    const { error: bioError } = await supabase.from('snappylinks').upsert({
+      restaurant_id: data.id,
+      slug: data.snappylink_slug || (data.slug + 'bio'),
+      bio: data.snappylink_bio,
+      links: data.snappylink_links,
+      template_id: data.snappylink_template_id,
+      is_active: data.is_bio_active,
+      
+      // 🎨 COLORES Y DISEÑO (PEGÁ ESTO ACÁ)
+      title: data.snappylink_title,
+      title_color: data.snappylink_title_color, // <--- NUEVO
+      desc_color: data.snappylink_desc_color,   // <--- NUEVO
+      bg_color: data.snappylink_bg_color,
+      bg_img: data.snappylink_bg_img,
+      btn_color: data.snappylink_btn_color,
+      btn_text_color: data.snappylink_btn_text_color,
+      shadow_color: data.snappylink_shadow_color
+    }, { onConflict: 'restaurant_id' });
 
-      const { error } = await supabase
-        .from('restaurants')
-        .update(updates)
-        .eq('id', data.id);
-
-      if (error) { 
-        console.error("Error Supabase:", error.message);
-        alert("Error al guardar los cambios.");
-      } else {
-        setUnsavedChanges(false); 
-        setShowSuccessModal(true); 
-        setTimeout(() => setShowSuccessModal(false), 2000); 
-      }
-    } catch (err) { 
-        console.error("Error crítico:", err);
-        setUnsavedChanges(false); 
+    if (bioError) {
+      console.error('❌ ERROR GUARDANDO BIO:', bioError.message);
+      alert("Error en Bio: " + bioError.message);
+    } else {
+      // Éxito
+      setUnsavedChanges(false);
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 2000);
     }
+    
+  } catch (err) {
+    console.error('Error crítico:', err);
+  }
 };
   const handleAddProduct = async () => {
-    if (!newProd.name || !newProd.price) return alert("Faltan datos");
+    if (!newProd.name || !newProd.price) return alert('Faltan datos');
     try {
-        let categoryId;
-        const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
-        if (cats && cats.length > 0) categoryId = cats[0].id;
-        else {
-            const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: data.id, name: 'General', sort_order: 1 }).select().single();
-            if(newCat) categoryId = newCat.id;
-        }
-        await supabase.from('products').insert({
-            restaurant_id: data.id, category_id: categoryId, 
-            name: newProd.name, description: newProd.description, price: Number(newProd.price), image_url: newProd.image_url
-        });
-        const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
-        if (refreshed) { setProducts(refreshed); setNewProd({ name: '', price: '', description: '', image_url: '' }); }
+      let categoryId;
+      const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id).limit(1);
+      if (cats && cats.length > 0) categoryId = cats[0].id;
+      else {
+        const { data: newCat } = await supabase.from('categories').insert({ restaurant_id: data.id, name: 'General', sort_order: 1 }).select().single();
+        if (newCat) categoryId = newCat.id;
+      }
+      await supabase.from('products').insert({ restaurant_id: data.id, category_id: categoryId, name: newProd.name, description: newProd.description, price: Number(newProd.price), image_url: newProd.image_url });
+      const { data: refreshed } = await supabase.from('products').select('*').eq('restaurant_id', data.id).order('created_at', { ascending: true });
+      if (refreshed) { setProducts(refreshed); setNewProd({ name: '', price: '', description: '', image_url: '' }); }
     } catch (error: any) { alert(error.message); }
   };
- 
+
   const handleDeleteQuick = async (id: string) => {
-     if(!confirm("¿Borrar?")) return;
-     const { error } = await supabase.from('products').delete().eq('id', id);
-     if (!error) setProducts(products.filter(p => p.id !== id));
+    if (!confirm('¿Borrar?')) return;
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) setProducts(products.filter(p => p.id !== id));
   };
 
- const copyLink = () => { 
-    navigator.clipboard.writeText(`snappy.uno/${data.slug}`); 
-    setCopied(true); 
-    setTimeout(() => setCopied(false), 2000); 
-  }
+  const copyLink = () => { navigator.clipboard.writeText(`snappy.uno/${data.slug}`); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleResetClick = () => setShowRestoreModal(true);
-  
-const confirmReset = () => {
-    const tId = data.template_id;
-    const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
-    
-    setData((prev: any) => ({ 
-        ...prev, 
-        theme_color: defaults.theme, 
-        bg_color: defaults.bg, 
-        text_color: defaults.text, 
-        description_color: defaults.desc, 
-        card_name_color: defaults.card_name,
-        card_color: defaults.card || defaults.bg, 
-        card_desc_color: defaults.card_desc,
-        card_price_color: defaults.card_price, 
-        card_btn_bg: defaults.btn_bg,
-        card_btn_text: defaults.btn_text,
-        promo_bg_color: defaults.promo || defaults.promo_bg,
-        promo_text_color: defaults.promo_text || defaults.theme,
-        hero_badge_bg: defaults.hero_badge_bg,
-        hero_badge_color: defaults.hero_badge_color,
-        hero_title_color: defaults.hero_title_color,
-        hero_price_color: defaults.hero_price_color,
-        show_banner: defaults.banner || false, 
-        show_promo: true,
-        // Reset forzado para campos de MarketPro
-        cat_bg_color: defaults.cat_bg_color,
-        cat_text_color: defaults.cat_text_color,
-        cat_title_color: defaults.cat_title_color,
-        search_bg_color: defaults.search_bg_color,
-        search_icon_color: defaults.search_icon_color,
-        cat_active_bg_color: defaults.cat_active_bg_color || '#000000',     
-        cat_active_text_color: defaults.cat_active_text_color || '#ffffff'
-    }));
-    
-    setUnsavedChanges(true); 
+
+  const confirmReset = () => {
+    const defaults = TEMPLATE_DEFAULTS[data.template_id] || TEMPLATE_DEFAULTS['classic'];
+    setData((prev: any) => ({ ...prev, theme_color: defaults.theme, bg_color: defaults.bg, text_color: defaults.text, description_color: defaults.desc, card_name_color: defaults.card_name, card_color: defaults.card || defaults.bg, card_desc_color: defaults.card_desc, card_price_color: defaults.card_price, card_btn_bg: defaults.btn_bg, card_btn_text: defaults.btn_text, promo_bg_color: defaults.promo || defaults.promo_bg, promo_text_color: defaults.promo_text || defaults.theme, hero_badge_bg: defaults.hero_badge_bg, hero_badge_color: defaults.hero_badge_color, hero_title_color: defaults.hero_title_color, hero_price_color: defaults.hero_price_color, show_banner: defaults.banner || false, show_promo: true, cat_bg_color: defaults.cat_bg_color, cat_text_color: defaults.cat_text_color, cat_title_color: defaults.cat_title_color, search_bg_color: defaults.search_bg_color, search_icon_color: defaults.search_icon_color, cat_active_bg_color: defaults.cat_active_bg_color || '#000000', cat_active_text_color: defaults.cat_active_text_color || '#ffffff' }));
+    setUnsavedChanges(true);
     setShowRestoreModal(false);
-};
-
-
-
+  };
 
   return (
     <>
-    <style>{CUSTOM_STYLES}</style>
-    <div className="relative pt-16 xl:pt-6 min-h-screen bg-gray-50/50 px-2 sm:px-6">
-      
-      {showRestoreModal && <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in"><div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"><h3 className="font-bold text-lg text-gray-900 mb-2">¿Restaurar colores?</h3><p className="text-sm text-gray-600 mb-6">Volverás a los colores originales del diseño.</p><div className="flex gap-3"><button onClick={() => setShowRestoreModal(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200">Cancelar</button><button onClick={confirmReset} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-700">Sí, Restaurar</button></div></div></div>}
-      {showSuccessModal && <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-pop-in"><div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3"><CheckCircle size={20} className="text-green-400"/><span className="font-bold text-sm">¡Guardado!</span></div></div>}
+      <style>{CUSTOM_STYLES}</style>
+      <div className="relative pt-16 xl:pt-6 min-h-screen bg-gray-50/50 px-2 sm:px-6">
 
-      <div className={`transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60 select-none' : ''}`}>
-          <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0 min-w-0">
-            
-            {/* PANEL IZQUIERDO */}
-          <div className="flex-1 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
-  
-  
-<div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 border-b border-gray-100 pb-8">
-    <div className="space-y-1">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-tight">
-            Personalizar tienda
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] sm:text-xs text-gray-400 font-medium">Diseña la apariencia de tu menú digital.</p>
-            {unsavedChanges && (
-                <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                    Autoguardando...
-                </span>
-            )}
-        </div>
-    </div>
-
-    <div className="flex flex-col gap-3 w-full lg:w-auto">
-        <div className="flex gap-2">
-          <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[11px] font-bold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm">
-            <Palette size={14}/> Estilos
-          </button>
-          <button onClick={handleSave} disabled={loading} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all">
-            <Save size={14}/> Guardado
-          </button>
-        </div>
-
-        {/* BOTÓN OJITO PARA MOBILE */}
-        <button 
-          onClick={() => setShowMobilePreview(true)} 
-          className="xl:hidden flex items-center justify-center gap-2 w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl"
-        >
-          <Eye size={18} className="text-indigo-400"/> Mirá cómo va quedando
-        </button>
-    </div>
-</div>
-
-             
-           {/* SECCIÓN DE ESTILOS DINÁMICA (REESTRUCTURADA) */}
-{showAdvanced && tConfig.editable && (
-    <div className="bg-gray-50/50 p-6 rounded-[2.5rem] border border-gray-100 shadow-inner animate-in fade-in zoom-in-95 duration-300 space-y-10">
-        
-        {/* CABECERA PANEL */}
-        <div className="flex justify-between items-center px-2">
-            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-[0.2em] italic">Estilos Visuales</h3>
-            <div className="flex items-center gap-3">
-                <button onClick={handleResetClick} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><RotateCcw size={16}/></button>
-                <button onClick={handleSave} className="bg-black text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Guardar</button>
+        {showRestoreModal && (
+          <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+              <h3 className="font-bold text-lg text-gray-900 mb-2">¿Restaurar colores?</h3>
+              <p className="text-sm text-gray-600 mb-6">Volverás a los colores originales del diseño.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowRestoreModal(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200">Cancelar</button>
+                <button onClick={confirmReset} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-700">Sí, Restaurar</button>
+              </div>
             </div>
-        </div>
-
-        {/* --- SECCIÓN 1: IDENTIDAD DEL LOCAL --- */}
-        <div className="space-y-4">
-            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-                <div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
-                <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
-                <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
-                <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
-                
-                {/* ACENTO (Solo si la plantilla lo usa) */}
-                {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-
-                {/* CATEGORÍAS (Solo Alterna Pro) */}
-               {['alterna-pro', 'marketpro'].includes(data.template_id) && (
-                    <>
-                        <ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} />
-                        <ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} />
-                    </>
-                )}
-                {data.template_id === 'marketpro' && (
-                    <>
-                        <ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} />
-                        <ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} />
-                    </>
-                )}
-                
-                {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-            </div>
-        </div>
-
-        {/* --- SECCIÓN 2: CARTA DE PRODUCTOS --- */}
-        {/* --- SECCIÓN 2: CARTA DE PRODUCTOS --- */}
-        <div className="space-y-4">
-            <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-                <div className="w-1 h-3 bg-orange-600 rounded-full" /> Carta de Productos
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
-                <ColorBubble label="Texto Nombre" value={data.card_name_color} onChange={(v) => setData({ ...data, card_name_color: v })} />
-                <ColorBubble label="Fondo Card" value={data.card_color} onChange={(v) => setData({ ...data, card_color: v })} />
-                
-                {/* --- NUEVO: BOTÓN ON/OFF FONDO (SOLO MARKET PRO) --- */}
-                {data.template_id === 'marketpro' && (
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
-                            <button 
-                                onClick={() => { setData({...data, card_show_bg: !data.card_show_bg}); setUnsavedChanges(true); }} 
-                                className={`w-10 h-5 rounded-full flex items-center px-0.5 transition-colors ${data.card_show_bg ? 'bg-black' : 'bg-gray-300'}`}
-                            >
-                                <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${data.card_show_bg ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                            </button>
-                        </div>
-                        <span className="text-[8px] font-black uppercase text-gray-400 text-center leading-tight px-1">
-                           Fondo {data.card_show_bg ? 'ON' : 'OFF'}
-                        </span>
-                    </div>
-                )}
-
-                {/* OCULTAMOS DESCRIPCIÓN PARA ALTERNA-PRO SI ES NECESARIO */}
-                {data.template_id !== 'alterna-pro' && (
-                    <ColorBubble label="Texto Desc." value={data.card_desc_color} onChange={(v) => setData({ ...data, card_desc_color: v })} />
-                )}
-
-                <ColorBubble label="Color Precio" value={data.card_price_color} onChange={(v) => setData({ ...data, card_price_color: v })} />
-                
-                {/* NUEVO BOTÓN PARA POP VIBRANT */}
-                {data.template_id === 'pop' && (
-                    <ColorBubble label="Color Sombra" value={data.card_shadow_color || '#000000'} onChange={(v) => setData({ ...data, card_shadow_color: v })} />
-                )}
-                
-                <ColorBubble label="Fondo Botón +" value={data.card_btn_bg} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
-                <ColorBubble label="Símbolo +" value={data.card_btn_text} onChange={(v) => setData({ ...data, card_btn_text: v })} />
-            </div>
-        </div>
-
-        {/* --- SECCIÓN 3: OFERTAS Y BANNERS --- */}
-        <div className="space-y-4">
-            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-2 flex items-center gap-2">
-                <div className="w-1 h-3 bg-emerald-600 rounded-full"/> Ofertas y Banners
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 justify-items-center">
-                <ColorBubble label="Fondo Promo" value={data.promo_bg_color} onChange={(v) => setData({...data, promo_bg_color: v})} />
-                <ColorBubble label="Texto Promo" value={data.promo_text_color} onChange={(v) => setData({...data, promo_text_color: v})} />
-            </div>
-        </div>
-
-       {/* FUENTES */}
-        {tConfig.showFonts && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-100">
-                <div className="space-y-2">
-                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Títulos y Precios</label>
-                    <select value={data.title_font || ''} onChange={(e) => { setData({...data, title_font: e.target.value}); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
-                        <option value="Inter">Moderna (Inter)</option>
-                        <option value="Playfair Display">Elegante (Serif)</option>
-                        <option value="Patrick Hand">Manuscrita (Chalk)</option>
-                    </select>
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Descripciones</label>
-                    <select value={data.desc_font || ''} onChange={(e) => { setData({...data, desc_font: e.target.value}); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
-                        <option value="Inter">Moderna (Inter)</option>
-                        <option value="Playfair Display">Elegante (Serif)</option>
-                        <option value="Patrick Hand">Manuscrita (Chalk)</option>
-                    </select>
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">Banner Promo</label>
-                    <select value={data.promo_font || ''} onChange={(e) => { setData({...data, promo_font: e.target.value}); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
-                        <option value="Inter">Moderna (Inter)</option>
-                        <option value="Playfair Display">Elegante (Serif)</option>
-                        <option value="Patrick Hand">Manuscrita (Chalk)</option>
-                    </select>
-                </div>
-            </div>
+          </div>
         )}
-    </div>
-)}
-  
-              <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <div className="grid grid-cols-1 gap-4">
+        {showSuccessModal && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-pop-in">
+            <div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+              <CheckCircle size={20} className="text-green-400" /><span className="font-bold text-sm">¡Guardado!</span>
+            </div>
+          </div>
+        )}
+
+        <div className={`transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-60 select-none' : ''}`}>
+          <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0 min-w-0">
+
+            {/* ── PANEL IZQUIERDO ── */}
+            <div className="flex-1 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
+
+              {/* TAB SWITCHER */}
+              <div className="flex bg-gray-100 p-1.5 rounded-[2rem] border border-gray-200 shadow-sm">
+                <button onClick={() => setActiveTab('menu')} className={`flex-1 py-3 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'menu' ? 'bg-white text-black shadow-md scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <Utensils size={14} /> Editor Menú
+                </button>
+                <button onClick={() => setActiveTab('snappylinks')} className={`flex-1 py-3 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'snappylinks' ? 'bg-white text-black shadow-md scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <Zap size={14} className="text-yellow-500 fill-yellow-500" /> SnappyLinks
+                </button>
+              </div>
+
+              {/* ── CONTENIDO POR TAB ── */}
+              {activeTab === 'menu' ? (
+                <>
+                  {/* HEADER */}
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 border-b border-gray-100 pb-8">
+                    <div className="space-y-1">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-tight">Personalizar tienda</h1>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[11px] sm:text-xs text-gray-400 font-medium">Diseña la apariencia de tu menú digital.</p>
+                        {unsavedChanges && <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold animate-pulse">Autoguardando...</span>}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 w-full lg:w-auto">
+                      <div className="flex gap-2">
+                        <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[11px] font-bold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm"><Palette size={14} /> Estilos</button>
+                        <button onClick={handleSave} disabled={loading} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all"><Save size={14} /> Guardado</button>
+                      </div>
+                      <button onClick={() => setShowMobilePreview(true)} className="xl:hidden flex items-center justify-center gap-2 w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl">
+                        <Eye size={18} className="text-indigo-400" /> Mirá cómo va quedando
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ESTILOS AVANZADOS */}
+                  {showAdvanced && tConfig.editable && (
+                    <div className="bg-gray-50/50 p-6 rounded-[2.5rem] border border-gray-100 shadow-inner animate-in fade-in zoom-in-95 duration-300 space-y-10">
+                      <div className="flex justify-between items-center px-2">
+                        <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-[0.2em] italic">Estilos Visuales</h3>
+                        <div className="flex items-center gap-3">
+                          <button onClick={handleResetClick} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><RotateCcw size={16} /></button>
+                          <button onClick={handleSave} className="bg-black text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Guardar</button>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2"><div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local</div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
+                          <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
+                          <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
+                          <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
+                          {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
+                          {['alterna-pro', 'marketpro'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
+                          {data.template_id === 'marketpro' && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
+                          {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-2 flex items-center gap-2"><div className="w-1 h-3 bg-orange-600 rounded-full" /> Carta de Productos</div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
+                          <ColorBubble label="Texto Nombre" value={data.card_name_color} onChange={(v) => setData({ ...data, card_name_color: v })} />
+                          <ColorBubble label="Fondo Card" value={data.card_color} onChange={(v) => setData({ ...data, card_color: v })} />
+                          {data.template_id === 'marketpro' && (<div className="flex flex-col items-center gap-2"><div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center"><button onClick={() => { setData({ ...data, card_show_bg: !data.card_show_bg }); setUnsavedChanges(true); }} className={`w-10 h-5 rounded-full flex items-center px-0.5 transition-colors ${data.card_show_bg ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${data.card_show_bg ? 'translate-x-5' : 'translate-x-0'}`} /></button></div><span className="text-[8px] font-black uppercase text-gray-400 text-center leading-tight px-1">Fondo {data.card_show_bg ? 'ON' : 'OFF'}</span></div>)}
+                          {data.template_id !== 'alterna-pro' && <ColorBubble label="Texto Desc." value={data.card_desc_color} onChange={(v) => setData({ ...data, card_desc_color: v })} />}
+                          <ColorBubble label="Color Precio" value={data.card_price_color} onChange={(v) => setData({ ...data, card_price_color: v })} />
+                          {data.template_id === 'pop' && <ColorBubble label="Color Sombra" value={data.card_shadow_color || '#000000'} onChange={(v) => setData({ ...data, card_shadow_color: v })} />}
+                          <ColorBubble label="Fondo Botón +" value={data.card_btn_bg} onChange={(v) => setData({ ...data, card_btn_bg: v })} />
+                          <ColorBubble label="Símbolo +" value={data.card_btn_text} onChange={(v) => setData({ ...data, card_btn_text: v })} />
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-2 flex items-center gap-2"><div className="w-1 h-3 bg-emerald-600 rounded-full" /> Ofertas y Banners</div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 justify-items-center">
+                          <ColorBubble label="Fondo Promo" value={data.promo_bg_color} onChange={(v) => setData({ ...data, promo_bg_color: v })} />
+                          <ColorBubble label="Texto Promo" value={data.promo_text_color} onChange={(v) => setData({ ...data, promo_text_color: v })} />
+                        </div>
+                      </div>
+                      {tConfig.showFonts && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-100">
+                          {[{ label: 'Títulos y Precios', field: 'title_font' }, { label: 'Descripciones', field: 'desc_font' }, { label: 'Banner Promo', field: 'promo_font' }].map(({ label, field }) => (
+                            <div key={field} className="space-y-2">
+                              <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">{label}</label>
+                              <select value={(data as any)[field] || ''} onChange={(e) => { setData({ ...data, [field]: e.target.value }); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
+                                <option value="Inter">Moderna (Inter)</option>
+                                <option value="Playfair Display">Elegante (Serif)</option>
+                                <option value="Patrick Hand">Manuscrita (Chalk)</option>
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* LINK */}
+                  <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Link de tu Menú</label>
+                    <div className="flex bg-white rounded-lg border overflow-hidden shadow-sm">
+                      <div className="bg-gray-100 px-2 py-2 border-r text-gray-500 text-xs flex items-center select-none font-bold">snappy.uno/</div>
+                      <input value={data.slug || ''} onChange={(e) => { setData({ ...data, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }); setUnsavedChanges(true); }} className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" placeholder="tu-marca" />
+                      <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors">
+                        {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14} /><span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14} />}
+                      </button>
+                      <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-blue-600 transition-colors"><ExternalLink size={14} /></a>
+                    </div>
+                  </section>
+
+                  {/* DATOS DEL LOCAL */}
+                  <section className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-700">Nombre del Negocio</label>
+                        <input value={data.name || ''} onChange={(e) => { setData({ ...data, name: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl font-bold outline-none text-sm focus:ring-1 focus:ring-black" placeholder="Ej: Pizzería Los Tíos" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-700">Descripción Corta</label>
+                        <textarea value={data.description || ''} onChange={(e) => { setData({ ...data, description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-black resize-none" rows={2} placeholder="La mejor comida de la ciudad..." />
+                      </div>
+                      <div className="space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-xs font-bold text-gray-700 flex items-center gap-1"><Megaphone size={12} /> Mensaje Promo (Header)</label>
+                          <div className="flex items-center gap-2">
+                            <label className="text-[10px] text-gray-500 font-bold uppercase cursor-pointer" htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label>
+                            <button onClick={() => { setData({ ...data, show_promo: !data.show_promo }); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`} /></button>
+                          </div>
+                        </div>
+                        {data.show_promo && <input value={data.promo_message || ''} onChange={(e) => { setData({ ...data, promo_message: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" placeholder="Ej: Envío GRATIS en tu primera compra" />}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* IMÁGENES */}
+                  <section className="space-y-2">
+                    <label className="text-xs font-bold text-gray-700 block">Imágenes</label>
+                    <div className="flex gap-4">
+                      <div className="w-20 flex-shrink-0">
+                        <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white">
+                          <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'logo_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                          {data.logo_url ? <img src={data.logo_url} className="w-full h-full object-cover" /> : <Store size={20} className="text-gray-300" />}
+                          <div className="absolute inset-0 bg-black/50 text-white text-[8px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition">LOGO</div>
+                        </div>
+                      </div>
+                      {tConfig.showBannerImg && (
+                        <div className="flex-1 flex gap-2">
+                          <div className="flex-1 relative h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white">
+                            <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'banner_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                            {data.banner_url ? (<><img src={data.banner_url} className="w-full h-full object-cover opacity-60" /><div className="absolute inset-0 flex items-center justify-center"><span className="bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold">Cambiar Portada</span></div></>) : (<div className="flex items-center gap-2 text-gray-400"><ImageIcon size={16} /><span className="text-xs">Subir Portada</span></div>)}
+                          </div>
+                          <div className="w-20 border rounded-xl flex flex-col items-center justify-center gap-1 bg-gray-50">
+                            <span className="text-[8px] font-bold text-gray-500 uppercase">Banner</span>
+                            <button onClick={() => { setData({ ...data, show_banner: !data.show_banner }); setUnsavedChanges(true); }} className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_banner ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_banner ? 'translate-x-4' : 'translate-x-0'}`} /></button>
+                            <span className="text-[8px] font-bold text-gray-400">{data.show_banner ? 'ON' : 'OFF'}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* HERO EDITOR */}
+                  {tConfig.showHeroEditor && (
+                    <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                        <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest mb-5 flex items-center gap-2"><Star size={14} className="fill-indigo-600 text-indigo-600" /> Producto en Banner (Hero)</h3>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap md:flex-nowrap gap-3 items-end">
+                            <div className="flex-1 min-w-[200px] space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Texto Etiqueta</label><input value={data.hero_badge_text || ''} onChange={(e) => { setData({ ...data, hero_badge_text: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: PLATO DEL DÍA" /></div>
+                            <div className="flex gap-2">
+                              <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Fondo</label><input type="color" value={data.hero_badge_bg || '#FFD700'} onChange={(e) => { setData({ ...data, hero_badge_bg: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
+                              <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Texto</label><input type="color" value={data.hero_badge_color || '#000000'} onChange={(e) => { setData({ ...data, hero_badge_color: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
+                            </div>
+                          </div>
+                          <div className="flex gap-3 items-end">
+                            <div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Título del Plato</label><input value={data.hero_title || ''} onChange={(e) => { setData({ ...data, hero_title: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: Ñoquis caseros" /></div>
+                            <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Color</label><input type="color" value={data.hero_title_color || '#ffffff'} onChange={(e) => { setData({ ...data, hero_title_color: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
+                          </div>
+                          <div className="flex gap-3 items-end">
+                            <div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Precio ($)</label><input type="number" value={data.hero_price ?? 0} onChange={(e) => { setData({ ...data, hero_price: Number(e.target.value) }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none border rounded-xl" placeholder="0" /></div>
+                            <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Color</label><input type="color" value={data.hero_price_color || '#FFD700'} onChange={(e) => { setData({ ...data, hero_price_color: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
+                          </div>
+                          <div className="space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Descripción Completa (se verá en el Modal)</label><textarea value={data.hero_description || ''} onChange={(e) => { setData({ ...data, hero_description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-300 resize-none bg-white" rows={3} placeholder="Escribe aquí los ingredientes o detalles..." /></div>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* WHATSAPP / ENVÍO / MP */}
+                  <section className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">WhatsApp</label>
+                        <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-green-50 text-green-600 border-r"><Phone size={14} /></div><input value={data.phone || ''} onChange={(e) => { setData({ ...data, phone: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="11..." /></div>
+                        <p className="text-[10px] text-gray-400 mt-1 leading-tight">Este número recibirá los pedidos.</p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Envío ($)</label>
+                        <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-gray-50 text-gray-500 border-r"><Bike size={14} /></div><input type="number" value={data.delivery_cost} onChange={(e) => { setData({ ...data, delivery_cost: Number(e.target.value) }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="0" /></div>
+                        <p className="text-[10px] text-gray-400 mt-1 leading-tight">Costo fijo de envío.</p>
+                      </div>
+                    </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Link de tu Menú</label>
-                     <div className="flex bg-white rounded-lg border overflow-hidden shadow-sm">
-    {/* Visualmente mostramos solo snappy.uno/ */}
-    <div className="bg-gray-100 px-2 py-2 border-r text-gray-500 text-xs flex items-center select-none font-bold">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias (Mercado Pago)</label>
+                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-purple-50 text-purple-500 border-r"><CreditCard size={14} /></div><input value={data.alias_mp || ''} onChange={(e) => { setData({ ...data, alias_mp: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp" /></div>
+                      <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
+                    </div>
+                  </section>
+
+                  {/* MARKET PRO EXTRA */}
+                  {data.template_id === 'marketpro' && (
+                    <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes (Solo Market Pro)</h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Dirección</label><input value={data.address || ''} onChange={(e) => { setData({ ...data, address: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white font-bold" placeholder="Ej: Av. Santa Fe 1234, CABA" /></div>
+                          <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400 uppercase italic">Link Google Maps (Opcional)</label><input value={data.google_maps_link || ''} onChange={(e) => { setData({ ...data, google_maps_link: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white" placeholder="Pegá el link..." /></div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {[{ label: 'Instagram', field: 'instagram', ph: 'instagram.com/tu-user' }, { label: 'Facebook', field: 'facebook', ph: 'facebook.com/tu-página' }, { label: 'TikTok', field: 'tiktok', ph: 'tiktok.com/@tu-user' }].map(({ label, field, ph }) => (
+                            <div key={field} className="space-y-1"><label className="text-[9px] font-bold text-gray-400 uppercase">{label}</label><input value={(data as any)[field] || ''} onChange={(e) => { setData({ ...data, [field]: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder={ph} /></div>
+                          ))}
+                        </div>
+                        <div className="space-y-1"><label className="text-[9px] font-bold text-green-600 uppercase flex items-center gap-1"><Phone size={10} /> WhatsApp Contacto</label><input value={data.phone || ''} onChange={(e) => { setData({ ...data, phone: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border-2 border-green-200 rounded-xl text-xs outline-none bg-green-50 font-bold text-green-900" placeholder="Ej: 54911..." /></div>
+                        <div className="space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Horarios</label><textarea value={data.opening_hours || ''} onChange={(e) => { setData({ ...data, opening_hours: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white resize-none" rows={2} /></div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* CARGA RÁPIDA */}
+                  <section className="pt-4 border-t">
+                    <h3 className="font-bold flex items-center gap-2 text-sm mb-3"><Utensils size={16} /> Carga rápida</h3>
+                    {products.length < 2 ? (
+                      <div className="bg-gray-50 border p-3 rounded-xl space-y-2">
+                        <div className="flex gap-2">
+                          {!templatesSinFoto.some(t => data.template_id?.toLowerCase().includes(t)) ? (
+                            <div className="w-12 h-12 bg-white border border-dashed border-gray-200 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0 group">
+                              <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
+                              {newProd.image_url ? <img src={newProd.image_url} className="w-full h-full object-cover rounded-lg" /> : <Plus size={16} className="text-gray-400 group-hover:text-violet-500 transition-colors" />}
+                            </div>
+                          ) : (
+                            <button type="button" onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" no usa imágenes de productos.`)} className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-amber-100 transition-colors shadow-sm" title="¿Por qué no puedo subir fotos?">
+                              <ImageIcon size={16} className="text-amber-500" />
+                            </button>
+                          )}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <input value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} placeholder="Nombre del plato" className="w-full p-1.5 border rounded text-xs font-bold" />
+                            <input type="number" value={newProd.price} onChange={(e) => setNewProd({ ...newProd, price: e.target.value })} placeholder="$ Precio" className="w-full p-1.5 border rounded text-xs" />
+                          </div>
+                        </div>
+                        <textarea value={newProd.description} onChange={(e) => setNewProd({ ...newProd, description: e.target.value })} placeholder="Ingredientes..." className="w-full p-2 border rounded text-xs outline-none resize-none" rows={1} />
+                        <button onClick={handleAddProduct} disabled={loading || !newProd.name} className="w-full bg-gray-900 text-white py-2 rounded-lg text-xs font-bold flex justify-center gap-2 items-center hover:bg-black transition-colors">Agregar al Menú</button>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 p-3 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-green-800 text-xs font-bold"><Check size={16} /> {products.length} productos cargados</div>
+                        <Link href="/dashboard/products" className="text-xs bg-white border border-green-200 px-3 py-1.5 rounded-lg font-bold text-green-700 hover:bg-green-50">Gestionar Todos</Link>
+                      </div>
+                    )}
+                 <div className="mt-3 space-y-2">
+      {products.slice(0, 3).map((p: any) => (
+        <div key={p.id} className="flex items-center gap-3 p-2 border rounded-lg bg-white">
+          <div className="w-8 h-8 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+            {p.image_url && <img src={p.image_url} className="w-full h-full object-cover" alt={p.name} />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold truncate text-left">{p.name}</div>
+          </div>
+          <div className="text-xs text-gray-500">${p.price}</div>
+          <button onClick={() => handleDeleteQuick(p.id)} className="text-red-400 hover:text-red-600">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ))}
+      
+      {/* AVISO SI ESTÁ VACÍO */}
+      {products.length === 0 && (
+        <p className="text-[10px] text-gray-400 italic text-center py-2">
+          Todavía no cargaste productos reales.
+        </p>
+      )}
+    </div>
+                  </section>
+                </>
+              ) : (
+              // ── EDITOR SNAPPYLINKS (LÓGICA: EL QR NO SE TOCA) ──────────────────
+               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 text-left">
+    
+   {/* --- 🚀 EXPLICACIÓN PROFESIONAL PARA EL CLIENTE --- */}
+<section className="bg-white border-2 border-indigo-100 p-6 rounded-[2.5rem] space-y-5 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+    <div className="flex items-center gap-3">
+        <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-100">
+            <Zap size={22} fill="white"/>
+        </div>
+        <div>
+            <h3 className="font-black text-sm uppercase tracking-tighter italic text-gray-900">Potenciá tu presencia online</h3>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Página de enlaces profesional</p>
+        </div>
+    </div>
+    
+    <div className="space-y-4">
+        <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
+            SnappyLinks es tu propia página de enlaces personalizada. Ideal para que tus clientes encuentren todo lo que necesitan con un solo clic desde tu biografía.
+        </p>
+        
+        <div className="grid grid-cols-1 gap-2">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-900">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"/>
+                Centralizá WhatsApp, redes y tu menú en un solo lugar.
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-900">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"/>
+                Mantené el diseño y los colores de tu marca.
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-900">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"/>
+                Sin necesidad de crear cuentas en aplicaciones externas.
+            </div>
+        </div>
+    </div>
+
+    {/* GUÍA DE LINKS RÁPIDA */}
+    <div className="space-y-3 pt-2">
+        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+            <span className="text-[8px] font-black uppercase text-emerald-600 block mb-1">Para tus mesas (QR)</span>
+            <p className="text-[11px] font-bold text-emerald-900 leading-tight">
+                Seguí usando <span className="underline italic">snappy.uno/{data.slug}</span>
+                <br/><span className="text-[9px] opacity-70">Lleva directo a tu carta digital. No tenés que cambiar tus QR.</span>
+            </p>
+        </div>
+        
+       
+    </div>
+</section>
+
+   {/* 2. SWITCH DE ACTIVACIÓN: CREA EL BOTÓN AUTOMÁTICAMENTE */}
+<section className="bg-indigo-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-indigo-100 flex justify-between items-center transition-all">
+    <div className="space-y-1">
+        <h3 className="font-black text-xs uppercase tracking-widest italic text-indigo-50">Activar SnappyLinks</h3>
+        <p className="text-[10px] opacity-80 font-bold uppercase">
+            {data.is_bio_active ? 'Página Online' : 'Página Pausada'}
+        </p>
+    </div>
+    <button 
+    onClick={() => { 
+        const nextActive = !data.is_bio_active;
+        
+        // 1. Forzamos la creación del slug si está vacío
+        // Si no tiene uno, le ponemos el nombre del local + 'bio'
+        const finalBioSlug = data.snappylink_slug || (data.slug + 'bio');
+        
+        let nextLinks = [...(data.snappylink_links || [])];
+        
+        // 2. Agregamos el botón del menú si es la primera vez que activa
+        const hasMenu = nextLinks.some(l => l.label.includes("Menú"));
+        if (nextActive && !hasMenu) {
+            const menuBtn = { label: '📖 Ver Menú Digital', url: `https://snappy.uno/${data.slug}` };
+            nextLinks = [menuBtn, ...nextLinks];
+        }
+        
+        // 3. ACTUALIZAMOS EL ESTADO COMPLETO
+        // Al setear el slug acá, el "Autoguardado" detecta el cambio y lo manda a Supabase
+        setData({ 
+            ...data, 
+            is_bio_active: nextActive, 
+            snappylink_slug: finalBioSlug, 
+            snappylink_links: nextLinks 
+        }); 
+        
+        // 4. Disparamos el guardado
+        setUnsavedChanges(true); 
+    }}
+    className={`w-14 h-7 rounded-full flex items-center px-1 transition-all duration-300 ${data.is_bio_active ? 'bg-emerald-400' : 'bg-white/20'}`}
+>
+    <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${data.is_bio_active ? 'translate-x-7' : 'translate-x-0'}`} />
+</button>
+</section>
+
+  {/* 3. EDITOR DE LINK Y CONTENIDO */}
+    {data.is_bio_active ? (
+      <div className="space-y-8 animate-in slide-in-from-top-4 duration-500">
+        
+        {/* EDITOR DE LINK PARA REDES (Siempre visible) */}
+        <section className="space-y-3">
+            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2 ml-2">
+                <ExternalLink size={14} /> Link para tus Redes Sociales
+            </h3>
+          <div className="flex bg-white rounded-2xl border-2 border-indigo-500 overflow-hidden shadow-lg shadow-indigo-50">
+    <div className="bg-indigo-50 px-3 py-3 border-r border-indigo-100 text-indigo-600 text-xs flex items-center select-none font-black italic shrink-0">
         snappy.uno/
     </div>
-   <input 
-    value={data.slug || ''}  // <--- AGREGÁ EL || '' ACÁ
-    onChange={(e) => { 
-        setData({...data, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')}); 
-        setUnsavedChanges(true); 
-    }} 
-    className="flex-1 p-2 outline-none text-xs font-bold text-gray-800 min-w-0" 
-    placeholder="tu-marca"
-/>
-    
-    <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors">
-        {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14}/> <span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14}/>}
+    <input 
+        value={data.snappylink_slug || (data.slug ? data.slug + 'bio' : '')} 
+        onChange={(e) => { 
+            setData({...data, snappylink_slug: e.target.value.toLowerCase().replace(/\s+/g, '-')}); 
+            setUnsavedChanges(true); 
+        }}
+        className="flex-1 p-3 outline-none text-xs font-black text-gray-800 min-w-0" // 🚀 Agregamos min-w-0
+        placeholder="nombre-bio"
+    />
+    <button 
+        onClick={() => {
+            const link = `snappy.uno/${data.snappylink_slug || data.slug + 'bio'}`;
+            navigator.clipboard.writeText(link);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }}
+        className="px-4 border-l bg-gray-50 hover:bg-indigo-50 text-indigo-600 transition-colors flex items-center gap-2 shrink-0" // 🚀 Agregamos shrink-0
+    >
+        {copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
+        <span className="text-[10px] font-black uppercase">{copied ? 'Copiado' : 'Copiar'}</span>
     </button>
-
-    {/* El href interno sí necesita el protocolo para que el navegador sepa que es un link externo, pero el usuario no lo ve */}
-    <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-blue-600 transition-colors">
-        <ExternalLink size={14}/>
-    </a>
 </div>
-                    </div>
-                  </div>
-              </section>
+        </section>
 
+        {/* 🖼️ SECCIÓN 1: IMAGEN DE PERFIL (Siempre visible) */}
         <section className="space-y-4">
-    <div className="space-y-3">
-        {/* NOMBRE DEL NEGOCIO */}
-        <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-700">Nombre del Negocio</label>
-            <input 
-                value={data.name || ''} 
-                onChange={(e) => { setData({...data, name: e.target.value}); setUnsavedChanges(true); }} 
-                className="w-full p-3 border rounded-xl font-bold outline-none text-sm focus:ring-1 focus:ring-black" 
-                placeholder="Ej: Pizzería Los Tíos"
-            />
+            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2 ml-2">
+                <ImageIcon size={14} /> Imagen de Perfil
+            </h3>
+            <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6">
+                <div className="relative group">
+                    <div className="w-20 h-20 rounded-full border-4 border-indigo-50 shadow-xl overflow-hidden bg-gray-50 flex items-center justify-center">
+                        <img 
+                            src={data.snappylink_logo_url || data.logo_url || '/placeholder.png'} 
+                            className="w-full h-full object-cover" 
+                        />
+                    </div>
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                        <UploadCloud size={20} />
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={(e) => handleUpload(e, 'snappylink_logo_url')} 
+                            className="hidden" 
+                        />
+                    </label>
+                </div>
+                <div className="flex-1 space-y-1 text-left">
+                    <p className="text-xs font-black text-gray-800 uppercase italic leading-none">Logo Personalizado</p>
+                    <p className="text-[10px] text-gray-400 font-medium leading-tight">
+                        {data.snappylink_logo_url 
+                            ? "Estás usando un logo exclusivo para tu Bio." 
+                            : "Usando por defecto el logo de tu menú."}
+                    </p>
+                    {data.snappylink_logo_url && (
+                        <button 
+                            onClick={() => { setData({...data, snappylink_logo_url: null}); setUnsavedChanges(true); }}
+                            className="text-[9px] font-black text-red-400 uppercase underline hover:text-red-600 transition-colors block mt-1"
+                        >
+                            Restaurar original
+                        </button>
+                    )}
+                </div>
+            </div>
+        </section>
+{/* 🎨 SECCIÓN: ESTILO VISUAL DE BIO (NUEVO) */}
+<section className="space-y-4">
+    <button 
+        onClick={() => setShowBioDesigns(!showBioDesigns)} // Reutilizamos o creamos un state para este toggle
+        className="w-full flex justify-between items-center p-5 bg-indigo-50 border-2 border-indigo-100 rounded-[2.5rem] group shadow-sm hover:bg-indigo-100 transition-all"
+    >
+        <h3 className="font-black text-xs uppercase text-indigo-950 tracking-tighter italic flex items-center gap-3">
+            <Palette size={18} className="text-indigo-600"/> Diseño y Colores
+        </h3>
+        <div className={`transition-transform duration-300 ${showBioDesigns ? 'rotate-180' : 'rotate-0'}`}>
+            <ChevronDown size={20} className="text-indigo-400 group-hover:text-indigo-600" />
         </div>
-
-        {/* DESCRIPCIÓN CORTA */}
-        <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-700">Descripción Corta</label>
-            <textarea 
-                value={data.description || ''} 
-                onChange={(e) => { setData({...data, description: e.target.value}); setUnsavedChanges(true); }} 
-                className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-black resize-none" 
-                rows={2} 
-                placeholder="La mejor comida de la ciudad..."
-            />
-        </div>
+    </button>
+{showBioDesigns && (
+    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-10 animate-in fade-in slide-in-from-top-2">
         
-        <div className="space-y-2 pt-2">
-   
-   
-</div>
-
-                      <div className="space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100"><div className="flex justify-between items-center mb-2"><label className="text-xs font-bold text-gray-700 flex items-center gap-1"><Megaphone size={12}/> Mensaje Promo (Header)</label><div className="flex items-center gap-2"><label className="text-[10px] text-gray-500 font-bold uppercase cursor-pointer" htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label><button onClick={() => { setData({...data, show_promo: !data.show_promo}); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`}></div></button></div></div>{data.show_promo && (<div className="flex gap-2 items-stretch"><input 
-  value={data.promo_message || ''} 
-  onChange={(e) => { setData({...data, promo_message: e.target.value}); setUnsavedChanges(true); }} 
-  className="flex-1 p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" 
-  placeholder="Ej: Envío GRATIS en tu primera compra"
-/></div>)}</div>
-                  </div>
-              </section>
-
-              <section className="space-y-2">
-                  <label className="text-xs font-bold text-gray-700 block">Imágenes</label>
-                  <div className="flex gap-4">
-                    <div className="w-20 flex-shrink-0"><div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white"><input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'logo_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />{data.logo_url ? <img src={data.logo_url} className="w-full h-full object-cover" /> : <Store size={20} className="text-gray-300"/>}<div className="absolute inset-0 bg-black/50 text-white text-[8px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition">LOGO</div></div></div>
-                    {tConfig.showBannerImg && (
-                        <div className="flex-1 flex gap-2">
-                            <div className="flex-1 relative h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white">
-                                <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'banner_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                                {data.banner_url ? (<><img src={data.banner_url} className="w-full h-full object-cover opacity-60" /><div className="absolute inset-0 flex items-center justify-center"><span className="bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold">Cambiar Portada</span></div></>) : (<div className="flex items-center gap-2 text-gray-400"><ImageIcon size={16}/><span className="text-xs">Subir Portada</span></div>)}
+        {/* 1️⃣ GRILLA DE DISEÑOS (Plantillas) */}
+        <div className="space-y-4">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Elegí una plantilla</p>
+            <div className="grid grid-cols-3 gap-4 px-2">
+                {[
+                    { id: 'bio-modern', name: 'Modern', desc: 'Sombra Suave' },
+                    { id: 'bio-glass', name: 'Glass', desc: 'Vidrio' },
+                    { id: 'bio-dark', name: 'Dark', desc: 'Noche' }
+                ].map((temp) => (
+                    <button
+                        key={temp.id}
+                        onClick={() => {
+                            setData({ ...data, snappylink_template_id: temp.id });
+                            setUnsavedChanges(true);
+                        }}
+                        className={`relative flex flex-col items-center gap-2.5 group transition-all active:scale-95`}
+                    >
+                        <div className={`w-full aspect-[9/16] rounded-3xl border-2 transition-all overflow-hidden flex flex-col p-2.5 gap-1.5 shadow-sm ${
+                            data.snappylink_template_id === temp.id 
+                            ? 'border-indigo-600 ring-2 ring-indigo-100 shadow-indigo-100' 
+                            : 'border-gray-100 bg-white hover:border-indigo-300'
+                        }`}>
+                            <div className={`w-full h-full rounded-2xl flex flex-col items-center pt-3 gap-2 ${temp.id === 'bio-dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                                <div className="w-5 h-5 rounded-full bg-gray-200"></div>
+                                {[1, 2, 3].map((b) => (
+                                    <div key={b} className="w-[85%] h-3 bg-indigo-500/10 rounded-lg"></div>
+                                ))}
                             </div>
-                            <div className="w-20 border rounded-xl flex flex-col items-center justify-center gap-1 bg-gray-50">
-                                <span className="text-[8px] font-bold text-gray-500 uppercase">Banner</span>
-                                <button onClick={() => { setData({...data, show_banner: !data.show_banner}); setUnsavedChanges(true); }} className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_banner ? 'bg-black' : 'bg-gray-300'}`}>
-                                    <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_banner ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                </button>
-                                <span className="text-[8px] font-bold text-gray-400">{data.show_banner ? 'ON' : 'OFF'}</span>
+                        </div>
+                        <div className="text-center">
+                            <p className={`text-[9px] font-black uppercase tracking-tighter leading-none ${data.snappylink_template_id === temp.id ? 'text-indigo-600' : 'text-gray-400'}`}>{temp.name}</p>
+                        </div>
+                    </button>
+                ))}
+            </div>
+        </div>
+
+        <div className="h-px bg-gray-100 w-full" />
+
+        {/* 2️⃣ FONDO: COLOR O IMAGEN */}
+        <div className="space-y-4">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Personalizá el fondo</p>
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-2">
+                    <span className="text-xs font-bold text-gray-700 italic uppercase tracking-tighter">Color sólido</span>
+                    <ColorBubble label="Fondo" value={data.snappylink_bg_color} onChange={(v) => { setData({...data, snappylink_bg_color: v}); setUnsavedChanges(true); }} />
+                </div>
+                
+                <div className="relative h-24 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group overflow-hidden">
+                    {!data.snappylink_bg_img ? (
+                        <>
+                            <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'snappylink_bg_img')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                            <div className="flex flex-col items-center gap-1 text-gray-400">
+                                <UploadCloud size={20} />
+                                <span className="text-[9px] font-black uppercase tracking-tighter">Subir imagen de fondo</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="relative w-full h-full">
+                            <img src={data.snappylink_bg_img} className="w-full h-full object-cover opacity-60" />
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setData({ ...data, snappylink_bg_img: '' });
+                                    setUnsavedChanges(true);
+                                }}
+                                className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all active:scale-90 z-20"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
+                                   <span className="text-[8px] font-black text-white uppercase tracking-widest text-center">Imagen activa</span>
+                                </div>
                             </div>
                         </div>
                     )}
-                  </div>
-              </section>
-
-          
-{/* SECCIÓN PRODUCTO DESTACADO (SOLO PARA SPOTLIGHT) */}
-{tConfig.showHeroEditor && (
-  <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
-    <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
-      <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest mb-5 flex items-center gap-2">
-        <Star size={14} className="fill-indigo-600 text-indigo-600"/> 
-        Producto en Banner (Hero)
-      </h3>
-      
-      <div className="space-y-4">
-        {/* FILA 1: ETIQUETA + SUS 2 COLORES */}
-        <div className="flex flex-wrap md:flex-nowrap gap-3 items-end">
-          <div className="flex-1 min-w-[200px] space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Texto Etiqueta</label>
-            <input value={data.hero_badge_text || ''} onChange={(e) => { setData({...data, hero_badge_text: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: PLATO DEL DÍA"/>
-          </div>
-          <div className="flex gap-2">
-            <div className="space-y-1">
-              <label className="text-[9px] font-black text-gray-400 uppercase">Fondo</label>
-              <input type="color" value={data.hero_badge_bg || '#FFD700'} onChange={(e) => { setData({...data, hero_badge_bg: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
+                </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[9px] font-black text-gray-400 uppercase">Texto</label>
-              <input type="color" value={data.hero_badge_color || '#000000'} onChange={(e) => { setData({...data, hero_badge_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
+        </div>
+
+
+        {/* 4️⃣ BOTONES: COLORES Y SOMBRAS */}
+        <div className="space-y-4 pt-4 border-t border-gray-50">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Estilo de Botones</p>
+            <div className="grid grid-cols-3 gap-2 justify-items-center">
+                <ColorBubble label="Cuerpo" value={data.snappylink_btn_color} onChange={(v) => { setData({...data, snappylink_btn_color: v}); setUnsavedChanges(true); }} />
+                <ColorBubble label="Texto" value={data.snappylink_btn_text_color} onChange={(v) => { setData({...data, snappylink_btn_text_color: v}); setUnsavedChanges(true); }} />
+                <ColorBubble label="Sombra" value={data.snappylink_shadow_color} onChange={(v) => { setData({...data, snappylink_shadow_color: v}); setUnsavedChanges(true); }} />
             </div>
-          </div>
         </div>
-
-        {/* FILA 2: TÍTULO + SU COLOR */}
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Título del Plato</label>
-            <input value={data.hero_title || ''} onChange={(e) => { setData({...data, hero_title: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: Ñoquis caseros"/>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-black text-gray-400 uppercase">Color</label>
-            <input type="color" value={data.hero_title_color || '#ffffff'} onChange={(e) => { setData({...data, hero_title_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
-          </div>
-        </div>
-
-        {/* FILA 3: PRECIO + SU COLOR */}
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase">Precio ($)</label>
-           <input 
-  type="number" 
-  value={data.delivery_cost ?? 0} 
-  onChange={(e) => { setData({...data, delivery_cost: Number(e.target.value)}); setUnsavedChanges(true); }} 
-  className="w-full p-2 text-xs font-bold outline-none" 
-  placeholder="0"
-/>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-black text-gray-400 uppercase">Color</label>
-            <input type="color" value={data.hero_price_color || '#FFD700'} onChange={(e) => { setData({...data, hero_price_color: e.target.value}); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block"/>
-          </div>
-        </div>
-
-        {/* FILA 4: DESCRIPCIÓN (MODAL) */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-500 uppercase">Descripción Completa (se verá en el Modal)</label>
-          <textarea 
-            value={data.hero_description || ''} 
-            onChange={(e) => { setData({...data, hero_description: e.target.value}); setUnsavedChanges(true); }} 
-            className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-300 resize-none bg-white" 
-            rows={3} 
-            placeholder="Escribe aquí los ingredientes o detalles que el cliente verá al abrir el producto..."
-          />
-        </div>
-      </div>
     </div>
-  </section>
 )}
- 
-              <section className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                      <div>
-                          <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">WhatsApp</label>
-                          <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-green-50 text-green-600 border-r"><Phone size={14}/></div><input value={data.phone || ''} onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="11..."/></div>
-                          <p className="text-[10px] text-gray-400 mt-1 leading-tight">Este número recibirá los pedidos.</p>
-                      </div>
-                      <div>
-                          <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Envío ($)</label>
-                          <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-gray-50 text-gray-500 border-r"><Bike size={14}/></div><input type="number" value={data.delivery_cost} onChange={(e) => { setData({...data, delivery_cost: Number(e.target.value)}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="0"/></div>
-                          <p className="text-[10px] text-gray-400 mt-1 leading-tight">Costo fijo de envío.</p>
-                      </div>
-                  </div>
-                  <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias (Mercado Pago)</label>
-                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-purple-50 text-purple-500 border-r"><CreditCard size={14}/></div><input value={data.alias_mp || ''} onChange={(e) => { setData({...data, alias_mp: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp"/></div>
-                      <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
-                  </div>
-              </section>
+</section>
 
 
-{/* --- SECCIÓN CONDICIONAL: SOLO PARA MARKET PRO --- */}
-{data.template_id === 'marketpro' && (
-  <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
-    <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
-      <Store size={14}/> Información y Redes (Solo Market Pro)
+        {/* 📝 SECCIÓN 2: TEXTO DE PRESENTACIÓN Y BOTONES (CON TOGGLE) */}
+      <section className="space-y-4">
+   {/* Botón principal del Toggle: Coloreado y prominente */}
+   <button 
+    onClick={() => setShowBioContent(!showBioContent)}
+    className="w-full flex justify-between items-center p-5 bg-indigo-50 border-2 border-indigo-100 rounded-[2.5rem] group shadow-sm hover:bg-indigo-100 transition-all animate-in fade-in"
+   >
+    <h3 className="font-black text-xs uppercase text-indigo-950 tracking-tighter italic flex items-center gap-3">
+        {/* Icono de Store coloreado */}
+        <Store size={18} className="text-indigo-600"/> Contenido de tu Bio
     </h3>
-    
-    <div className="space-y-4">
-      {/* Dirección y Mapa */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-500 uppercase">Dirección (Texto a mostrar)</label>
+    {/* Cambiado icono de PLUS a CHEVRON y coloreado/rotado */}
+    <div className={`transition-transform duration-300 ${showBioContent ? 'rotate-180' : 'rotate-0'}`}>
+        <ChevronDown size={20} className="text-indigo-400 group-hover:text-indigo-600" />
+    </div>
+   </button>
+
+   {/* --- INICIO DEL CONTENIDO QUE SE OCULTA --- */}
+ {showBioContent && (
+  <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="xl:hidden mb-4">
+        <button 
+            onClick={() => setShowMobilePreview(true)} 
+            className="flex items-center justify-center gap-2 w-full py-4 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100"
+        >
+            <Eye size={18} className="text-white" /> Mirá cómo va quedando
+        </button>
+    </div>
+    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-8">
+      
+      {/* --- SECCIÓN TÍTULO + COLOR --- */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 space-y-1.5 text-left">
+          <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest">
+            Título de Bienvenida
+          </label>
           <input 
-            value={data.address || ''} 
-            onChange={(e) => { setData({...data, address: e.target.value}); setUnsavedChanges(true); }}
-            className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white font-bold" 
-            placeholder="Ej: Av. Santa Fe 1234, CABA"
+            type="text"
+            value={data.snappylink_title || ''} 
+            onChange={(e) => { setData({ ...data, snappylink_title: e.target.value }); setUnsavedChanges(true); }}
+            className="w-full p-4 border border-gray-100 rounded-2xl text-xs font-bold outline-none bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
+            placeholder="Ej: Bienvenidos a nuestras redes"
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase italic">Link de Google Maps (Opcional)</label>
-          <input 
-            value={data.google_maps_link || ''} 
-            onChange={(e) => { setData({...data, google_maps_link: e.target.value}); setUnsavedChanges(true); }}
-            className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white" 
-            placeholder="Pegá el link de maps aquí..."
+        {/* 🎨 Selector de Color del Título */}
+        <div className="shrink-0 pt-4">
+          <ColorBubble 
+            label="Color" 
+            value={data.snappylink_title_color} 
+            onChange={(v) => { setData({...data, snappylink_title_color: v}); setUnsavedChanges(true); }} 
           />
         </div>
       </div>
 
-      {/* Redes Sociales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold text-gray-400 uppercase">Instagram (Link)</label>
-          <input value={data.instagram || ''} onChange={(e) => { setData({...data, instagram: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="instagram.com/tu-user"/>
+      {/* --- SECCIÓN BIO + COLOR --- */}
+      <div className="flex items-start gap-4">
+        <div className="flex-1 space-y-1.5 text-left">
+          <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">
+            Descripción / Bio corta
+          </label>
+          <textarea
+            value={data.snappylink_bio || ''}
+            onChange={(e) => { setData({ ...data, snappylink_bio: e.target.value }); setUnsavedChanges(true); }}
+            className="w-full p-4 border border-gray-100 rounded-2xl text-xs outline-none bg-gray-50 shadow-inner resize-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+            placeholder="Ej: Las mejores burgers. Pedí online acá 👇"
+            rows={3}
+          />
         </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold text-gray-400 uppercase">Facebook (Link)</label>
-          <input value={data.facebook || ''} onChange={(e) => { setData({...data, facebook: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="facebook.com/tu-página"/>
+        {/* 🎨 Selector de Color de la Bio */}
+        <div className="shrink-0 pt-4">
+          <ColorBubble 
+            label="Color" 
+            value={data.snappylink_desc_color} 
+            onChange={(v) => { setData({...data, snappylink_desc_color: v}); setUnsavedChanges(true); }} 
+          />
         </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold text-gray-400 uppercase">TikTok (Link)</label>
-          <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder="tiktok.com/@tu-user"/>
-        </div>
-      </div>
-{/* WhatsApp de Contacto Directo */}
-  <div className="space-y-1">
-        <label className="text-[9px] font-bold text-green-600 uppercase flex items-center gap-1">
-          <Phone size={10}/> WhatsApp de Contacto
-        </label>
-        <input 
-          value={data.phone || ''} 
-          onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} 
-          className="w-full p-2.5 border-2 border-green-200 rounded-xl text-xs outline-none bg-green-50 font-bold text-green-900 placeholder:text-green-700/50 shadow-sm" 
-          placeholder="Ej: 54911..."
-        />
-      </div>
-      {/* Horarios Visuales */}
-      <div className="space-y-1">
-        <label className="text-[10px] font-bold text-gray-500 uppercase">Horarios Informativos</label>
-        <textarea 
-          value={data.opening_hours || ''} 
-          onChange={(e) => { setData({...data, opening_hours: e.target.value}); setUnsavedChanges(true); }}
-          className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white resize-none" 
-          rows={2}
-        />
       </div>
     </div>
-  </section>
-)}
-              <section className="pt-4 border-t">
-                <h3 className="font-bold flex items-center gap-2 text-sm mb-3">
-  <Utensils size={16}/> Carga rápida
-</h3>
-                  {products.length < 2 ? (
-                    <div className="bg-gray-50 border p-3 rounded-xl space-y-2">
-                        <div className="flex gap-2">
-                            {/* --- CARGA RÁPIDA DE PLATOS CON EXPLICACIÓN --- */}
-{!templatesSinFoto.some(t => data.template_id?.toLowerCase().includes(t)) ? (
-    // Si la plantilla PERMITE fotos
-    <div className="w-12 h-12 bg-white border border-dashed border-gray-200 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0 group">
-        <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
-        {newProd.image_url ? (
-            <img src={newProd.image_url} className="w-full h-full object-cover rounded-lg"/>
-        ) : (
-            <Plus size={16} className="text-gray-400 group-hover:text-violet-500 transition-colors"/>
-        )}
-    </div>
-) : (
-    // Si la plantilla es BÁSICA (Aviso Naranja)
-    <button 
-        type="button"
-        onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" es un estilo de carga rápida. No utiliza imágenes de productos para priorizar la velocidad. Si quieres usar fotos, elige una plantilla 'Visual' o 'Urbano' en la galería.`)}
-        className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-amber-100 transition-colors shadow-sm"
-        title="¿Por qué no puedo subir fotos?"
-    >
-        <ImageIcon size={16} className="text-amber-500"/>
-    </button>
-)}
-                           
-                            
-                            <div className="flex-1 min-w-0 space-y-1">
-                                <input value={newProd.name} onChange={(e) => setNewProd({...newProd, name: e.target.value})} placeholder="Nombre del plato" className="w-full p-1.5 border rounded text-xs font-bold"/>
-                                <input type="number" value={newProd.price} onChange={(e) => setNewProd({...newProd, price: e.target.value})} placeholder="$ Precio" className="w-full p-1.5 border rounded text-xs"/>
-                            </div>
-                        </div>
-                        <textarea value={newProd.description} onChange={(e) => setNewProd({...newProd, description: e.target.value})} placeholder="Ingredientes..." className="w-full p-2 border rounded text-xs outline-none resize-none" rows={1}/>
-                        <button onClick={handleAddProduct} disabled={loading || !newProd.name} className="w-full bg-gray-900 text-white py-2 rounded-lg text-xs font-bold flex justify-center gap-2 items-center hover:bg-black transition-colors">Agregar al Menú</button>
+
+    {/* --- SECCIÓN DE BOTONES (A continuación de la card de texto) --- */}
+    <section className="space-y-4">
+        <div className="flex justify-between items-center px-2">
+            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
+                <Layers size={14} /> Tus Botones
+            </h3>
+            <button
+                onClick={() => {
+                    const newLinks = [...(data.snappylink_links || []), { label: 'Nuevo Enlace', url: '' }];
+                    setData({ ...data, snappylink_links: newLinks });
+                    setUnsavedChanges(true);
+                }}
+                className="p-2 bg-emerald-500 text-white rounded-full shadow-lg hover:bg-emerald-600 active:scale-90 transition-all"
+            >
+                <Plus size={18} strokeWidth={3} />
+            </button>
+        </div>
+
+        <div className="space-y-3">
+            {(data.snappylink_links || []).map((link: any, idx: number) => (
+                <div key={idx} className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-3 group animate-in zoom-in-95">
+                    <div className="flex gap-2">
+                        <input
+                            value={link.label}
+                            onChange={(e) => {
+                                const nextLinks = [...data.snappylink_links];
+                                nextLinks[idx].label = e.target.value;
+                                setData({ ...data, snappylink_links: nextLinks });
+                                setUnsavedChanges(true);
+                            }}
+                            className="flex-1 p-2 bg-gray-50 rounded-xl text-[11px] font-black uppercase outline-none focus:bg-white transition-all"
+                            placeholder="Nombre del botón"
+                        />
+                        <button onClick={() => {
+                            const nextLinks = data.snappylink_links.filter((_: any, i: number) => i !== idx);
+                            setData({ ...data, snappylink_links: nextLinks });
+                            setUnsavedChanges(true);
+                        }} className="p-2 text-red-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={16} />
+                        </button>
                     </div>
-                  ) : (
-                    <div className="bg-green-50 border border-green-200 p-3 rounded-xl flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-green-800 text-xs font-bold"><Check size={16}/> {products.length} productos cargados</div>
-                        <Link href="/dashboard/products" className="text-xs bg-white border border-green-200 px-3 py-1.5 rounded-lg font-bold text-green-700 hover:bg-green-50">Gestionar Todos</Link>
-                    </div>
-                  )}
-                  <div className="mt-3 space-y-2">{products.slice(0, 3).map(p => (<div key={p.id} className="flex items-center gap-3 p-2 border rounded-lg bg-white"><div className="w-8 h-8 bg-gray-100 rounded overflow-hidden flex-shrink-0">{p.image_url && <img src={p.image_url} className="w-full h-full object-cover"/>}</div><div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{p.name}</div></div><div className="text-xs text-gray-500">${p.price}</div><button onClick={() => handleDeleteQuick(p.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></div>))}</div>
-              </section>
+                    <input
+                        value={link.url}
+                        onChange={(e) => {
+                            const nextLinks = [...data.snappylink_links];
+                            nextLinks[idx].url = e.target.value;
+                            setData({ ...data, snappylink_links: nextLinks });
+                            setUnsavedChanges(true);
+                        }}
+                        className="w-full p-2 border-b border-gray-100 text-[10px] text-blue-500 outline-none font-medium"
+                        placeholder="Pegá el link aquí"
+                    />
+                </div>
+            ))}
+
+            <button 
+                onClick={() => {
+                    const newLink = { label: 'Nuevo Enlace', url: '' };
+                    setData({ ...data, snappylink_links: [...(data.snappylink_links || []), newLink] });
+                    setUnsavedChanges(true);
+                }}
+                className="w-full py-4 border-2 border-dashed border-gray-200 rounded-[2rem] text-[10px] font-black uppercase text-gray-400 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-400 transition-all flex items-center justify-center gap-2 mt-4"
+            >
+                <Plus size={14}/> Agregar enlace
+            </button>
+        </div>
+    </section>
+  </div>
+)}
+   {/* --- FIN DEL CONTENIDO QUE SE OCULTA --- */}
+</section>
+      </div>
+    ) : (
+      /* ESTADO DESACTIVADO: DISEÑO VACÍO */
+      <div className="py-10 text-center border-2 border-dashed border-gray-100 rounded-[2.5rem]">
+         <MonitorSmartphone className="mx-auto text-gray-200 mb-3" size={40}/>
+         <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Activá SnappyLinks para empezar</p>
+      </div>
+    )}
+  </div>
+              )}
             </div>
 
+            {/* ── PANEL DERECHO: VISTA PREVIA ── */}
             <div className="hidden xl:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
               <div className="absolute top-4 text-gray-400 text-xs font-medium flex items-center gap-2 z-20">
-                <MonitorSmartphone size={14}/> Vista Previa en Vivo
+                <MonitorSmartphone size={14} /> Vista Previa en Vivo
               </div>
-
               <div className="w-[300px] h-[600px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col transform-gpu mt-8">
-                <PhoneMockup data={data} products={products} categories={categories} previewTemplateId={null} />
+                <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} />
               </div>
             </div>
 
+            {/* MODAL DE PLANTILLAS */}
             {previewTemplateId && (
               <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                 <div className="relative w-full max-w-sm h-[80vh] bg-white rounded-3xl overflow-hidden shadow-2xl">
                   <button onClick={() => setPreviewTemplateId(null)} className="absolute top-4 right-4 z-20 bg-black text-white p-2 rounded-full shadow-lg"><X size={20} /></button>
-             <PhoneMockup data={data} products={products} categories={categories} previewTemplateId={previewTemplateId} />
-                  <div className="absolute bottom-4 left-4 right-4 z-20"><button onClick={() => applyTemplate(previewTemplateId)} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-xl hover:bg-emerald-700 transition">Usar este Diseño</button></div>
+                  <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={previewTemplateId} />
+                  <div className="absolute bottom-4 left-4 right-4 z-20">
+                    <button onClick={() => applyTemplate(previewTemplateId)} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-xl hover:bg-emerald-700 transition">Usar este Diseño</button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
-      </div>
-{/* --- MODAL VISTA PREVIA MOBILE (DENTRO DEL RETURN) --- */}
-      {showMobilePreview && (
-        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm h-[85vh] bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative border-[6px] border-zinc-800">
-            <button 
-              onClick={() => setShowMobilePreview(false)} 
-              className="absolute top-6 right-6 z-[210] bg-black text-white p-3 rounded-full shadow-lg border border-white/20 active:scale-90 transition-transform"
-            >
-              <X size={24} />
-            </button>
-            <div className="h-full">
-              <PhoneMockup data={data} products={products} categories={categories} previewTemplateId={null} />
-            </div>
-          </div>
-          <p className="mt-6 text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse italic">Vista Previa en Vivo</p>
         </div>
-      )}
 
-
-    </div>
+        {/* MODAL VISTA PREVIA MOBILE */}
+        {showMobilePreview && (
+          <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="w-full max-w-sm h-[85vh] bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative border-[6px] border-zinc-800">
+              <button onClick={() => setShowMobilePreview(false)} className="absolute top-6 right-6 z-[210] bg-black text-white p-3 rounded-full shadow-lg border border-white/20 active:scale-90 transition-transform">
+                <X size={24} />
+              </button>
+              <div className="h-full">
+                <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} />
+              </div>
+            </div>
+            <p className="mt-6 text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse italic">Vista Previa en Vivo</p>
+          </div>
+        )}
+      </div>
     </>
-    
   );
-  
-
 }

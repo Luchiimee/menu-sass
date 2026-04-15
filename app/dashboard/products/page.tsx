@@ -882,10 +882,10 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
         </div>
     </div>
 
-  {/* LÓGICA DE PRECIO DINÁMICA (PESO/UNIDAD) */}
+  
 
 {/* LÓGICA DE PRECIO DINÁMICA (PESO/UNIDAD) */}
-{(businessType === 'fraccionado' || isAdmin) ? (
+{businessType === 'fraccionado' ? (
   <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-500 text-left">
     <div className="flex items-center justify-between mb-2">
       <div>
