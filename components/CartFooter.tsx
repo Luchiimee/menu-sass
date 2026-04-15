@@ -5,7 +5,10 @@ import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User } from 'lucide-react';
 import OrderTracker from './OrderTracker';
-
+const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 interface Table {
     id: string;
     name: string;
@@ -34,10 +37,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const [isValidating, setIsValidating] = useState(false);
     const [couponError, setCouponError] = useState("");
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    
 
     const applyCoupon = async () => {
         if (!couponCode) return;
@@ -71,16 +71,31 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             }
         }
     }, [activeOrderId, planType, orderStatus]);
-
-    useEffect(() => {
-        if (metodoEnvio === 'mesa') {
+useEffect(() => {
+        if (metodoEnvio === 'mesa' && restaurantId) {
             const getTables = async () => {
-                const { data } = await supabase.from('tables').select('*').eq('restaurant_id', restaurantId).order('name', { ascending: true });
-                setAvailableTables(data || []);
+                // Agregamos un log para ver en la consola si el ID está llegando al celu
+                console.log("📡 Buscando mesas para el local:", restaurantId);
+
+                const { data, error } = await supabase
+                    .from('tables')
+                    .select('*')
+                    .eq('restaurant_id', restaurantId)
+                    .order('name', { ascending: true });
+
+                if (error) {
+                    console.error("❌ Error Supabase:", error.message);
+                } else {
+                    console.log("✅ Mesas recibidas:", data);
+                    setAvailableTables(data || []);
+                }
             };
-            getTables();
+            
+            // Le damos 100ms para asegurar que el restaurantId esté cargado
+            const timer = setTimeout(() => getTables(), 100);
+            return () => clearTimeout(timer);
         }
-    }, [metodoEnvio, restaurantId, supabase]);
+    }, [metodoEnvio, restaurantId]);
 
 if (activeOrderId) {
     if (planType === 'go' || planType === 'plus' || planType === 'max') {
@@ -376,6 +391,11 @@ return (
                     {metodoEnvio === 'mesa' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
+                            {availableTables.length === 0 && (
+    <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
+        <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
+    </div>
+)}
                             <div className="grid grid-cols-3 gap-2">
                                 {availableTables.map((mesa: any) => (
                                     <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>

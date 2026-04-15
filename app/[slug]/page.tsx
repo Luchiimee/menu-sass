@@ -604,7 +604,8 @@ function MenuContent({
   const [activeCardId, setActiveCardId] = useState<any>(null);
   const [showClosedAlert, setShowClosedAlert] = useState(false);
   console.log("Dato del botón:", restaurant.card_btn_text);
-  const { cart, addToCart, updateQuantity } = useCart();
+  const { cart, addToCart, updateQuantity, activeOrderId, setActiveOrderId } = useCart();
+  const [showTracking, setShowTracking] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
   const [notificacion, setNotificacion] = useState<string | null>(null);
@@ -663,7 +664,21 @@ function MenuContent({
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
-  // ---------------------------------
+useEffect(() => {
+    const checkOrder = async () => {
+      const savedId = localStorage.getItem("activeOrderId");
+      if (savedId) {
+        const { data } = await supabase.from("orders").select("status").eq("id", savedId).maybeSingle();
+        if (data && !["completado", "cancelado"].includes(data.status)) {
+          setActiveOrderId(savedId);
+          setShowTracking(true);
+        } else {
+          localStorage.removeItem("activeOrderId");
+        }
+      }
+    };
+    checkOrder();
+  }, [setActiveOrderId]);
 
   // --- 1. VARIABLES DE DISEÑO (SINCRONIZADAS CON EL EDITOR) ---
   const TEMPLATE = restaurant.template_id || "classic";
