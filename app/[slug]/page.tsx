@@ -41,7 +41,7 @@ async function getRestaurant(slug: string) {
  const { data: bioData, error: bioError } = await supabase
   .from("snappylinks")
   .select(`*, restaurant:restaurants(*)`)
-  .eq("slug", cleanSlug)
+  .ilike("slug", slug)
   .maybeSingle();
 
 if (bioData) {
@@ -69,7 +69,7 @@ if (bioData) {
   const { data: menuData, error: menuError } = await supabase
     .from("restaurants")
     .select(`*, categories (id, name)`)
-    .eq("slug", cleanSlug)
+    .ilike("slug", slug)
     .maybeSingle();
 
   if (menuData) {
