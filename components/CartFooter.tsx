@@ -17,21 +17,28 @@ interface Table {
 }
 
 export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, businessType, restaurantName }: any) {
-    const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
+   const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
+
+    // --- 2. ESTADOS DE INTERFAZ Y CARGA ---
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
+    const [aviso, setAviso] = useState<string | null>(null); 
+    const [copied, setCopied] = useState(false);
+    const [orderStatus, setOrderStatus] = useState('pendiente');
 
+    // --- 3. DATOS DEL CLIENTE Y FORMULARIO ---
     const [nombre, setNombre] = useState('');
     const [telCliente, setTelCliente] = useState('');
     const [direccion, setDireccion] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
-    const [metodoEnvio, setMetodoEnvio] = useState('delivery'); 
     const [metodoPago, setMetodoPago] = useState('efectivo');
-    const [copied, setCopied] = useState(false);
-    const [orderStatus, setOrderStatus] = useState('pendiente');
-    const [nroMesa, setNroMesa] = useState(''); 
+
+    // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
+   const [metodoEnvio, setMetodoEnvio] = useState('delivery'); 
+const [nroMesa, setNroMesa] = useState('')
     const [availableTables, setAvailableTables] = useState<Table[]>([]);
-    
+
+    // --- 5. LÓGICA DE CUPONES ---
     const [couponCode, setCouponCode] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [isValidating, setIsValidating] = useState(false);
@@ -58,9 +65,18 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     useEffect(() => {
         if (cart.length === 0) setIsVisible(false);
     }, [cart.length]);
-
+// 🧠 Recuperar datos de mesa/envio al refrescar si hay un pedido activo
     useEffect(() => {
         if (activeOrderId) {
+            const savedEnvio = localStorage.getItem('metodoEnvio');
+            const savedMesa = localStorage.getItem('nroMesa');
+            
+            if (savedEnvio) setMetodoEnvio(savedEnvio);
+            if (savedMesa) setNroMesa(savedMesa);
+        }
+    }, [activeOrderId]);
+    useEffect(() => {
+       if (activeOrderId && !isVisible) {
            if (planType !== 'go' && planType !== 'plus' && planType !== 'max') {
                 const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 15 * 60 * 1000); 
                 return () => clearTimeout(timer);
@@ -71,6 +87,51 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
             }
         }
     }, [activeOrderId, planType, orderStatus]);
+ // 🧠 SINCRONIZACIÓN Y LIMPIEZA AUTOMÁTICA
+    useEffect(() => {
+        if (activeOrderId) {
+            const syncStatus = async () => {
+                const { data } = await supabase.from('orders').select('status').eq('id', activeOrderId).maybeSingle();
+                
+                if (data) {
+                    // 🚨 SI EL ESTADO ES FINAL (PAGADO O CANCELADO)
+                    if (data.status === 'completado' || data.status === 'cancelado') {
+                        // Borramos todo de la memoria del celu
+                        localStorage.removeItem("activeOrderId");
+                        localStorage.removeItem("metodoEnvio");
+                        localStorage.removeItem("nroMesa");
+                        
+                        // Reseteamos los estados de React para que vuelva al menú
+                        setActiveOrderId(null);
+                        setOrderStatus('pendiente');
+                        return; // Salimos de la función
+                    }
+                    
+                    // Si no es final, actualizamos el estado normal
+                    setOrderStatus(data.status);
+                }
+            };
+            syncStatus();
+
+            // Escuchar en tiempo real por si el mozo confirma el pago MIENTRAS el cliente mira
+            const orderChannel = supabase.channel(`order-update-${activeOrderId}`)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${activeOrderId}` }, 
+                (payload) => {
+                    const newStatus = payload.new.status;
+                    if (newStatus === 'completado' || newStatus === 'cancelado') {
+                        localStorage.removeItem("activeOrderId");
+                        localStorage.removeItem("metodoEnvio");
+                        localStorage.removeItem("nroMesa");
+                        setActiveOrderId(null);
+                    } else {
+                        setOrderStatus(newStatus);
+                    }
+                })
+                .subscribe();
+
+            return () => { supabase.removeChannel(orderChannel); };
+        }
+    }, [activeOrderId]);
 useEffect(() => {
         if (metodoEnvio === 'mesa' && restaurantId) {
             const getTables = async () => {
@@ -96,8 +157,7 @@ useEffect(() => {
             return () => clearTimeout(timer);
         }
     }, [metodoEnvio, restaurantId]);
-
-if (activeOrderId) {
+if (activeOrderId && !isVisible) {
     if (planType === 'go' || planType === 'plus' || planType === 'max') {
         const isMesa = metodoEnvio === 'mesa';
         
@@ -110,14 +170,35 @@ if (activeOrderId) {
             'completado': '¡Que lo disfrutes! ✨',
         };
 
-        const handleCallWaiter = async () => {
-            if (!nroMesa) return;
-            await supabase.from('tables').update({ needs_attention: true }).eq('name', nroMesa).eq('restaurant_id', restaurantId);
-            alert("🔔 El mozo fue notificado!");
-        };
+const handleCallWaiter = async () => {
+    if (!nroMesa || !restaurantId) return;
 
+    // Limpiamos el nombre por las dudas (quita espacios y asegura formato)
+    const mesaLimpia = nroMesa.trim();
+
+    const { error } = await supabase
+        .from('tables')
+        .update({ needs_attention: true })
+        .eq('restaurant_id', restaurantId)
+        .ilike('name', mesaLimpia); // ilike no distingue entre Mayúsculas/Minúsculas
+
+    if (error) {
+        console.error("Error al llamar al mozo:", error.message);
+    } else {
+        setAviso("El mozo fue notificado");
+        setTimeout(() => setAviso(null), 3000);
+    }
+};
         return (
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
+               {aviso && (
+                        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] whitespace-nowrap">
+                            <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
+                                <Check size={16} className="text-green-500" />
+                                <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
+                            </div>
+                        </div>
+                    )}
                 <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
                     <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm"><X size={20} className="text-gray-400" /></button>
                     
@@ -227,6 +308,8 @@ if (activeOrderId) {
             if (newOrder) {
                 setActiveOrderId(newOrder.id);
                 localStorage.setItem("activeOrderId", newOrder.id); // 🚀 Guardamos para persistencia
+                localStorage.setItem("metodoEnvio", metodoEnvio);
+        localStorage.setItem("nroMesa", nroMesa);
                 orderRef = `#${newOrder.id.slice(0, 5)}`;
             }
         } else {
@@ -486,6 +569,14 @@ return (
                 </div>
             </div>
         </div>
+        {aviso && (
+                <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] whitespace-nowrap">
+                    <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
+                        <Check size={16} className="text-green-500" />
+                        <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
+                    </div>
+                </div>
+            )}
     </div>
   );
 }

@@ -20,13 +20,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 const CUSTOM_STYLES = `
-  @keyframes blink-attention {
-    0%, 100% { background-color: #f97316; color: white; border-color: #ea580c; }
-    50% { background-color: white; color: #f97316; border-color: #f97316; }
+  @keyframes blink-alert {
+    0%, 100% { background-color: #ef4444 !important; border-color: #b91c1c !important; color: white !important; }
+    50% { background-color: #ffffff !important; border-color: #ef4444 !important; color: #ef4444 !important; }
   }
   .animate-table-call {
-    animation: blink-attention 1s infinite;
-    border-width: 3px !important;
+    animation: blink-alert 0.6s infinite ease-in-out !important;
+    border-width: 6px !important; /* Más grueso para que se note */
+    z-index: 50 !important;
   }
 `;
 // --- INTERFAZ PARA MESAS ---
@@ -35,6 +36,7 @@ interface Table {
     name: string;
     status: string;
     description?: string;
+    needs_attention?: boolean;
 }
 
 const supabase = createBrowserClient(
@@ -472,26 +474,24 @@ const getActiveOrderForTable = (tableName: string) => {
 };
 // 🚀 AGREGAR ESTO EN orders/page.tsx dentro de un useEffect
 useEffect(() => {
-    if (!restaurantId || isLocked) return;
+    if (!restaurantId) return;
 
-    // Suscripción en tiempo real para las MESAS (Llamado al mozo)
     const tablesChannel = supabase
         .channel('tables_realtime')
         .on('postgres_changes', { 
             event: 'UPDATE', 
             schema: 'public', 
             table: 'tables',
+            // 💡 Si no titila, borrá temporalmente la línea de abajo para probar:
             filter: `restaurant_id=eq.${restaurantId}` 
         }, (payload) => {
-            console.log("🔔 Cambio en mesas detectado:", payload);
-            fetchTables(restaurantId); // Recargamos las mesas automáticamente
+            console.log("🔔 Cambio detectado!", payload);
+            fetchTables(restaurantId); // Esto refresca la lista
         })
         .subscribe();
 
-    return () => { 
-        supabase.removeChannel(tablesChannel); 
-    };
-}, [restaurantId, isLocked]);
+    return () => { supabase.removeChannel(tablesChannel); };
+}, [restaurantId]);
 
 // --- LÓGICA DE BÚSQUEDA INTELIGENTE (Corregida) ---
   const filteredOrders = orders.filter(order => {
@@ -703,29 +703,24 @@ useEffect(() => {
                 {showTables && (
                     <div className="p-6 bg-white border-t border-gray-100 animate-in fade-in slide-in-from-top-2">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-   {availableTables.map((mesa: any) => {
+{availableTables.map((mesa: any) => {
     const activeOrder = getActiveOrderForTable(mesa.name);
     const isOccupied = !!activeOrder;
-    const isCalling = mesa.needs_attention;
-const reservation = mesa.reservation_info;
-    let isComingSoon = false;
+    
+    // 🚨 FORZAMOS EL BOLEANO (A veces la DB devuelve null y React se confunde)
+    const isCalling = Boolean(mesa.needs_attention); 
 
-    if (reservation && reservation.datetime) {
-        const resTime = new Date(reservation.datetime).getTime();
-        const now = new Date().getTime();
-        const diffHours = (resTime - now) / (1000 * 60 * 60);
-        if (diffHours > 0 && diffHours <= 5) isComingSoon = true;
-    }
     return (
         <div 
             key={mesa.id} 
             onClick={() => isOccupied && setSelectedTableForDetail({ ...mesa, activeOrder })}
-           className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col min-h-[250px] shadow-sm group active:scale-[0.98] ${
-    isCalling ? 'animate-table-call cursor-pointer' : 
-    isOccupied ? 'border-orange-500 bg-orange-50/20 cursor-pointer' : 
-    isComingSoon ? 'border-blue-400 bg-blue-50/30 cursor-pointer shadow-blue-100' : // <-- Color para reserva próxima
-    'border-gray-100 bg-white cursor-default'
-}`}
+            className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col min-h-[280px] shadow-sm group active:scale-[0.98] ${
+                isCalling 
+                ? 'animate-table-call ring-4 ring-red-500/50' // 👈 Si llama, titila sí o sí
+                : isOccupied 
+                    ? 'border-orange-500 bg-orange-50/20' 
+                    : 'border-gray-100 bg-white'
+            }`}
         >
             {/* ✏️ BOTONES DE EDICIÓN (Arriba derecha) */}
             <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -735,28 +730,42 @@ const reservation = mesa.reservation_info;
 
             {/* 🔔 BOTÓN PARA APAGAR LLAMADO (Arriba izquierda) */}
             {isCalling && (
-                <button onClick={(e) => { e.stopPropagation(); resetAttention(mesa.id); }} className="absolute -top-2 -left-2 bg-black text-white p-2 rounded-full z-20 border-2 border-white shadow-lg animate-bounce"><Check size={16} strokeWidth={4}/></button>
+                <button 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        resetAttention(mesa.id); 
+                    }} 
+                    className="absolute -top-4 -left-2 bg-black text-white p-3 rounded-full z-[120] border-2 border-white shadow-2xl animate-bounce"
+                >
+                    <Check size={20} strokeWidth={4} className="text-green-500" />
+                </button>
             )}
 
             {/* CABECERA: Nombre Mesa e Icono */}
             <div className="flex justify-between items-start mb-2">
-                <span className="font-black text-xs uppercase bg-gray-100 px-3 py-1 rounded-lg text-gray-600">{mesa.name}</span>
-                <span className="text-2xl">{isCalling ? '🔔' : isOccupied ? '🔥' : '🍽️'}</span>
+                <span className={`font-black text-xs uppercase px-3 py-1 rounded-lg ${isCalling ? 'bg-white text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                    {mesa.name}
+                </span>
+                <span className="text-2xl">{isCalling ? '🚨' : isOccupied ? '🔥' : '🍽️'}</span>
             </div>
 
             {isOccupied ? (
-                <div className="flex-1 flex flex-col justify-between">
+                <div className="flex-1 flex flex-col justify-between text-left">
                     {/* INFO DEL CLIENTE */}
                     <div className="space-y-1">
-                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest leading-none">Mesa Ocupada</p>
-                        <p className="text-sm font-black text-gray-900 truncate uppercase tracking-tighter">{activeOrder.customer_name}</p>
-                        <div className="flex justify-between items-center bg-white/50 p-2 rounded-xl border border-orange-100">
-                             <span className="text-[8px] font-black text-gray-400 uppercase">Total</span>
-                             <span className="text-sm font-black text-gray-900">${activeOrder.total}</span>
+                        <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${isCalling ? 'text-white' : 'text-orange-600'}`}>
+                            {isCalling ? '¡EL CLIENTE LLAMA!' : 'Mesa Ocupada'}
+                        </p>
+                        <p className={`text-sm font-black truncate uppercase tracking-tighter ${isCalling ? 'text-white' : 'text-gray-900'}`}>
+                            {activeOrder.customer_name}
+                        </p>
+                        <div className={`flex justify-between items-center p-2 rounded-xl border ${isCalling ? 'bg-black/10 border-white/20' : 'bg-white/50 border-orange-100'}`}>
+                             <span className={`text-[8px] font-black uppercase ${isCalling ? 'text-white/70' : 'text-gray-400'}`}>Total</span>
+                             <span className={`text-sm font-black ${isCalling ? 'text-white' : 'text-gray-900'}`}>${activeOrder.total}</span>
                         </div>
                     </div>
 
-                    {/* 🔘 BOTONES DE SEGUIMIENTO Y DETALLE */}
+                    {/* 🔘 BOTONES DE SEGUIMIENTO */}
                     <div className="mt-4 space-y-2">
                         <div className="grid grid-cols-1 gap-1.5">
                             {activeOrder.status === 'pendiente' && (
@@ -771,69 +780,38 @@ const reservation = mesa.reservation_info;
                             {activeOrder.status === 'listo' && (
                                 <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'entregado'); }} className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Entregado</button>
                             )}
-                           {activeOrder.status === 'entregado' && (
-    <button 
-        onClick={(e) => { 
-            e.stopPropagation(); 
-            if(confirm("¿Confirmar pago y liberar mesa?")) updateStatus(activeOrder.id, 'completado'); 
-        }} 
-        className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg flex items-center justify-center gap-1 active:scale-95 transition-all"
-    >
-        <Banknote size={12} /> Confirmar Pago
-    </button>
-)}
+                            {activeOrder.status === 'entregado' && (
+                                <button 
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if(confirm("¿Confirmar pago y liberar mesa?")) updateStatus(activeOrder.id, 'completado'); 
+                                    }} 
+                                    className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg flex items-center justify-center gap-1 active:scale-95 transition-all"
+                                >
+                                    <Banknote size={12} /> Confirmar Pago
+                                </button>
+                            )}
                         </div>
-                        
-                        {/* Botón ver detalle decorativo (el clic real lo hace la card) */}
                         <div className="text-center">
-                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-0.5 group-hover:text-blue-500 group-hover:border-blue-500 transition-colors">
+                            <span className={`text-[8px] font-black uppercase tracking-widest border-b pb-0.5 ${isCalling ? 'text-white border-white' : 'text-gray-400 border-gray-200 group-hover:text-blue-500 group-hover:border-blue-500'}`}>
                                 + Ver Detalle / Sumar
                             </span>
                         </div>
                     </div>
                 </div>
-           ) : (
-                /* 🍽️ ESTADO DISPONIBLE: BOTONES DE ACCIÓN */
+            ) : (
+                /* 🍽️ ESTADO DISPONIBLE */
                 <div className="flex-1 flex flex-col justify-center items-center gap-3">
                     <p className="text-[10px] text-gray-300 font-black uppercase tracking-[0.2em]">Disponible</p>
-                    
                     <div className="grid grid-cols-1 w-full gap-2 px-2">
-                        {/* BOTÓN OCUPAR MANUAL */}
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); occupyTableManual(mesa); }}
-                            className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
-                        >
+                        <button onClick={(e) => { e.stopPropagation(); occupyTableManual(mesa); }} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
                             <User size={12} /> Ocupar Mesa
                         </button>
-
-                        {/* BOTÓN RESERVAR */}
                         {mesa.status === 'reservada' ? (
-        <button 
-            onClick={(e) => { 
-                e.stopPropagation(); 
-                setResTable(mesa); 
-                // Cargamos los datos existentes al modal para poder verlos/editarlos
-                setResData({
-                    name: mesa.reservation_info?.name || '',
-                    guests: mesa.reservation_info?.guests || '',
-                    date: mesa.reservation_info?.datetime?.split('T')[0] || '',
-                    time: mesa.reservation_info?.datetime?.split('T')[1] || '',
-                    description: mesa.reservation_info?.description || ''
-                });
-                setIsResModalOpen(true); 
-            }}
-            className="w-full py-2.5 bg-blue-50 text-blue-600 border-2 border-blue-200 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
-        >
-            <List size={12} /> Ver Reserva
-        </button>
-    ) : (
-        <button 
-            onClick={(e) => { e.stopPropagation(); setResTable(mesa); setIsResModalOpen(true); }}
-            className="w-full py-2.5 bg-white border-2 border-blue-600 text-blue-600 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
-        >
-            <CalendarIcon size={12} /> Reservar
-        </button>
-    )}
+                            <button onClick={(e) => { e.stopPropagation(); setResTable(mesa); setResData({ name: mesa.reservation_info?.name || '', guests: mesa.reservation_info?.guests || '', date: mesa.reservation_info?.datetime?.split('T')[0] || '', time: mesa.reservation_info?.datetime?.split('T')[1] || '', description: mesa.reservation_info?.description || '' }); setIsResModalOpen(true); }} className="w-full py-2.5 bg-blue-50 text-blue-600 border-2 border-blue-200 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-all"><List size={12} /> Ver Reserva</button>
+                        ) : (
+                            <button onClick={(e) => { e.stopPropagation(); setResTable(mesa); setIsResModalOpen(true); }} className="w-full py-2.5 bg-white border-2 border-blue-600 text-blue-600 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-all"><CalendarIcon size={12} /> Reservar</button>
+                        )}
                     </div>
                 </div>
             )}
