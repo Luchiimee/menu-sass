@@ -1527,7 +1527,7 @@ export default function LandingPage() {
             </p>
             <div className="flex gap-6 justify-center md:justify-start">
               <a
-                href="#"
+                href="https://www.instagram.com/snappypedidos/"
                 className="hover:text-green-500 transition font-bold uppercase text-xs tracking-widest"
               >
                 Instagram
