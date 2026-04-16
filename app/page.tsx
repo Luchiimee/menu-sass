@@ -1231,6 +1231,10 @@ export default function LandingPage() {
     </li>
     <li className="flex items-start gap-3 text-left">
       <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
+      <span>Gestión del <b>Salón</b></span>
+    </li>
+    <li className="flex items-start gap-3 text-left">
+      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
       <span><b>Seguimiento en Vivo</b> 🚀</span>
     </li>
     <li className="flex items-start gap-3 text-left">
