@@ -635,10 +635,28 @@ return (
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
                         <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
-                            {['delivery', 'retiro', 'mesa'].filter(m => !(m === 'mesa' && planType === 'light')).map((m) => (
-                                <button key={m} onClick={() => setMetodoEnvio(m)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}>{m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}</button>
-                            ))}
-                        </div>
+    {['delivery', 'retiro', 'mesa']
+        .filter(m => {
+            // 🔒 Solo mostramos 'mesa' si el plan es Plus o Max. 
+            // Si es Light o GO, la opción de mesa desaparece.
+            if (m === 'mesa') {
+                return planType === 'plus' || planType === 'max';
+            }
+            return true; // Delivery y Retiro siempre se muestran
+        })
+        .map((m) => (
+            <button 
+                key={m} 
+                onClick={() => setMetodoEnvio(m)} 
+                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                    metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'
+                }`}
+            >
+                {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
+            </button>
+        ))
+    }
+</div>
                     </div>
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-1 animate-in fade-in slide-in-from-top-2">

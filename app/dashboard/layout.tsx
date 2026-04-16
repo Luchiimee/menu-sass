@@ -310,12 +310,13 @@ const plan = restaurant.plan;
       locked: hasNoPlan,
       msg: "Para cargar tus productos, primero activá tu prueba gratuita. 🍕"
     },
+    // 📊 CAJA: Ahora siempre visible, pero bloqueada para Light y GO
     { 
       name: 'Caja', 
       href: '/dashboard/analytics', 
       icon: BarChart3, 
       locked: hasNoPlan || isLight || isGo, 
-      msg: hasNoPlan ? "Elegí un plan para empezar." : "Esta sección es exclusiva del Plan Plus. 💎"
+      msg: isGo ? "La sección de Caja y Reportes es exclusiva del Plan Plus. 💎" : "Elegí un plan para empezar."
     }, 
     { 
       name: 'Pedidos', 
@@ -326,7 +327,6 @@ const plan = restaurant.plan;
     }, 
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
-
   if (isAdmin) {
     menuItems.push({ name: 'Admin Snappy', href: '/admin/snappy', icon: ShieldCheck });
   }

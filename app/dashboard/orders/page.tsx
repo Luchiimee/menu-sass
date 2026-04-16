@@ -408,6 +408,9 @@ const loadOrders = async () => {
     setReceiveWhatsapp(rest.receive_whatsapp ?? true);
     setBusinessType(rest.business_type);
     setCurrentPlan(rest.subscription_plan); // <--- AGREGÁ ESTA LÍNEA
+    if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
+        setShowTables(true);
+    }
     setIsLocked(rest.subscription_plan === "light" && user.email !== 'luchiimee2@gmail.com');
 }
 
@@ -667,35 +670,58 @@ useEffect(() => {
       {/* --- GESTIÓN DE MESAS (BLOQUE CORREGIDO) --- */}
         <div className="px-2 mb-8">
             <div className="bg-white border border-gray-100 rounded-[1.5rem] shadow-sm overflow-hidden">
-                <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 bg-slate-50/30">
-                    <button onClick={() => setShowTables(!showTables)} className="flex items-center gap-3 hover:opacity-80 transition-all group">
-                        <div className={`p-2 rounded-xl transition-all ${showTables ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}><Store size={18} /></div>
-                        <div className="flex flex-col items-start text-left">
-                            <span className="text-xs font-black uppercase tracking-widest text-gray-700">Gestión de Salón / Mesas</span>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase">{availableTables.length} Mesas configuradas</span>
-                        </div>
-                        <div className={`ml-2 p-1.5 rounded-full transition-all ${showTables ? 'bg-blue-100 text-blue-600 rotate-180' : 'bg-gray-200 text-gray-500'}`}><ChevronDown size={20} strokeWidth={3} /></div>
-                    </button>
+              <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 bg-slate-50/30">
+                    {/* --- 1. ÚNICO BOTÓN DE TOGGLE (CON LÓGICA DE PLAN) --- */}
                     <button 
                         onClick={() => {
-                            if (currentPlan === 'go') {
+                            if (currentPlan !== 'plus' && currentPlan !== 'max') {
                                 setUpgradeModalInfo({
                                     title: "Gestión de Salón",
                                     desc: "Habilitá el control de mesas y comandas para organizar tu salón de forma profesional.",
                                     plan: "Plus"
                                 });
                                 setShowUpgradeModal(true);
-                                return;
+                            } else {
+                                setShowTables(!showTables);
                             }
-                            setIsModalOpen(true);
+                        }} 
+                        className="flex items-center gap-3 hover:opacity-80 transition-all group cursor-pointer"
+                    >
+                        <div className={`p-2 rounded-xl transition-all ${showTables ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}>
+                            {(currentPlan !== 'plus' && currentPlan !== 'max') ? <Lock size={18} /> : <Store size={18} />}
+                        </div>
+                        
+                        <div className="flex flex-col items-start text-left">
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-700">Gestión de Salón / Mesas</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase">{availableTables.length} Mesas configuradas</span>
+                        </div>
+
+                        <div className={`ml-2 p-1.5 rounded-full transition-all ${showTables ? 'bg-blue-100 text-blue-600 rotate-180' : 'bg-gray-200 text-gray-500'}`}>
+                            <ChevronDown size={20} strokeWidth={3} />
+                        </div>
+                    </button>
+
+                    {/* --- 2. BOTÓN CREAR MESA (BLOQUEADO SI NO ES PLUS) --- */}
+                    <button 
+                        onClick={() => {
+                            if (currentPlan !== 'plus' && currentPlan !== 'max') {
+                                setUpgradeModalInfo({
+                                    title: "Gestión de Salón",
+                                    desc: "Habilitá el control de mesas para organizar tu salón.",
+                                    plan: "Plus"
+                                });
+                                setShowUpgradeModal(true);
+                            } else {
+                                setIsModalOpen(true);
+                            }
                         }} 
                         className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md flex items-center justify-center gap-2 transition-all ${
-                            currentPlan === 'go' 
+                            (currentPlan !== 'plus' && currentPlan !== 'max') 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
                             : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}
                     >
-                        {currentPlan === 'go' ? <Lock size={14} /> : <Plus size={14} />} 
+                        {(currentPlan !== 'plus' && currentPlan !== 'max') ? <Lock size={14} /> : <Plus size={14} />} 
                         Crear Mesa
                     </button>
                 </div>
@@ -940,15 +966,26 @@ useEffect(() => {
   <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
     {/* Botón de Ticket (Siempre visible para todos) */}
     <button 
-        onClick={() => handlePrint(order)} 
+        onClick={() => {
+            if (currentPlan === 'light') {
+                setUpgradeModalInfo({
+                    title: "Impresión de Tickets",
+                    desc: "Actualizá al Plan GO para poder imprimir comandas y tickets de venta.",
+                    plan: "GO"
+                });
+                setShowUpgradeModal(true);
+            } else {
+                handlePrint(order);
+            }
+        }} 
         className={`w-full py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all border ${
-            currentPlan === 'go'
-            ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
-            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border-transparent'
+            currentPlan === 'light'
+            ? 'bg-gray-50 text-gray-300 border-gray-100'
+            : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-transparent'
         }`}
     >
-        {currentPlan === 'go' ? <Lock size={14} /> : <Printer size={14} />} 
-        Ticket
+        {currentPlan === 'light' ? <Lock size={14} /> : <Printer size={14} />} 
+        Imprimir Comanda
     </button>
     
     {/* 🚀 LÓGICA DE SEPARACIÓN: MESA vs DELIVERY */}
@@ -1229,15 +1266,24 @@ useEffect(() => {
 
                     <div className="flex flex-col gap-2">
                         {/* Botón Imprimir más chico */}
-                        <button 
-                            onClick={() => handlePrint(selectedTableForDetail.activeOrder)}
-                            className="w-full py-3 bg-white/10 text-white border border-white/20 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all"
-                        >
-                            <Printer size={16} /> Imprimir Comanda
-                        </button>
+                  <button 
+        onClick={() => {
+            if (currentPlan === 'light') {
+                setShowUpgradeModal(true);
+            } else {
+                handlePrint(selectedTableForDetail.activeOrder);
+            }
+        }}
+        className={`w-full py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all border ${
+            currentPlan === 'light'
+            ? 'bg-white/5 text-gray-500 border-white/10'
+            : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
+        }`}
+    >
+        {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
+    </button>
 
-                        {/* Botón Pagar más chico */}
-                      {/* Botón Pagar mejorado */}
+                        
 <button  
     onClick={() => setShowConfirmPaymentModal(selectedTableForDetail.activeOrder)}
     className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
