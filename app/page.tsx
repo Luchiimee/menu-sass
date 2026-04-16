@@ -377,10 +377,7 @@ export default function LandingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
 
-      if (session) {
-        // Si ya está logueado, al dashboard directo (sin barras)
-        router.replace('/dashboard');
-      } else if (isStandalone) {
+ if (isStandalone) {
         // Si es la App y no está logueado, al login
         router.replace('/login');
       }
