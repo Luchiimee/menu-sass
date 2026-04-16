@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
@@ -221,6 +221,8 @@ const [showBioDesigns, setShowBioDesigns] = useState(false);
   snappylink_shadow_color: '#000000',
   snappylink_title_color: '#000000', 
 snappylink_desc_color: '#666666',
+snappylink_social_links: [], 
+snappylink_social_pos: 'bottom',
 });
 const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
@@ -313,7 +315,10 @@ setData({
   snappylink_btn_text_color: bioData?.btn_text_color || '#000000',
   snappylink_shadow_color: bioData?.shadow_color || '#000000',
   snappylink_title_color: bioData?.title_color || '#000000',
+  snappylink_logo_url: bioData?.logo_url || null,
 snappylink_desc_color: bioData?.desc_color || '#666666',
+snappylink_social_links: bioData?.social_links || [], 
+        snappylink_social_pos: bioData?.social_pos || 'bottom',
 });
           setIsLocked(!rest.subscription_plan);
           const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
@@ -377,28 +382,23 @@ snappylink_desc_color: bioData?.desc_color || '#666666',
  const handleSave = async () => {
   if (!data.id || !data.slug) return;
   try {
-    // 1. Guardamos la info del local en la tabla 'restaurants' (lo que ya tenías)
+    // 1. Preparamos los datos para la tabla principal
     const { id, created_at, categories, products, fetched_extras, ...updates } = data;
     const restaurantUpdates = { ...updates };
     
-    // Limpiamos campos que no pertenecen a la tabla 'restaurants'
-    delete restaurantUpdates.snappylink_slug;
-    delete restaurantUpdates.snappylink_bio;
-    delete restaurantUpdates.snappylink_links;
-    delete restaurantUpdates.is_bio_active;
-    delete restaurantUpdates.snappylink_template_id;
-    delete restaurantUpdates.snappylink_title;
-    delete restaurantUpdates.snappylink_bg_color;
-    delete restaurantUpdates.snappylink_bg_img;
-    delete restaurantUpdates.snappylink_btn_color;
-    delete restaurantUpdates.snappylink_btn_text_color;
-    delete restaurantUpdates.snappylink_shadow_color;
-    delete restaurantUpdates.snappylink_title_color; // 🚀 Limpiamos los nuevos
-    delete restaurantUpdates.snappylink_desc_color;  // 🚀 Limpiamos los nuevos
+    // 🧹 LIMPIEZA TOTAL: Borramos TODO lo que sea de la Bio antes de guardar en 'restaurants'
+    // Esto evita que la base de datos de un error de "columna no encontrada"
+    Object.keys(restaurantUpdates).forEach(key => {
+      if (key.startsWith('snappylink_') || key === 'is_bio_active') {
+        delete (restaurantUpdates as any)[key];
+      }
+    });
 
-    await supabase.from('restaurants').update(restaurantUpdates).eq('id', data.id);
+    // Guardamos Instagram, TikTok, Facebook y Phone en la tabla 'restaurants'
+    const { error: restError } = await supabase.from('restaurants').update(restaurantUpdates).eq('id', data.id);
+    if (restError) throw restError;
 
-    // 2. 🚀 GUARDADO EN SNAPPYLINKS (Aquí es donde agregás los campos)
+    // 2. 🚀 GUARDADO EN SNAPPYLINKS (La tabla de la Bio)
     const { error: bioError } = await supabase.from('snappylinks').upsert({
       restaurant_id: data.id,
       slug: data.snappylink_slug || (data.slug + 'bio'),
@@ -406,30 +406,29 @@ snappylink_desc_color: bioData?.desc_color || '#666666',
       links: data.snappylink_links,
       template_id: data.snappylink_template_id,
       is_active: data.is_bio_active,
-      
-      // 🎨 COLORES Y DISEÑO (PEGÁ ESTO ACÁ)
       title: data.snappylink_title,
-      title_color: data.snappylink_title_color, // <--- NUEVO
-      desc_color: data.snappylink_desc_color,   // <--- NUEVO
+      title_color: data.snappylink_title_color, 
+      desc_color: data.snappylink_desc_color,   
       bg_color: data.snappylink_bg_color,
       bg_img: data.snappylink_bg_img,
       btn_color: data.snappylink_btn_color,
       btn_text_color: data.snappylink_btn_text_color,
-      shadow_color: data.snappylink_shadow_color
+      shadow_color: data.snappylink_shadow_color,
+      logo_url: data.snappylink_logo_url, // 👈 IMPORTANTE: Para que no se borre el logo
+      social_links: data.snappylink_social_links || [], 
+      social_pos: data.snappylink_social_pos || 'bottom'
     }, { onConflict: 'restaurant_id' });
 
-    if (bioError) {
-      console.error('❌ ERROR GUARDANDO BIO:', bioError.message);
-      alert("Error en Bio: " + bioError.message);
-    } else {
-      // Éxito
-      setUnsavedChanges(false);
-      setShowSuccessModal(true);
-      setTimeout(() => setShowSuccessModal(false), 2000);
-    }
+    if (bioError) throw bioError;
+
+    // Si todo salió bien
+    setUnsavedChanges(false);
+    setShowSuccessModal(true);
+    setTimeout(() => setShowSuccessModal(false), 2000);
     
-  } catch (err) {
-    console.error('Error crítico:', err);
+  } catch (err: any) {
+    console.error('Error crítico al guardar:', err.message);
+    alert("Error al guardar: " + err.message);
   }
 };
   const handleAddProduct = async () => {
@@ -962,43 +961,94 @@ snappylink_desc_color: bioData?.desc_color || '#666666',
 {showBioDesigns && (
     <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-10 animate-in fade-in slide-in-from-top-2">
         
+        
         {/* 1️⃣ GRILLA DE DISEÑOS (Plantillas) */}
         <div className="space-y-4">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Elegí una plantilla</p>
             <div className="grid grid-cols-3 gap-4 px-2">
                 {[
-                    { id: 'bio-modern', name: 'Modern', desc: 'Sombra Suave' },
-                    { id: 'bio-glass', name: 'Glass', desc: 'Vidrio' },
-                    { id: 'bio-dark', name: 'Dark', desc: 'Noche' }
+                    { id: 'bio-modern', name: 'Modern', status: 'active' },
+                    { id: 'bio-glass', name: 'Glass', status: 'soon' },
+                    { id: 'bio-dark', name: 'Dark', status: 'soon' }
                 ].map((temp) => (
                     <button
                         key={temp.id}
+                        disabled={temp.status === 'soon'}
                         onClick={() => {
-                            setData({ ...data, snappylink_template_id: temp.id });
-                            setUnsavedChanges(true);
+                            if (temp.status === 'active') {
+                                setData({ ...data, snappylink_template_id: temp.id });
+                                setUnsavedChanges(true);
+                            }
                         }}
-                        className={`relative flex flex-col items-center gap-2.5 group transition-all active:scale-95`}
+                        className={`relative flex flex-col items-center gap-2.5 group transition-all ${temp.status === 'active' ? 'active:scale-95' : 'cursor-default'}`}
                     >
-                        <div className={`w-full aspect-[9/16] rounded-3xl border-2 transition-all overflow-hidden flex flex-col p-2.5 gap-1.5 shadow-sm ${
+                        {/* Mockup de Celular Fiel al Diseño */}
+                        <div className={`w-full aspect-[9/16] rounded-[1.5rem] border-2 transition-all overflow-hidden flex flex-col p-2.5 gap-1.5 shadow-sm relative ${
                             data.snappylink_template_id === temp.id 
-                            ? 'border-indigo-600 ring-2 ring-indigo-100 shadow-indigo-100' 
+                            ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-indigo-100' 
                             : 'border-gray-100 bg-white hover:border-indigo-300'
-                        }`}>
-                            <div className={`w-full h-full rounded-2xl flex flex-col items-center pt-3 gap-2 ${temp.id === 'bio-dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
-                                <div className="w-5 h-5 rounded-full bg-gray-200"></div>
-                                {[1, 2, 3].map((b) => (
-                                    <div key={b} className="w-[85%] h-3 bg-indigo-500/10 rounded-lg"></div>
-                                ))}
+                        } ${temp.status === 'soon' ? 'opacity-40 grayscale' : ''}`}>
+                            
+                            {/* Pantalla Interna */}
+                            <div className={`w-full h-full rounded-[1rem] flex flex-col items-center pt-4 gap-3 ${temp.id === 'bio-dark' ? 'bg-zinc-950' : 'bg-zinc-50'}`}>
+                                
+                                {/* Foto de Perfil Mini */}
+                                <div className={`w-6 h-6 rounded-full shrink-0 ${
+                                    temp.id === 'bio-dark' ? 'bg-zinc-800' : 'bg-white'
+                                } shadow-sm border border-gray-100`}></div>
+                                
+                                {/* Líneas de Texto (Nombre y Bio) */}
+                                <div className="space-y-1 w-full flex flex-col items-center px-2">
+                                    <div className={`w-10 h-1 rounded-full ${temp.id === 'bio-dark' ? 'bg-zinc-700' : 'bg-gray-300'}`}></div>
+                                    <div className={`w-14 h-0.5 rounded-full ${temp.id === 'bio-dark' ? 'bg-zinc-800' : 'bg-gray-200'}`}></div>
+                                </div>
+
+                                {/* BOTONES MOCKUP (Estilo BioModern: rounded-full + sombra sólida) */}
+                                <div className="w-full px-2 space-y-2 mt-1">
+                                    {[1, 2, 3].map((b) => (
+                                        <div 
+                                            key={b} 
+                                            className={`w-full h-2.5 rounded-full border-2 transition-all ${
+                                                temp.id === 'bio-modern' 
+                                                    ? 'bg-white border-indigo-600/20 shadow-[2px_2px_0px_rgba(79,70,229,0.2)]' 
+                                                    : temp.id === 'bio-glass' 
+                                                        ? 'bg-white/30 border-white shadow-sm' 
+                                                        : 'bg-zinc-900 border-zinc-700 shadow-[2px_2px_0px_rgba(0,0,0,1)]'
+                                            }`}
+                                        ></div>
+                                    ))}
+                                </div>
+
+                                {/* Iconos de redes abajo mini */}
+                                <div className="flex gap-1.5 mt-auto pb-3">
+                                    <div className="w-3 h-3 rounded-full bg-gray-200/50"></div>
+                                    <div className="w-3 h-3 rounded-full bg-gray-200/50"></div>
+                                    <div className="w-3 h-3 rounded-full bg-gray-200/50"></div>
+                                </div>
                             </div>
+
+                            {/* Banner "Próximamente" para las bloqueadas */}
+                            {temp.status === 'soon' && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px] z-10">
+                                    <div className="bg-indigo-600 text-white text-[6px] font-black uppercase tracking-tighter px-2 py-1 rounded-md shadow-xl transform -rotate-12 border border-white/20">
+                                        Soon
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Nombre del diseño */}
                         <div className="text-center">
-                            <p className={`text-[9px] font-black uppercase tracking-tighter leading-none ${data.snappylink_template_id === temp.id ? 'text-indigo-600' : 'text-gray-400'}`}>{temp.name}</p>
+                            <p className={`text-[9px] font-black uppercase tracking-tighter leading-none ${
+                                data.snappylink_template_id === temp.id ? 'text-indigo-600' : 'text-gray-400'
+                            }`}>
+                                {temp.name}
+                            </p>
                         </div>
                     </button>
                 ))}
             </div>
         </div>
-
         <div className="h-px bg-gray-100 w-full" />
 
         {/* 2️⃣ FONDO: COLOR O IMAGEN */}
@@ -1137,6 +1187,101 @@ snappylink_desc_color: bioData?.desc_color || '#666666',
       </div>
     </div>
 
+    {/* 🌐 SECCIÓN: REDES SOCIALES (DISEÑO GRID + DINÁMICO) */}
+    <section className="space-y-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between px-2">
+            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
+                <Globe size={14} /> Iconos de Redes
+            </h3>
+            {/* SELECTOR DE POSICIÓN (ARRIBA/ABAJO) */}
+            <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+                <button 
+                    onClick={() => { setData({...data, snappylink_social_pos: 'top'}); setUnsavedChanges(true); }}
+                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${data.snappylink_social_pos === 'top' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}
+                >
+                    Arriba
+                </button>
+                <button 
+                    onClick={() => { setData({...data, snappylink_social_pos: 'bottom'}); setUnsavedChanges(true); }}
+                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${data.snappylink_social_pos === 'bottom' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}
+                >
+                    Abajo
+                </button>
+            </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+            {/* 1. CAMPOS PRINCIPALES (EL DISEÑO QUE TENÍAS ANTES) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 ml-2"><Instagram size={12} strokeWidth={1.5} className="text-pink-500"/><label className="text-[9px] font-black text-gray-400 uppercase">Instagram</label></div>
+                    <input value={data.instagram || ''} onChange={(e) => { setData({...data, instagram: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="instagram.com/user" />
+                </div>
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 ml-2"><Music2 size={12} strokeWidth={1.5} className="text-black"/><label className="text-[9px] font-black text-gray-400 uppercase">TikTok</label></div>
+                    <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="tiktok.com/@user" />
+                </div>
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 ml-2"><Facebook size={12} strokeWidth={1.5} className="text-blue-600"/><label className="text-[9px] font-black text-gray-400 uppercase">Facebook</label></div>
+                    <input value={data.facebook || ''} onChange={(e) => { setData({...data, facebook: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="facebook.com/page" />
+                </div>
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 ml-2"><MessageCircle size={12} strokeWidth={1.5} className="text-green-500"/><label className="text-[9px] font-black text-gray-400 uppercase">WhatsApp</label></div>
+                    <input value={data.phone || ''} onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="54911..." />
+                </div>
+            </div>
+
+            {/* 2. CAMPOS EXTRAS (PARA CREAR NUEVAS REDES) */}
+            <div className="space-y-3 pt-4 border-t border-dashed border-gray-100">
+                {data.snappylink_social_links?.map((social: any, idx: number) => (
+                    <div key={idx} className="flex gap-2 animate-in zoom-in-95">
+                        <select 
+                            value={social.type}
+                            onChange={(e) => {
+                                const nextSocial = [...data.snappylink_social_links];
+                                nextSocial[idx].type = e.target.value;
+                                setData({...data, snappylink_social_links: nextSocial});
+                                setUnsavedChanges(true);
+                            }}
+                            className="p-3 bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="web">Sitio Web</option>
+                            <option value="instagram">Instagram 2</option>
+                            <option value="facebook">Facebook 2</option>
+                            <option value="whatsapp">WhatsApp 2</option>
+                        </select>
+                        <input 
+                            value={social.url}
+                            onChange={(e) => {
+                                const nextSocial = [...data.snappylink_social_links];
+                                nextSocial[idx].url = e.target.value;
+                                setData({...data, snappylink_social_links: nextSocial});
+                                setUnsavedChanges(true);
+                            }}
+                            className="flex-1 p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                            placeholder="Pegá el link aquí..."
+                        />
+                        <button onClick={() => {
+                            const nextSocial = data.snappylink_social_links.filter((_: any, i: number) => i !== idx);
+                            setData({...data, snappylink_social_links: nextSocial});
+                            setUnsavedChanges(true);
+                        }} className="p-2 text-red-300 hover:text-red-500"><X size={18} /></button>
+                    </div>
+                ))}
+
+                <button 
+                    onClick={() => {
+                        const newSocial = { type: 'web', url: '' };
+                        setData({...data, snappylink_social_links: [...(data.snappylink_social_links || []), newSocial]});
+                        setUnsavedChanges(true);
+                    }}
+                    className="w-full py-4 border-2 border-dashed border-indigo-100 rounded-[2rem] text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                >
+                    <Plus size={14} strokeWidth={3} /> Crear campo social extra
+                </button>
+            </div>
+        </div>
+    </section>
     {/* --- SECCIÓN DE BOTONES (A continuación de la card de texto) --- */}
     <section className="space-y-4">
       <div className="flex justify-between items-center px-2">

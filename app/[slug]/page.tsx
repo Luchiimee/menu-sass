@@ -49,19 +49,27 @@ if (bioData) {
   return {
     ...bioData.restaurant, // Info base (nombre local, logo original)
     snappylink_bio: bioData.bio,
-    snappylink_links: bioData.links,
-    snappylink_template_id: bioData.template_id,
-    is_bio_active: bioData.is_active,
-    
-    // 🚀 NUEVOS CAMPOS AGREGADOS:
-    snappylink_title: bioData.title, 
-    snappylink_bg_color: bioData.bg_color,
-    snappylink_bg_img: bioData.bg_img,
-    snappylink_btn_color: bioData.btn_color,
-    snappylink_btn_text_color: bioData.btn_text_color,
-    snappylink_shadow_color: bioData.shadow_color,
-    
-    page_type: 'bio'
+        snappylink_links: bioData.links,
+        snappylink_template_id: bioData.template_id,
+        is_bio_active: bioData.is_active,
+        
+        // Colores y diseño
+        snappylink_title: bioData.title, 
+        snappylink_bg_color: bioData.bg_color,
+        snappylink_bg_img: bioData.bg_img,
+        snappylink_btn_color: bioData.btn_color,
+        snappylink_btn_text_color: bioData.btn_text_color,
+        snappylink_shadow_color: bioData.shadow_color,
+        snappylink_title_color: bioData.title_color,
+        snappylink_desc_color: bioData.desc_color,
+
+  snappylink_social_links: (bioData as any).social_links || [], 
+        snappylink_social_pos: (bioData as any).social_pos || 'bottom',
+        
+        page_type: 'bio'
+        
+        
+       
   };
 }
 
@@ -2402,16 +2410,14 @@ function MenuContent({
   );
 }
 function BioContent({ restaurant }: { restaurant: any }) {
-  // 🎨 Definimos el fondo (Prioridad: Imagen > Color > Blanco)
   const mainStyle = {
     backgroundColor: restaurant.snappylink_bg_color || "#ffffff",
     backgroundImage: restaurant.snappylink_bg_img ? `url(${restaurant.snappylink_bg_img})` : 'none',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    backgroundAttachment: 'fixed', // Para que la imagen no scrollee (opcional)
+    backgroundAttachment: 'fixed',
   };
   
-  // 🖋️ Título (Prioridad: Título personalizado > Nombre del comercio)
   const displayTitle = restaurant.snappylink_title || restaurant.name;
   
   return (
@@ -2425,26 +2431,21 @@ function BioContent({ restaurant }: { restaurant: any }) {
                className="w-full h-full object-cover" alt="logo" />
         </div>
         
-        {/* TEXTOS (Título y Bio) */}
+        {/* TEXTOS (Título y Bio con colores dinámicos) */}
         <div className="text-center space-y-2 mb-10">
           <h1 className="font-black text-2xl uppercase italic tracking-tighter leading-none" 
-              style={{ color: restaurant.snappylink_btn_text_color || restaurant.text_color }}>
+              style={{ color: restaurant.snappylink_title_color || '#000000' }}>
             {displayTitle}
           </h1>
-          <p className="text-xs font-medium opacity-70 max-w-xs" 
-             style={{ color: restaurant.description_color }}>
+          <p className="text-xs font-medium max-w-xs" 
+             style={{ color: restaurant.snappylink_desc_color || '#666666' }}>
             {restaurant.snappylink_bio}
           </p>
         </div>
 
-        {/* DISEÑO DINÁMICO (Los botones adentro de BioModern ya usan estos datos) */}
+        {/* DISEÑO DINÁMICO (BioModern ya gestiona los iconos arriba/abajo) */}
         <div className="w-full">
-          {(() => {
-            switch (restaurant.snappylink_template_id) { 
-              case 'bio-modern': return <BioModern data={restaurant} />;
-              default: return <BioModern data={restaurant} />;
-            }
-          })()}
+          <BioModern data={restaurant} />
         </div>
 
         {/* FOOTER */}
@@ -2457,7 +2458,6 @@ function BioContent({ restaurant }: { restaurant: any }) {
         </div>
       </div>
       
-      {/* Overlay para que si la imagen es muy clara, se lea el texto (opcional) */}
       {restaurant.snappylink_bg_img && (
         <div className="absolute inset-0 bg-black/20 pointer-events-none z-0"></div>
       )}
