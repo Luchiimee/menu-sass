@@ -16,7 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  LayoutList, Pencil, X, Search,Lock
+  LayoutList, Pencil, X, Search,Lock,Wallet
 } from "lucide-react";
 import Link from "next/link";
 const CUSTOM_STYLES = `
@@ -45,6 +45,7 @@ const supabase = createBrowserClient(
 );
 
 function OrdersContent() {
+    const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState<any>(null);
   // --- INICIALIZACIÓN DE HOOKS ---
   const router = useRouter(); // <--- ESTA ES LA LÍNEA QUE SOLUCIONA EL ERROR
   const searchParams = useSearchParams();
@@ -476,21 +477,20 @@ const getActiveOrderForTable = (tableName: string) => {
 useEffect(() => {
     if (!restaurantId) return;
 
-    const tablesChannel = supabase
-        .channel('tables_realtime')
+    const ordersChannel = supabase
+        .channel('orders_realtime_status')
         .on('postgres_changes', { 
             event: 'UPDATE', 
             schema: 'public', 
-            table: 'tables',
-            // 💡 Si no titila, borrá temporalmente la línea de abajo para probar:
+            table: 'orders',
             filter: `restaurant_id=eq.${restaurantId}` 
         }, (payload) => {
-            console.log("🔔 Cambio detectado!", payload);
-            fetchTables(restaurantId); // Esto refresca la lista
+            console.log("💰 Cambio en pago detectado!", payload);
+            loadOrders(); // Refrescamos los pedidos para ver el nuevo estado de pago
         })
         .subscribe();
 
-    return () => { supabase.removeChannel(tablesChannel); };
+    return () => { supabase.removeChannel(ordersChannel); };
 }, [restaurantId]);
 
 // --- LÓGICA DE BÚSQUEDA INTELIGENTE (Corregida) ---
@@ -706,29 +706,33 @@ useEffect(() => {
 {availableTables.map((mesa: any) => {
     const activeOrder = getActiveOrderForTable(mesa.name);
     const isOccupied = !!activeOrder;
-    
-    // 🚨 FORZAMOS EL BOLEANO (A veces la DB devuelve null y React se confunde)
     const isCalling = Boolean(mesa.needs_attention); 
+    
+    // 💸 NUEVA LÓGICA DE PAGO
+    const isWaitingPayment = activeOrder?.payment_status === 'esperando_confirmacion';
+    const paymentMethod = activeOrder?.payment_method;
 
     return (
         <div 
             key={mesa.id} 
             onClick={() => isOccupied && setSelectedTableForDetail({ ...mesa, activeOrder })}
-            className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col min-h-[280px] shadow-sm group active:scale-[0.98] ${
+            className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col min-h-[310px] shadow-sm group active:scale-[0.98] ${
                 isCalling 
-                ? 'animate-table-call ring-4 ring-red-500/50' // 👈 Si llama, titila sí o sí
-                : isOccupied 
-                    ? 'border-orange-500 bg-orange-50/20' 
-                    : 'border-gray-100 bg-white'
+                ? 'animate-table-call ring-4 ring-red-500/50' 
+                : isWaitingPayment
+                    ? 'border-purple-600 bg-purple-50 ring-4 ring-purple-100' // Alerta violeta de pago
+                    : isOccupied 
+                        ? 'border-orange-500 bg-orange-50/20' 
+                        : 'border-gray-100 bg-white'
             }`}
         >
-            {/* ✏️ BOTONES DE EDICIÓN (Arriba derecha) */}
+            {/* ✏️ BOTONES DE EDICIÓN / BORRAR (Tus originales) */}
             <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1.5 bg-white shadow-md rounded-full text-blue-600 hover:bg-blue-50"><Pencil size={12} /></button>
                 <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1.5 bg-white shadow-md rounded-full text-red-500 hover:bg-red-50"><Trash2 size={12} /></button>
             </div>
 
-            {/* 🔔 BOTÓN PARA APAGAR LLAMADO (Arriba izquierda) */}
+            {/* 🔔 BOTÓN PARA APAGAR LLAMADO (Tu original) */}
             {isCalling && (
                 <button 
                     onClick={(e) => { 
@@ -741,57 +745,81 @@ useEffect(() => {
                 </button>
             )}
 
+            {/* 💰 ETIQUETA DE PAGO (Nueva) */}
+            {isWaitingPayment && !isCalling && (
+                <div className="absolute -top-3 -left-2 bg-purple-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase shadow-lg animate-pulse z-20">
+                    {paymentMethod === 'transferencia' ? 'Revisar Transf.' : 'Cobrar en Mesa'}
+                </div>
+            )}
+
             {/* CABECERA: Nombre Mesa e Icono */}
             <div className="flex justify-between items-start mb-2">
-                <span className={`font-black text-xs uppercase px-3 py-1 rounded-lg ${isCalling ? 'bg-white text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`font-black text-xs uppercase px-3 py-1 rounded-lg ${isCalling ? 'bg-white text-red-600' : isWaitingPayment ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-gray-100 text-gray-600'}`}>
                     {mesa.name}
                 </span>
-                <span className="text-2xl">{isCalling ? '🚨' : isOccupied ? '🔥' : '🍽️'}</span>
+                <span className="text-2xl">{isCalling ? '🚨' : isWaitingPayment ? '💳' : isOccupied ? '🔥' : '🍽️'}</span>
             </div>
 
             {isOccupied ? (
                 <div className="flex-1 flex flex-col justify-between text-left">
-                    {/* INFO DEL CLIENTE */}
                     <div className="space-y-1">
-                        <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${isCalling ? 'text-white' : 'text-orange-600'}`}>
-                            {isCalling ? '¡EL CLIENTE LLAMA!' : 'Mesa Ocupada'}
+                        <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${isCalling ? 'text-white' : isWaitingPayment ? 'text-purple-600' : 'text-orange-600'}`}>
+                            {isCalling ? '¡EL CLIENTE LLAMA!' : isWaitingPayment ? 'Pago Solicitado' : 'Mesa Ocupada'}
                         </p>
                         <p className={`text-sm font-black truncate uppercase tracking-tighter ${isCalling ? 'text-white' : 'text-gray-900'}`}>
                             {activeOrder.customer_name}
                         </p>
-                        <div className={`flex justify-between items-center p-2 rounded-xl border ${isCalling ? 'bg-black/10 border-white/20' : 'bg-white/50 border-orange-100'}`}>
+
+                        {/* Muestra quién paga (Nueva ayuda visual) */}
+                        {isWaitingPayment && (
+                            <p className="text-[9px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md truncate border border-purple-200">
+                                {paymentMethod === 'transferencia' ? `Paga: ${activeOrder.payer_name || 'Alguien'}` : `Paga con: ${paymentMethod?.toUpperCase()}`}
+                            </p>
+                        )}
+
+                        <div className={`flex justify-between items-center p-2 rounded-xl border ${isCalling ? 'bg-black/10 border-white/20' : isWaitingPayment ? 'bg-white border-purple-200 shadow-inner' : 'bg-white/50 border-orange-100'}`}>
                              <span className={`text-[8px] font-black uppercase ${isCalling ? 'text-white/70' : 'text-gray-400'}`}>Total</span>
                              <span className={`text-sm font-black ${isCalling ? 'text-white' : 'text-gray-900'}`}>${activeOrder.total}</span>
                         </div>
                     </div>
 
-                    {/* 🔘 BOTONES DE SEGUIMIENTO */}
+                    {/* 🔘 BOTONES DE SEGUIMIENTO (Sin borrar nada) */}
                     <div className="mt-4 space-y-2">
-                        <div className="grid grid-cols-1 gap-1.5">
-                            {activeOrder.status === 'pendiente' && (
-                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'recibido'); }} className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Tomar Pedido</button>
-                            )}
-                            {activeOrder.status === 'recibido' && (
-                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'en_proceso'); }} className="w-full py-2.5 bg-orange-500 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Enviar a Cocina</button>
-                            )}
-                            {activeOrder.status === 'en_proceso' && (
-                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'listo'); }} className="w-full py-2.5 bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Plato Listo</button>
-                            )}
-                            {activeOrder.status === 'listo' && (
-                                <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'entregado'); }} className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Entregado</button>
-                            )}
-                            {activeOrder.status === 'entregado' && (
-                                <button 
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        if(confirm("¿Confirmar pago y liberar mesa?")) updateStatus(activeOrder.id, 'completado'); 
-                                    }} 
-                                    className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg flex items-center justify-center gap-1 active:scale-95 transition-all"
-                                >
-                                    <Banknote size={12} /> Confirmar Pago
-                                </button>
-                            )}
-                        </div>
+                        {/* Si está esperando pago, el botón principal cambia para llamar la atención */}
+                        {isWaitingPayment ? (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setSelectedTableForDetail({ ...mesa, activeOrder }); }} 
+                                className="w-full py-3 bg-purple-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg animate-pulse flex items-center justify-center gap-2"
+                            >
+                                <Wallet size={14} /> Revisar y Cobrar
+                            </button>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-1.5">
+                                {activeOrder.status === 'pendiente' && (
+                                    <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'recibido'); }} className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Tomar Pedido</button>
+                                )}
+                                {activeOrder.status === 'recibido' && (
+                                    <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'en_proceso'); }} className="w-full py-2.5 bg-orange-500 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Enviar a Cocina</button>
+                                )}
+                                {activeOrder.status === 'en_proceso' && (
+                                    <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'listo'); }} className="w-full py-2.5 bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Plato Listo</button>
+                                )}
+                                {activeOrder.status === 'listo' && (
+                                    <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'entregado'); }} className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all">Entregado</button>
+                                )}
+                                {activeOrder.status === 'entregado' && (
+                                    <button 
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            if(confirm("¿Confirmar pago y liberar mesa?")) updateStatus(activeOrder.id, 'completado'); 
+                                        }} 
+                                        className="w-full py-2.5 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg flex items-center justify-center gap-1 active:scale-95 transition-all"
+                                    >
+                                        <Banknote size={12} /> Confirmar Pago
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         <div className="text-center">
                             <span className={`text-[8px] font-black uppercase tracking-widest border-b pb-0.5 ${isCalling ? 'text-white border-white' : 'text-gray-400 border-gray-200 group-hover:text-blue-500 group-hover:border-blue-500'}`}>
                                 + Ver Detalle / Sumar
@@ -800,7 +828,7 @@ useEffect(() => {
                     </div>
                 </div>
             ) : (
-                /* 🍽️ ESTADO DISPONIBLE */
+                /* 🍽️ ESTADO DISPONIBLE (Tu original) */
                 <div className="flex-1 flex flex-col justify-center items-center gap-3">
                     <p className="text-[10px] text-gray-300 font-black uppercase tracking-[0.2em]">Disponible</p>
                     <div className="grid grid-cols-1 w-full gap-2 px-2">
@@ -1066,6 +1094,24 @@ useEffect(() => {
 
             {/* Cuerpo con scroll */}
             <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                {selectedTableForDetail.activeOrder.payment_status === 'esperando_confirmacion' && (
+                    <div className="bg-purple-600 text-white p-5 rounded-3xl shadow-xl animate-in zoom-in mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Wallet size={24} />
+                            <h4 className="font-black uppercase italic tracking-tighter">Confirmación de Pago</h4>
+                        </div>
+                        <p className="text-[11px] font-bold opacity-90 leading-tight">
+                            El cliente indica que desea pagar por: <span className="bg-white text-purple-600 px-2 py-0.5 rounded ml-1">{selectedTableForDetail.activeOrder.payment_method?.toUpperCase()}</span>
+                        </p>
+                        
+                        {selectedTableForDetail.activeOrder.payment_method === 'transferencia' && (
+                            <div className="mt-3 p-3 bg-white/10 rounded-2xl border border-white/20">
+                                <p className="text-[9px] font-black text-purple-100 uppercase mb-1">Nombre informado en transferencia:</p>
+                                <p className="text-sm font-black">{selectedTableForDetail.activeOrder.payer_name || 'No informado'}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div className="space-y-3">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Consumo de la mesa</p>
                     {selectedTableForDetail.activeOrder.items?.map((item: any, i: number) => (
@@ -1191,17 +1237,13 @@ useEffect(() => {
                         </button>
 
                         {/* Botón Pagar más chico */}
-                        <button 
-                            onClick={() => { 
-                                if(confirm("¿Cerrar mesa y marcar como pagado?")) {
-                                    updateStatus(selectedTableForDetail.activeOrder.id, 'completado');
-                                    setSelectedTableForDetail(null);
-                                }
-                            }}
-                            className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
-                        >
-                            <CheckCircle size={16} /> Confirmar Pago y Cerrar
-                        </button>
+                      {/* Botón Pagar mejorado */}
+<button  
+    onClick={() => setShowConfirmPaymentModal(selectedTableForDetail.activeOrder)}
+    className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
+>
+    <CheckCircle size={16} /> Confirmar Pago y Cerrar
+</button>
                     </div>
                 </div>
             )}
@@ -1262,8 +1304,46 @@ useEffect(() => {
                 </div>
             </div>
         </div>
+        
     </div>
 )}
+{showConfirmPaymentModal && (
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-300 border border-white">
+                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <Banknote size={40} strokeWidth={2.5} />
+                    </div>
+                    
+                    <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter mb-2">
+                        ¿Confirmar Cobro?
+                    </h3>
+                    
+                    <p className="text-sm text-slate-500 mb-8 font-medium leading-tight px-4 text-center">
+                        Vas a marcar la cuenta de <b>{showConfirmPaymentModal.customer_name}</b> como pagada y la mesa quedará libre.
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                        <button  
+                            onClick={async () => {
+                                await updateStatus(showConfirmPaymentModal.id, 'completado');
+                                setShowConfirmPaymentModal(null);
+                                setSelectedTableForDetail(null);
+                            }}
+                            className="w-full bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-green-200 hover:bg-green-700 transition-all active:scale-95"
+                        >
+                            ¡Sí, Pago Recibido!
+                        </button>
+                        
+                        <button  
+                            onClick={() => setShowConfirmPaymentModal(null)}
+                            className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 }

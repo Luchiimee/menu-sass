@@ -222,6 +222,16 @@ const [showBioDesigns, setShowBioDesigns] = useState(false);
   snappylink_title_color: '#000000', 
 snappylink_desc_color: '#666666',
 });
+const getLinksLimit = () => {
+    const plan = data?.subscription_plan?.toLowerCase() || 'light';
+    if (plan === 'light') return 2;
+    if (plan === 'go') return 4;
+    return 100; // Ilimitado para Plus y Max
+  };
+
+  const linkLimit = getLinksLimit();
+  const currentLinksCount = data.snappylink_links?.length || 0;
+  const isLimitReached = currentLinksCount >= linkLimit;
 
   const [products, setProducts] = useState<any[]>([]);
 
@@ -1129,21 +1139,26 @@ snappylink_desc_color: bioData?.desc_color || '#666666',
 
     {/* --- SECCIÓN DE BOTONES (A continuación de la card de texto) --- */}
     <section className="space-y-4">
-        <div className="flex justify-between items-center px-2">
-            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
-                <Layers size={14} /> Tus Botones
-            </h3>
-            <button
-                onClick={() => {
-                    const newLinks = [...(data.snappylink_links || []), { label: 'Nuevo Enlace', url: '' }];
-                    setData({ ...data, snappylink_links: newLinks });
-                    setUnsavedChanges(true);
-                }}
-                className="p-2 bg-emerald-500 text-white rounded-full shadow-lg hover:bg-emerald-600 active:scale-90 transition-all"
-            >
-                <Plus size={18} strokeWidth={3} />
-            </button>
-        </div>
+      <div className="flex justify-between items-center px-2">
+    <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
+        <Layers size={14} /> Tus Botones 
+        <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] ${isLimitReached ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'}`}>
+            {currentLinksCount} / {linkLimit === 100 ? '∞' : linkLimit}
+        </span>
+    </h3>
+    {!isLimitReached && (
+        <button
+            onClick={() => {
+                const newLinks = [...(data.snappylink_links || []), { label: 'Nuevo Enlace', url: '' }];
+                setData({ ...data, snappylink_links: newLinks });
+                setUnsavedChanges(true);
+            }}
+            className="p-2 bg-emerald-500 text-white rounded-full shadow-lg hover:bg-emerald-600 active:scale-90 transition-all"
+        >
+            <Plus size={18} strokeWidth={3} />
+        </button>
+    )}
+</div>
 
         <div className="space-y-3">
             {(data.snappylink_links || []).map((link: any, idx: number) => (
@@ -1181,17 +1196,38 @@ snappylink_desc_color: bioData?.desc_color || '#666666',
                     />
                 </div>
             ))}
+{/* --- SECCIÓN FINAL DE AGREGAR ENLACE --- */}
+            <div className="space-y-3 mt-4">
+                <button  
+                    disabled={isLimitReached}
+                    onClick={() => {
+                        const newLink = { label: 'Nuevo Enlace', url: '' };
+                        setData({ ...data, snappylink_links: [...(data.snappylink_links || []), newLink] });
+                        setUnsavedChanges(true);
+                    }}
+                    className={`w-full py-4 border-2 border-dashed rounded-[2rem] text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 
+                        ${isLimitReached 
+                            ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed' 
+                            : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-400'
+                        }`}
+                >
+                    {isLimitReached ? <Lock size={14}/> : <Plus size={14}/>}
+                    {isLimitReached ? 'Límite de enlaces alcanzado' : 'Agregar enlace'}
+                </button>
 
-            <button 
-                onClick={() => {
-                    const newLink = { label: 'Nuevo Enlace', url: '' };
-                    setData({ ...data, snappylink_links: [...(data.snappylink_links || []), newLink] });
-                    setUnsavedChanges(true);
-                }}
-                className="w-full py-4 border-2 border-dashed border-gray-200 rounded-[2rem] text-[10px] font-black uppercase text-gray-400 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-400 transition-all flex items-center justify-center gap-2 mt-4"
-            >
-                <Plus size={14}/> Agregar enlace
-            </button>
+                {/* AVISO DE UPGRADE (Solo si llegó al límite) */}
+                {isLimitReached && (
+                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl animate-in fade-in zoom-in duration-300">
+                        <p className="text-[10px] text-amber-700 font-bold text-center uppercase tracking-widest leading-relaxed">
+                            Tu plan <span className="font-black underline">{data.subscription_plan || 'Light'}</span> permite hasta {linkLimit} botones. 
+                            <br />
+                            <Link href="/dashboard/settings" className="text-indigo-600 underline font-black block mt-1 hover:text-indigo-800">
+                                Subí de plan para tener enlaces ilimitados ✨
+                            </Link>
+                        </p>
+                    </div>
+                )}
+            </div>
         </div>
     </section>
   </div>

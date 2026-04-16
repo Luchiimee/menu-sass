@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User,CreditCard,Clock } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,14 +17,71 @@ interface Table {
 }
 
 export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, businessType, restaurantName }: any) {
-   const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
-
-    // --- 2. ESTADOS DE INTERFAZ Y CARGA ---
+    const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
+    
+    // --- 1. ESTADOS PRINCIPALES ---
+    const [pasoPago, setPasoPago] = useState<'inicio' | 'seleccion' | 'transferencia' | 'espera'>('inicio');
+    const [nombreApellidoPago, setNombreApellidoPago] = useState('');
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
     const [aviso, setAviso] = useState<string | null>(null); 
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
+
+    // --- 2. FUNCIONES AUXILIARES (DEFINIDAS ARRIBA PARA EVITAR ERRORES) ---
+    const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
+
+    const handleCopyAlias = async () => {
+        if (!aliasMp) return;
+        try { 
+            await navigator.clipboard.writeText(aliasMp); 
+            setCopied(true);
+            setTimeout(() => setCopied(false), 4000); 
+        } catch (err) {
+            const textArea = document.createElement("textarea"); 
+            textArea.value = aliasMp; 
+            document.body.appendChild(textArea); 
+            textArea.select(); 
+            document.execCommand('copy'); 
+            document.body.removeChild(textArea);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 4000);
+        }
+    };
+const handleFinalizarTodo = () => {
+       window.onbeforeunload = null;
+        clearCart(); // Limpia los productos del carrito
+        localStorage.clear(); // Borra ID de orden, mesa y todo
+        setActiveOrderId(null);
+        window.location.reload(); // Refresca para que el sistema empiece de cero
+    };
+    // Función para avisar al comercio del pago
+  const handleNotificarPagoMesa = async (metodo: string) => {
+        if (!activeOrderId) return;
+        setIsSending(true);
+
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ 
+                    payment_method: metodo,
+                    // Si es transferencia usa el nombre del input nuevo, sino el nombre del pedido original
+                    payer_name: metodo === 'transferencia' ? nombreApellidoPago : nombre,
+                    payment_status: 'esperando_confirmacion' 
+                })
+                .eq('id', activeOrderId);
+
+            if (error) throw error;
+            
+            setMetodoPago(metodo); // Guardamos el método para mostrar el mensaje correcto
+            setPasoPago('espera'); // Saltamos al mensaje de aviso
+        } catch (error: any) {
+            console.error("Error al notificar pago:", error.message);
+            alert("Hubo un error al avisar al local. Por favor, intenta de nuevo.");
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     // --- 3. DATOS DEL CLIENTE Y FORMULARIO ---
     const [nombre, setNombre] = useState('');
@@ -75,63 +132,58 @@ const [nroMesa, setNroMesa] = useState('')
             if (savedMesa) setNroMesa(savedMesa);
         }
     }, [activeOrderId]);
-    useEffect(() => {
+   useEffect(() => {
        if (activeOrderId && !isVisible) {
+           const isMesa = metodoEnvio === 'mesa';
+           
+           // Lógica para planes básicos (15 min)
            if (planType !== 'go' && planType !== 'plus' && planType !== 'max') {
                 const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 15 * 60 * 1000); 
                 return () => clearTimeout(timer);
             }
-            if (['entregado', 'completado', 'cancelado'].includes(orderStatus)) {
-                const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 5 * 60 * 1000);
+
+            // 🚀 LÓGICA DE CIERRE INTELIGENTE
+            // Si es mesa: solo habilitamos el timer de 5 min si ya se pagó (completado) o canceló.
+            // Si es delivery/retiro: mantenemos tu lógica de "entregado" para limpiar.
+            const estadosFinales = isMesa ? ['completado', 'cancelado'] : ['entregado', 'completado', 'cancelado'];
+
+            if (estadosFinales.includes(orderStatus)) {
+                const timer = setTimeout(() => { 
+                    clearCart(); 
+                    setActiveOrderId(null); 
+                    localStorage.removeItem("activeOrderId"); // Limpieza total
+                }, 5 * 60 * 1000);
                 return () => clearTimeout(timer);
             }
         }
-    }, [activeOrderId, planType, orderStatus]);
+    }, [activeOrderId, planType, orderStatus, metodoEnvio]); // Agregamos metodoEnvio aquí
  // 🧠 SINCRONIZACIÓN Y LIMPIEZA AUTOMÁTICA
-    useEffect(() => {
-        if (activeOrderId) {
-            const syncStatus = async () => {
-                const { data } = await supabase.from('orders').select('status').eq('id', activeOrderId).maybeSingle();
-                
-                if (data) {
-                    // 🚨 SI EL ESTADO ES FINAL (PAGADO O CANCELADO)
-                    if (data.status === 'completado' || data.status === 'cancelado') {
-                        // Borramos todo de la memoria del celu
-                        localStorage.removeItem("activeOrderId");
-                        localStorage.removeItem("metodoEnvio");
-                        localStorage.removeItem("nroMesa");
-                        
-                        // Reseteamos los estados de React para que vuelva al menú
-                        setActiveOrderId(null);
-                        setOrderStatus('pendiente');
-                        return; // Salimos de la función
-                    }
-                    
-                    // Si no es final, actualizamos el estado normal
-                    setOrderStatus(data.status);
-                }
-            };
-            syncStatus();
+   // 🧠 SINCRONIZACIÓN Y LIMPIEZA AUTOMÁTICA (CORREGIDA)
+useEffect(() => {
+    if (activeOrderId) {
+        const syncStatus = async () => {
+            const { data } = await supabase.from('orders').select('status, payment_method').eq('id', activeOrderId).maybeSingle();
+            if (data) {
+                setOrderStatus(data.status);
+                // Si ya estaba completado de antes, mantenemos el paso en espera para ver el final
+                if (data.status === 'completado') setPasoPago('espera');
+            }
+        };
+        syncStatus();
 
-            // Escuchar en tiempo real por si el mozo confirma el pago MIENTRAS el cliente mira
-            const orderChannel = supabase.channel(`order-update-${activeOrderId}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${activeOrderId}` }, 
-                (payload) => {
-                    const newStatus = payload.new.status;
-                    if (newStatus === 'completado' || newStatus === 'cancelado') {
-                        localStorage.removeItem("activeOrderId");
-                        localStorage.removeItem("metodoEnvio");
-                        localStorage.removeItem("nroMesa");
-                        setActiveOrderId(null);
-                    } else {
-                        setOrderStatus(newStatus);
-                    }
-                })
-                .subscribe();
+        const orderChannel = supabase.channel(`order-update-${activeOrderId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${activeOrderId}` }, 
+            (payload) => {
+                const newStatus = payload.new.status;
+                setOrderStatus(newStatus);
+                // Cuando el comercio confirma, nos aseguramos de estar en el paso que muestra el éxito
+                if (newStatus === 'completado') setPasoPago('espera');
+            })
+            .subscribe();
 
-            return () => { supabase.removeChannel(orderChannel); };
-        }
-    }, [activeOrderId]);
+        return () => { supabase.removeChannel(orderChannel); };
+    }
+}, [activeOrderId]);
 useEffect(() => {
         if (metodoEnvio === 'mesa' && restaurantId) {
             const getTables = async () => {
@@ -189,6 +241,7 @@ const handleCallWaiter = async () => {
         setTimeout(() => setAviso(null), 3000);
     }
 };
+
         return (
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
                {aviso && (
@@ -200,8 +253,23 @@ const handleCallWaiter = async () => {
                         </div>
                     )}
                 <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
-                    <button onClick={() => { clearCart(); setActiveOrderId(null); }} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm"><X size={20} className="text-gray-400" /></button>
-                    
+         { (metodoEnvio !== 'mesa' || ['completado', 'cancelado'].includes(orderStatus)) && (
+    <button 
+        onClick={() => {
+            if (orderStatus === 'completado') {
+                handleFinalizarTodo(); // 👈 Si ya pagó, limpia y refresca al cerrar
+            } else {
+                clearCart(); 
+                setActiveOrderId(null); 
+                localStorage.removeItem("activeOrderId");
+            }
+        }} 
+        className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm animate-in fade-in"
+    >
+        <X size={20} className="text-gray-400" />
+    </button>
+)}
+
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
                         {isMesa && (
@@ -223,23 +291,140 @@ const handleCallWaiter = async () => {
 
                         {/* 🔘 BOTONES DE ACCIÓN: SEPARADOS POR TIPO */}
                         <div className="flex flex-col gap-3 mt-auto pb-4">
-                            {isMesa ? (
-                                // --- BOTONES SOLO PARA MESA ---
-                                <>
-                                    <button onClick={handleCallWaiter} className="w-full bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
-                                        <MessageSquare size={18} /> Llamar Mozo
-                                    </button>
-                                    
-                                    {(orderStatus === 'entregado' || orderStatus === 'completado') && (
-                                        <button 
-                                            onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}&text=Hola! Pedir cuenta Mesa ${nroMesa}`)}
-                                            className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
-                                        >
-                                            <Wallet size={18} /> Pagar Cuenta
-                                        </button>
-                                    )}
-                                </>
-                            ) : (
+                          {isMesa ? (
+    <div className="flex flex-col gap-3 mt-auto pb-4">
+        {/* PASO 1: BOTONES INICIALES (Solo si no empezó el pago) */}
+        {pasoPago === 'inicio' && (
+            <>
+                <button onClick={handleCallWaiter} className="w-full bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+                    <MessageSquare size={18} /> Llamar Mozo
+                </button>
+                
+                {(orderStatus === 'entregado' || orderStatus === 'listo') && (
+                    <button 
+                        onClick={() => setPasoPago('seleccion')}
+                        className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
+                    >
+                        <Wallet size={18} /> Pagar Cuenta
+                    </button>
+                )}
+            </>
+        )}
+
+        {/* PASO 2: SELECCIÓN DE MÉTODO */}
+        {pasoPago === 'seleccion' && (
+            <div className="space-y-3 animate-in slide-in-from-bottom-2">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">¿Cómo deseás pagar?</p>
+                <div className="grid grid-cols-1 gap-2">
+                    <button onClick={() => handleNotificarPagoMesa('efectivo')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-green-500 transition-all">
+                        <div className="flex items-center gap-3"><Wallet className="text-green-600" /> Efectivo</div>
+                        <Check size={16} className="text-gray-300"/>
+                    </button>
+                    <button onClick={() => handleNotificarPagoMesa('tarjeta')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-blue-500 transition-all">
+                        <div className="flex items-center gap-3"><CreditCard className="text-blue-600" /> Tarjeta (Débito/Crédito)</div>
+                        <Check size={16} className="text-gray-300"/>
+                    </button>
+                    <button onClick={() => setPasoPago('transferencia')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-purple-500 transition-all">
+                        <div className="flex items-center gap-3"><Landmark className="text-purple-600" /> Transferencia</div>
+                        <Check size={16} className="text-gray-300"/>
+                    </button>
+                </div>
+                <button onClick={() => setPasoPago('inicio')} className="w-full py-2 text-[9px] font-black text-gray-400 uppercase">Volver atrás</button>
+            </div>
+        )}
+
+        {/* PASO 3: FORMULARIO TRANSFERENCIA */}
+        {pasoPago === 'transferencia' && (
+            <div className="space-y-4 animate-in zoom-in-95">
+                <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200">
+                    <p className="text-[9px] font-black text-purple-600 uppercase mb-1">Copiá nuestro Alias</p>
+                    <div onClick={handleCopyAlias} className="flex justify-between items-center cursor-pointer">
+                        <span className="font-black text-purple-900">{aliasMp || 'Configurá tu Alias'}</span>
+                        <Copy size={16} className="text-purple-400" />
+                    </div>
+                </div>
+
+                <div className="space-y-2 text-left">
+                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Quién transfiere? (Nombre y Apellido)</label>
+                    <input 
+                        type="text" 
+                        value={nombreApellidoPago}
+                        onChange={(e) => setNombreApellidoPago(e.target.value)}
+                        className="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-purple-500 font-bold text-sm"
+                        placeholder="Ej: Juan Pérez"
+                    />
+                </div>
+
+                <button 
+                    disabled={!nombreApellidoPago.trim()}
+                    onClick={() => handleNotificarPagoMesa('transferencia')}
+                    className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg disabled:opacity-50"
+                >
+                    Ya transferí
+                </button>
+                <button onClick={() => setPasoPago('seleccion')} className="w-full py-2 text-[9px] font-black text-gray-400 uppercase">Cambiar método</button>
+            </div>
+        )}
+
+       {/* PASO 4: MENSAJES DE ESPERA SEGÚN EL MÉTODO */}
+      {/* PASO 4: MENSAJES DE ESPERA Y ÉXITO */}
+        {pasoPago === 'espera' && (
+            <div className="animate-in fade-in zoom-in duration-500 min-h-[300px] flex flex-col justify-center">
+                {orderStatus === 'completado' ? (
+                    /* --- 🎊 PAGO CONFIRMADO (PANTALLA FINAL) --- */
+                    <div className="bg-green-600 p-8 rounded-[2.5rem] text-center shadow-2xl">
+                        <div className="bg-white/20 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                            <CheckCircle2 className="text-white" size={48} strokeWidth={3} />
+                        </div>
+                        <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-2">¡Pago Recibido!</h4>
+                        <p className="text-sm text-green-50 font-medium leading-tight mb-8">
+                            {metodoPago === 'transferencia' 
+                                ? 'Confirmamos tu transferencia. ¡Muchas gracias por tu visita!' 
+                                : '¡Gracias por elegirnos! Ya podés retirarte cuando desees.'}
+                        </p>
+                        <button 
+                            onClick={handleFinalizarTodo}
+                            className="w-full bg-white text-green-600 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl active:scale-95 transition-all"
+                        >
+                            Volver al Menú
+                        </button>
+                    </div>
+                ) : (
+                    /* --- ⏳ MENSAJES DE AVISO (SEGÚN MÉTODO) --- */
+                    <>
+                        {metodoPago === 'transferencia' ? (
+                            <div className="space-y-4">
+                                <div className="bg-white border-2 border-purple-100 p-8 rounded-[2.5rem] text-center shadow-xl">
+                                    <Loader2 className="animate-spin text-purple-600 mx-auto mb-4" size={40} />
+                                    <h4 className="text-sm font-black text-gray-900 uppercase italic mb-2">Revisando Transferencia</h4>
+                                    <p className="text-[11px] text-gray-500 font-medium leading-relaxed px-4">
+                                        Ya avisamos al local. Aguardá un momento mientras confirman el ingreso de la transferencia.
+                                    </p>
+                                </div>
+                                {/* Solo mostramos el "Esperando..." en transferencia */}
+                                <div className="mt-2 p-3 bg-gray-50 rounded-2xl inline-flex items-center gap-2 mx-auto">
+                                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Esperando confirmación</span>
+                                </div>
+                            </div>
+                        ) : (
+                            /* EFECTIVO O TARJETA */
+                            <div className="bg-white border-2 border-emerald-100 p-8 rounded-[2.5rem] text-center shadow-xl">
+                                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Clock className="text-emerald-500 animate-pulse" size={40} />
+                                </div>
+                                <h4 className="text-sm font-black text-gray-900 uppercase italic mb-2">¡Mozo en camino!</h4>
+                                <p className="text-[11px] text-gray-500 font-medium leading-relaxed px-4">
+                                    Ya avisamos que pagás con <b>{metodoPago === 'efectivo' ? 'Efectivo' : 'Tarjeta'}</b>. <br/> Enseguida se acercan a la mesa para cobrarte.
+                                </p>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        )}
+    </div>
+) : (
                                 // --- BOTONES SOLO PARA ENVÍO/RETIRO ---
                                 <>
                                     {(orderStatus === 'entregado' || orderStatus === 'completado') ? (
@@ -273,16 +458,7 @@ const handleCallWaiter = async () => {
     const montoDescuento = appliedCoupon ? (subtotal * Number(appliedCoupon.discount_percent) / 100) : 0;
     const envio = metodoEnvio === 'delivery' ? (Number(deliveryCost) || 0) : 0;
     const totalFinal = subtotal - montoDescuento + envio;
-    const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
-
-    const handleCopyAlias = async () => {
-        if (!aliasMp) return;
-        try { await navigator.clipboard.writeText(aliasMp); } catch (err) {
-            const textArea = document.createElement("textarea"); textArea.value = aliasMp; document.body.appendChild(textArea); textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);
-        }
-        setCopied(true);
-        setTimeout(() => setCopied(false), 4000); 
-    };
+   
 
   const handleSendOrder = async () => {
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
