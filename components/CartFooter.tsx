@@ -27,6 +27,7 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const [aviso, setAviso] = useState<string | null>(null); 
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
+    const [showSuccessScreen, setShowSuccessScreen] = useState(false);
 
     // --- 2. FUNCIONES AUXILIARES (DEFINIDAS ARRIBA PARA EVITAR ERRORES) ---
     const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
@@ -520,35 +521,50 @@ const handleCallWaiter = async () => {
         setIsVisible(false); // Cerramos el modal del pedido
 
         // 🛑 CASO MESA: BLOQUEO TOTAL DE WHATSAPP
-        if (metodoEnvio === 'mesa') {
-            window.onbeforeunload = null; // Limpiamos alertas de salida
+if (metodoEnvio === 'mesa') {
+            setIsVisible(false); // Aquí sí lo cerramos para mostrar el tracker central
+            window.onbeforeunload = null; 
             setIsSending(false);
-            // No hacemos reload, dejamos que el estado activeOrderId muestre el tracker solo
             return; 
         }
 
-        // 🛵 CASO DELIVERY / RETIRO: FLUJO WHATSAPP
-        if (isLight || receiveWhatsapp === true) {
+  if (isLight || receiveWhatsapp === true) {
             const cleanPhone = String(phone).replace(/\D/g, ''); 
             const textEncoded = encodeURIComponent(mensaje);
             const protocolUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
 
             window.onbeforeunload = null;
+            
+            // 🚀 1. Cerramos el carrito INMEDIATAMENTE
+            setIsVisible(false); 
+            
+            // 🚀 2. Programamos que el Modal de Éxito salte en 5 segundos
+            // ¡NUEVO!: Solo lo activamos si es plan Light. Si es plan GO/Plus/Max, 
+            // el sistema automáticamente va a mostrar el OrderTracker de la cocina.
+            if (isLight) {
+                setTimeout(() => {
+                    setShowSuccessScreen(true);
+                }, 5000);
+            }
+            
+            // 🚀 3. Redirigimos a WhatsApp rapidísimo
             setTimeout(() => {
                 window.location.href = protocolUrl;
             }, 100);
         } else {
             console.log("Pedido guardado. Solo panel activado.");
+            setIsVisible(false);
         }
         
         setIsSending(false);
+        
     } catch (err) { 
         console.error("Error:", err); 
         alert("Error al procesar el pedido."); 
         setIsSending(false); 
     }
 };
- if (!cart || cart.length === 0 || !isVisible) {
+ if (!showSuccessScreen && (!cart || cart.length === 0 || !isVisible)) {
         if (cart.length > 0) return (
             /* Contenedor invisible que centra el área del botón en PC */
             <div className="fixed bottom-6 inset-x-0 z-[110] pointer-events-none flex justify-center">
@@ -579,7 +595,8 @@ return (
             className="w-full max-w-md mx-auto bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.3)] rounded-t-[2.5rem] h-[85vh] flex flex-col overflow-hidden font-sans text-black animate-in slide-in-from-bottom-full duration-300"
         >
             
-            {/* --- CABEZAL FIJO (BOTONES) --- */}
+           
+     {/* --- CABEZAL FIJO (BOTONES) --- */}
             <div className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
                 <button 
                     onClick={() => setIsVisible(false)} 
@@ -595,7 +612,7 @@ return (
                 </button>
             </div>
 
-            {/* --- CUERPO SCROLLEABLE --- */}
+            {/* --- CUERPO SCROLLEABLE (EL CARRITO NORMAL) --- */}
             <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-4 space-y-5 pb-32">
                 <h2 className="text-xl font-black text-gray-800 px-1">Tu Pedido</h2>
                 
@@ -635,28 +652,26 @@ return (
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
                         <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
-    {['delivery', 'retiro', 'mesa']
-        .filter(m => {
-            // 🔒 Solo mostramos 'mesa' si el plan es Plus o Max. 
-            // Si es Light o GO, la opción de mesa desaparece.
-            if (m === 'mesa') {
-                return planType === 'plus' || planType === 'max';
-            }
-            return true; // Delivery y Retiro siempre se muestran
-        })
-        .map((m) => (
-            <button 
-                key={m} 
-                onClick={() => setMetodoEnvio(m)} 
-                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
-                    metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'
-                }`}
-            >
-                {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
-            </button>
-        ))
-    }
-</div>
+                            {['delivery', 'retiro', 'mesa']
+                                .filter(m => {
+                                    if (m === 'mesa') {
+                                        return planType === 'plus' || planType === 'max';
+                                    }
+                                    return true; 
+                                })
+                                .map((m) => (
+                                    <button 
+                                        key={m} 
+                                        onClick={() => setMetodoEnvio(m)} 
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                                            metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'
+                                        }`}
+                                    >
+                                        {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
+                                    </button>
+                                ))
+                            }
+                        </div>
                     </div>
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
@@ -669,10 +684,10 @@ return (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
                             {availableTables.length === 0 && (
-    <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
-        <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
-    </div>
-)}
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
+                                    <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
+                                </div>
+                            )}
                             <div className="grid grid-cols-3 gap-2">
                                 {availableTables.map((mesa: any) => (
                                     <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
@@ -681,52 +696,51 @@ return (
                         </div>
                     )}
                 </div>
-{metodoEnvio !== 'mesa' && (
-    <div className="space-y-3 animate-in fade-in duration-300">
-        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-            Medio de Pago
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-            <button 
-                onClick={() => setMetodoPago('efectivo')} 
-                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}
-            >
-                <Wallet size={18} /> Efectivo
-            </button>
-            <button 
-                onClick={() => setMetodoPago('transferencia')} 
-                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}
-            >
-                <Landmark size={18} /> Transferencia
-            </button>
-        </div>
+                {metodoEnvio !== 'mesa' && (
+                    <div className="space-y-3 animate-in fade-in duration-300">
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                            Medio de Pago
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button 
+                                onClick={() => setMetodoPago('efectivo')} 
+                                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}
+                            >
+                                <Wallet size={18} /> Efectivo
+                            </button>
+                            <button 
+                                onClick={() => setMetodoPago('transferencia')} 
+                                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}
+                            >
+                                <Landmark size={18} /> Transferencia
+                            </button>
+                        </div>
 
-        {/* Lógica de Alias para Transferencia */}
-        {metodoPago === 'transferencia' && aliasMp && (
-            <div className="space-y-2">
-                <div 
-                    onClick={handleCopyAlias} 
-                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
-                >
-                    <div className={copied ? 'text-white' : 'text-blue-900'}>
-                        <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
-                            {copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}
-                        </p>
-                        <p className="text-sm font-black">{aliasMp}</p>
-                    </div>
-                    {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
-                </div>
-                
-                {copied && (
-                    <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
-                        <MessageSquare size={16} className="text-blue-500" />
-                        <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
+                        {metodoPago === 'transferencia' && aliasMp && (
+                            <div className="space-y-2">
+                                <div 
+                                    onClick={handleCopyAlias} 
+                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
+                                >
+                                    <div className={copied ? 'text-white' : 'text-blue-900'}>
+                                        <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
+                                            {copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}
+                                        </p>
+                                        <p className="text-sm font-black">{aliasMp}</p>
+                                    </div>
+                                    {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-blue-400" />}
+                                </div>
+                                
+                                {copied && (
+                                    <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
+                                        <MessageSquare size={16} className="text-blue-500" />
+                                        <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
-            </div>
-        )}
-    </div>
-)}
 
                 <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">¿Alguna aclaración?</label><textarea placeholder="Deja aquí alguna nota" value={aclaraciones} onChange={(e) => setAclaraciones(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none" /></div>
 
@@ -746,31 +760,88 @@ return (
                         <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
                         <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
-                   <button 
-    onClick={handleSendOrder} 
-    disabled={isSending} 
-    className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
->
-    {isSending ? (
-        <Loader2 className="animate-spin" size={24} />
-    ) : (
-        <>
-            <Send size={24} /> 
-            {metodoEnvio === 'mesa' ? 'Pedir ahora' : 'Enviar Pedido'}
-        </>
-    )}
-</button>
+                    <button 
+                        onClick={handleSendOrder} 
+                        disabled={isSending} 
+                        className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
+                    >
+                        {isSending ? (
+                            <Loader2 className="animate-spin" size={24} />
+                        ) : (
+                            <>
+                                <Send size={24} /> 
+                                {metodoEnvio === 'mesa' ? 'Pedir ahora' : 'Enviar Pedido'}
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
         </div>
+        
+        {/* --- TOAST DE AVISOS --- */}
         {aviso && (
-                <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] whitespace-nowrap">
-                    <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
-                        <Check size={16} className="text-green-500" />
-                        <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
+            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] whitespace-nowrap">
+                <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
+                    <Check size={16} className="text-green-500" />
+                    <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
+                </div>
+            </div>
+        )}
+
+        {/* --- 🚀 PANTALLA INDEPENDIENTE DE ÉXITO (A LOS 5 SEGS) --- */}
+      {/* --- 🚀 MODAL INDEPENDIENTE DE ÉXITO (CON TU DISEÑO ORIGINAL) --- */}
+        {showSuccessScreen && (
+            <div className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-[2px] flex flex-col justify-end animate-in fade-in duration-300">
+                <div className="w-full max-w-md mx-auto bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.3)] rounded-t-[2.5rem] h-[85vh] flex flex-col overflow-hidden font-sans text-black animate-in slide-in-from-bottom-full duration-500">
+                    
+                    {/* CABEZAL FIJO */}
+                    <div className="bg-white border-b border-gray-100 px-6 py-4 flex justify-end items-center flex-shrink-0">
+                        <button 
+                            onClick={() => {
+                                setShowSuccessScreen(false);
+                                handleFinalizarTodo();
+                            }} 
+                            className="bg-gray-100 p-2 rounded-full text-gray-500 active:scale-90 transition-transform cursor-pointer"
+                        >
+                            <X size={20} strokeWidth={3} />
+                        </button>
+                    </div>
+
+                    {/* CUERPO DEL ÉXITO */}
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                        <div className="bg-green-100 p-4 rounded-full w-24 h-24 flex items-center justify-center mb-6 shadow-inner animate-in zoom-in duration-500 delay-200">
+                            <CheckCircle2 className="text-green-600" size={50} strokeWidth={3} />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 mb-2">
+                            ¡Pedido Enviado!
+                        </h2>
+                        <p className="text-gray-500 text-xs font-bold leading-relaxed mb-8">
+                            Te hemos redirigido a WhatsApp. Si tuviste algún problema, podés volver a intentarlo o avisarnos por acá.
+                        </p>
+                        
+                        <div className="w-full max-w-sm mx-auto space-y-3">
+                            <button 
+                                onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                                className="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg mb-4 active:scale-95 transition-all"
+                            >
+                                <MessageSquare size={18} /> Reenviar WhatsApp
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    setShowSuccessScreen(false);
+                                    handleFinalizarTodo();
+                                }}
+                                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-md active:scale-95 transition-all"
+                            >
+                                Finalizar y Volver al Menú
+                            </button>
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
+        )}
+
     </div>
   );
 }
