@@ -422,6 +422,7 @@ const loadOrders = async () => {
     };
     initApp();
   }, []);
+
 useEffect(() => {
     const fetchProducts = async () => {
       if (!restaurantId) return;
@@ -443,13 +444,12 @@ useEffect(() => {
     if (restaurantId) fetchTables(restaurantId);
   }, [selectedDate, restaurantId, isLocked]);
 
-useEffect(() => {
+  // 1️⃣ EL QUE YA TENÍAS (Escucha cuando entra un pedido nuevo de la app)
+  useEffect(() => {
     if (!restaurantId || isLocked) return;
 
-    // Escuchamos el aviso que manda el OrderListener global
     const handleOrderReceived = () => {
       console.log("📢 Pedido detectado, sincronizando lista...");
-      // Esperamos 1 seg para que impacte bien en la DB y recargamos
       setTimeout(() => {
         loadOrders();
       }, 1000);
@@ -467,6 +467,48 @@ useEffect(() => {
       window.removeEventListener('visibilitychange', handleVisibility); 
     };
   }, [restaurantId, isLocked, selectedDate]);
+
+  // 2️⃣ EL QUE YA TENÍAS (Escucha si alguien paga por Supabase)
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    const ordersChannel = supabase
+        .channel('orders_realtime_status')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'orders',
+            filter: `restaurant_id=eq.${restaurantId}` 
+        }, (payload) => {
+            console.log("💰 Cambio en pago detectado!", payload);
+            loadOrders(); // Refrescamos los pedidos para ver el nuevo estado de pago
+        })
+        .subscribe();
+
+    return () => { supabase.removeChannel(ordersChannel); };
+  }, [restaurantId]);
+
+  // 3️⃣ 🚀 EL NUEVO (Escucha si alguien toca "Llamar Mozo" en su mesa)
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    const tablesChannel = supabase
+        .channel('tables_realtime_status')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'tables',
+            filter: `restaurant_id=eq.${restaurantId}` 
+        }, (payload) => {
+            console.log("🔔 Cambio en mesa detectado (Llamado a Mozo)!", payload);
+            fetchTables(restaurantId); // Refrescamos las mesas para actualizar la campanita roja
+        })
+        .subscribe();
+
+    return () => { supabase.removeChannel(tablesChannel); };
+  }, [restaurantId]);
+
+
 const getActiveOrderForTable = (tableName: string) => {
     return orders.find(o => 
         o.order_type === 'mesa' && 
