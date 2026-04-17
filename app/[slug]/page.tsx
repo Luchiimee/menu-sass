@@ -2153,8 +2153,9 @@ function MenuContent({
           </div>
         </div>
       )}
-      {/* --- MODAL DE SELECCIÓN PARA VENTA FRACCIONADA (DIETÉTICA/HELADERÍA) --- */}
+    
       {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
+    {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
       {selectedProduct && !["alterna-pro", "marketpro"].includes(TEMPLATE) && (
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
           <div
@@ -2162,6 +2163,7 @@ function MenuContent({
             onClick={() => {
               setSelectedProduct(null);
               setVariationsQuantities({});
+              setSelectedExtras([]);
             }}
           ></div>
 
@@ -2180,6 +2182,7 @@ function MenuContent({
                 onClick={() => {
                   setSelectedProduct(null);
                   setVariationsQuantities({});
+                  setSelectedExtras([]);
                 }}
                 className="w-10 h-10 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center active:scale-90"
               >
@@ -2187,8 +2190,8 @@ function MenuContent({
               </button>
             </div>
 
-            {/* CUERPO: LISTA DE VARIANTES CON CONTADORES INDEPENDIENTES */}
-            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+            {/* CUERPO: LISTA DE VARIANTES */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 no-scrollbar">
               <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-4">
                 Elegí las cantidades:
               </p>
@@ -2201,19 +2204,14 @@ function MenuContent({
                     className={`flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${qty > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-gray-100 bg-gray-50"}`}
                   >
                     <div className="flex flex-col text-left">
-                      <span
-                        className={`font-black text-sm uppercase ${qty > 0 ? "text-indigo-900" : "text-gray-500"}`}
-                      >
+                      <span className={`font-black text-sm uppercase ${qty > 0 ? "text-indigo-900" : "text-gray-500"}`}>
                         {v.label}
                       </span>
-                      <span
-                        className={`font-bold text-xs ${qty > 0 ? "text-indigo-600" : "text-gray-400"}`}
-                      >
+                      <span className={`font-bold text-xs ${qty > 0 ? "text-indigo-600" : "text-gray-400"}`}>
                         {formatPrice(v.price)}
                       </span>
                     </div>
 
-                    {/* SELECTOR +/- POR CADA PESO */}
                     <div className="flex items-center gap-4 bg-white rounded-full p-1 shadow-sm border border-gray-100">
                       <button
                         onClick={() =>
@@ -2226,9 +2224,7 @@ function MenuContent({
                       >
                         -
                       </button>
-                      <span
-                        className={`font-black text-sm w-4 text-center ${qty > 0 ? "text-gray-900" : "text-gray-300"}`}
-                      >
+                      <span className={`font-black text-sm w-4 text-center ${qty > 0 ? "text-gray-900" : "text-gray-300"}`}>
                         {qty}
                       </span>
                       <button
@@ -2246,104 +2242,95 @@ function MenuContent({
                   </div>
                 );
               })}
-            </div>
-            {/* --- SECCIÓN EXTRAS (PEGAR ABAJO DE LA SECCIÓN KG) --- */}
-            <div className="mt-8 space-y-3 pb-4 px-1">
-              <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
-                ¿Querés sumar algo más?
-              </p>
-              <div className="grid grid-cols-1 gap-2">
-                {restaurant.fetched_extras
-                  ?.filter((ex: any) =>
-                    ex.product_extras?.some(
-                      (re: any) =>
-                        String(re.product_id) === String(selectedProduct.id),
-                    ),
-                  )
-                  .map((ex: any) => {
-                    const isSelected = selectedExtras.some(
-                      (s) => s.id === ex.id,
-                    );
 
-                    // --- ESTA LÍNEA ES LA QUE BLOQUEA: ---
-                    const hasMainQty = Object.values(variationsQuantities).some(
-                      (q) => q > 0,
-                    );
+              {/* --- SECCIÓN EXTRAS (DINÁMICA: SE OCULTA SI NO HAY) --- */}
+          {/* --- SECCIÓN EXTRAS DINÁMICA --- */}
+{(() => {
+    // 1. Filtramos los extras que pertenecen a este producto específico
+    const extrasDisponibles = restaurant.fetched_extras?.filter((ex: any) =>
+        ex.product_extras?.some(
+            (re: any) => String(re.product_id) === String(selectedProduct.id)
+        )
+    ) || [];
+
+    // 2. Si no hay extras para este producto, devolvemos NULL y no se muestra nada
+    if (extrasDisponibles.length === 0) return null;
+
+    // 3. Si hay extras, mostramos el título y la lista
+    return (
+        <div className="mt-8 space-y-3 pb-4 px-1 animate-in fade-in duration-500">
+            <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
+                ¿Querés sumar algo más?
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+                {extrasDisponibles.map((ex: any) => {
+                    const isSelected = selectedExtras.some((s) => s.id === ex.id);
+                    const hasMainQty = Object.values(variationsQuantities).some((q) => q > 0);
 
                     return (
-                      <button
-                        key={ex.id}
-                        type="button"
-                        disabled={!hasMainQty} // <-- NO DEJA MARCAR SI NO HAY KILOS/UNIDADES
-                        onClick={() =>
-                          setSelectedExtras((prev) =>
-                            isSelected
-                              ? prev.filter((s) => s.id !== ex.id)
-                              : [...prev, ex],
-                          )
-                        }
-                        className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
-                          !hasMainQty
-                            ? "opacity-30 grayscale cursor-not-allowed border-gray-100" // DISEÑO BLOQUEADO
-                            : isSelected
-                              ? "border-emerald-500 bg-emerald-50"
-                              : "border-gray-100 bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? "bg-emerald-500 border-emerald-500" : "border-gray-200"}`}
-                          >
-                            {isSelected && (
-                              <Check
-                                size={10}
-                                className="text-white"
-                                strokeWidth={4}
-                              />
-                            )}
-                          </div>
-                          <span
-                            className={`text-[10px] font-black uppercase ${isSelected ? "text-emerald-900" : "text-gray-400"}`}
-                          >
-                            {ex.name}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-400">
-                          +{formatPrice(ex.price)}
-                        </span>
-                      </button>
+                        <button
+                            key={ex.id}
+                            type="button"
+                            disabled={!hasMainQty}
+                            onClick={() =>
+                                setSelectedExtras((prev) =>
+                                    isSelected
+                                        ? prev.filter((s) => s.id !== ex.id)
+                                        : [...prev, ex]
+                                )
+                            }
+                            className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
+                                !hasMainQty
+                                    ? "opacity-30 grayscale cursor-not-allowed border-gray-100"
+                                    : isSelected
+                                        ? "border-emerald-500 bg-emerald-50"
+                                        : "border-gray-100 bg-white"
+                            }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                        isSelected ? "bg-emerald-500 border-emerald-500" : "border-gray-200"
+                                    }`}
+                                >
+                                    {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
+                                </div>
+                                <span className={`text-[10px] font-black uppercase ${isSelected ? "text-emerald-900" : "text-gray-400"}`}>
+                                    {ex.name}
+                                </span>
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400">
+                                +{formatPrice(ex.price)}
+                            </span>
+                        </button>
                     );
-                  })}
-              </div>
+                })}
             </div>
+        </div>
+    );
+})()}
+            </div>
+
             {/* BOTÓN FINAL DE CONFIRMACIÓN */}
             <div className="p-6 bg-gray-50 border-t border-gray-100">
               <button
-                disabled={Object.values(variationsQuantities).every(
-                  (q) => q === 0,
-                )}
+                disabled={Object.values(variationsQuantities).every((q) => q === 0)}
                 onClick={() => {
-                  // 1. Recorremos las cantidades elegidas (Kilos/Unidades)
                   Object.entries(variationsQuantities).forEach(([idx, qty]) => {
                     if (qty > 0) {
                       const variation = selectedProduct.variations[Number(idx)];
-                      const parentId = `${selectedProduct.id}-${idx}`; // Creamos un ID único para esta versión
-
-                      // Agregamos al carrito en un bucle según la cantidad elegida
+                      const parentId = `${selectedProduct.id}-${idx}`;
                       for (let i = 0; i < qty; i++) {
-                        // A. Sumamos el producto principal
                         addToCart({
                           ...selectedProduct,
-                          id: parentId, // Importante: mismo ID para agrupar
+                          id: parentId,
                           name: `${selectedProduct.name} (${variation.label})`,
                           price: Number(variation.price),
                         });
-
-                        // B. Sumamos cada extra elegido vinculado a ese ID
                         selectedExtras.forEach((extra) => {
                           addToCart({
-                            id: parentId, // <--- MISMO ID QUE EL PADRE (Clave para que se anide)
-                            extraId: extra.id, // ID propio del adicional
+                            id: parentId,
+                            extraId: extra.id,
                             name: extra.name,
                             price: Number(extra.price),
                           });
@@ -2351,10 +2338,7 @@ function MenuContent({
                       }
                     }
                   });
-
                   mostrarAviso("✅ Agregado al pedido");
-
-                  // Reseteamos todo para el próximo producto
                   setSelectedProduct(null);
                   setVariationsQuantities({});
                   setSelectedExtras([]);
@@ -2364,26 +2348,17 @@ function MenuContent({
               >
                 Confirmar y Sumar
                 <div className="h-4 w-[1px] bg-white/20" />
-                {/* MOSTRAMOS EL TOTAL: Kilos + Extras */}
                 {formatPrice(
-                  Object.entries(variationsQuantities).reduce(
-                    (acc, [idx, qty]) => {
-                      return (
-                        acc +
-                        Number(selectedProduct.variations[Number(idx)].price) *
-                          qty
-                      );
-                    },
-                    0,
-                  ) +
-                    selectedExtras.reduce((acc, e) => acc + Number(e.price), 0),
+                  Object.entries(variationsQuantities).reduce((acc, [idx, qty]) => {
+                    return acc + Number(selectedProduct.variations[Number(idx)].price) * qty;
+                  }, 0) + selectedExtras.reduce((acc, e) => acc + Number(e.price), 0)
                 )}
               </button>
             </div>
           </div>
         </div>
       )}
-      {/* --- MODAL DE AVISO LOCAL CERRADO --- */}
+  
       {/* --- PEGÁ ESTO JUSTO ARRIBA DE </main> --- */}
       {showClosedAlert && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">

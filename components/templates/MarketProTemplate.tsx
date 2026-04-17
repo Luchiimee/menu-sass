@@ -169,35 +169,47 @@ const isOpenNow = isOpen;
         ))}
       </div>
 
-      <section className="px-5 mb-10">
-        <div className="border-t border-b py-2.5 mb-6 flex justify-between items-center" style={{ borderColor: `${restaurant.cat_title_color}20` }}>
-          <h2 className="text-[10px] font-black uppercase italic tracking-tighter" style={{ color: restaurant.cat_title_color || '#000000' }}>Recomendados para vos</h2>
-        </div>
-        <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
-         {products?.filter((p: any) => 
-  p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-  (selectedCategory === "todos" || p.category_id === selectedCategory)
-).map((product: any) => ( 
-  <ProductCard key={`featured-${product.id}`} product={product} />
-))}
-        </div>
-      </section>
+      {/* 🌟 SECCIÓN RECOMENDADOS: Solo aparece en "Todos" y sin búsqueda activa */}
+      {selectedCategory === "todos" && !searchTerm && (
+        <section className="px-5 mb-10 animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="border-t border-b py-2.5 mb-6 flex justify-between items-center" style={{ borderColor: `${restaurant.cat_title_color}20` }}>
+            <h2 className="text-[10px] font-black uppercase italic tracking-tighter" style={{ color: restaurant.cat_title_color || '#000000' }}>Recomendados para vos</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
+            {/* Aquí podrías poner un .slice(0, 6) si quisieras mostrar solo los primeros 6 como destacados */}
+            {products?.slice(0, 6).map((product: any) => ( 
+              <ProductCard key={`featured-${product.id}`} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {displayCategories.map((cat: any) => {
-        const catProducts = products?.filter((p: any) => p.category_id === cat.id && p.name.toLowerCase().includes(searchTerm.toLowerCase())) || [];
-        if (catProducts.length === 0) return null;
-        return (
-          <section key={cat.id} className="px-5 mb-10">
-            <div className="border-t border-b py-2.5 mb-6 flex items-center" style={{ borderColor: `${restaurant.cat_title_color}20` }}>
-              <h2 className="text-[10px] font-black uppercase italic tracking-tighter" style={{ color: restaurant.cat_title_color || '#000000' }}>{cat.name}</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
-              {catProducts.map((product: any) => (
-                <ProductCard key={`cat-${cat.id}-prod-${product.id}`} product={product} />
-              ))}
-            </div>
-          </section>
-        );
+     {/* --- LISTADO DE SECCIONES POR CATEGORÍA --- */}
+      {displayCategories
+        // 🚀 FILTRO CLAVE: Solo procesamos la categoría seleccionada (o todas si es "todos")
+        .filter((cat: any) => selectedCategory === "todos" || cat.id === selectedCategory)
+        .map((cat: any) => {
+          const catProducts = products?.filter((p: any) => 
+            p.category_id === cat.id && 
+            p.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ) || [];
+          
+          if (catProducts.length === 0) return null;
+          
+          return (
+            <section key={cat.id} className="px-5 mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="border-t border-b py-2.5 mb-6 flex items-center" style={{ borderColor: `${restaurant.cat_title_color}20` }}>
+                <h2 className="text-[10px] font-black uppercase italic tracking-tighter" style={{ color: restaurant.cat_title_color || '#000000' }}>
+                  {cat.name}
+                </h2>
+              </div>
+              <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
+                {catProducts.map((product: any) => (
+                  <ProductCard key={`cat-${cat.id}-prod-${product.id}`} product={product} />
+                ))}
+              </div>
+            </section>
+          );
       })}
 
       {/* MODAL DE PRODUCTO */}
@@ -244,17 +256,23 @@ const isOpenNow = isOpen;
                 </div>
 
                 {/* 2. SECCIÓN DE ADICIONALES (FUERA DEL SELECTOR) */}
-                {fetchedExtras && fetchedExtras.length > 0 && (
-                  <div className="mt-8 space-y-3 pb-4">
-                    <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
-                      ¿Querés sumar algo más?
-                    </p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {fetchedExtras
-                        .filter((ex: any) =>
-                          ex.product_extras?.some((re: any) => String(re.product_id) === String(selectedProduct.id))
-                        )
-                        .map((ex: any) => {
+               {/* 2. SECCIÓN DE ADICIONALES DINÁMICA */}
+                {(() => {
+                  // Filtramos primero para ver si este producto específico tiene extras
+                  const extrasDelProducto = (fetchedExtras || []).filter((ex: any) =>
+                    ex.product_extras?.some((re: any) => String(re.product_id) === String(selectedProduct.id))
+                  );
+
+                  // Si no hay extras para este producto, no renderizamos nada (ni el título)
+                  if (extrasDelProducto.length === 0) return null;
+
+                  return (
+                    <div className="mt-8 space-y-3 pb-4 animate-in fade-in duration-300">
+                      <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
+                        ¿Querés sumar algo más?
+                      </p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {extrasDelProducto.map((ex: any) => {
                           const isSelected = selectedExtras.some((s) => s.id === ex.id);
                           return (
                             <button
@@ -264,7 +282,7 @@ const isOpenNow = isOpen;
                                 isSelected ? prev.filter(s => s.id !== ex.id) : [...prev, ex]
                               )}
                               className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
-                                isSelected ? "border-emerald-500 bg-emerald-50" : "border-gray-100 bg-white"
+                                isSelected ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-100 bg-white"
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -283,9 +301,10 @@ const isOpenNow = isOpen;
                             </button>
                           );
                         })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
 
