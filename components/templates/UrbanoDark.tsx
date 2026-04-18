@@ -69,7 +69,7 @@ const sz = isMockup ? {
     .urbano-names span { font-size: ${sz.localDesc}; color: ${localDescColor}; display: block; text-align: left; opacity: 0.8; }
     .urbano-status { background: #22c55e; color: #000; font-size: ${sz.status}; font-weight: 900; padding: 4px 8px; border-radius: 12px; height: fit-content; }
     
-    .urbano-msg { background: ${promoBg}; padding: ${isMockup ? '12px' : '18px'}; border-radius: 8px; font-size: ${sz.promo}; color: ${promoText}; margin-bottom: 15px; border-left: 4px solid ${accent}; flex-shrink: 0; font-weight: 600; text-align: left; }
+    .urbano-msg { background: ${promoBg}; padding: ${isMockup ? '12px' : '18px'}; border-radius: 8px; font-size: ${sz.promo}; color: ${promoText}; margin-bottom: 15px; border-left: 4px solid ${accent}; flex-shrink: 0; font-weight: 6 00; text-align: left; }
     
     .urbano-item { background: ${cardBg}; padding: 12px; border-radius: 18px; display: flex; gap: 12px; margin-bottom: 12px; position: relative; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
     .urbano-img { width: ${sz.img}; height: ${sz.img}; background-size: cover; border-radius: 12px; background-position: center; flex-shrink: 0; background-color: #333; position: relative; overflow: hidden; }
