@@ -836,129 +836,22 @@ function MenuContent({
         ? cleanCats
         : [{ name: "Semillas" }, { name: "Frutos" }, { name: "Aceites" }];
     switch (TEMPLATE) {
-      case "urban":
+   case "urban":
         return (
-          <div className="app-wrapper">
-            {/* 1. HEADER (Logo/Nombre a la izq, Status a la der) */}
-            <div className="urbano-top">
-              <div className="urbano-brand">
-                <div
-                  className="urbano-logo"
-                  style={{ backgroundImage: `url('${LOGO || ""}')` }}
-                ></div>
-                <div className="urbano-names">
-                  <h4>{restaurant.name}</h4>
-                  <span>{restaurant.description}</span>
-                </div>
-              </div>
-              <div
-                className="urbano-status"
-                style={{ backgroundColor: isOpen ? "#22c55e" : "#ef4444" }}
-              >
-                {isOpen ? "ABIERTO" : "CERRADO"}
-              </div>
-            </div>
-
-            {/* 2. PROMO */}
-            {restaurant.show_promo && restaurant.promo_message && (
-              <div className="urbano-msg">{restaurant.promo_message}</div>
-            )}
-
-            {/* 3. LISTA */}
-            <div className="flex-1 overflow-y-auto">
-              {restaurant.categories?.map((cat: any) => (
-                <div key={cat.id}>
-                  {cat.products?.map((prod: any) => {
-                    const extras = getExtrasForProduct(prod.id);
-                    const principalEnCarrito = cart.some(
-                      (item) => item.id === prod.id,
-                    );
-                    return (
-                      <div key={prod.id} className="urbano-card">
-                        <div className="urbano-item-main">
-                         <div className="urbano-img overflow-hidden bg-zinc-900">
-  {prod.video_url ? (
-    <video 
-      src={prod.video_url} 
-      autoPlay 
-      muted 
-      loop 
-      playsInline 
-      className="w-full h-full object-cover"
-    />
-  ) : (
-    <img 
-      src={prod.image_url || ""} 
-      className="w-full h-full object-cover" 
-      alt={prod.name} 
-    />
-  )}
-</div>
-                          <div className="urbano-info">
-                            <div className="urbano-tit">{prod.name}</div>
-                            <div className="urbano-desc">
-                              {prod.description}
-                            </div>
-                            <div className="urbano-price">
-                              {formatPrice(prod.price)}
-                            </div>
-                          </div>
-                          {/* El botón ahora es un "pill" que crece si hay cantidad */}
-                          <div
-                            className="add-btn-wrapper"
-                            onClick={() => {
-                              if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
-                              !principalEnCarrito &&
-                                mostrarAviso("✅ Agregado");
-                            }}
-                          >
-                            <AddToCartBtn
-                              product={prod}
-                              variant="icon"
-                              isDark={true}
-                              disabled={false} // <--- CAMBIAR A FALSE
-                            />
-                          </div>
-                        </div>
-
-                        {/* SECCIÓN EXTRAS */}
-                        {principalEnCarrito && extras && extras.length > 0 && (
-                          <div className="urbano-extras-box animate-in fade-in slide-in-from-top-2 duration-300">
-                            {extras.map((ex: any) => (
-                              <div key={ex.id} className="urbano-extra-row">
-                                <div className="text-left">
-                                  <div className="urbano-extra-name">
-                                    {ex.name}
-                                  </div>
-                                  <div className="urbano-extra-price">
-                                    +{formatPrice(ex.price)}
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    addToCart({
-                                      id: prod.id,
-                                      extraId: ex.id,
-                                      name: ex.name,
-                                      price: Number(ex.price),
-                                    });
-                                    mostrarAviso("✅ Extra sumado");
-                                  }}
-                                  className="urbano-extra-add"
-                                >
-                                  <Plus size={14} strokeWidth={3} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+          <UrbanoDark
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras}
+            isOpen={isOpen}
+            onAddToCart={(product: any, qty: number) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Producto agregado");
+            }}
+            isMockup={false}
+          />
         );
       case "classic":
         return (

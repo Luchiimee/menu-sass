@@ -35,7 +35,15 @@ const ColorBubble = ({ label, value, onChange }: { label: string, value: string,
 
 const TEMPLATE_DEFAULTS: any = {
   classic: { theme: '#d32f2f', bg: '#ffffff', text: '#ffffff', desc: '#ffffff', card_name: '#000000', card_desc: '#666666', card_price: '#d32f2f', btn_bg: '#ffffff', btn_text: '#000000', promo_bg_color: '#ffebee', promo_text_color: '#d32f2f', banner: false },
-  urban: { theme: '#ea580c', bg: '#121212', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ffffff', promo_bg: '#1E1E1E', promo_text: '#ffffff', banner: false },
+  urban: { 
+  theme: '#ea580c', bg: '#121212', text: '#ffffff', desc: '#888888', 
+  card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', 
+  btn_bg: '#ffffff', promo_bg: '#1E1E1E', promo_text: '#ffffff', banner: false,
+  cat_bg_color: '#000000', cat_text_color: '#ffffff', 
+  cat_active_bg_color: '#ffffff', cat_active_text_color: '#000000',
+  search_bg_color: '#1E1E1E', 
+  search_icon_color: '#888888' 
+},
   minimal: { theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', card_name: '#222222', card_desc: '#999999', card_price: '#000000', btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false },
   visualgrid: { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg_color: '#1E1E1E', promo_text_color: '#ffffff', banner: false },
   pop: { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', card_name: '#FF1493', card_desc: '#444444', card_price: '#000000', card_shadow_color: '#000000', btn_bg: '#ffffff', btn_text: '#FF1493', promo_bg: '#FFD700', promo_text: '#000000', banner: false },
@@ -65,7 +73,16 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId, activeTab 
   
   // --- LÓGICA DE PRODUCTOS POR DEFECTO RECUPERADA ---
   const displayProds = (products && products.length > 0) 
-    ? products.slice(0, 5) 
+   ? (categories.length > 0 
+        // Si hay categorías, recorremos cada una y tomamos máximo 5 productos de cada una
+        ? categories.flatMap((cat: any) => 
+            products
+              .filter((p: any) => String(p.category_id) === String(cat.id))
+              .slice(0, 5)
+          )
+        // Si no hay categorías, simplemente tomamos los primeros 5 del total
+        : products.slice(0, 5)
+      )
     : [
         { id: 1, name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400' },
         { id: 2, name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
@@ -148,7 +165,14 @@ if (activeTab === 'snappylinks') {
     card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
   } : data;
 
-  const props = { restaurant: { ...finalRenderData, categories }, products: displayProds, isOpen: true, onAddToCart: () => {}, isMockup: true };
+const props = { 
+      restaurant: { ...finalRenderData, categories }, 
+      products: displayProds || [], 
+      categories: categories || [], // 🚀 IMPORTANTE PARA URBANO DARK
+      isOpen: true, 
+      onAddToCart: () => {}, 
+      isMockup: true 
+  };
 
   return (
     <div className="relative w-full h-full bg-white flex flex-col">
@@ -341,7 +365,7 @@ snappylink_social_links: bioData?.social_links || [],
       showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id),
       showCard: true, showHeroEditor: id === 'spotlight', showSearch: id === 'marketpro',
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
-      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1'].includes(id),
+      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban'].includes(id),
     };
   };
   const tConfig = getTemplateConfig();
@@ -544,8 +568,8 @@ snappylink_social_links: bioData?.social_links || [],
                           <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
                           <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
                           {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-                          {['alterna-pro', 'marketpro'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
-                          {data.template_id === 'marketpro' && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
+                        {['alterna-pro', 'marketpro', 'urban'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
+                         {['marketpro', 'urban'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
                           {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
                         </div>
                       </div>
@@ -699,9 +723,9 @@ snappylink_social_links: bioData?.social_links || [],
                   </section>
 
                   {/* MARKET PRO EXTRA */}
-                  {data.template_id === 'marketpro' && (
+                 {['marketpro', 'urban'].includes(data.template_id) && (
                     <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
-                      <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes (Solo Market Pro)</h3>
+                      <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Dirección</label><input value={data.address || ''} onChange={(e) => { setData({ ...data, address: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white font-bold" placeholder="Ej: Av. Santa Fe 1234, CABA" /></div>
