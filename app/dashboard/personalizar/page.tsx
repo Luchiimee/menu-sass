@@ -203,6 +203,7 @@ const props = {
 export default function EditorPage() {
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'menu' | 'snappylinks'>('menu');
+  const [errorModal, setErrorModal] = useState({ show: false, title: '', msg: '' });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
@@ -405,24 +406,38 @@ snappylink_social_links: bioData?.social_links || [],
 
  const handleSave = async () => {
   if (!data.id || !data.slug) return;
+
+  // 1. Validar que el link del menú y la bio no sean iguales
+  if (data.is_bio_active && data.slug === data.snappylink_slug) {
+    setErrorModal({
+      show: true,
+      title: "Links Iguales",
+      msg: "El link del Menú y el de SnappyLinks no pueden ser iguales. Por favor, cambiá uno de los dos."
+    });
+    return;
+  }
+
+  setLoading(true);
   try {
-    // 1. Preparamos los datos para la tabla principal
     const { id, created_at, categories, products, fetched_extras, ...updates } = data;
     const restaurantUpdates = { ...updates };
     
-    // 🧹 LIMPIEZA TOTAL: Borramos TODO lo que sea de la Bio antes de guardar en 'restaurants'
-    // Esto evita que la base de datos de un error de "columna no encontrada"
     Object.keys(restaurantUpdates).forEach(key => {
       if (key.startsWith('snappylink_') || key === 'is_bio_active') {
         delete (restaurantUpdates as any)[key];
       }
     });
 
-    // Guardamos Instagram, TikTok, Facebook y Phone en la tabla 'restaurants'
+    // 2. Intentar guardar Menú
     const { error: restError } = await supabase.from('restaurants').update(restaurantUpdates).eq('id', data.id);
+    
+    // Si la DB dice que el SLUG está duplicado:
+    if (restError?.code === '23505') {
+       throw new Error("Ese link de Menú ya lo está usando otro negocio. Elegí uno diferente.");
+    }
     if (restError) throw restError;
 
-    // 2. 🚀 GUARDADO EN SNAPPYLINKS (La tabla de la Bio)
+    // 3. Intentar guardar Bio
     const { error: bioError } = await supabase.from('snappylinks').upsert({
       restaurant_id: data.id,
       slug: data.snappylink_slug || (data.slug + 'bio'),
@@ -438,21 +453,32 @@ snappylink_social_links: bioData?.social_links || [],
       btn_color: data.snappylink_btn_color,
       btn_text_color: data.snappylink_btn_text_color,
       shadow_color: data.snappylink_shadow_color,
-      logo_url: data.snappylink_logo_url, // 👈 IMPORTANTE: Para que no se borre el logo
+      logo_url: data.snappylink_logo_url,
       social_links: data.snappylink_social_links || [], 
       social_pos: data.snappylink_social_pos || 'bottom'
     }, { onConflict: 'restaurant_id' });
 
+    // Si la DB dice que el SLUG de la bio está duplicado:
+    if (bioError?.code === '23505') {
+       throw new Error("Ese link de SnappyLinks ya está en uso. Probá con otro nombre.");
+    }
     if (bioError) throw bioError;
 
-    // Si todo salió bien
-    setUnsavedChanges(false);
+ setUnsavedChanges(false);
     setShowSuccessModal(true);
     setTimeout(() => setShowSuccessModal(false), 2000);
     
   } catch (err: any) {
-    console.error('Error crítico al guardar:', err.message);
-    alert("Error al guardar: " + err.message);
+    console.error('Error al guardar:', err.message);
+    setErrorModal({
+      show: true,
+      title: "Hubo un problema",
+      msg: err.message
+    });
+  } finally {
+    // 🚀 IMPORTANTE: Esto asegura que el botón vuelva a la normalidad 
+    // aunque haya habido un error de duplicado.
+    setLoading(false); 
   }
 };
   const handleAddProduct = async () => {
@@ -1455,6 +1481,23 @@ snappylink_social_links: bioData?.social_links || [],
           </div>
         )}
       </div>
+      {errorModal.show && (
+  <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-red-100 text-center animate-in zoom-in-95 duration-200">
+      <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+        <X size={40} strokeWidth={3} />
+      </div>
+      <h3 className="text-xl font-black uppercase italic tracking-tighter text-gray-900 mb-2">{errorModal.title}</h3>
+      <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">{errorModal.msg}</p>
+      <button 
+        onClick={() => setErrorModal({ ...errorModal, show: false })}
+        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl active:scale-95 transition-all"
+      >
+        Entendido
+      </button>
+    </div>
+  </div>
+)}
     </>
   );
 }

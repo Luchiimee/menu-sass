@@ -32,58 +32,30 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 // --- 1. DATOS ---
+// --- 1. DATOS (ORDEN DE PRIORIDAD CORREGIDO) ---
 async function getRestaurant(slug: string) {
-  // Limpiamos el slug por si viene con espacios o mayúsculas
   const cleanSlug = slug.toLowerCase().trim();
   console.log("🔍 Buscando página para:", cleanSlug);
 
-  // A. Buscamos primero en la tabla de BIOS (Independiente)
- const { data: bioData, error: bioError } = await supabase
-  .from("snappylinks")
-  .select(`*, restaurant:restaurants(*)`)
-  .ilike("slug", slug)
-  .maybeSingle();
-
-if (bioData) {
-  console.log("✅ BIO ENCONTRADA EN SNAPPYLINKS");
-  return {
-    ...bioData.restaurant, // Info base (nombre local, logo original)
-    snappylink_bio: bioData.bio,
-        snappylink_links: bioData.links,
-        snappylink_template_id: bioData.template_id,
-        is_bio_active: bioData.is_active,
-        
-        // Colores y diseño
-        snappylink_title: bioData.title, 
-        snappylink_bg_color: bioData.bg_color,
-        snappylink_bg_img: bioData.bg_img,
-        snappylink_btn_color: bioData.btn_color,
-        snappylink_btn_text_color: bioData.btn_text_color,
-        snappylink_shadow_color: bioData.shadow_color,
-        snappylink_title_color: bioData.title_color,
-        snappylink_desc_color: bioData.desc_color,
-
-  snappylink_social_links: (bioData as any).social_links || [], 
-        snappylink_social_pos: (bioData as any).social_pos || 'bottom',
-        
-        page_type: 'bio'
-        
-        
-       
-  };
-}
-
-  // B. Si no estaba en Bios, buscamos en la tabla de MENÚS
-  const { data: menuData, error: menuError } = await supabase
+  // 🚀 A. PRIORIDAD 1: Buscamos en la tabla de MENÚS (RESTAURANTS)
+  const { data: menuData } = await supabase
     .from("restaurants")
     .select(`*, categories (id, name)`)
-    .ilike("slug", slug)
+    .ilike("slug", cleanSlug)
     .maybeSingle();
 
   if (menuData) {
-    console.log("✅ MENÚ ENCONTRADO EN RESTAURANTS");
-    const { data: products } = await supabase.from("products").select("*").eq("restaurant_id", menuData.id).order("name", { ascending: true });
-    const { data: allExtras } = await supabase.from("extras").select(`*, product_extras (product_id)`).eq("restaurant_id", menuData.id);
+    console.log("✅ MENÚ ENCONTRADO - PRIORIDAD ALTA");
+    const { data: products } = await supabase
+      .from("products")
+      .select("*")
+      .eq("restaurant_id", menuData.id)
+      .order("name", { ascending: true });
+      
+    const { data: allExtras } = await supabase
+      .from("extras")
+      .select(`*, product_extras (product_id)`)
+      .eq("restaurant_id", menuData.id);
 
     const categoriesWithProducts = (menuData.categories || []).map((cat: any) => ({
       ...cat,
@@ -96,6 +68,35 @@ if (bioData) {
       fetched_products: products || [], 
       fetched_extras: allExtras || [], 
       page_type: 'menu' 
+    };
+  }
+
+  // 🚀 B. PRIORIDAD 2: Solo si no hay menú, buscamos en SnappyLinks (BIO)
+  const { data: bioData } = await supabase
+    .from("snappylinks")
+    .select(`*, restaurant:restaurants(*)`)
+    .ilike("slug", cleanSlug)
+    .maybeSingle();
+
+  if (bioData) {
+    console.log("✅ BIO ENCONTRADA - NO HABÍA MENÚ CON ESTE SLUG");
+    return {
+      ...bioData.restaurant, 
+      snappylink_bio: bioData.bio,
+      snappylink_links: bioData.links,
+      snappylink_template_id: bioData.template_id,
+      is_bio_active: bioData.is_active,
+      snappylink_title: bioData.title, 
+      snappylink_bg_color: bioData.bg_color,
+      snappylink_bg_img: bioData.bg_img,
+      snappylink_btn_color: bioData.btn_color,
+      snappylink_btn_text_color: bioData.btn_text_color,
+      snappylink_shadow_color: bioData.shadow_color,
+      snappylink_title_color: bioData.title_color,
+      snappylink_desc_color: bioData.desc_color,
+      snappylink_social_links: (bioData as any).social_links || [], 
+      snappylink_social_pos: (bioData as any).social_pos || 'bottom',
+      page_type: 'bio'
     };
   }
 
