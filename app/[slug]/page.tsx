@@ -26,6 +26,7 @@ import UrbanoDark from "@/components/templates/UrbanoDark";
 import HeladeriaSoft from "@/components/templates/HeladeriaSoft";
 import VisualGrid from "@/components/templates/VisualGrid";
 import BioModern from "@/components/templates/bio/BioModern";
+import ClassicDelivery from "@/components/templates/ClassicDelivery";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -203,6 +204,15 @@ const common = `
     /* Sincronización de botones */
     .add-btn-wrapper button {
       border-radius: 8px !important;
+    }
+      @keyframes notification-animation {
+      0% { transform: translateY(-100%) scale(0.9); opacity: 0; }
+      15% { transform: translateY(0) scale(1); opacity: 1; }
+      85% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-40px) scale(0.9); opacity: 0; }
+    }
+    .animate-notification {
+      animation: notification-animation 2.5s ease-in-out forwards;
     }
   `;
 
@@ -855,102 +865,24 @@ const displayCats = cleanCats;
             isMockup={false}
           />
         );
-      case "classic":
+     case "classic":
         return (
-          <div className="layout-container">
-            <div className="header-sec">
-              <div
-                className="status-badge"
-                style={{
-                  backgroundColor: isOpen ? "white" : "#fef2f2",
-                  color: isOpen ? THEME : "#ef4444",
-                  border: isOpen ? "none" : "1px solid #fecaca",
-                }}
-              >
-                {isOpen ? "ABIERTO" : "CERRADO"}
-              </div>
-              <div className="header-logo">
-                {LOGO ? (
-                  <img src={LOGO} alt="Logo" />
-                ) : (
-                  <Utensils size={30} color={THEME} />
-                )}
-              </div>
-              <h1 className="header-title">{restaurant.name}</h1>
-              <p className="header-desc">{restaurant.description}</p>
-            </div>
-            {restaurant.show_promo && restaurant.promo_message && (
-              <div className="promo-box">{restaurant.promo_message}</div>
-            )}
-            {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id}>
-                {cat.products?.map((prod: any) => {
-                  const extras = getExtrasForProduct(prod.id);
-                  const principalEnCarrito = cart.some(
-                    (item) => item.id === prod.id,
-                  );
-                  return (
-                    <div key={prod.id}>
-                      <div className="classic-item">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 pr-4 text-left">
-                            <div className="classic-prod">{prod.name}</div>
-                            <div className="classic-p-desc">
-                              {prod.description}
-                            </div>
-                            <div className="classic-price">
-                              {formatPrice(prod.price)}
-                            </div>
-                            {extras && extras.length > 0 && (
-                              <div className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
-                                {extras.map((ex: any) => (
-                                  <div
-                                    key={ex.id}
-                                    className="flex justify-between items-center text-[11px] py-1"
-                                  >
-                                    <span
-                                      className={`font-medium ${principalEnCarrito ? "text-gray-600" : "text-gray-400"}`}
-                                    >
-                                      {ex.name}{" "}
-                                      <span
-                                        className={`${principalEnCarrito ? "text-[#f0b001]" : "text-gray-300"} font-bold`}
-                                      >
-                                        (+{formatPrice(ex.price)})
-                                      </span>
-                                    </span>
-                                    <button
-                                      className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-colors ${principalEnCarrito ? "border-gray-200 text-gray-400 hover:bg-gray-50" : "border-gray-100 text-gray-200 cursor-not-allowed"}`}
-                                    >
-                                      <Plus size={12} strokeWidth={3} />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div
-                            className="add-btn-wrapper pt-1"
-                            onClick={() => {
-                              if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
-                              mostrarAviso("✅ Producto agregado");
-                            }}
-                          >
-                            <AddToCartBtn
-                              product={prod}
-                              disabled={false} // <--- CAMBIAR A FALSE
-                              hasExtras={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="classic-line"></div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+          <ClassicDelivery
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras || []} // 🚀 Asegurate que sea fetchedExtras (con E mayúscula en el medio)
+            isOpen={isOpen}
+            onAddToCart={(product: any, qty: number = 1) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Agregado");
+            }}
+            isMockup={false}
+          />
         );
+
       case "minimal":
         return (
           <div className="app-wrapper">
@@ -1915,34 +1847,16 @@ const displayCats = cleanCats;
         <style dangerouslySetInnerHTML={{ __html: memoizedStyles }} />
         <ClearCartLogic currentRestaurantId={restaurant.id} />
 
-        {/* Notificaciones... */}
+    {/* 🚀 NOTIFICACIÓN PREMIUM CORREGIDA (Centrada y con Salida) */}
         {notificacion && (
-          <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[2000] whitespace-nowrap">
-            <div
-              className={`
-      ${
-        TEMPLATE === "visualgrid"
-          ? "bg-white/10 backdrop-blur-xl border-white/20 text-white"
-          : TEMPLATE === "minimal"
-            ? "bg-white text-black border-gray-200"
-            : TEMPLATE === "bistro"
-              ? "bg-[#1a1a1a] text-[#e6c87e] border-dashed border-[#e6c87e]/40" // Estilo Tiza
-              : "bg-blue-600 text-white border-blue-400"
-      } 
-      px-4 py-2 rounded-full shadow-lg flex items-center justify-center gap-2 animate-in fade-in zoom-in duration-300 border
-    `}
-            >
-              <Check
-                size={16}
-                className={
-                  TEMPLATE === "minimal" || TEMPLATE === "bistro"
-                    ? "text-[#e6c87e]"
-                    : "text-white"
-                }
-              />
-              <span className="font-bold text-xs uppercase tracking-wide">
-                {notificacion.replace("✅", "").replace("⚠️", "")}
-              </span>
+          <div className="fixed top-8 inset-x-0 z-[10000] flex justify-center pointer-events-none px-4">
+            <div className="bg-zinc-900/95 backdrop-blur-xl text-white px-6 py-3 rounded-full shadow-[0_15px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 border border-white/10 animate-notification">
+              <div className="bg-emerald-500 rounded-full p-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <Check size={14} className="text-white" strokeWidth={4} />
+              </div>
+              <p className="font-black text-[11px] uppercase tracking-[0.15em] whitespace-nowrap italic pr-1">
+                ¡Pedido agregado!
+              </p>
             </div>
           </div>
         )}

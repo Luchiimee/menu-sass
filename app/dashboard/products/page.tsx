@@ -374,6 +374,8 @@ if (loading) return (
     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Cargando catálogo...</p>
   </div>
 );
+const isNoPhotoTemplate = selectedTemplate && templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t));
+
 const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
   const isVideoDisabled = currentPlan === 'light' && !isAdmin;
   return (
@@ -435,7 +437,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
   
   {/* AGREGAMOS ESTO PARA QUE APAREZCA LA PESTAÑA CATEGORÍAS */}
 {/* Habilitamos categorías para Urban también */}
-{(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight' || selectedTemplate === 'urban') && (
+{(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight' || selectedTemplate === 'urban' || selectedTemplate === 'classic') && (
   <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
       <List size={16} className="inline mr-2"/> Categorías
   </button>
@@ -460,7 +462,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
             </div>
 
          {/* BOTÓN INTELIGENTE "MÁS PEDIDOS" */}
-            {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'urban') && (
+           {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight' || selectedTemplate === 'urban' || selectedTemplate === 'classic') && (
                 <div className="flex items-center gap-1.5 shrink-0">
                     <button
                         onClick={async () => {
@@ -648,45 +650,69 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
                     {products.map((p) => (
                         <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
   <div className="aspect-square bg-gray-100 relative overflow-hidden group">
-    {p.image_url ? (
-        <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
-    ) : p.video_url ? (
-        <>
-            {/* Si es Light, desenfocamos la miniatura del video */}
-            <img 
-                src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} 
-                className={`w-full h-full object-cover ${isVideoDisabled ? 'blur-[3px] opacity-50 grayscale' : ''}`} 
-                alt={p.name}
-            />
-            
-            {isVideoDisabled ? (
-                /* --- AVISO PARA PLAN LIGHT --- */
-                <div className="absolute inset-0 bg-red-600/20 flex flex-col items-center justify-center p-2 text-center">
-                    <AlertTriangle size={24} className="text-red-600 mb-1 drop-shadow-md" />
-                    <p className="text-[8px] font-black text-red-700 uppercase leading-tight bg-white/90 px-2 py-1 rounded-lg shadow-sm">
-                        Video no disponible <br/> en Plan Light
-                    </p>
-                    <p className="text-[7px] font-bold text-gray-900 mt-1 drop-shadow-sm">Cambiá a imagen para mostrar en catálogo</p>
-                </div>
-            ) : (
-                <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md p-1.5 rounded-lg border border-white/20">
-                    <Video size={14} className="text-white" />
-                </div>
-            )}
-        </>
-    ) : (
-        <ImageIcon className="p-10 text-gray-200 w-full h-full"/>
-    )}
-    
-    {/* Botones de acción (Lápiz/Tacho) se mantienen igual */}
-    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="bg-white p-2 rounded-full shadow-lg text-blue-500 hover:scale-110 transition active:scale-95">
-            <Edit2 size={12}/>
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95">
-            <Trash2 size={12}/>
-        </button>
-    </div>
+  {/* 🚀 CASO 1: TIENE IMAGEN */}
+  {p.image_url ? (
+    <>
+      <img 
+        src={p.image_url} 
+        className={`w-full h-full object-cover transition-all duration-500 ${isNoPhotoTemplate ? 'blur-[4px] opacity-50 grayscale' : ''}`} 
+        alt={p.name}
+      />
+      {isNoPhotoTemplate && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center bg-black/40 backdrop-blur-[1px] z-10">
+          <ImageIcon size={24} className="text-white mb-1" />
+          <p className="text-[8px] font-black text-white uppercase leading-tight tracking-tighter">
+            No visible en <br/> diseño {selectedTemplate?.toUpperCase()}
+          </p>
+        </div>
+      )}
+    </>
+  ) : p.video_url ? (
+    <>
+      {/* 🚀 CASO 2: TIENE VIDEO */}
+      <img 
+        src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} 
+        className={`w-full h-full object-cover ${ (isVideoDisabled || isNoPhotoTemplate) ? 'blur-[4px] opacity-50 grayscale' : '' }`} 
+        alt={p.name}
+      />
+      
+      {/* PRIORIDAD 1: AVISO DE PLANTILLA (Si Classic no muestra fotos) */}
+      {isNoPhotoTemplate ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center bg-black/40 backdrop-blur-[1px] z-10">
+          <Video size={24} className="text-white mb-1" />
+          <p className="text-[8px] font-black text-white uppercase leading-tight tracking-tighter">
+            No visible en <br/> diseño {selectedTemplate?.toUpperCase()}
+          </p>
+        </div>
+      ) : isVideoDisabled ? (
+        /* PRIORIDAD 2: AVISO DE PLAN (Si el video está bloqueado por el plan) */
+        <div className="absolute inset-0 bg-red-600/20 flex flex-col items-center justify-center p-2 text-center z-10">
+          <AlertTriangle size={24} className="text-red-600 mb-1 drop-shadow-md" />
+          <p className="text-[8px] font-black text-red-700 uppercase leading-tight bg-white/90 px-2 py-1 rounded-lg shadow-sm">
+            Video no disponible <br/> en Plan Light
+          </p>
+        </div>
+      ) : (
+        /* ESTADO NORMAL: ICONO DE VIDEO */
+        <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md p-1.5 rounded-lg border border-white/20">
+          <Video size={14} className="text-white" />
+        </div>
+      )}
+    </>
+  ) : (
+    /* 🚀 CASO 3: SIN NADA (ICONO VACÍO) */
+    <ImageIcon className="p-10 text-gray-200 w-full h-full"/>
+  )}
+  
+  {/* BOTONES DE ACCIÓN (Lápiz/Tacho) - Siempre al frente con z-20 */}
+  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+    <button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="bg-white p-2 rounded-full shadow-lg text-blue-500 hover:scale-110 transition active:scale-95">
+      <Edit2 size={12}/>
+    </button>
+    <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95">
+      <Trash2 size={12}/>
+    </button>
+  </div>
 </div>
                             <div className="p-3">
                                 <p className="font-bold text-sm truncate uppercase text-slate-800">{p.name}</p>
@@ -999,7 +1025,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
     </div>
 
  {/* CATEGORÍA: Oculto para diseños de carga rápida (Classic, Minimal, Icecream, etc.) */}
-{selectedTemplate && !templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) && (
+{selectedTemplate && (!templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) || selectedTemplate === 'classic') && (
     <div className="pt-2">
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
         <div className="relative">

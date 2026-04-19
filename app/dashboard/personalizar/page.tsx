@@ -1,7 +1,7 @@
 'use client';
 
 export const dynamic = 'force-dynamic';
-
+import { CartProvider } from "@/context/CartContext";
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
@@ -34,7 +34,20 @@ const ColorBubble = ({ label, value, onChange }: { label: string, value: string,
 );
 
 const TEMPLATE_DEFAULTS: any = {
-  classic: { theme: '#d32f2f', bg: '#ffffff', text: '#ffffff', desc: '#ffffff', card_name: '#000000', card_desc: '#666666', card_price: '#d32f2f', btn_bg: '#ffffff', btn_text: '#000000', promo_bg_color: '#ffebee', promo_text_color: '#d32f2f', banner: false },
+ classic: { 
+    theme: '#d32f2f', bg: '#ffffff', text: '#ffffff', desc: '#ffffff', 
+    card_name: '#000000', card_desc: '#666666', card_price: '#d32f2f', 
+    btn_bg: '#ffffff', btn_text: '#000000', promo_bg_color: '#ffebee', 
+    promo_text_color: '#d32f2f', banner: false,
+    search_bg_color: '#f3f4f6', 
+    search_icon_color: '#9ca3af',
+    // 🚀 AGREGAMOS ESTOS:
+    cat_bg_color: '#f3f4f6',
+    cat_text_color: '#999999',
+    cat_active_bg_color: '#d32f2f',
+    cat_active_text_color: '#ffffff'
+  },
+
  urban: { 
     theme: '#ea580c', bg: '#121212', text: '#ffffff', desc: '#888888', 
     card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', 
@@ -168,36 +181,40 @@ if (activeTab === 'snappylinks') {
   } : data;
 
 const props = { 
-      restaurant: { ...finalRenderData, categories }, 
-      products: displayProds || [], 
-      categories: categories || [], // 🚀 IMPORTANTE PARA URBANO DARK
-      isOpen: true, 
-      onAddToCart: () => {}, 
-      isMockup: true 
-  };
+  restaurant: { ...finalRenderData, categories }, 
+  products: displayProds || [], 
+  categories: categories || [], 
+  
+  fetchedExtras: [], 
+  isOpen: true, 
+  onAddToCart: () => {}, 
+  isMockup: true 
+};
 
   return (
-    <div className="relative w-full h-full bg-white flex flex-col">
-      <div className="status-bar-fixed" style={{ color: 'black' }}><span>9:41</span><span>📶</span></div>
-      <div className="preview-scroll" style={{ backgroundColor: finalRenderData.bg_color }}>
-        {(() => {
-          switch (activeId) {
-            case 'urban': return <UrbanoDark {...props} />;
-            case 'pop': return <PopVibrant {...props} />;
-            case 'visualgrid': return <div className="flex flex-col gap-4"><VisualGrid {...props} /></div>;
-            case 'classic': return <ClassicDelivery {...props} />;
-            case 'minimal': return <MinimalWhite {...props} />;
-            case 'spotlight': return <SpotlightHero {...props} />;
-            case 'elegant': return <ElegantSerif {...props} />;
-            case 'bistro': return <BistroChalk {...props} />;
-            case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
-            case 'alterna-pro': return <AlternaPro restaurant={{ ...finalRenderData, categories: categories.length > 0 ? categories.slice(0,2) : [{id:'cat-1',name:'General'},{id:'cat-2',name:'Pizzas'}] }} products={displayProds} onAddToCart={() => {}} setSelectedProduct={() => {}} isMockup={true} />;
-            case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
-            default: return <ClassicDelivery {...props} />;
-          }
-        })()}
+    <CartProvider> {/* 🚀 ENVOLVEMOS TODO AQUÍ */}
+      <div className="relative w-full h-full bg-white flex flex-col">
+        <div className="status-bar-fixed" style={{ color: 'black' }}><span>9:41</span><span>📶</span></div>
+        <div className="preview-scroll" style={{ backgroundColor: finalRenderData.bg_color }}>
+          {(() => {
+            switch (activeId) {
+              case 'urban': return <UrbanoDark {...props} />;
+              case 'pop': return <PopVibrant {...props} />;
+              case 'visualgrid': return <div className="flex flex-col gap-4"><VisualGrid {...props} /></div>;
+              case 'classic': return <ClassicDelivery {...props} />;
+              case 'minimal': return <MinimalWhite {...props} />;
+              case 'spotlight': return <SpotlightHero {...props} />;
+              case 'elegant': return <ElegantSerif {...props} />;
+              case 'bistro': return <BistroChalk {...props} />;
+              case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
+              case 'alterna-pro': return <AlternaPro restaurant={{ ...finalRenderData, categories: categories.length > 0 ? categories.slice(0,2) : [{id:'cat-1',name:'General'},{id:'cat-2',name:'Pizzas'}] }} products={displayProds} onAddToCart={() => {}} setSelectedProduct={() => {}} isMockup={true} />;
+              case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
+              default: return <ClassicDelivery {...props} />;
+            }
+          })()}
+        </div>
       </div>
-    </div>
+    </CartProvider>
   );
 };
 
@@ -332,7 +349,12 @@ search_bg_color: (tId === 'urban' && (rest.search_bg_color === '#ffffff' || rest
     : (rest.search_icon_color || defaults.search_icon_color || '#9ca3af'),
   name: rest.name || 'Mi Restaurante',
   description: rest.description || 'Disfrutá de los mejores sabores.',
-
+address: rest.address || '',
+  google_maps_link: rest.google_maps_link || '',
+  instagram: rest.instagram || '',
+  facebook: rest.facebook || '',
+  tiktok: rest.tiktok || '',
+  opening_hours: rest.opening_hours || '',
   // 🚀 DATOS DESDE LA TABLA INDEPENDIENTE (bioData)
   snappylink_slug: bioData?.slug || rest.slug + 'bio',
   snappylink_bio: bioData?.bio || '',
@@ -365,18 +387,23 @@ snappylink_social_links: bioData?.social_links || [],
     return () => { mounted = false; };
   }, []);
 
-  const getTemplateConfig = () => {
+const getTemplateConfig = () => {
     const id = data.template_id || 'classic';
     return {
-      editable: true, group: id,
-      showClassicBanner: id === 'classic',
+      editable: true, 
+      group: id,
+      showClassicBanner: id === 'classic', // Este es el que dice "Banner Nom"
       showBannerImg: ['spotlight', 'marketpro'].includes(id),
-      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id),
-      showCard: true, showHeroEditor: id === 'spotlight', showSearch: id === 'marketpro',
+      // 🚀 SACAMOS 'classic' DE ESTA LÍNEA:
+      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id), 
+      showCard: true, 
+      showHeroEditor: id === 'spotlight', 
+      showSearch: ['marketpro', 'classic', 'urban'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
-      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban'].includes(id),
+      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic'].includes(id),
     };
   };
+
   const tConfig = getTemplateConfig();
   const applyTemplate = (templateId: string) => {
     const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
@@ -427,22 +454,16 @@ const confirmReset = () => {
       card_price_color: defaults.card_price, 
       card_btn_bg: defaults.btn_bg, 
       card_btn_text: defaults.btn_text, 
-      promo_bg_color: defaults.promo || defaults.promo_bg, 
-      promo_text_color: defaults.promo_text || defaults.theme, 
-      hero_badge_bg: defaults.hero_badge_bg, 
-      hero_badge_color: defaults.hero_badge_color, 
-      hero_title_color: defaults.hero_title_color, 
-      hero_price_color: defaults.hero_price_color, 
-      show_banner: defaults.banner || false, 
-      show_promo: true, 
-      cat_bg_color: defaults.cat_bg_color, 
-      cat_text_color: defaults.cat_text_color, 
-      cat_title_color: defaults.cat_title_color, 
-      // 🚀 AGREGAMOS ESTO TAMBIÉN ACÁ:
+      promo_bg_color: defaults.promo_bg_color || defaults.promo, 
+      promo_text_color: defaults.promo_text_color || defaults.promo_text, 
       search_bg_color: defaults.search_bg_color, 
-      search_icon_color: defaults.search_icon_color, 
-      cat_active_bg_color: defaults.cat_active_bg_color || '#000000', 
-      cat_active_text_color: defaults.cat_active_text_color || '#ffffff' 
+      search_icon_color: defaults.search_icon_color,
+      // 🚀 AGREGAMOS ESTO PARA QUE SE RESTAUREN LAS CATEGORÍAS TAMBIÉN
+      cat_bg_color: defaults.cat_bg_color,
+      cat_text_color: defaults.cat_text_color,
+      cat_active_bg_color: defaults.cat_active_bg_color,
+      cat_active_text_color: defaults.cat_active_text_color,
+      show_banner: defaults.banner || false, 
     }));
     setUnsavedChanges(true);
     setShowRestoreModal(false);
@@ -658,9 +679,12 @@ const confirmReset = () => {
                           <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
                           <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
                           {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-                        {['alterna-pro', 'marketpro', 'urban'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
+                      {['alterna-pro', 'marketpro', 'urban', 'classic'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
                          {['marketpro', 'urban'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
-                          {tConfig.showClassicBanner && <ColorBubble label="Banner Nom" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
+                          {tConfig.showClassicBanner && <ColorBubble 
+  label="Banner Nom" 
+  value={data.theme_color} 
+  onChange={(v) => setData({ ...data, theme_color: v })} />}
                         </div>
                       </div>
                       <div className="space-y-4">
@@ -813,7 +837,7 @@ const confirmReset = () => {
                   </section>
 
                   {/* MARKET PRO EXTRA */}
-                 {['marketpro', 'urban'].includes(data.template_id) && (
+                 {['marketpro', 'urban', 'classic'].includes(data.template_id) && (
                     <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">
