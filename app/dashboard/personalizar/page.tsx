@@ -35,15 +35,15 @@ const ColorBubble = ({ label, value, onChange }: { label: string, value: string,
 
 const TEMPLATE_DEFAULTS: any = {
   classic: { theme: '#d32f2f', bg: '#ffffff', text: '#ffffff', desc: '#ffffff', card_name: '#000000', card_desc: '#666666', card_price: '#d32f2f', btn_bg: '#ffffff', btn_text: '#000000', promo_bg_color: '#ffebee', promo_text_color: '#d32f2f', banner: false },
-  urban: { 
-  theme: '#ea580c', bg: '#121212', text: '#ffffff', desc: '#888888', 
-  card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', 
-  btn_bg: '#ffffff', promo_bg: '#1E1E1E', promo_text: '#ffffff', banner: false,
-  cat_bg_color: '#000000', cat_text_color: '#ffffff', 
-  cat_active_bg_color: '#ffffff', cat_active_text_color: '#000000',
-  search_bg_color: '#1E1E1E', 
-  search_icon_color: '#888888' 
-},
+ urban: { 
+    theme: '#ea580c', bg: '#121212', text: '#ffffff', desc: '#888888', 
+    card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', 
+    btn_bg: '#ffffff', promo_bg: '#1E1E1E', promo_text: '#ffffff', banner: false,
+    cat_bg_color: '#000000', cat_text_color: '#ffffff', 
+    cat_active_bg_color: '#ffffff', cat_active_text_color: '#000000',
+    search_bg_color: '#1E1E1E', // 🚀 NEGRO POR DEFECTO
+    search_icon_color: '#888888' // 🚀 GRIS SUAVE
+  },
   minimal: { theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', card_name: '#222222', card_desc: '#999999', card_price: '#000000', btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false },
   visualgrid: { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg_color: '#1E1E1E', promo_text_color: '#ffffff', banner: false },
   pop: { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', card_name: '#FF1493', card_desc: '#444444', card_price: '#000000', card_shadow_color: '#000000', btn_bg: '#ffffff', btn_text: '#FF1493', promo_bg: '#FFD700', promo_text: '#000000', banner: false },
@@ -163,6 +163,8 @@ if (activeTab === 'snappylinks') {
     cat_bg_color: data.cat_bg_color, cat_text_color: data.cat_text_color,
     cat_active_bg_color: data.cat_active_bg_color, cat_active_text_color: data.cat_active_text_color,
     card_show_bg: data.card_show_bg !== undefined ? data.card_show_bg : true,
+    search_bg_color: defaults.search_bg_color, 
+    search_icon_color: defaults.search_icon_color
   } : data;
 
 const props = { 
@@ -320,8 +322,14 @@ setData({
   cat_text_color: rest.cat_text_color || '#999999',
   cat_active_bg_color: rest.cat_active_bg_color || '#000000',
   cat_active_text_color: rest.cat_active_text_color || '#ffffff',
-  search_bg_color: rest.search_bg_color || '#f3f4f6',
-  search_icon_color: rest.search_icon_color || '#9ca3af',
+ // Dentro de loadData...
+search_bg_color: (tId === 'urban' && (rest.search_bg_color === '#ffffff' || rest.search_bg_color === '#f3f4f6')) 
+    ? '#1E1E1E' 
+    : (rest.search_bg_color || defaults.search_bg_color || '#ffffff'),
+    
+  search_icon_color: (tId === 'urban' && (rest.search_icon_color === '#9ca3af' || !rest.search_icon_color)) 
+    ? '#888888' 
+    : (rest.search_icon_color || defaults.search_icon_color || '#9ca3af'),
   name: rest.name || 'Mi Restaurante',
   description: rest.description || 'Disfrutá de los mejores sabores.',
 
@@ -370,13 +378,74 @@ snappylink_social_links: bioData?.social_links || [],
     };
   };
   const tConfig = getTemplateConfig();
-
   const applyTemplate = (templateId: string) => {
     const defaults = TEMPLATE_DEFAULTS[templateId] || TEMPLATE_DEFAULTS['classic'];
-    setData({ ...data, template_id: templateId, theme_color: defaults.theme, bg_color: defaults.bg, text_color: defaults.text, description_color: defaults.desc, promo_bg_color: defaults.promo_bg_color || defaults.promo || '#ffebee', promo_text_color: defaults.promo_text_color || defaults.theme || '#d32f2f', card_name_color: defaults.card_name, card_color: defaults.card || defaults.bg, card_desc_color: defaults.card_desc, card_price_color: defaults.card_price, card_btn_bg: defaults.btn_bg, card_btn_text: defaults.btn_text, show_banner: defaults.banner, cat_bg_color: defaults.cat_bg_color || '#f3f4f6', cat_text_color: defaults.cat_text_color || '#999999', cat_active_bg_color: defaults.cat_active_bg_color || '#000000', cat_active_text_color: defaults.cat_active_text_color || '#ffffff' });
+    
+    setData({ 
+      ...data, 
+      template_id: templateId, 
+      theme_color: defaults.theme, 
+      bg_color: defaults.bg, 
+      text_color: defaults.text, 
+      description_color: defaults.desc, 
+      promo_bg_color: defaults.promo_bg_color || defaults.promo || '#ffebee', 
+      promo_text_color: defaults.promo_text_color || defaults.theme || '#d32f2f', 
+      card_name_color: defaults.card_name, 
+      card_color: defaults.card || defaults.bg, 
+      card_desc_color: defaults.card_desc, 
+      card_price_color: defaults.card_price, 
+      card_btn_bg: defaults.btn_bg, 
+      card_btn_text: defaults.btn_text, 
+      show_banner: defaults.banner, 
+      cat_bg_color: defaults.cat_bg_color || '#f3f4f6', 
+      cat_text_color: defaults.cat_text_color || '#999999', 
+      cat_active_bg_color: defaults.cat_active_bg_color || '#000000', 
+      cat_active_text_color: defaults.cat_active_text_color || '#ffffff',
+      // 🚀 ESTO ARREGLA LA BARRA BLANCA:
+    search_bg_color: defaults.search_bg_color,
+      search_icon_color: defaults.search_icon_color
+   
+    }); 
+
+    setUnsavedChanges(true); 
+    setPreviewTemplateId(null); 
+    // Guardamos automáticamente para que el cambio impacte
+    setTimeout(() => handleSave(), 500);
+  };
+
+const confirmReset = () => {
+    const defaults = TEMPLATE_DEFAULTS[data.template_id] || TEMPLATE_DEFAULTS['classic'];
+    setData((prev: any) => ({ 
+      ...prev, 
+      theme_color: defaults.theme, 
+      bg_color: defaults.bg, 
+      text_color: defaults.text, 
+      description_color: defaults.desc, 
+      card_name_color: defaults.card_name, 
+      card_color: defaults.card || defaults.bg, 
+      card_desc_color: defaults.card_desc, 
+      card_price_color: defaults.card_price, 
+      card_btn_bg: defaults.btn_bg, 
+      card_btn_text: defaults.btn_text, 
+      promo_bg_color: defaults.promo || defaults.promo_bg, 
+      promo_text_color: defaults.promo_text || defaults.theme, 
+      hero_badge_bg: defaults.hero_badge_bg, 
+      hero_badge_color: defaults.hero_badge_color, 
+      hero_title_color: defaults.hero_title_color, 
+      hero_price_color: defaults.hero_price_color, 
+      show_banner: defaults.banner || false, 
+      show_promo: true, 
+      cat_bg_color: defaults.cat_bg_color, 
+      cat_text_color: defaults.cat_text_color, 
+      cat_title_color: defaults.cat_title_color, 
+      // 🚀 AGREGAMOS ESTO TAMBIÉN ACÁ:
+      search_bg_color: defaults.search_bg_color, 
+      search_icon_color: defaults.search_icon_color, 
+      cat_active_bg_color: defaults.cat_active_bg_color || '#000000', 
+      cat_active_text_color: defaults.cat_active_text_color || '#ffffff' 
+    }));
     setUnsavedChanges(true);
-    setPreviewTemplateId(null);
-    handleSave();
+    setShowRestoreModal(false);
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -506,12 +575,7 @@ snappylink_social_links: bioData?.social_links || [],
   const copyLink = () => { navigator.clipboard.writeText(`snappy.uno/${data.slug}`); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleResetClick = () => setShowRestoreModal(true);
 
-  const confirmReset = () => {
-    const defaults = TEMPLATE_DEFAULTS[data.template_id] || TEMPLATE_DEFAULTS['classic'];
-    setData((prev: any) => ({ ...prev, theme_color: defaults.theme, bg_color: defaults.bg, text_color: defaults.text, description_color: defaults.desc, card_name_color: defaults.card_name, card_color: defaults.card || defaults.bg, card_desc_color: defaults.card_desc, card_price_color: defaults.card_price, card_btn_bg: defaults.btn_bg, card_btn_text: defaults.btn_text, promo_bg_color: defaults.promo || defaults.promo_bg, promo_text_color: defaults.promo_text || defaults.theme, hero_badge_bg: defaults.hero_badge_bg, hero_badge_color: defaults.hero_badge_color, hero_title_color: defaults.hero_title_color, hero_price_color: defaults.hero_price_color, show_banner: defaults.banner || false, show_promo: true, cat_bg_color: defaults.cat_bg_color, cat_text_color: defaults.cat_text_color, cat_title_color: defaults.cat_title_color, search_bg_color: defaults.search_bg_color, search_icon_color: defaults.search_icon_color, cat_active_bg_color: defaults.cat_active_bg_color || '#000000', cat_active_text_color: defaults.cat_active_text_color || '#ffffff' }));
-    setUnsavedChanges(true);
-    setShowRestoreModal(false);
-  };
+
 
   return (
     <>

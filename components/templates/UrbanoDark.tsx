@@ -13,14 +13,19 @@ const [variationsQuantities, setVariationsQuantities] = useState<{ [key: number]
   const isOpenNow = isOpen;
   const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
   const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
-  // --- VARIABLES PURAS (Sincronizadas con el Editor) ---
+  
   const bg = restaurant.bg_color || '#121212';
   const localNameColor = restaurant.text_color || '#ffffff';
+  const isWhiteDefault = !restaurant.search_bg_color || restaurant.search_bg_color === '#ffffff' || restaurant.search_bg_color === '#f3f4f6';
+  const searchBg = isWhiteDefault ? '#1E1E1E' : restaurant.search_bg_color;
+
+  const isGreyDefault = !restaurant.search_icon_color || restaurant.search_icon_color === '#9ca3af';
+  const searchIconColor = isGreyDefault ? '#888888' : restaurant.search_icon_color;
   const localDescColor = restaurant.description_color || '#888888';
   const accent = restaurant.theme_color || '#ea580c';
   const catBg = restaurant.cat_bg_color || '#000000';
-  const searchBg = restaurant.search_bg_color || 'rgba(255,255,255,0.05)';
-  const searchIconColor = restaurant.search_icon_color || localNameColor;
+
+
   const catText = restaurant.cat_text_color || '#ffffff';
   const catActiveBg = restaurant.cat_active_bg_color || '#ffffff';
   const catActiveText = restaurant.cat_active_text_color || '#000000';
@@ -133,29 +138,23 @@ const sz = isMockup ? {
       {showPromo && <div className="urbano-msg">{promoMessage}</div>}
       {/* --- BUSCADOR Y CATEGORÍAS --- */}
       <div className="mb-4">
-        <div className="relative group mb-3">
-          {/* 🔍 LA LUPITA USA EL NUEVO COLOR */}
+       <div className="relative group mb-3">
           <Search 
             className="absolute left-3 top-1/2 -translate-y-1/2 z-10" 
             size={14} 
             style={{ color: searchIconColor }} 
           />
           
-          {/* ⌨️ EL INPUT USA EL NUEVO COLOR DE FONDO */}
           <input
             type="text"
             placeholder="Buscar..."
-            className="w-full border rounded-xl py-2 pl-9 pr-3 text-xs font-medium outline-none transition-all"
+            className="w-full border rounded-xl py-2 pl-9 pr-3 text-xs font-medium outline-none transition-all border-none" // 🚀 Agregamos border-none para que se vea más limpio
             style={{ 
-              backgroundColor: searchBg, // 🚀 SEPARADO DEL FONDO DE CARD
-              borderColor: 'rgba(255,255,255,0.05)', 
+              backgroundColor: searchBg, // Usará #1E1E1E
               color: localNameColor 
             }}
             value={searchTerm}
-            onChange={(e) => {
-                if (!isOpenNow && !isMockup) return setShowClosedModal(true);
-                setSearchTerm(e.target.value);
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
