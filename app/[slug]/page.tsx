@@ -829,13 +829,14 @@ function MenuContent({
     const allProducts = restaurant.fetched_products || [];
     // 2. LÓGICA DE CATEGORÍAS PARA ALTERNA-PRO (Filtra "General" y pone defaults)
     const rawCats = restaurant.categories || [];
-    const cleanCats = rawCats.filter(
-      (c: any) => c.name.toLowerCase() !== "general",
-    );
-    const displayCats =
-      cleanCats.length > 0
-        ? cleanCats
-        : [{ name: "Semillas" }, { name: "Frutos" }, { name: "Aceites" }];
+  // 1. Filtramos la categoría "General" si existe
+const cleanCats = rawCats.filter(
+  (c: any) => c.name.toLowerCase() !== "general",
+);
+
+// 🚀 LA SOLUCIÓN: Si no hay categorías, mandamos una lista vacía 
+// para que no aparezcan botones de ejemplo.
+const displayCats = cleanCats;
     switch (TEMPLATE) {
    case "urban":
         return (

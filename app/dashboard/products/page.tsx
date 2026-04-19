@@ -434,11 +434,12 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
   </button>
   
   {/* AGREGAMOS ESTO PARA QUE APAREZCA LA PESTAÑA CATEGORÍAS */}
-  {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight') && (
-    <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
-        <List size={16} className="inline mr-2"/> Categorías
-    </button>
-  )}
+{/* Habilitamos categorías para Urban también */}
+{(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight' || selectedTemplate === 'urban') && (
+  <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+      <List size={16} className="inline mr-2"/> Categorías
+  </button>
+)}
 </div>
   </div>
       {/* --- EL RESTO DE TU CÓDIGO (Buscador, Tabla, etc.) SIGUE ABAJO --- */}
@@ -459,7 +460,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
             </div>
 
          {/* BOTÓN INTELIGENTE "MÁS PEDIDOS" */}
-            {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro') && (
+            {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'urban') && (
                 <div className="flex items-center gap-1.5 shrink-0">
                     <button
                         onClick={async () => {
