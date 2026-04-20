@@ -27,6 +27,7 @@ import HeladeriaSoft from "@/components/templates/HeladeriaSoft";
 import VisualGrid from "@/components/templates/VisualGrid";
 import BioModern from "@/components/templates/bio/BioModern";
 import ClassicDelivery from "@/components/templates/ClassicDelivery";
+import MinimalWhite from "@/components/templates/MinimalWhite";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -885,61 +886,22 @@ const displayCats = cleanCats;
 
       case "minimal":
         return (
-          <div className="app-wrapper">
-            <div className="header-sec relative">
-              <div
-                className="header-logo"
-                style={{ backgroundImage: `url('${LOGO || ""}')` }}
-              ></div>
-              <h1
-                className="text-xl font-black uppercase tracking-widest mb-1"
-                style={{ color: TEXT }}
-              >
-                {restaurant.name}
-              </h1>
-              <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">
-                {restaurant.description}
-              </p>
-            </div>
-
-            {restaurant.show_promo && restaurant.promo_message && (
-              <div className="promo-minimal">{restaurant.promo_message}</div>
-            )}
-
-            {restaurant.categories?.map((cat: any) => (
-              <div key={cat.id} className="mb-6">
-                {cat.products?.map((prod: any) => (
-                  <div key={prod.id} className="prod-card">
-                    {/* GRUPO IZQUIERDA: TEXTO */}
-                    <div className="prod-info-group">
-                      <div className="font-bold">{prod.name}</div>
-                      <div className="opacity-50">{prod.description}</div>
-                      <div className="font-black">
-                        {formatPrice(prod.price)}
-                      </div>
-                    </div>
-
-                    {/* GRUPO DERECHA: BOTÓN */}
-                    <div
-                      className="add-btn-wrapper"
-                      onClick={() => {
-                        if (!isOpen) return setShowClosedAlert(true); // <--- AGREGADO
-                        mostrarAviso("✅ Producto agregado");
-                      }}
-                    >
-                      <AddToCartBtn
-                        product={prod}
-                        variant="icon"
-                        disabled={false} // <--- CAMBIAR A FALSE
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+          <MinimalWhite
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras || []}
+            isOpen={isOpen}
+            onAddToCart={(product: any, qty: number = 1) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Agregado");
+            }}
+            isMockup={false}
+          />
         );
-
+       
       case "visualgrid":
         return (
           <div

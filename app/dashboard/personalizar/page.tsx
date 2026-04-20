@@ -57,7 +57,12 @@ const TEMPLATE_DEFAULTS: any = {
     search_bg_color: '#1E1E1E', // 🚀 NEGRO POR DEFECTO
     search_icon_color: '#888888' // 🚀 GRIS SUAVE
   },
-  minimal: { theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', card_name: '#222222', card_desc: '#999999', card_price: '#000000', btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false },
+  minimal: { theme: '#000000', bg: '#ffffff', text: '#222222', desc: '#999999', card_name: '#222222', card_desc: '#999999', card_price: '#000000', btn_bg: '#ffffff', btn_text: '#000000', promo_bg: '#fafafa', promo_text: '#000000', banner: false, cat_bg_color: '#f3f4f6',
+    cat_text_color: '#999999',
+    cat_active_bg_color: '#000000',
+    cat_active_text_color: '#ffffff',search_bg_color: '#f3f4f6', 
+    search_icon_color: '#9ca3af',},
+
   visualgrid: { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg_color: '#1E1E1E', promo_text_color: '#ffffff', banner: false },
   pop: { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', card_name: '#FF1493', card_desc: '#444444', card_price: '#000000', card_shadow_color: '#000000', btn_bg: '#ffffff', btn_text: '#FF1493', promo_bg: '#FFD700', promo_text: '#000000', banner: false },
   spotlight: { theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', card_name: '#000000', card_desc: '#666666', card_price: '#000000', btn_bg: '#000000', btn_text: '#ffffff', promo: '#fff3e0', promo_text: '#000000', banner: true, hero_badge_bg: '#FFD700', hero_badge_color: '#000000', hero_title_color: '#ffffff', hero_price_color: '#FFD700' },
@@ -390,19 +395,21 @@ snappylink_social_links: bioData?.social_links || [],
 const getTemplateConfig = () => {
     const id = data.template_id || 'classic';
     return {
-      editable: true, 
-      group: id,
-      showClassicBanner: id === 'classic', // Este es el que dice "Banner Nom"
+      editable: true, group: id,
+      showClassicBanner: id === 'classic', 
       showBannerImg: ['spotlight', 'marketpro'].includes(id),
-      // 🚀 SACAMOS 'classic' DE ESTA LÍNEA:
-      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant'].includes(id), 
+      
+      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant', 'classic', 'minimal'].includes(id),
       showCard: true, 
       showHeroEditor: id === 'spotlight', 
-      showSearch: ['marketpro', 'classic', 'urban'].includes(id),
+      
+      showSearch: ['marketpro', 'classic', 'urban', 'minimal'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
-      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic'].includes(id),
+     
+      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic', 'minimal'].includes(id),
     };
   };
+
 
   const tConfig = getTemplateConfig();
   const applyTemplate = (templateId: string) => {
@@ -463,7 +470,7 @@ const confirmReset = () => {
       cat_text_color: defaults.cat_text_color,
       cat_active_bg_color: defaults.cat_active_bg_color,
       cat_active_text_color: defaults.cat_active_text_color,
-      show_banner: defaults.banner || false, 
+      show_banner: defaults.banner || false,
     }));
     setUnsavedChanges(true);
     setShowRestoreModal(false);
@@ -679,8 +686,8 @@ const confirmReset = () => {
                           <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
                           <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
                           {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
-                      {['alterna-pro', 'marketpro', 'urban', 'classic'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
-                         {['marketpro', 'urban'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
+                     {['alterna-pro', 'marketpro', 'urban', 'classic', 'minimal'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
+                         {['marketpro', 'urban', 'classic', 'minimal'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
                           {tConfig.showClassicBanner && <ColorBubble 
   label="Banner Nom" 
   value={data.theme_color} 
@@ -837,7 +844,7 @@ const confirmReset = () => {
                   </section>
 
                   {/* MARKET PRO EXTRA */}
-                 {['marketpro', 'urban', 'classic'].includes(data.template_id) && (
+                 {['marketpro', 'urban', 'classic','minimal'].includes(data.template_id) && (
                     <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">

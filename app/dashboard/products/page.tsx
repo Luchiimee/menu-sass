@@ -435,9 +435,9 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
     <Layers size={16} className="inline mr-2"/> Adicionales
   </button>
   
-  {/* AGREGAMOS ESTO PARA QUE APAREZCA LA PESTAÑA CATEGORÍAS */}
+
 {/* Habilitamos categorías para Urban también */}
-{(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight' || selectedTemplate === 'urban' || selectedTemplate === 'classic') && (
+{['marketpro', 'alterna-pro', 'spotlight', 'urban', 'classic', 'minimal'].includes(selectedTemplate || '') && (
   <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
       <List size={16} className="inline mr-2"/> Categorías
   </button>
@@ -462,7 +462,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
             </div>
 
          {/* BOTÓN INTELIGENTE "MÁS PEDIDOS" */}
-           {(selectedTemplate === 'marketpro' || selectedTemplate === 'alterna-pro' || selectedTemplate === 'spotlight' || selectedTemplate === 'urban' || selectedTemplate === 'classic') && (
+           {['marketpro', 'alterna-pro', 'spotlight', 'urban', 'classic', 'minimal'].includes(selectedTemplate || '') && (
                 <div className="flex items-center gap-1.5 shrink-0">
                     <button
                         onClick={async () => {
@@ -1025,7 +1025,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
     </div>
 
  {/* CATEGORÍA: Oculto para diseños de carga rápida (Classic, Minimal, Icecream, etc.) */}
-{selectedTemplate && (!templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) || selectedTemplate === 'classic') && (
+{selectedTemplate && (!templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) || ['classic', 'minimal'].includes(selectedTemplate)) && (
     <div className="pt-2">
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
         <div className="relative">
