@@ -437,7 +437,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
   
 
 {/* Habilitamos categorías para Urban también */}
-{['marketpro', 'alterna-pro', 'spotlight', 'urban', 'classic', 'minimal'].includes(selectedTemplate || '') && (
+{['marketpro', 'alterna-pro', 'spotlight', 'urban', 'classic', 'minimal', 'visualgrid'].includes(selectedTemplate || '') && (
   <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
       <List size={16} className="inline mr-2"/> Categorías
   </button>
@@ -1024,8 +1024,8 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
         </div>
     </div>
 
- {/* CATEGORÍA: Oculto para diseños de carga rápida (Classic, Minimal, Icecream, etc.) */}
-{selectedTemplate && (!templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) || ['classic', 'minimal'].includes(selectedTemplate)) && (
+
+{selectedTemplate && (!templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) || ['classic', 'minimal', 'visualgrid'].includes(selectedTemplate)) && (
     <div className="pt-2">
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
         <div className="relative">

@@ -14,7 +14,7 @@ import {
   Clock,
   Zap,
   Ticket,
-  Lock,
+  Lock,Store,Phone,Facebook,Instagram,Music2,ExternalLink ,MapPin
 } from "lucide-react";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
@@ -623,6 +623,7 @@ function MenuContent({
 }) {
   const [activeCardId, setActiveCardId] = useState<any>(null);
   const [showClosedAlert, setShowClosedAlert] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   console.log("Dato del botón:", restaurant.card_btn_text);
   const { cart, addToCart, updateQuantity, activeOrderId, setActiveOrderId } = useCart();
   const [showTracking, setShowTracking] = useState(false);
@@ -849,41 +850,42 @@ const cleanCats = rawCats.filter(
 // para que no aparezcan botones de ejemplo.
 const displayCats = cleanCats;
     switch (TEMPLATE) {
-   case "urban":
-        return (
-          <UrbanoDark
-            restaurant={restaurant}
-            products={allProducts}
-            categories={displayCats}
-            fetchedExtras={restaurant.fetched_extras}
-            isOpen={isOpen}
-            onAddToCart={(product: any, qty: number) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
-              mostrarAviso("✅ Producto agregado");
-            }}
-            isMockup={false}
-          />
-        );
-     case "classic":
-        return (
-          <ClassicDelivery
-            restaurant={restaurant}
-            products={allProducts}
-            categories={displayCats}
-            fetchedExtras={restaurant.fetched_extras || []} // 🚀 Asegurate que sea fetchedExtras (con E mayúscula en el medio)
-            isOpen={isOpen}
-            onAddToCart={(product: any, qty: number = 1) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
-              mostrarAviso("✅ Agregado");
-            }}
-            isMockup={false}
-          />
-        );
-
+ case "urban":
+  return (
+    <UrbanoDark
+      restaurant={restaurant}
+      products={allProducts}
+      categories={displayCats}
+      fetchedExtras={restaurant.fetched_extras}
+      isOpen={isOpen}
+      onAddToCart={(product: any, qty: number) => {
+        for (let i = 0; i < qty; i++) {
+          addToCart(product);
+        }
+        mostrarAviso("✅ Producto agregado");
+      }}
+      isMockup={false}
+      setShowInfo={setShowInfo} // 🚀 AGREGÁ ESTA LÍNEA AQUÍ
+    />
+  );
+  case "classic":
+  return (
+    <ClassicDelivery
+      restaurant={restaurant}
+      products={allProducts}
+      categories={displayCats}
+      fetchedExtras={restaurant.fetched_extras || []}
+      isOpen={isOpen}
+      onAddToCart={(product: any, qty: number = 1) => {
+        for (let i = 0; i < qty; i++) {
+          addToCart(product);
+        }
+        mostrarAviso("✅ Agregado");
+      }}
+      isMockup={false}
+      setShowInfo={setShowInfo} // 🚀 ESTA LÍNEA ES LA QUE HACE LA MAGIA
+    />
+  );
       case "minimal":
         return (
           <MinimalWhite
@@ -899,214 +901,30 @@ const displayCats = cleanCats;
               mostrarAviso("✅ Agregado");
             }}
             isMockup={false}
+            setShowInfo={setShowInfo}
           />
         );
        
-      case "visualgrid":
-        return (
-          <div
-            className="app-wrapper"
-            style={{
-              backgroundColor: BG,
-              minHeight: "100vh",
-              paddingBottom: "120px",
-            }}
-          >
-            {/* Status Pill */}
-            <div className="absolute top-6 right-6 z-[100]">
-              <span
-                className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest shadow-2xl ${isOpen ? "bg-emerald-500 text-white border-emerald-400" : "border-red-500 text-red-500 bg-black/80"}`}
-              >
-                {isOpen ? "ABIERTO" : "CERRADO"}
-              </span>
-            </div>
-
-            {/* Header Sushi */}
-            <div className="sushi-header">
-              <div className="flex items-center gap-4">
-                <div
-                  className="sushi-logo"
-                  style={{ backgroundImage: `url('${LOGO || ""}')` }}
-                ></div>
-                <div className="text-left">
-                  <h1
-                    className="text-2xl font-black uppercase italic leading-none tracking-tighter"
-                    style={{ color: TEXT }}
-                  >
-                    {restaurant.name}
-                  </h1>
-                  <p
-                    className="text-[10px] font-bold opacity-50 uppercase tracking-widest mt-1"
-                    style={{ color: DESC }}
-                  >
-                    {restaurant.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Promo con tus colores recuperados */}
-            {restaurant.show_promo && restaurant.promo_message && (
-              <div className="sushi-msg-box">{restaurant.promo_message}</div>
-            )}
-
-            {/* Grilla Interactiva */}
-            <div className="sushi-grid">
-              {restaurant.categories?.map((cat: any) => (
-                <div key={cat.id} style={{ display: "contents" }}>
-                  {cat.products?.map((prod: any) => {
-                    const extras = getExtrasForProduct(prod.id);
-                    const principalEnCarrito = cart.some(
-                      (item) => item.id === prod.id,
-                    );
-                    const isActive = activeCardId === prod.id;
-
-                    return (
-                      <div
-                        key={prod.id}
-                        className={`sushi-item ${isActive ? "z-20 scale-[1.05]" : "z-0"}`}
-                        onClick={() => setActiveCardId(prod.id)}
-                      >
-                        {/* Imagen con desenfoque al tocar (Video Flow) */}
-                      <div className="absolute inset-0 transition-all duration-500 overflow-hidden bg-zinc-900">
- {prod.video_url ? (
-  <video 
-    src={prod.video_url} 
-    autoPlay 
-    muted 
-    loop 
-    playsInline // <-- Esta es clave
-    preload="auto"
-    className="w-full h-full object-cover transition-all duration-500"
-    style={{ filter: isActive ? "brightness(0.2) blur(8px)" : "none" }}
-  />
-  ) : (
-    <div
-      className="w-full h-full bg-cover bg-center transition-all duration-500"
-      style={{
-        backgroundImage: `url('${prod.image_url || ""}')`,
-        filter: isActive ? "brightness(0.2) blur(8px)" : "none",
+case "visualgrid":
+  return (
+    <VisualGrid
+      restaurant={restaurant}
+      products={allProducts}
+      categories={displayCats}
+      fetchedExtras={restaurant.fetched_extras}
+      isOpen={isOpen}
+      setShowInfo={setShowInfo} // 🚀 ESTA TIENE QUE ESTAR SÍ O SÍ
+      isMockup={false}
+      onAddToCart={(product: any) => {
+        const exists = cart.find(item => item.id === product.id && !item.parentId);
+        if (!exists || product.parentId) {
+           addToCart(product);
+        }
+        mostrarAviso("✅ Pedido agregado"); 
       }}
     />
-  )}
-</div>
-
-                        {/* Vista Normal */}
-                        {!isActive && (
-                          <div className="sushi-overlay-norm">
-                            <div className="font-bold text-sm text-white leading-tight mb-1">
-                              {prod.name}
-                            </div>
-                            <div
-                              className="font-black text-xs"
-                              style={{ color: THEME }}
-                            >
-                              {formatPrice(prod.price)}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Vista Activa (Detalle centrado como en el video) */}
-                        {isActive && (
-                          <div
-                            id={`scroll-panel-${prod.id}`}
-                            className="sushi-active-panel no-scrollbar overflow-y-auto"
-                          >
-                            <div className="flex justify-end mb-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveCardId(null);
-                                }}
-                                className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-90"
-                              >
-                                <X size={18} />
-                              </button>
-                            </div>
-                            <div className="text-left flex-1 flex flex-col justify-center">
-                              <div className="font-black text-white text-xl leading-none mb-1 uppercase italic">
-                                {prod.name}
-                              </div>
-                              <div className="text-[11px] text-white/50 mb-4 leading-snug">
-                                {prod.description}
-                              </div>
-                              <div
-                                className="font-black text-lg mb-6"
-                                style={{ color: THEME }}
-                              >
-                                {formatPrice(prod.price)}
-                              </div>
-
-                              {/* BOTÓN LARGO Y CENTRADO */}
-                              <div
-                                className="add-btn-full-width mb-6"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <AddToCartBtn
-                                  product={prod}
-                                  variant="full"
-                                  disabled={!isOpen}
-                                />
-                              </div>
-
-                              {/* EXTRAS CON SCROLL AUTOMÁTICO */}
-                              {principalEnCarrito &&
-                                extras &&
-                                extras.length > 0 && (
-                                  <div className="space-y-2 pb-6 animate-in slide-in-from-bottom-2">
-                                    <p className="text-[9px] font-black text-white/30 uppercase tracking-widest border-b border-white/10 pb-1 mb-2">
-                                      Adicionales
-                                    </p>
-                                    {extras.map((ex: any) => (
-                                      <div
-                                        key={ex.id}
-                                        className="flex justify-between items-center bg-black/40 p-3 rounded-2xl border border-white/5"
-                                      >
-                                        <div className="text-left leading-none">
-                                          <div className="text-[11px] font-bold text-white">
-                                            {ex.name}
-                                          </div>
-                                          <div
-                                            className="text-[10px] mt-1"
-                                            style={{ color: THEME }}
-                                          >
-                                            +{formatPrice(ex.price)}
-                                          </div>
-                                        </div>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            addToCart({
-                                              id: prod.id,
-                                              extraId: ex.id,
-                                              name: ex.name,
-                                              price: Number(ex.price),
-                                            });
-                                            mostrarAviso("✅ Extra sumado");
-                                          }}
-                                          className="w-8 h-8 rounded-xl flex items-center justify-center active:scale-90 shadow-lg"
-                                          style={{
-                                            backgroundColor: BTN_BG,
-                                            color: BTN_TEXT,
-                                          }}
-                                        >
-                                          <Plus size={16} strokeWidth={3} />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+  );
+        
       case "pop":
         // Usamos la nueva columna de la DB para los bordes y sombras rígidas
         const shadow = restaurant.card_shadow_color || "#000000";
@@ -2148,6 +1966,84 @@ const displayCats = cleanCats;
               className="mt-6 w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all"
             >
               Entendido
+            </button>
+          </div>
+        </div>
+      )}
+     
+    
+{/* --- MODAL DE INFO GLOBAL (DISEÑO PREMIUM MAESTRO) --- */}
+      {/* --- MODAL DE INFO GLOBAL (DISEÑO PREMIUM MAESTRO) --- */}
+      {showInfo && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#18181b] border border-white/10 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 text-center">
+            <button onClick={() => setShowInfo(false)} className="absolute top-5 right-5 text-gray-400 hover:text-white transition-colors">
+              <X size={20}/>
+            </button>
+            
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <Store size={20} className="text-white opacity-60" />
+              <h3 className="text-base font-black uppercase italic tracking-tighter text-white">Información del Local</h3>
+            </div>
+
+            <div className="space-y-6 text-left mb-8">
+              {/* UBICACIÓN: Link real a Google Maps */}
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-2xl flex-shrink-0 bg-white/5 text-white/50 border border-white/5">
+                  <MapPin size={18} strokeWidth={1.5}/>
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-white/20">Ubicación</p>
+                  {restaurant.google_maps_link ? (
+                    <a href={restaurant.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-gray-200 underline decoration-white/20 hover:text-white transition-colors flex items-center gap-1">
+                      {restaurant.address || 'Ver en mapa'} <ExternalLink size={10} className="opacity-30"/>
+                    </a>
+                  ) : (
+                    <p className="text-xs font-bold text-gray-200">{restaurant.address || 'No especificada'}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* HORARIOS */}
+              {restaurant.opening_hours && (
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 rounded-2xl flex-shrink-0 bg-white/5 text-white/50 border border-white/5">
+                    <Clock size={18} strokeWidth={1.5}/>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-white/20">Horarios</p>
+                    <p className="text-xs font-bold text-gray-200 whitespace-pre-line leading-tight">{restaurant.opening_hours}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* REDES SOCIALES: Iconos blancos de trazo fino */}
+              <div className="flex justify-center gap-6 pt-8 border-t border-white/5">
+                {restaurant.instagram && (
+                  <a href={restaurant.instagram.startsWith('http') ? restaurant.instagram : (restaurant.instagram.includes('.') ? `https://${restaurant.instagram.replace('https://', '')}` : `https://instagram.com/${restaurant.instagram.replace('@','')}`)} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                    <Instagram size={24} strokeWidth={1.5} />
+                  </a>
+                )}
+                {restaurant.facebook && (
+                  <a href={restaurant.facebook.startsWith('http') ? restaurant.facebook : `https://facebook.com/${restaurant.facebook}`} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                    <Facebook size={24} strokeWidth={1.5} />
+                  </a>
+                )}
+                {restaurant.tiktok && (
+                  <a href={restaurant.tiktok.startsWith('http') ? restaurant.tiktok : `https://tiktok.com/@${restaurant.tiktok.replace('@','')}`} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                    <Music2 size={24} strokeWidth={1.5} />
+                  </a>
+                )}
+                {restaurant.phone && (
+                  <a href={`https://wa.me/${restaurant.phone}`} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                    <Phone size={24} strokeWidth={1.5} />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <button onClick={() => setShowInfo(false)} className="w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all">
+              Cerrar
             </button>
           </div>
         </div>

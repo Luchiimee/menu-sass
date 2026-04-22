@@ -12,14 +12,16 @@ interface Props {
   isOpen: boolean; 
   onAddToCart: any; 
   isMockup?: boolean;
+  setShowInfo: (val: boolean) => void;
 }
 
-const MinimalWhite: React.FC<Props> = ({ 
-  restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false 
+  const MinimalWhite: React.FC<Props> = ({ 
+  restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false,
+  setShowInfo // 🚀 AGREGÁ ESTO
 }) => {
   const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
 
@@ -256,25 +258,8 @@ const prodDesc = restaurant.card_desc_color || '#555555';
         })}
       </div>
 
-      {/* MODAL INFO */}
-      {showInfo && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl relative animate-in zoom-in-95">
-            <button onClick={() => setShowInfo(false)} className="absolute top-5 right-5 text-gray-400"><X size={20}/></button>
-            <h3 className="text-sm font-black uppercase tracking-widest text-gray-900 mb-6 flex items-center gap-2"><Store size={16}/> Info Local</h3>
-            <div className="space-y-6 text-left">
-              <div className="flex gap-3"><MapPin size={16} className="text-gray-400 shrink-0"/><p className="text-xs font-bold text-gray-800">{restaurant.address || 'No definida'}</p></div>
-              <div className="flex gap-3"><Coffee size={16} className="text-gray-400 shrink-0"/><p className="text-xs font-bold text-gray-800 whitespace-pre-line">{restaurant.opening_hours || 'Sin horario'}</p></div>
-              <div className="flex justify-center gap-6 pt-4 border-t">
-                {restaurant.instagram && <a href={`https://instagram.com/${restaurant.instagram}`} target="_blank" className="text-pink-500"><Instagram size={22}/></a>}
-                {restaurant.facebook && <a href={`https://facebook.com/${restaurant.facebook}`} target="_blank" className="text-blue-600"><Facebook size={22}/></a>}
-                {restaurant.phone && <a href={`https://wa.me/${restaurant.phone}`} target="_blank" className="text-green-500"><Phone size={22}/></a>}
-              </div>
-            </div>
-            <button onClick={() => setShowInfo(false)} className="w-full mt-8 py-4 bg-gray-900 text-white rounded-xl font-black uppercase text-[10px] tracking-widest">Cerrar</button>
-          </div>
-        </div>
-      )}
+    
+     
     </div>
   );
 };

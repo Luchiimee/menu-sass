@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
@@ -63,7 +63,23 @@ const TEMPLATE_DEFAULTS: any = {
     cat_active_text_color: '#ffffff',search_bg_color: '#f3f4f6', 
     search_icon_color: '#9ca3af',},
 
-  visualgrid: { theme: '#ea580c', bg: '#121212', card: '#1E1E1E', text: '#ffffff', desc: '#888888', card_name: '#ffffff', card_desc: '#888888', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg_color: '#1E1E1E', promo_text_color: '#ffffff', banner: false },
+visualgrid: { 
+    theme: '#ea580c', 
+    bg: '#121212', 
+    card: '#1E1E1E', 
+    text: '#ffffff', 
+    desc: '#888888', 
+    card_name: '#ffffff', 
+    card_desc: '#888888', 
+    card_price: '#ea580c', 
+    btn_bg: '#ea580c',  // Color del botón +
+    btn_text: '#ffffff', // Color del símbolo +
+    promo_bg_color: '#1E1E1E', 
+    promo_text_color: '#ffffff', 
+    banner: false,
+    search_bg_color: '#111111', 
+    search_icon_color: '#ea580c'
+},
   pop: { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', card_name: '#FF1493', card_desc: '#444444', card_price: '#000000', card_shadow_color: '#000000', btn_bg: '#ffffff', btn_text: '#FF1493', promo_bg: '#FFD700', promo_text: '#000000', banner: false },
   spotlight: { theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', card_name: '#000000', card_desc: '#666666', card_price: '#000000', btn_bg: '#000000', btn_text: '#ffffff', promo: '#fff3e0', promo_text: '#000000', banner: true, hero_badge_bg: '#FFD700', hero_badge_color: '#000000', hero_title_color: '#ffffff', hero_price_color: '#FFD700' },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', text: '#333333', desc: '#777777', card_name: '#333333', card_color: '#f9f5f0', card_desc: '#888888', card_price: '#D4AF37', btn_bg: '#D4AF37', btn_text: '#ffffff', promo_bg: '#f0e8dc', promo_text: '#5c4b30', banner: false },
@@ -86,6 +102,7 @@ const CUSTOM_STYLES = `
 
 // ── PhoneMockup: acepta activeTab para mostrar vista SnappyLinks ──────────────
 const PhoneMockup = ({ data, products, categories, previewTemplateId, activeTab }: any) => {
+  const [showInfoMock, setShowInfoMock] = useState(false);
   const activeId = previewTemplateId || data?.template_id || 'classic';
   const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
   
@@ -193,7 +210,8 @@ const props = {
   fetchedExtras: [], 
   isOpen: true, 
   onAddToCart: () => {}, 
-  isMockup: true 
+  isMockup: true, 
+  setShowInfo: setShowInfoMock
 };
 
   return (
@@ -205,7 +223,7 @@ const props = {
             switch (activeId) {
               case 'urban': return <UrbanoDark {...props} />;
               case 'pop': return <PopVibrant {...props} />;
-              case 'visualgrid': return <div className="flex flex-col gap-4"><VisualGrid {...props} /></div>;
+              case 'visualgrid': return <div className="flex flex-col gap-4"><VisualGrid {...props} isMockup={true} /></div>;
               case 'classic': return <ClassicDelivery {...props} />;
               case 'minimal': return <MinimalWhite {...props} />;
               case 'spotlight': return <SpotlightHero {...props} />;
@@ -218,7 +236,48 @@ const props = {
             }
           })()}
         </div>
+      {/* 🚀 VISTA PREVIA DEL MODAL (IDÉNTICO A LA WEB CON TRAZO BLANCO) */}
+        {showInfoMock && (
+          <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-[#18181b] border border-white/10 w-full rounded-[2.5rem] p-6 shadow-2xl relative text-center">
+              <button onClick={() => setShowInfoMock(false)} className="absolute top-4 right-4 text-gray-500"><X size={16}/></button>
+              
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <Store size={14} className="text-white opacity-60"/>
+                <h3 className="text-[10px] font-black uppercase text-white italic tracking-tighter">Información</h3>
+              </div>
+
+              <div className="space-y-4 text-left mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-white/5 text-white/50 border border-white/5"><MapPin size={14} strokeWidth={1.5}/></div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-white/20 tracking-widest">Ubicación</p>
+                    <p className="text-[10px] text-gray-200 font-bold leading-tight">{data.address || 'Sin dirección'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-white/5 text-white/50 border border-white/5"><Clock size={14} strokeWidth={1.5}/></div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-white/20 tracking-widest">Horarios</p>
+                    <p className="text-[10px] text-gray-200 font-bold leading-tight">{data.opening_hours || 'Sin horario'}</p>
+                  </div>
+                </div>
+
+                {/* ICONOS DINÁMICOS CON TRAZO FINO BLANCO */}
+                <div className="flex justify-center gap-5 pt-4 border-t border-white/5">
+                    {data.instagram && <Instagram size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+                    {data.facebook && <Facebook size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+                    {data.tiktok && <Music2 size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+                    {data.phone && <Phone size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+                </div>
+              </div>
+              <button onClick={() => setShowInfoMock(false)} className="w-full py-3 bg-white text-black rounded-xl font-black uppercase text-[9px]">Cerrar</button>
+            </div>
+          </div>
+        )}
       </div>
+    
     </CartProvider>
   );
 };
@@ -687,7 +746,7 @@ const confirmReset = () => {
                           <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
                           {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
                      {['alterna-pro', 'marketpro', 'urban', 'classic', 'minimal'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
-                         {['marketpro', 'urban', 'classic', 'minimal'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
+                         {['marketpro', 'urban', 'classic', 'minimal','visualgrid'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
                           {tConfig.showClassicBanner && <ColorBubble 
   label="Banner Nom" 
   value={data.theme_color} 
@@ -844,7 +903,7 @@ const confirmReset = () => {
                   </section>
 
                   {/* MARKET PRO EXTRA */}
-                 {['marketpro', 'urban', 'classic','minimal'].includes(data.template_id) && (
+                 {['marketpro', 'urban', 'classic', 'minimal', 'visualgrid'].includes(data.template_id) && (
                     <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">

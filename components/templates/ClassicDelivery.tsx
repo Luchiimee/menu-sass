@@ -12,16 +12,18 @@ interface Props {
   isOpen: boolean; 
   onAddToCart: any; 
   isMockup?: boolean;
+  setShowInfo: (val: boolean) => void;
 }
 
 const ClassicDelivery: React.FC<Props> = ({ 
-  restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false 
+  restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false,
+  setShowInfo 
 }) => {
   const { cart, updateQuantity, updateExtraQuantity, removeFromCart, addToCart } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
-const [showInfo, setShowInfo] = useState(false); 
+; 
   // --- VARIABLES DE DISEÑO ---
   const headerBg = restaurant.theme_color || '#d32f2f';
   const headerDesc = restaurant.description_color || '#ffffff';
@@ -324,25 +326,7 @@ const handleMainStep = (p: any, delta: number) => {
           );
         })}
       </div>
-      {showInfo && (
-  <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-    <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative">
-      <div className="flex justify-between items-center mb-6">
-         <h3 className="font-black uppercase italic tracking-tighter text-gray-900">Info Local</h3>
-         <button onClick={() => setShowInfo(false)}><X size={20}/></button>
-      </div>
       
-      <div className="space-y-4 text-left">
-        <div className="flex gap-3 text-xs font-bold"><MapPin size={16}/> {restaurant.address || 'No definida'}</div>
-        <div className="flex gap-3 text-xs font-bold"><Clock size={16}/> {restaurant.opening_hours || 'Sin horario'}</div>
-        
-        {/* Tus iconos de redes sociales acá... */}
-      </div>
-
-      <button onClick={() => setShowInfo(false)} className="w-full mt-8 py-3 bg-black text-white rounded-xl font-black uppercase text-[10px]">Cerrar</button>
-    </div>
-  </div>
-)}
     </div>
   );
 };

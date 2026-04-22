@@ -19,6 +19,7 @@ interface AddToCartBtnProps {
   disabled?: boolean;
   hasExtras?: boolean;
   onOpenExtras?: () => void;
+  style?: React.CSSProperties;
 }
 
 export default function AddToCartBtn({ 
@@ -27,7 +28,8 @@ export default function AddToCartBtn({
   isDark = false, 
   disabled = false,
   hasExtras = false,
-  onOpenExtras 
+  onOpenExtras,
+  style
 }: AddToCartBtnProps) {
  const { cart, addToCart, removeFromCart } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
@@ -68,6 +70,7 @@ export default function AddToCartBtn({
       <button 
         onClick={handleAdd}
         disabled={disabled}
+        style={style}
         className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md bg-white text-black border border-gray-100 active:scale-95 transition-all ${disabled ? 'opacity-40 grayscale' : ''}`}
       >
         {hasExtras ? <Settings2 size={14} className="text-[#f0b001]" /> : <Plus size={16} />}
@@ -78,6 +81,7 @@ export default function AddToCartBtn({
   // Botón con cantidad > 0
   return (
     <div 
+    style={style}
   className={`grid grid-cols-3 items-center justify-items-center w-full max-w-[110px] mx-auto rounded-full px-1 py-1 shadow-md font-bold text-sm bg-white text-black border border-gray-100 ${isAnimating ? 'scale-105' : 'scale-100'} ${disabled ? 'opacity-40 grayscale' : ''}`}
     >
       <button onClick={handleRemove} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100">

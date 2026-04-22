@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Search, Plus, X, Minus, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone, Check } from "lucide-react";
 
-export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false }: any) {
+export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
-  const [showInfo, setShowInfo] = useState(false);
+
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
 const [variationsQuantities, setVariationsQuantities] = useState<{ [key: number]: number }>({});
   const isOpenNow = isOpen;
@@ -121,17 +121,17 @@ const sz = isMockup ? {
           </div>
 
           {/* 2. EL ICONO DE INFO VA ABAJO Y MÁS GRANDE */}
-          <button 
-            onClick={() => setShowInfo(true)} 
-            className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform" 
-            style={{ 
-              borderColor: 'rgba(255,255,255,0.1)', 
-              backgroundColor: 'rgba(255,255,255,0.05)', 
-              color: localNameColor 
-            }}
-          >
-            <Store size={22} /> {/* 🚀 Agrandado de 18 a 22 */}
-          </button>
+         <button 
+  onClick={() => setShowInfo(true)} // 🚀 Esto ahora le avisa al "Modal Maestro"
+  className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform" 
+  style={{ 
+    borderColor: 'rgba(255,255,255,0.1)', 
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    color: localNameColor 
+  }}
+>
+  <Store size={22} />
+</button>
         </div>
       </div>
       
@@ -296,74 +296,7 @@ const sz = isMockup ? {
             })
         )}
       </div>
-      {showInfo && (
-        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-white/10 animate-in zoom-in-95 duration-200" style={{ backgroundColor: cardBg }}>
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2" style={{ color: localNameColor }}>
-                <Store size={18} />
-                <h3 className="text-base font-black uppercase italic tracking-tighter">Info del Local</h3>
-              </div>
-              <button onClick={() => setShowInfo(false)} className="p-1.5 rounded-full transition-colors opacity-70 hover:opacity-100" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: localNameColor }}>
-                <X size={16}/>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Ubicación */}
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: accent }}><MapPin size={18}/></div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5 opacity-60" 
-                  style={{ color: localNameColor, opacity: 0.6 }}>Dirección</p>
-                  {restaurant.google_maps_link ? (
-                    <a href={restaurant.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold underline" style={{ color: localNameColor }}>
-                      {restaurant.address || 'Ver en mapa'} <ExternalLink size={10} className="inline ml-1"/>
-                    </a>
-                  ) : <p className="text-xs font-bold" style={{ color: localNameColor }}>{restaurant.address || 'No especificada'}</p>}
-                </div>
-              </div>
-
-              {/* Horarios */}
-              {restaurant.opening_hours && (
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: accent }}><Clock size={18}/></div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest mb-0.5 opacity-60"style={{ color: localNameColor, opacity: 0.6 }}>Horarios</p>
-                    <p className="text-xs font-bold whitespace-pre-line leading-tight" style={{ color: localNameColor }}>{restaurant.opening_hours}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* WhatsApp */}
-              {restaurant.phone && (
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl flex-shrink-0 bg-green-500/10 text-green-500"><Phone size={18}/></div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest mb-0.5 opacity-60" style={{ color: localDescColor }}>WhatsApp</p>
-                    <a href={`https://wa.me/${restaurant.phone}`} target="_blank" className="text-xs font-bold text-green-500 underline">Enviar mensaje</a>
-                  </div>
-                </div>
-              )}
-
-              {/* Redes Sociales */}
-              {(restaurant.instagram || restaurant.facebook || restaurant.tiktok) && (
-                <div className="pt-4 border-t border-white/5 mt-2">
-                  <div className="flex justify-center gap-4 items-center">
-                    {restaurant.instagram && <a href={restaurant.instagram.startsWith('http') ? restaurant.instagram : `https://instagram.com/${restaurant.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 active:scale-95 transition-transform" style={{ color: accent }}><Instagram size={20}/></a>}
-                    {restaurant.facebook && <a href={restaurant.facebook.startsWith('http') ? restaurant.facebook : `https://facebook.com/${restaurant.facebook}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 active:scale-95 transition-transform" style={{ color: accent }}><Facebook size={20}/></a>}
-                    {restaurant.tiktok && <a href={restaurant.tiktok.startsWith('http') ? restaurant.tiktok : `https://tiktok.com/@${restaurant.tiktok.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="hover:scale-110 active:scale-95 transition-transform" style={{ color: accent }}><Music2 size={20}/></a>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button onClick={() => setShowInfo(false)} className="w-full mt-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md active:scale-[0.98] transition-transform" style={{ backgroundColor: btnBg, color: btnText }}>
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
+     
 {/* --- MODAL DE PRODUCTO (DETALLE Y COMPRA) --- */}
       {selectedProduct && (
         <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
