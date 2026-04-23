@@ -16,7 +16,14 @@ interface Table {
     restaurant_id: string;
 }
 
-export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, businessType, restaurantName }: any) {
+export default function CartFooter({ 
+    phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, 
+    businessType, restaurantName,
+    // 🚀 ASEGURATE QUE ESTÉN ESTAS TRES AQUÍ:
+    scheduled_delivery_enabled, 
+    scheduled_delivery_slots,
+    isAdmin 
+}: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     
     // --- 1. ESTADOS PRINCIPALES ---
@@ -28,6 +35,8 @@ export default function CartFooter({ phone, deliveryCost, restaurantId, aliasMp,
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+    const [entregaTipo, setEntregaTipo] = useState<'inmediata' | 'programada'>('inmediata');
+    const [selectedSlot, setSelectedSlot] = useState('');
 
     // --- 2. FUNCIONES AUXILIARES (DEFINIDAS ARRIBA PARA EVITAR ERRORES) ---
     const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
@@ -465,6 +474,11 @@ const handleCallWaiter = async () => {
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
     if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
+    
+    // 🚀 VALIDACIÓN: Si eligió programar pero no seleccionó un horario
+    if (metodoEnvio !== 'mesa' && entregaTipo === 'programada' && !selectedSlot) {
+        return alert("Por favor, seleccioná un horario para tu entrega programada.");
+    }
 
     const isPlus = planType === 'plus' || planType === 'max';
     const isLight = planType === 'light';
@@ -476,28 +490,48 @@ const handleCallWaiter = async () => {
         // 1. GUARDADO EN BASE DE DATOS (Solo si no es Light)
         if (!isLight) {
             const { data: newOrder, error } = await supabase.from('orders').insert({
-                restaurant_id: restaurantId, customer_name: nombre, customer_phone: telCliente, address: metodoEnvio === 'delivery' ? direccion : '',
-                order_type: metodoEnvio, payment_method: metodoPago, total: totalFinal, status: 'pendiente', delivery_cost: envio, origin_plan: planType,
-                items: cart, table_number: metodoEnvio === 'mesa' ? nroMesa : null, description: aclaraciones, coupon_code: appliedCoupon?.code || null, discount_amount: montoDescuento || 0
+                restaurant_id: restaurantId, 
+                customer_name: nombre, 
+                customer_phone: telCliente, 
+                address: metodoEnvio === 'delivery' ? direccion : '',
+                order_type: metodoEnvio, 
+                payment_method: metodoPago, 
+                total: totalFinal, 
+                status: 'pendiente', 
+                delivery_cost: envio, 
+                origin_plan: planType,
+                items: cart, 
+                table_number: metodoEnvio === 'mesa' ? nroMesa : null, 
+                description: aclaraciones, 
+                coupon_code: appliedCoupon?.code || null, 
+                discount_amount: montoDescuento || 0,
+                // 🚀 GUARDAMOS EL HORARIO EN LA DB
+                scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato'
             }).select().single();
 
             if (error) throw error;
             if (newOrder) {
                 setActiveOrderId(newOrder.id);
-                localStorage.setItem("activeOrderId", newOrder.id); // 🚀 Guardamos para persistencia
+                localStorage.setItem("activeOrderId", newOrder.id); 
                 localStorage.setItem("metodoEnvio", metodoEnvio);
-        localStorage.setItem("nroMesa", nroMesa);
+                localStorage.setItem("nroMesa", nroMesa);
                 orderRef = `#${newOrder.id.slice(0, 5)}`;
             }
         } else {
             setActiveOrderId('light-plan-order');
         }
 
-        // 2. CONSTRUCCIÓN DEL MENSAJE (Se arma siempre, por si es delivery)
+        // 2. CONSTRUCCIÓN DEL MENSAJE
         let mensaje = `*¡Hola! Nuevo Pedido*\nRef: ${orderRef}\n------------------\n`;
         mensaje += `👤 *Nombre:* ${nombre}\n`;
         if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
         mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
+        
+        // 🚀 AGREGAMOS EL HORARIO AL WHATSAPP
+        if (metodoEnvio !== 'mesa') {
+            mensaje += `⏰ *Horario:* ${entregaTipo === 'programada' ? `📅 PROGRAMADO (${selectedSlot})` : '🚀 LO ANTES POSIBLE'}\n`;
+        }
+
         if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
         if (metodoEnvio === 'mesa') mensaje += `🍽️ *Mesa:* ${nroMesa}\n`;
         mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
@@ -518,36 +552,29 @@ const handleCallWaiter = async () => {
         mensaje += `\n🔥 *TOTAL: ${formatPrice(totalFinal)}*`;
 
         // 🚀 3. PROTOCOLO DE REDIRECCIÓN INTELIGENTE
-        setIsVisible(false); // Cerramos el modal del pedido
+        setIsVisible(false);
 
-        // 🛑 CASO MESA: BLOQUEO TOTAL DE WHATSAPP
-if (metodoEnvio === 'mesa') {
-            setIsVisible(false); // Aquí sí lo cerramos para mostrar el tracker central
+        if (metodoEnvio === 'mesa') {
+            setIsVisible(false);
             window.onbeforeunload = null; 
             setIsSending(false);
             return; 
         }
 
-  if (isLight || receiveWhatsapp === true) {
+        if (isLight || receiveWhatsapp === true) {
             const cleanPhone = String(phone).replace(/\D/g, ''); 
             const textEncoded = encodeURIComponent(mensaje);
             const protocolUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
 
             window.onbeforeunload = null;
-            
-            // 🚀 1. Cerramos el carrito INMEDIATAMENTE
             setIsVisible(false); 
             
-            // 🚀 2. Programamos que el Modal de Éxito salte en 5 segundos
-            // ¡NUEVO!: Solo lo activamos si es plan Light. Si es plan GO/Plus/Max, 
-            // el sistema automáticamente va a mostrar el OrderTracker de la cocina.
             if (isLight) {
                 setTimeout(() => {
                     setShowSuccessScreen(true);
                 }, 5000);
             }
             
-            // 🚀 3. Redirigimos a WhatsApp rapidísimo
             setTimeout(() => {
                 window.location.href = protocolUrl;
             }, 100);
@@ -563,7 +590,7 @@ if (metodoEnvio === 'mesa') {
         alert("Error al procesar el pedido."); 
         setIsSending(false); 
     }
-};
+  };
  if (!showSuccessScreen && (!cart || cart.length === 0 || !isVisible)) {
         if (cart.length > 0) return (
             /* Contenedor invisible que centra el área del botón en PC */
@@ -696,6 +723,72 @@ return (
                         </div>
                     )}
                 </div>
+     {/* 📅 SELECTOR DE PROGRAMACIÓN MEJORADO */}
+{metodoEnvio !== 'mesa' && scheduled_delivery_enabled && (planType !== 'light' || isAdmin) && (
+    <div className="space-y-4 p-6 bg-indigo-50/40 rounded-[2.5rem] border border-indigo-100/50 mb-6 animate-in slide-in-from-top-4">
+        <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+                <Clock size={16} strokeWidth={2.5} />
+            </div>
+            <div className="text-left">
+                <label className="text-[10px] font-black text-indigo-950 uppercase tracking-tighter leading-none">
+                    ¿Cuándo lo enviamos?
+                </label>
+                <p className="text-[8px] text-indigo-400 font-bold uppercase tracking-widest mt-0.5">Elegí tu momento ideal</p>
+            </div>
+        </div>
+        
+        <div className="flex bg-white/60 p-1 rounded-2xl gap-1 border border-indigo-100">
+            <button 
+                type="button"
+                onClick={() => { setEntregaTipo('inmediata'); setSelectedSlot(''); }}
+                className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1 ${entregaTipo === 'inmediata' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-gray-400'}`}
+            >
+                🚀 Inmediato
+            </button>
+            <button 
+                type="button"
+                onClick={() => setEntregaTipo('programada')}
+                className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1 ${entregaTipo === 'programada' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-gray-400'}`}
+            >
+                📅 Programar
+            </button>
+        </div>
+
+        {/* LISTA DE SLOTS EN FORMATO "PILL" */}
+        {entregaTipo === 'programada' && (
+            <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in zoom-in duration-300">
+                {scheduled_delivery_slots?.length > 0 ? (
+                    scheduled_delivery_slots.map((slot: any, i: number) => {
+                        const slotValue = `${slot.day}: ${slot.time}`;
+                        const isSelected = selectedSlot === slotValue;
+                        return (
+                            <button 
+                                key={i}
+                                type="button"
+                                onClick={() => setSelectedSlot(slotValue)}
+                                className={`px-4 py-2.5 rounded-2xl border-2 text-left transition-all ${
+                                    isSelected 
+                                    ? 'border-indigo-600 bg-white shadow-md' 
+                                    : 'border-white bg-white/40 text-gray-500'
+                                }`}
+                            >
+                                <div className="flex flex-col">
+                                    <span className={`text-[8px] font-black uppercase ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`}>{slot.day}</span>
+                                    <span className="text-[10px] font-bold whitespace-nowrap">{slot.time}</span>
+                                </div>
+                            </button>
+                        );
+                    })
+                ) : (
+                    <div className="w-full py-4 text-[9px] font-bold text-gray-400 uppercase text-center italic border-2 border-dashed border-indigo-100 rounded-2xl">
+                        No hay horarios configurados
+                    </div>
+                )}
+            </div>
+        )}
+    </div>
+)}
                 {metodoEnvio !== 'mesa' && (
                     <div className="space-y-3 animate-in fade-in duration-300">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">

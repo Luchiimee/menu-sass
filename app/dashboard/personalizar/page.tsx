@@ -299,9 +299,13 @@ export default function EditorPage() {
   const [showBioContent, setShowBioContent] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 const [showBioDesigns, setShowBioDesigns] = useState(false);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
+const [businessType, setBusinessType] = useState<string | null>(null);
  const [data, setData] = useState<any>({
   id: null, name: '', slug: '', description: '', delivery_cost: 0, address: '', instagram: '',
   facebook: '', tiktok: '', opening_hours: '', google_maps_link: '', phone: '',
@@ -331,6 +335,8 @@ const [showBioDesigns, setShowBioDesigns] = useState(false);
 snappylink_desc_color: '#666666',
 snappylink_social_links: [], 
 snappylink_social_pos: 'bottom',
+scheduled_delivery_enabled: false,
+  scheduled_delivery_slots: [] as { day: string, time: string }[]
 });
 const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
@@ -369,84 +375,82 @@ const getLinksLimit = () => {
 
   useEffect(() => {
     let mounted = true;
-    const loadData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
-        const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single();
-        if (rest && mounted) {
-          const { data: bioData } = await supabase
+  const loadData = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    // 1. 🚀 DETECTAMOS SI ES ADMIN (Para el bypass de planes)
+    const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+    setIsAdmin(isSuperAdmin);
+
+    const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single();
+
+    if (rest && mounted) {
+      // 2. 🚀 ACTUALIZAMOS ESTADOS INDIVIDUALES (Para que el resto del código los vea)
+      setRestaurantId(rest.id);
+      setBusinessType(rest.business_type);
+      setCurrentPlan(rest.subscription_plan); // Esto evita el error de "currentPlan is not defined"
+
+      const { data: bioData } = await supabase
         .from('snappylinks')
         .select('*')
         .eq('restaurant_id', rest.id)
         .maybeSingle();
-          const tId = rest.template_id || 'classic';
-          const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
-          // ── BUSCÁ EL setData({ ... }) DENTRO DE loadData ──
-setData({
-  ...rest, 
-  template_id: tId,
-  theme_color: rest.theme_color || defaults.theme,
-  bg_color: rest.bg_color || defaults.bg,
-  text_color: rest.text_color || defaults.text,
-  description_color: rest.description_color || defaults.desc,
-  promo_bg_color: rest.promo_bg_color || defaults.promo,
-  promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
-  card_name_color: rest.card_name_color || defaults.card_name,
-  card_color: rest.card_color || defaults.card || defaults.bg,
-  card_desc_color: rest.card_desc_color || defaults.card_desc,
-  card_price_color: rest.card_price_color || defaults.card_price,
-  card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
-  card_btn_text: rest.card_btn_text || defaults.btn_text,
-  card_show_bg: rest.card_show_bg !== undefined ? rest.card_show_bg : true,
-  cat_bg_color: rest.cat_bg_color || '#f3f4f6',
-  cat_text_color: rest.cat_text_color || '#999999',
-  cat_active_bg_color: rest.cat_active_bg_color || '#000000',
-  cat_active_text_color: rest.cat_active_text_color || '#ffffff',
- // Dentro de loadData...
-search_bg_color: (tId === 'urban' && (rest.search_bg_color === '#ffffff' || rest.search_bg_color === '#f3f4f6')) 
-    ? '#1E1E1E' 
-    : (rest.search_bg_color || defaults.search_bg_color || '#ffffff'),
-    
-  search_icon_color: (tId === 'urban' && (rest.search_icon_color === '#9ca3af' || !rest.search_icon_color)) 
-    ? '#888888' 
-    : (rest.search_icon_color || defaults.search_icon_color || '#9ca3af'),
-  name: rest.name || 'Mi Restaurante',
-  description: rest.description || 'Disfrutá de los mejores sabores.',
-address: rest.address || '',
-  google_maps_link: rest.google_maps_link || '',
-  instagram: rest.instagram || '',
-  facebook: rest.facebook || '',
-  tiktok: rest.tiktok || '',
-  opening_hours: rest.opening_hours || '',
-  // 🚀 DATOS DESDE LA TABLA INDEPENDIENTE (bioData)
-  snappylink_slug: bioData?.slug || rest.slug + 'bio',
-  snappylink_bio: bioData?.bio || '',
-  snappylink_links: bioData?.links || [],
-  is_bio_active: bioData?.is_active !== undefined ? bioData.is_active : true,
-  snappylink_template_id: bioData?.template_id || 'bio-modern',
-  
-  // 🎨 CAMPOS DE DISEÑO PERSONALIZADO (bioData)
-  snappylink_title: bioData?.title || rest.name, 
-  snappylink_bg_color: bioData?.bg_color || '#ffffff',
-  snappylink_bg_img: bioData?.bg_img || '',
-  snappylink_btn_color: bioData?.btn_color || rest.theme_color || '#000000',
-  snappylink_btn_text_color: bioData?.btn_text_color || '#000000',
-  snappylink_shadow_color: bioData?.shadow_color || '#000000',
-  snappylink_title_color: bioData?.title_color || '#000000',
-  snappylink_logo_url: bioData?.logo_url || null,
-snappylink_desc_color: bioData?.desc_color || '#666666',
-snappylink_social_links: bioData?.social_links || [], 
-        snappylink_social_pos: bioData?.social_pos || 'bottom',
-});
-          setIsLocked(!rest.subscription_plan);
-          const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
-          if (prods && mounted) setProducts(prods);
-          const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', rest.id).order('sort_order', { ascending: true });
-          if (cats && mounted) setCategories(cats);
-        }
-      } catch (error) { console.error(error); } finally { if (mounted) setLoading(false); }
-    };
+
+      const tId = rest.template_id || 'classic';
+      const defaults = TEMPLATE_DEFAULTS[tId] || TEMPLATE_DEFAULTS['classic'];
+
+      // 3. 🚀 CARGAMOS TODO EL OBJETO DATA
+      setData({
+        ...rest,
+        template_id: tId,
+        theme_color: rest.theme_color || defaults.theme,
+        bg_color: rest.bg_color || defaults.bg,
+        text_color: rest.text_color || defaults.text,
+        description_color: rest.description_color || defaults.desc,
+        promo_bg_color: rest.promo_bg_color || defaults.promo,
+        promo_text_color: rest.promo_text_color || (defaults.promo_text || defaults.theme),
+        card_name_color: rest.card_name_color || defaults.card_name,
+        card_color: rest.card_color || defaults.card || defaults.bg,
+        card_desc_color: rest.card_desc_color || defaults.card_desc,
+        card_price_color: rest.card_price_color || defaults.card_price,
+        card_btn_bg: rest.card_btn_bg || defaults.btn_bg,
+        card_btn_text: rest.card_btn_text || defaults.btn_text,
+        card_show_bg: rest.card_show_bg !== undefined ? rest.card_show_bg : true,
+        cat_bg_color: rest.cat_bg_color || '#f3f4f6',
+        cat_text_color: rest.cat_text_color || '#999999',
+        cat_active_bg_color: rest.cat_active_bg_color || '#000000',
+        cat_active_text_color: rest.cat_active_text_color || '#ffffff',
+        search_bg_color: (tId === 'urban' && (rest.search_bg_color === '#ffffff' || rest.search_bg_color === '#f3f4f6'))
+          ? '#1E1E1E'
+          : (rest.search_bg_color || defaults.search_bg_color || '#ffffff'),
+
+        search_icon_color: (tId === 'urban' && (rest.search_icon_color === '#9ca3af' || !rest.search_icon_color))
+          ? '#888888'
+          : (rest.search_icon_color || defaults.search_icon_color || '#9ca3af'),
+        
+        // ... (restantes campos de bio que ya tenías) ...
+        snappylink_slug: bioData?.slug || rest.slug + 'bio',
+        snappylink_bio: bioData?.bio || '',
+        snappylink_links: bioData?.links || [],
+        is_bio_active: bioData?.is_active !== undefined ? bioData.is_active : true,
+        snappylink_template_id: bioData?.template_id || 'bio-modern',
+        
+        // 🚀 PROGRAMACIÓN (Lo que agregaste recién, está perfecto)
+        scheduled_delivery_enabled: rest.scheduled_delivery_enabled ?? false,
+        scheduled_delivery_slots: rest.scheduled_delivery_slots ?? [],
+      });
+
+      // Carga de productos y categorías (lo que ya tenías abajo)
+      setIsLocked(!rest.subscription_plan && !isSuperAdmin);
+      const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
+      if (prods && mounted) setProducts(prods);
+      const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', rest.id).order('sort_order', { ascending: true });
+      if (cats && mounted) setCategories(cats);
+    }
+  } catch (error) { console.error(error); } finally { if (mounted) setLoading(false); }
+};
     loadData();
     return () => { mounted = false; };
   }, []);
@@ -921,6 +925,53 @@ const confirmReset = () => {
                       </div>
                     </section>
                   )}
+
+{/* 📅 SECCIÓN: ENVÍOS PROGRAMADOS (DESACTIVADO TEMPORALMENTE - PRÓXIMAMENTE) */}
+<section className="p-6 bg-white border-2 border-gray-100 rounded-[2.5rem] space-y-6 shadow-sm relative overflow-hidden group">
+    
+    {/* BADGE PRÓXIMAMENTE PREMIUM */}
+    <div className="absolute top-4 right-[-35px] bg-indigo-600 text-white text-[9px] font-black uppercase py-1.5 px-12 transform rotate-45 shadow-xl z-20 animate-pulse">
+        Próximamente
+    </div>
+
+    {/* CAPA INVISIBLE PARA BLOQUEAR TODO */}
+    <div className="absolute inset-0 z-10 bg-white/40 cursor-not-allowed" />
+
+    <div className="flex justify-between items-center opacity-40 grayscale">
+        <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gray-400 rounded-2xl text-white shadow-lg">
+                <Clock size={20} />
+            </div>
+            <div className="text-left">
+                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900">Envíos Programados</h3>
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Organizá tus entregas</p>
+            </div>
+        </div>
+
+        {/* SWITCH APAGADO Y BLOQUEADO */}
+        <div className="w-12 h-6 rounded-full bg-gray-200 flex items-center px-1">
+            <div className="w-4 h-4 bg-white rounded-full shadow-md" />
+        </div>
+    </div>
+
+    {/* VISTA PREVIA GRISADA */}
+    <div className="space-y-4 opacity-30 grayscale pointer-events-none">
+        <div className="bg-gray-50 p-4 rounded-3xl border border-gray-200 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+                <div className="h-10 bg-gray-200 rounded-xl w-full" />
+                <div className="h-10 bg-gray-200 rounded-xl w-full" />
+            </div>
+            <div className="h-10 bg-gray-200 rounded-xl w-full" />
+        </div>
+        
+        {/* TEXTO INFORMATIVO ABAJO */}
+        <p className="text-[10px] text-indigo-600 font-black uppercase tracking-[0.2em] text-center pt-2">
+            Estamos trabajando en esta función ✨
+        </p>
+    </div>
+</section>
+
+
 
                   {/* CARGA RÁPIDA */}
                   <section className="pt-4 border-t">

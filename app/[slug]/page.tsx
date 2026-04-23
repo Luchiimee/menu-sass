@@ -1672,6 +1672,9 @@ case "visualgrid":
             receiveWhatsapp={restaurant.receive_whatsapp}
             businessType={restaurant.business_type}
             restaurantName={restaurant.name}
+           scheduled_delivery_enabled={false}
+  scheduled_delivery_slots={restaurant.scheduled_delivery_slots}
+  isAdmin={false}
           />
         </div>
       </div>

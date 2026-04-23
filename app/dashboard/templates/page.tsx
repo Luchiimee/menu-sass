@@ -429,10 +429,12 @@ const TEMPLATES = [
   { id: 'urban', name: 'Urbano Dark', type: 'urban', category: 'basicas', sale_type: 'unidad', hasPhotos: true },
   { id: 'minimal', name: 'Minimalista', type: 'minimal', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
   { id: 'visualgrid', name: 'Visual Grid', type: 'visualgrid', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
-  { id: 'pop', name: 'Pop Vibrante', type: 'pop', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true },
-  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
-  { id: 'elegant', name: 'Elegante Serif', type: 'elegant', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true },
-  { id: 'bistro', name: 'Bistro Chalk', type: 'bistro', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true },
+  
+  { id: 'pop', name: 'Pop Vibrante', type: 'pop', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
+  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true, isUpcoming: true },
+  { id: 'elegant', name: 'Elegante Serif', type: 'elegant', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
+  { id: 'bistro', name: 'Bistro Chalk', type: 'bistro', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
+
   { id: 'icecream-v1', name: 'Soft Premium', type: 'icecream', category: 'basicas', sale_type: 'peso', hasPhotos: false, premium: true },
   { id: 'marketpro', name: 'Market Pro', type: 'marketpro', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
   { id: 'alterna-pro', name: 'Alterna Pro', type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true, premium: true },
@@ -1144,6 +1146,7 @@ const finalTemplates = TEMPLATES.filter(t => {
         {finalTemplates.map((t) => {
           const isSelected = currentTemplate === t.id;
           const isLocked = t.premium && userPlan === 'free';
+          const isUpcoming = t.isUpcoming;
           
 
           return (
@@ -1165,19 +1168,31 @@ const finalTemplates = TEMPLATES.filter(t => {
           {renderPreview(t.type)}
         </div>
       </div>
-      
-      {isLocked && (
-        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
-          <Lock size={20} className="mb-2 opacity-80" />
-          <span className="font-bold text-[10px]">PREMIUM</span>
+   {/* 🚀 ESCUDO DE PRÓXIMAMENTE */}
+          {isUpcoming && (
+            <div className="absolute inset-0 bg-indigo-600/20 backdrop-blur-[2px] flex flex-col items-center justify-center text-white z-40">
+              <div className="bg-indigo-600 px-4 py-1.5 rounded-full shadow-xl animate-pulse">
+                 <span className="font-black text-[10px] uppercase tracking-[0.2em]">Muy Pronto</span>
+              </div>
+            </div>
+          )}
+
+          {isLocked && !isUpcoming && (
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+              <Lock size={20} className="mb-2 opacity-80" />
+              <span className="font-bold text-[10px]">PREMIUM</span>
+            </div>
+          )}
         </div>
-      )}
-    </div>
 
    <div className="card-info text-center flex flex-col items-center">
       <h3 className="card-title mt-2 text-slate-800">{t.name}</h3>
-      
-      {isSelected ? (
+      {isUpcoming ? (
+        /* 🚀 BOTÓN DESACTIVADO PARA UPCOMING */
+        <div className="mt-3 px-4 py-1.5 bg-gray-100 text-gray-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-gray-200">
+           No disponible
+        </div>
+      ) : isSelected ? (
         /* --- ESTADO: YA SELECCIONADO (Botón Personalizar) --- */
         <div className="flex flex-col items-center gap-2 mt-2 w-full px-2 animate-in fade-in zoom-in-95 duration-300">
            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
