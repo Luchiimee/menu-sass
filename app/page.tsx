@@ -524,10 +524,10 @@ export default function LandingPage() {
               >
                 <div className="relative w-full h-full bg-white">
                   <Image
-                    src="/02.png"
+                    src="/sushi3.svg"
                     alt="Vista Izquierda"
                     fill
-                    className="object-full"
+                    className="object-cover"
                   />
                 </div>
               </div>
@@ -546,7 +546,7 @@ export default function LandingPage() {
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[80px] md:w-[80px] h-[15px] md:h-[20px] bg-black rounded-full z-40"></div>
                 <div className="relative w-full h-full bg-white">
                   <Image
-                    src="/013.svg"
+                    src="/urbanthor1.png"
                     alt="Panel Principal"
                     fill
                     className="object-cover"
