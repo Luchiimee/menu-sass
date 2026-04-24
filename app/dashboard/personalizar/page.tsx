@@ -4,10 +4,11 @@ export const dynamic = 'force-dynamic';
 import { CartProvider } from "@/context/CartContext";
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
+import { toast } from 'sonner';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
@@ -302,10 +303,13 @@ export default function EditorPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [activeFrom, setActiveFrom] = useState('');
+const [activeTo, setActiveTo] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
 const [showBioDesigns, setShowBioDesigns] = useState(false);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 const [businessType, setBusinessType] = useState<string | null>(null);
+const [daysToRepeat, setDaysToRepeat] = useState<string[]>(['lunes', 'martes', 'miercoles', 'jueves', 'viernes']);
  const [data, setData] = useState<any>({
   id: null, name: '', slug: '', description: '', delivery_cost: 0, address: '', instagram: '',
   facebook: '', tiktok: '', opening_hours: '', google_maps_link: '', phone: '',
@@ -325,18 +329,23 @@ const [businessType, setBusinessType] = useState<string | null>(null);
   snappylink_template_id: 'bio-modern',
 
   // 🚀 NUEVOS CAMPOS DE DISEÑO BIO (Agregalos acá abajo)
-  snappylink_title: '', 
+snappylink_title: '', 
   snappylink_bg_color: '#ffffff', 
   snappylink_bg_img: '', 
   snappylink_btn_color: '#000000', 
   snappylink_btn_text_color: '#ffffff', 
   snappylink_shadow_color: '#000000',
   snappylink_title_color: '#000000', 
-snappylink_desc_color: '#666666',
-snappylink_social_links: [], 
-snappylink_social_pos: 'bottom',
-scheduled_delivery_enabled: false,
-  scheduled_delivery_slots: [] as { day: string, time: string }[]
+  snappylink_desc_color: '#666666',
+  snappylink_social_links: [], 
+  snappylink_social_pos: 'bottom',
+  // 🚀 CAMPOS DE PROGRAMACIÓN UNIFICADOS Y CORREGIDOS:
+  scheduled_delivery_enabled: false,
+  scheduled_delivery_slots: {} as { [key: string]: { from: string, to: string }[] },
+  scheduled_delivery_config: {
+    interval_minutes: 30, // Duración de cada bloque
+    buffer_minutes: 15    // Tiempo de margen
+  }
 });
 const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
@@ -437,9 +446,9 @@ const getLinksLimit = () => {
         is_bio_active: bioData?.is_active !== undefined ? bioData.is_active : true,
         snappylink_template_id: bioData?.template_id || 'bio-modern',
         
-        // 🚀 PROGRAMACIÓN (Lo que agregaste recién, está perfecto)
-        scheduled_delivery_enabled: rest.scheduled_delivery_enabled ?? false,
-        scheduled_delivery_slots: rest.scheduled_delivery_slots ?? [],
+     scheduled_delivery_enabled: rest.scheduled_delivery_enabled ?? false,
+  scheduled_delivery_slots: rest.scheduled_delivery_slots ?? {},
+  scheduled_delivery_config: rest.scheduled_delivery_config ?? { interval_minutes: 30, buffer_minutes: 15 },
       });
 
       // Carga de productos y categorías (lo que ya tenías abajo)
@@ -926,52 +935,210 @@ const confirmReset = () => {
                     </section>
                   )}
 
-{/* 📅 SECCIÓN: ENVÍOS PROGRAMADOS (DESACTIVADO TEMPORALMENTE - PRÓXIMAMENTE) */}
-<section className="p-6 bg-white border-2 border-gray-100 rounded-[2.5rem] space-y-6 shadow-sm relative overflow-hidden group">
-    
-    {/* BADGE PRÓXIMAMENTE PREMIUM */}
-    <div className="absolute top-4 right-[-35px] bg-indigo-600 text-white text-[9px] font-black uppercase py-1.5 px-12 transform rotate-45 shadow-xl z-20 animate-pulse">
-        Próximamente
-    </div>
 
-    {/* CAPA INVISIBLE PARA BLOQUEAR TODO */}
-    <div className="absolute inset-0 z-10 bg-white/40 cursor-not-allowed" />
-
-    <div className="flex justify-between items-center opacity-40 grayscale">
+{/* 📅 GESTIÓN DE TURNOS Y BLOQUES HORARIOS */}
+<section className="p-6 bg-white border-2 border-indigo-100 rounded-[2.5rem] space-y-6 shadow-sm">
+    <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gray-400 rounded-2xl text-white shadow-lg">
+            <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg">
                 <Clock size={20} />
             </div>
             <div className="text-left">
-                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900">Envíos Programados</h3>
-                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Organizá tus entregas</p>
+                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none">Turnos de Entrega</h3>
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Configurá tus franjas horarias</p>
             </div>
-        </div>
-
-        {/* SWITCH APAGADO Y BLOQUEADO */}
-        <div className="w-12 h-6 rounded-full bg-gray-200 flex items-center px-1">
-            <div className="w-4 h-4 bg-white rounded-full shadow-md" />
-        </div>
-    </div>
-
-    {/* VISTA PREVIA GRISADA */}
-    <div className="space-y-4 opacity-30 grayscale pointer-events-none">
-        <div className="bg-gray-50 p-4 rounded-3xl border border-gray-200 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-                <div className="h-10 bg-gray-200 rounded-xl w-full" />
-                <div className="h-10 bg-gray-200 rounded-xl w-full" />
-            </div>
-            <div className="h-10 bg-gray-200 rounded-xl w-full" />
         </div>
         
-        {/* TEXTO INFORMATIVO ABAJO */}
-        <p className="text-[10px] text-indigo-600 font-black uppercase tracking-[0.2em] text-center pt-2">
-            Estamos trabajando en esta función ✨
+        <button 
+            type="button"
+            onClick={() => { setData({...data, scheduled_delivery_enabled: !data.scheduled_delivery_enabled}); setUnsavedChanges(true); }}
+            className={`w-12 h-6 rounded-full flex items-center px-1 transition-all ${data.scheduled_delivery_enabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
+        >
+            <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${data.scheduled_delivery_enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+        </button>
+    </div>
+{/* 🚀 LÍNEA 934: TEXTO INFORMATIVO DE FUNCIONAMIENTO */}
+<div className={`p-4 rounded-[1.5rem] border-2 transition-all duration-500 ${data.scheduled_delivery_enabled ? 'bg-indigo-50 border-indigo-100' : 'bg-gray-50 border-gray-100'}`}>
+    <div className="flex gap-3 text-left">
+        <div className={`p-1.5 rounded-full h-fit flex-shrink-0 ${data.scheduled_delivery_enabled ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+            <HelpCircle size={14} />
+        </div>
+        <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Información del sistema</p>
+            <p className="text-[11px] font-bold text-gray-600 leading-snug">
+                {data.scheduled_delivery_enabled ? (
+                    <span className="animate-in fade-in">
+                        <strong className="text-indigo-600 uppercase italic">Modo Agenda Activo:</strong> Tus clientes deberán elegir un turno específico para recibir o retirar su pedido.
+                    </span>
+                ) : (
+                    <span className="animate-in fade-in">
+                        <strong className="text-gray-900 uppercase italic">Modo Estándar:</strong> El cliente no verá horarios. Se entiende que el pedido se despacha <span className="underline decoration-indigo-300">lo antes posible</span> apenas esté listo.
+                    </span>
+                )}
+            </p>
+        </div>
+    </div>
+</div>
+    {data.scheduled_delivery_enabled && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+         
+         {/* --- CONFIGURACIÓN TÉCNICA REBAUTIZADA --- */}
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-5 rounded-[2rem] border border-gray-100 shadow-inner">
+    
+    {/* 1. TURNOS CADA (INTERVALO) */}
+    <div className="space-y-1.5 text-left">
+        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">Turnos cada:</label>
+        <select 
+            value={data.scheduled_delivery_config.interval_minutes}
+            onChange={(e) => {
+                setData({ ...data, scheduled_delivery_config: { ...data.scheduled_delivery_config, interval_minutes: Number(e.target.value) } });
+                setUnsavedChanges(true);
+            }}
+            className="w-full p-3 bg-white border-none rounded-xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-indigo-500"
+        >
+            <option value={15}>15 minutos</option>
+            <option value={30}>30 minutos</option>
+            <option value={60}>1 hora</option>
+        </select>
+        <p className="text-[8px] text-gray-400 font-bold px-2 leading-tight uppercase tracking-tighter">
+            Define la frecuencia de horarios que verá el cliente (Ej: 20:00, 20:30, 21:00).
         </p>
     </div>
+
+    {/* 2. PREPARACIÓN MÍNIMA (BUFFER) */}
+    <div className="space-y-1.5 text-left">
+        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">Preparación mínima:</label>
+        <select 
+            value={data.scheduled_delivery_config.buffer_minutes}
+            onChange={(e) => {
+                setData({ ...data, scheduled_delivery_config: { ...data.scheduled_delivery_config, buffer_minutes: Number(e.target.value) } });
+                setUnsavedChanges(true);
+            }}
+            className="w-full p-3 bg-white border-none rounded-xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-indigo-500"
+        >
+            <option value={0}>Sin tiempo de espera</option>
+            <option value={15}>15 min de aviso</option>
+            <option value={30}>30 min de aviso</option>
+            <option value={60}>1 hora de aviso</option>
+        </select>
+        <p className="text-[8px] text-gray-400 font-bold px-2 leading-tight uppercase tracking-tighter">
+            Evita pedidos inmediatos. El cliente solo verá turnos disponibles después de este tiempo.
+        </p>
+    </div>
+</div>
+           
+
+{/* 📅 GENERADOR DE TURNOS DINÁMICO */}
+<div className="bg-indigo-50/50 p-6 rounded-[2.5rem] border border-indigo-100 space-y-6">
+    
+    {/* 1. SELECCIÓN DE HORARIO (Manda sobre los días) */}
+    <div className="space-y-3">
+        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">1. Definí el horario:</label>
+        <div className="flex gap-3">
+            <div className="flex-1 space-y-1">
+                <span className="text-[8px] font-black text-gray-400 uppercase ml-2">Desde</span>
+                <input 
+                    type="time" 
+                    value={activeFrom}
+                    onChange={(e) => setActiveFrom(e.target.value)}
+                    className="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" 
+                />
+            </div>
+            <div className="flex-1 space-y-1">
+                <span className="text-[8px] font-black text-gray-400 uppercase ml-2">Hasta</span>
+                <input 
+                    type="time" 
+                    value={activeTo}
+                    onChange={(e) => setActiveTo(e.target.value)}
+                    className="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" 
+                />
+            </div>
+        </div>
+    </div>
+
+    {/* 2. SELECTOR DE DÍAS (Al tocar, se agrega) */}
+    <div className="space-y-3">
+        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">2. Tocá los días para asignar:</label>
+        <div className="flex flex-wrap gap-2">
+            {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map((dia) => (
+                <button
+                    key={dia}
+                    type="button"
+                    onClick={() => {
+                        if (!activeFrom || !activeTo) return toast.error("Elegí un horario primero");
+                        
+                        const currentSlots = data.scheduled_delivery_slots || {};
+                        const daySlots = currentSlots[dia] || [];
+                        
+                        // Evitamos duplicados exactos
+                        if (daySlots.some((s: any) => s.from === activeFrom && s.to === activeTo)) {
+                            return toast.error("Este horario ya existe para este día");
+                        }
+
+                        setData({
+                            ...data,
+                            scheduled_delivery_slots: {
+                                ...currentSlots,
+                                [dia]: [...daySlots, { from: activeFrom, to: activeTo }]
+                            }
+                        });
+                        setUnsavedChanges(true);
+                        toast.success(`Asignado al ${dia}`);
+                    }}
+                    className="flex-1 min-w-[80px] py-3 bg-white border-2 border-gray-100 rounded-2xl font-black text-[10px] uppercase text-gray-400 hover:border-indigo-400 hover:text-indigo-600 transition-all active:scale-95 shadow-sm"
+                >
+                    {dia.slice(0, 3)}
+                </button>
+            ))}
+        </div>
+    </div>
+
+    {/* 3. BOTÓN PARA REINICIAR */}
+    <button 
+        type="button"
+        onClick={() => { setActiveFrom(''); setActiveTo(''); }}
+        className="w-full py-3 bg-white border-2 border-dashed border-indigo-200 text-indigo-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 transition-all"
+    >
+        Limpiar para nuevo horario
+    </button>
+</div>
+
+{/* AGENDA VISUAL (BLOQUES LADO A LADO) */}
+<div className="space-y-3 mt-6">
+    {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map((dia) => (
+        <div key={dia} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-[1.5rem] shadow-sm">
+            <div className="w-16 flex-shrink-0 border-r border-gray-100">
+                <span className="text-[9px] font-black uppercase text-indigo-950 italic">{dia.slice(0, 3)}</span>
+            </div>
+            <div className="flex flex-wrap gap-2 flex-1">
+                {data.scheduled_delivery_slots?.[dia]?.length > 0 ? (
+                    data.scheduled_delivery_slots[dia].map((range: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-full shadow-md animate-in zoom-in">
+                            <span className="text-[9px] font-black tracking-tighter">{range.from} - {range.to}</span>
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    const newSlots = { ...data.scheduled_delivery_slots };
+                                    newSlots[dia] = newSlots[dia].filter((_: any, i: number) => i !== idx);
+                                    setData({ ...data, scheduled_delivery_slots: newSlots });
+                                    setUnsavedChanges(true);
+                                }}
+                                className="text-white/50 hover:text-white"
+                            >
+                                <X size={12} strokeWidth={3} />
+                            </button>
+                        </div>
+                    ))
+                ) : (
+                    <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest italic">Cerrado</span>
+                )}
+            </div>
+        </div>
+    ))}
+</div>
+        </div>
+    )}
 </section>
-
-
 
                   {/* CARGA RÁPIDA */}
                   <section className="pt-4 border-t">

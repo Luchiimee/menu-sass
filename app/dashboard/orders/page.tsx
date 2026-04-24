@@ -323,7 +323,7 @@ const loadOrders = async () => {
             ${item.extrasList?.map((e: any) => `<div style="font-size: 10px; margin-left: 10px;">+ ${e.name.toUpperCase()}</div>`).join('') || ''}
         </div>`).join("");
 
-    printWindow.document.write(`
+  printWindow.document.write(`
         <html>
             <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto; color: #000;">
               <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
@@ -334,16 +334,29 @@ const loadOrders = async () => {
     <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
 </div>
 
-              <div style="font-size: 12px; margin-bottom: 10px;">
+<div style="font-size: 12px; margin-bottom: 10px;">
     <p style="margin: 2px 0;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
+    <p style="margin: 2px 0;"><strong>TELÉFONO:</strong> ${order.customer_phone || 'NO INFORMADO'}</p>
     <p style="margin: 2px 0;"><strong>ENTREGA:</strong> ${order.order_type.toUpperCase()}</p>
-    <p style="margin: 2px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida.toUpperCase()}</p>
     
-  
-    ${order.order_type !== 'mesa' 
-        ? `<p style="margin: 2px 0;"><strong>PAGO:</strong> ${order.payment_method.toUpperCase()}</p>` 
-        : ''
-    }
+    ${order.order_type !== 'mesa' ? `
+        ${order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato' ? `
+            <div style="margin: 8px 0; padding: 5px; border: 2px solid #000; text-align: center; font-size: 14px;">
+                <strong>PROGRAMADO: ${order.scheduled_delivery_time.toUpperCase()}</strong>
+            </div>
+        ` : `
+            <p style="margin: 4px 0;"><strong>HORARIO:</strong> LO ANTES POSIBLE</p>
+        `}
+    ` : ''}
+
+    <p style="margin: 2px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida.toUpperCase()}</p>
+    <p style="margin: 2px 0;"><strong>PAGO:</strong> ${order.payment_method.toUpperCase()}</p>
+
+    ${order.description ? `
+        <div style="margin-top: 8px; padding: 5px; background-color: #eee; border-left: 3px solid #000;">
+            <strong>NOTAS:</strong> ${order.description.toUpperCase()}
+        </div>
+    ` : ''}
 </div>
                 
                 <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 5px 0; margin-bottom: 10px;">
@@ -381,7 +394,6 @@ const loadOrders = async () => {
             </body>
         </html>
     `);
-
     printWindow.document.close();
     setTimeout(() => {
         printWindow.print();
@@ -969,6 +981,24 @@ useEffect(() => {
                                     <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg text-gray-500 italic border border-gray-200">
                                         {order.payment_method === "transferencia" ? <CreditCard size={12} /> : <Banknote size={12} />} {order.payment_method}
                                     </span>
+                                    {/* 🚀 NUEVO: INDICADOR DE HORARIO (LO ANTES POSIBLE vs PROGRAMADO) */}
+{order.order_type !== 'mesa' && (
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border mt-2 w-fit transition-all ${
+        order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato'
+        ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-100 animate-in zoom-in' // Resaltado si es para más tarde
+        : 'bg-slate-100 border-slate-200 text-slate-500' // Estilo neutro si es inmediato
+    }`}>
+        {order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato' 
+            ? <CalendarIcon size={12} strokeWidth={3} /> 
+            : <Zap size={12} fill="currentColor" />
+        }
+        <span className="text-[10px] font-black uppercase tracking-tight">
+            {order.scheduled_delivery_time === 'Inmediato' || !order.scheduled_delivery_time
+                ? (order.order_type === 'delivery' ? 'Enviar lo antes posible' : 'Retiro inmediato')
+                : `PROGRAMADO: ${order.scheduled_delivery_time}`}
+        </span>
+    </div>
+)}
                                 </div>
                             </div>
                             <div className="text-right">

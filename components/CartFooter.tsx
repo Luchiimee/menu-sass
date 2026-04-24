@@ -22,6 +22,7 @@ export default function CartFooter({
     // 🚀 ASEGURATE QUE ESTÉN ESTAS TRES AQUÍ:
     scheduled_delivery_enabled, 
     scheduled_delivery_slots,
+    scheduled_delivery_config,
     isAdmin 
 }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
@@ -731,21 +732,23 @@ return (
                 <Clock size={16} strokeWidth={2.5} />
             </div>
             <div className="text-left">
-                <label className="text-[10px] font-black text-indigo-950 uppercase tracking-tighter leading-none">
-                    ¿Cuándo lo enviamos?
-                </label>
-                <p className="text-[8px] text-indigo-400 font-bold uppercase tracking-widest mt-0.5">Elegí tu momento ideal</p>
-            </div>
+    <label className="text-[10px] font-black text-indigo-950 uppercase tracking-tighter leading-none">
+        {/* 🚀 LÓGICA DINÁMICA SEGÚN EL MÉTODO */}
+        {metodoEnvio === 'delivery' ? '¿Cuándo lo enviamos?' : '¿Cuándo lo retirás?'}
+    </label>
+    <p className="text-[8px] text-indigo-400 font-bold uppercase tracking-widest mt-0.5">Elegí tu momento ideal</p>
+</div>
         </div>
         
         <div className="flex bg-white/60 p-1 rounded-2xl gap-1 border border-indigo-100">
-            <button 
-                type="button"
-                onClick={() => { setEntregaTipo('inmediata'); setSelectedSlot(''); }}
-                className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1 ${entregaTipo === 'inmediata' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-gray-400'}`}
-            >
-                🚀 Inmediato
-            </button>
+         <button 
+    type="button"
+    onClick={() => { setEntregaTipo('inmediata'); setSelectedSlot(''); }}
+    className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1 ${entregaTipo === 'inmediata' ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-gray-400'}`}
+>
+    {/* 🚀 LÓGICA DINÁMICA PARA EL BOTÓN */}
+    {metodoEnvio === 'delivery' ? '🚀 Lo antes posible' : '🚀 Retiro cuando esté listo'}
+</button>
             <button 
                 type="button"
                 onClick={() => setEntregaTipo('programada')}
@@ -754,39 +757,96 @@ return (
                 📅 Programar
             </button>
         </div>
+        {/* Texto aclaratorio dinámico */}
+<p className="text-[8px] text-center font-bold text-gray-400 uppercase tracking-tighter mt-2 animate-in fade-in">
+    {entregaTipo === 'inmediata' 
+        ? (metodoEnvio === 'delivery' 
+            ? `⚡ Tu pedido se enviará apenas esté listo` 
+            : `⚡ Podrás retirarlo apenas esté listo`)
+        : `📅 Estará listo para el ${metodoEnvio === 'delivery' ? 'envío' : 'retiro'} en la franja seleccionada`}
+</p>
 
-        {/* LISTA DE SLOTS EN FORMATO "PILL" */}
-        {entregaTipo === 'programada' && (
-            <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in zoom-in duration-300">
-                {scheduled_delivery_slots?.length > 0 ? (
-                    scheduled_delivery_slots.map((slot: any, i: number) => {
-                        const slotValue = `${slot.day}: ${slot.time}`;
-                        const isSelected = selectedSlot === slotValue;
-                        return (
-                            <button 
-                                key={i}
-                                type="button"
-                                onClick={() => setSelectedSlot(slotValue)}
-                                className={`px-4 py-2.5 rounded-2xl border-2 text-left transition-all ${
-                                    isSelected 
-                                    ? 'border-indigo-600 bg-white shadow-md' 
-                                    : 'border-white bg-white/40 text-gray-500'
-                                }`}
-                            >
-                                <div className="flex flex-col">
-                                    <span className={`text-[8px] font-black uppercase ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`}>{slot.day}</span>
-                                    <span className="text-[10px] font-bold whitespace-nowrap">{slot.time}</span>
-                                </div>
-                            </button>
-                        );
-                    })
-                ) : (
-                    <div className="w-full py-4 text-[9px] font-bold text-gray-400 uppercase text-center italic border-2 border-dashed border-indigo-100 rounded-2xl">
-                        No hay horarios configurados
+      {/* LISTA DE TURNOS GENERADOS DINÁMICAMENTE */}
+{entregaTipo === 'programada' && (
+    <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in zoom-in duration-300">
+        {(() => {
+            // 1. Configuración y Tiempo Actual
+            const config = scheduled_delivery_config || { interval_minutes: 30, buffer_minutes: 15 };
+            const interval = config.interval_minutes;
+            const buffer = config.buffer_minutes;
+            
+            const now = new Date();
+            // Mapa para traducir el día de JS al de tu base de datos
+            const daysMap: any = { 0: 'domingo', 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado' };
+            const todayName = daysMap[now.getDay()];
+            
+            // 2. Traer franjas configuradas para hoy
+            const todayRanges = scheduled_delivery_slots?.[todayName] || [];
+            const availableBlocks: string[] = [];
+
+            todayRanges.forEach((range: any) => {
+                // Convertimos las horas de la franja ("20:00") a objetos Date de hoy
+                const [startH, startM] = range.from.split(':');
+                const [endH, endM] = range.to.split(':');
+
+                let blockTime = new Date();
+                blockTime.setHours(parseInt(startH), parseInt(startM), 0, 0);
+
+                const limitTime = new Date();
+                limitTime.setHours(parseInt(endH), parseInt(endM), 0, 0);
+
+                // 3. Generar pedacitos según el intervalo
+                while (blockTime < limitTime) {
+                    // Calculamos el tiempo mínimo permitido (Ahora + Preparación Mínima)
+                    const minAllowedTime = new Date(now.getTime() + buffer * 60000);
+
+                    // 🚀 VALIDACIÓN CLAVE: 
+                    // Solo agregamos el turno si es mayor al tiempo actual + el margen de cocina
+                    if (blockTime > minAllowedTime) {
+                        const timeString = blockTime.toLocaleTimeString('es-AR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            hour12: false 
+                        });
+                        availableBlocks.push(timeString);
+                    }
+
+                    // Sumamos el intervalo para el próximo bloque (ej +30 min)
+                    blockTime = new Date(blockTime.getTime() + interval * 60000);
+                }
+            });
+
+            // 4. Renderizado de los botones
+            if (availableBlocks.length === 0) {
+                return (
+                    <div className="w-full py-6 text-center bg-white/40 rounded-2xl border-2 border-dashed border-indigo-100">
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic">
+                            No hay más turnos <br/> disponibles por hoy
+                        </p>
                     </div>
-                )}
-            </div>
-        )}
+                );
+            }
+
+            return availableBlocks.map((time) => {
+                const isSelected = selectedSlot === time;
+                return (
+                    <button 
+                        key={time}
+                        type="button"
+                        onClick={() => setSelectedSlot(time)}
+                        className={`px-4 py-2.5 rounded-2xl border-2 text-[11px] font-black transition-all ${
+                            isSelected 
+                            ? 'border-indigo-600 bg-white text-indigo-600 shadow-md scale-105' 
+                            : 'border-white bg-white/40 text-gray-400'
+                        }`}
+                    >
+                        {time} hs
+                    </button>
+                );
+            });
+        })()}
+    </div>
+)}
     </div>
 )}
                 {metodoEnvio !== 'mesa' && (
