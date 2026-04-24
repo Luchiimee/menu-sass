@@ -96,6 +96,7 @@ const handleFinalizarTodo = () => {
 
     // --- 3. DATOS DEL CLIENTE Y FORMULARIO ---
     const [nombre, setNombre] = useState('');
+    const [apellido, setApellido] = useState('');
     const [telCliente, setTelCliente] = useState('');
     const [direccion, setDireccion] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
@@ -292,12 +293,14 @@ const handleCallWaiter = async () => {
 
                         {/* 🔘 TRACKER CENTRAL (IGUAL PARA TODOS) */}
                         <div className="mb-8">
-                            <OrderTracker 
-                                orderId={activeOrderId} 
-                                restaurantPhone={phone} 
-                                businessType={isMesa ? "mesa" : (businessType || "gastronomico")} 
-                                onStatusChange={(s: string) => setOrderStatus(s)} 
-                            />
+                    <OrderTracker 
+    orderId={activeOrderId} 
+    restaurantPhone={phone} 
+    businessType={metodoEnvio} 
+    paymentMethodProp={metodoPago} 
+    aliasMpProp={aliasMp} 
+    onStatusChange={(s: string) => setOrderStatus(s)} 
+/>
                         </div>
 
                         {/* 🔘 BOTONES DE ACCIÓN: SEPARADOS POR TIPO */}
@@ -473,9 +476,10 @@ const handleCallWaiter = async () => {
 
   const handleSendOrder = async () => {
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
+    if (metodoEnvio !== 'mesa' && !apellido.trim()) return alert("Por favor, ingresá tu apellido.");
     if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
-    
+    const nombreCompleto = metodoEnvio === 'mesa' ? nombre.trim() : `${nombre.trim()} ${apellido.trim()}`;
     // 🚀 VALIDACIÓN: Si eligió programar pero no seleccionó un horario
     if (metodoEnvio !== 'mesa' && entregaTipo === 'programada' && !selectedSlot) {
         return alert("Por favor, seleccioná un horario para tu entrega programada.");
@@ -492,7 +496,7 @@ const handleCallWaiter = async () => {
         if (!isLight) {
             const { data: newOrder, error } = await supabase.from('orders').insert({
                 restaurant_id: restaurantId, 
-                customer_name: nombre, 
+                customer_name: nombreCompleto,
                 customer_phone: telCliente, 
                 address: metodoEnvio === 'delivery' ? direccion : '',
                 order_type: metodoEnvio, 
@@ -523,10 +527,9 @@ const handleCallWaiter = async () => {
         }
 
         // 2. CONSTRUCCIÓN DEL MENSAJE
-        let mensaje = `*¡Hola! Nuevo Pedido*\nRef: ${orderRef}\n------------------\n`;
-        mensaje += `👤 *Nombre:* ${nombre}\n`;
-        if (telCliente) mensaje += `📞 *Tel:* ${telCliente}\n`;
-        mensaje += `🛵 *Entrega:* ${metodoEnvio.toUpperCase()}\n`;
+        // 2. CONSTRUCCIÓN DEL MENSAJE
+let mensaje = `*¡Hola! Nuevo Pedido*\nRef: ${orderRef}\n------------------\n`;
+mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO AQUÍ
         
         // 🚀 AGREGAMOS EL HORARIO AL WHATSAPP
         if (metodoEnvio !== 'mesa') {
@@ -673,10 +676,33 @@ return (
                 </div>
 
                 <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-inner">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label><input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
-                        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono</label><input type="tel" placeholder="WhatsApp" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" /></div>
-                    </div>
+    {/* 🚀 MENSAJE DE AYUDA (Solo envío/retiro) */}
+    {metodoEnvio !== 'mesa' && (
+        <p className="text-[9px] font-bold text-blue-500 uppercase tracking-tight ml-2 italic leading-tight">
+            * Pedimos apellido para identificar tu transferencia más rápido en nuestra cuenta.
+        </p>
+    )}
+
+    {/* FILA 1: NOMBRE Y APELLIDO (Se adapta si es mesa o no) */}
+    <div className={`grid ${metodoEnvio === 'mesa' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+        <div className="space-y-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nombre</label>
+            <input type="text" placeholder="Tu nombre" value={nombre} onChange={(e)=>setNombre(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+        </div>
+        
+        {metodoEnvio !== 'mesa' && (
+            <div className="space-y-1 animate-in fade-in">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Apellido</label>
+                <input type="text" placeholder="Tu apellido" value={apellido} onChange={(e)=>setApellido(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+            </div>
+        )}
+    </div>
+
+    {/* FILA 2: WHATSAPP */}
+    <div className="space-y-1">
+        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono / WhatsApp</label>
+        <input type="tel" placeholder="Ej: 1123456789" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+    </div>
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
                         <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">

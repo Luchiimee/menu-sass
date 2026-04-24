@@ -127,29 +127,51 @@ const getStatusBadge = (status: string, orderType?: string) => {
     setAvailableTables(data || []);
   };
 
-  const saveTable = async () => {
-    if (!newTableName.trim() || !restaurantId) return;
-    setIsCreatingTable(true);
+ const saveTable = async () => {
+    // 1. Validaciones básicas
+    if (!newTableName.trim()) return alert("Poné un nombre a la mesa");
+    if (!restaurantId) return alert("No se encontró el ID del restaurante");
 
-    if (editingTableId) {
-      const { error } = await supabase
-        .from('tables')
-        .update({ name: newTableName, description: newTableDesc })
-        .eq('id', editingTableId);
+    setIsCreatingTable(true); // Empezamos a cargar
 
-      if (!error) {
-        setEditingTableId(null); setNewTableName(''); setNewTableDesc(''); fetchTables(restaurantId); setIsModalOpen(false);
-      }
-    } else {
-      const { error } = await supabase.from('tables').insert({
-          restaurant_id: restaurantId, name: newTableName, description: newTableDesc, status: 'libre'
-      });
-      if (!error) {
-          setNewTableName(''); setNewTableDesc(''); fetchTables(restaurantId); setIsModalOpen(false); setShowTables(true);
-      }
+    try {
+        if (editingTableId) {
+            // EDITAR MESA
+            const { error } = await supabase
+                .from('tables')
+                .update({ name: newTableName, description: newTableDesc })
+                .eq('id', editingTableId);
+            
+            if (error) throw error; // Si hay error, vamos al catch
+            setEditingTableId(null);
+        } else {
+            // CREAR MESA NUEVA
+            const { error } = await supabase.from('tables').insert({
+                restaurant_id: restaurantId, 
+                name: newTableName, 
+                description: newTableDesc, 
+                status: 'libre'
+            });
+
+            if (error) throw error; // Si hay error, vamos al catch
+            setShowTables(true);
+        }
+
+        // Si llegó acá es porque salió todo bien
+        setNewTableName(''); 
+        setNewTableDesc(''); 
+        await fetchTables(restaurantId); // AHORA SÍ: esperamos a que refresque
+        setIsModalOpen(false);
+
+    } catch (err: any) {
+        // 🚨 ESTO ES LO QUE TE VA A DECIR POR QUÉ FALLA
+        console.error("Error completo:", err);
+        alert("Error al guardar: " + (err.message || "Error desconocido"));
+    } finally {
+        // Esto se ejecuta SIEMPRE, así el botón vuelve a la normalidad
+        setIsCreatingTable(false);
     }
-    setIsCreatingTable(false);
-  };
+};
 
   const openEditModal = (mesa: any) => {
     setEditingTableId(mesa.id);
@@ -334,28 +356,20 @@ const loadOrders = async () => {
     <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
 </div>
 
-<div style="font-size: 12px; margin-bottom: 10px;">
-    <p style="margin: 2px 0;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
-    <p style="margin: 2px 0;"><strong>TELÉFONO:</strong> ${order.customer_phone || 'NO INFORMADO'}</p>
+
+<div style="font-size: 12px; margin-bottom: 10px; border: 1px solid #000; padding: 8px; border-radius: 5px;">
+    <p style="margin: 2px 0; font-size: 14px;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
+    <p style="margin: 2px 0; font-size: 14px;"><strong>WHATSAPP:</strong> ${order.customer_phone || 'NO INFORMADO'}</p>
     <p style="margin: 2px 0;"><strong>ENTREGA:</strong> ${order.order_type.toUpperCase()}</p>
     
     ${order.order_type !== 'mesa' ? `
         ${order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato' ? `
-            <div style="margin: 8px 0; padding: 5px; border: 2px solid #000; text-align: center; font-size: 14px;">
-                <strong>PROGRAMADO: ${order.scheduled_delivery_time.toUpperCase()}</strong>
+            <div style="margin: 8px 0; padding: 5px; border: 2px solid #000; text-align: center; font-size: 14px; background: #eee;">
+                <strong>ENTREGA PROGRAMADA: ${order.scheduled_delivery_time.toUpperCase()}</strong>
             </div>
         ` : `
             <p style="margin: 4px 0;"><strong>HORARIO:</strong> LO ANTES POSIBLE</p>
         `}
-    ` : ''}
-
-    <p style="margin: 2px 0;"><strong>UBICACIÓN:</strong> ${direccionExhibida.toUpperCase()}</p>
-    <p style="margin: 2px 0;"><strong>PAGO:</strong> ${order.payment_method.toUpperCase()}</p>
-
-    ${order.description ? `
-        <div style="margin-top: 8px; padding: 5px; background-color: #eee; border-left: 3px solid #000;">
-            <strong>NOTAS:</strong> ${order.description.toUpperCase()}
-        </div>
     ` : ''}
 </div>
                 
@@ -456,69 +470,8 @@ useEffect(() => {
     if (restaurantId) fetchTables(restaurantId);
   }, [selectedDate, restaurantId, isLocked]);
 
-  // 1️⃣ EL QUE YA TENÍAS (Escucha cuando entra un pedido nuevo de la app)
-  useEffect(() => {
-    if (!restaurantId || isLocked) return;
 
-    const handleOrderReceived = () => {
-      console.log("📢 Pedido detectado, sincronizando lista...");
-      setTimeout(() => {
-        loadOrders();
-      }, 1000);
-    };
 
-    window.addEventListener('order-received', handleOrderReceived);
-    
-    const handleVisibility = () => { 
-      if (document.visibilityState === 'visible') loadOrders(); 
-    };
-
-    window.addEventListener('visibilitychange', handleVisibility);
-    return () => { 
-      window.removeEventListener('order-received', handleOrderReceived);
-      window.removeEventListener('visibilitychange', handleVisibility); 
-    };
-  }, [restaurantId, isLocked, selectedDate]);
-
-  // 2️⃣ EL QUE YA TENÍAS (Escucha si alguien paga por Supabase)
-  useEffect(() => {
-    if (!restaurantId) return;
-
-    const ordersChannel = supabase
-        .channel('orders_realtime_status')
-        .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'orders',
-            filter: `restaurant_id=eq.${restaurantId}` 
-        }, (payload) => {
-            console.log("💰 Cambio en pago detectado!", payload);
-            loadOrders(); // Refrescamos los pedidos para ver el nuevo estado de pago
-        })
-        .subscribe();
-
-    return () => { supabase.removeChannel(ordersChannel); };
-  }, [restaurantId]);
-
-  // 3️⃣ 🚀 EL NUEVO (Escucha si alguien toca "Llamar Mozo" en su mesa)
-  useEffect(() => {
-    if (!restaurantId) return;
-
-    const tablesChannel = supabase
-        .channel('tables_realtime_status')
-        .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'tables',
-            filter: `restaurant_id=eq.${restaurantId}` 
-        }, (payload) => {
-            console.log("🔔 Cambio en mesa detectado (Llamado a Mozo)!", payload);
-            fetchTables(restaurantId); // Refrescamos las mesas para actualizar la campanita roja
-        })
-        .subscribe();
-
-    return () => { supabase.removeChannel(tablesChannel); };
-  }, [restaurantId]);
 
 
 const getActiveOrderForTable = (tableName: string) => {
@@ -530,49 +483,54 @@ const getActiveOrderForTable = (tableName: string) => {
         !['completado', 'cancelado'].includes(o.status)
     );
 };
-// 🚀 AGREGAR ESTO EN orders/page.tsx dentro de un useEffect
-useEffect(() => {
-    if (!restaurantId) return;
 
-    const ordersChannel = supabase
-        .channel('orders_realtime_status')
-        .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'orders',
-            filter: `restaurant_id=eq.${restaurantId}` 
-        }, (payload) => {
-            console.log("💰 Cambio en pago detectado!", payload);
-            loadOrders(); // Refrescamos los pedidos para ver el nuevo estado de pago
-        })
-        .subscribe();
 
-    return () => { supabase.removeChannel(ordersChannel); };
-}, [restaurantId]);
+// 🚀 MOTOR ÚNICO: TIEMPO REAL TOTAL (NUEVOS PEDIDOS, PAGOS Y MOZO)
+    useEffect(() => {
+        if (!restaurantId || isLocked) return;
 
-// --- LÓGICA DE BÚSQUEDA INTELIGENTE (Corregida) ---
-  const filteredOrders = orders.filter(order => {
-    const term = searchTerm.toLowerCase().trim().replace('#', '');
-    if (!term) return true;
+        const channel = supabase
+            .channel('main-app-sync')
+            // A. ESCUCHAR CAMBIOS EN PEDIDOS (INSERT = Nuevos, UPDATE = Pagos/Cambios)
+            .on('postgres_changes', { 
+                event: '*', // 👈 ESCUCHA TODO (Antes decía UPDATE solo)
+                schema: 'public', 
+                table: 'orders',
+                filter: `restaurant_id=eq.${restaurantId}` 
+            }, (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    console.log("🆕 ¡Llegó un pedido nuevo!", payload.new);
+                    // Agregamos el pedido a la lista local sin refrescar
+                    setOrders(prev => [payload.new, ...prev]);
+                } 
+                else if (payload.eventType === 'UPDATE') {
+                    console.log("💰 Cambio detectado!", payload.new.payment_status);
+                    // Actualizamos el pago/estado (esto hace que la mesa titile)
+                    setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
+                    
+                    // Actualizamos detalle lateral si está abierto
+                    setSelectedTableForDetail((prev: any) => {
+                        if (prev?.activeOrder?.id === payload.new.id) {
+                            return { ...prev, activeOrder: { ...prev.activeOrder, ...payload.new } };
+                        }
+                        return prev;
+                    });
+                }
+            })
+            // B. ESCUCHAR LLAMADOS DE MOZO EN MESAS
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'tables',
+                filter: `restaurant_id=eq.${restaurantId}` 
+            }, (payload) => {
+                console.log("🔔 ¡Llamado a Mozo!");
+                fetchTables(restaurantId);
+            })
+            .subscribe();
 
-    const name = (order.customer_name || "").toLowerCase();
-    const id = (order.id || "").toLowerCase();
-    
-    // Dividimos el nombre en palabras
-    const nameParts = name.split(' ');
-
-    // 1 o 2 letras: buscamos palabra exacta (ej: "Lu")
-    if (term.length <= 2) {
-      // Agregamos (part: string) para quitar el error
-      const matchesExactWord = nameParts.some((part: string) => part === term);
-      const matchesId = id.includes(term);
-      return matchesExactWord || matchesId;
-    }
-
-    // 3 letras o más: búsqueda normal
-    return name.includes(term) || id.includes(term);
-  });
-
+        return () => { supabase.removeChannel(channel); };
+    }, [restaurantId, isLocked]);
 
   if (loading) {
     
@@ -964,12 +922,22 @@ useEffect(() => {
                                     <span className="font-mono font-bold text-gray-400 text-xs tracking-tighter">#{order.id.slice(0, 5)}</span>
                                     {getStatusBadge(order.status)}
                                 </div>
-                                <div className="space-y-0.5 mb-2 text-sm font-black text-gray-900 tracking-tight flex items-center gap-1">
-                                    <User size={14} className="text-gray-300" /> {order.customer_name}
-                                </div>
-                                {order.customer_phone && (
-                                    <div className="flex items-center gap-1 text-[10px] font-black text-blue-600 bg-blue-50 w-fit px-2 py-0.5 rounded-md mb-2"><Phone size={10} /> {order.customer_phone}</div>
-                                )}
+                             <div className="space-y-1 mb-3">
+    {/* Nombre y Apellido achicados (text-xs) */}
+    <div className="text-xs font-black text-gray-900 tracking-tighter flex items-center gap-1.5 uppercase italic">
+        <User size={13} className="text-gray-400" /> 
+        {order.customer_name}
+    </div>
+
+    {/* WhatsApp más visible con estilo de botón suave */}
+   {order.customer_phone && (
+        <div className="flex items-center gap-1 text-[10px] font-black text-blue-600 bg-blue-50 w-fit px-2 py-1 rounded-lg border border-blue-100 shadow-sm mt-1">
+            <Phone size={10} strokeWidth={3} /> 
+            <span>{order.customer_phone}</span>
+        </div>
+    )}
+</div>
+                              
                                 {order.order_type === 'delivery' && order.address && (
                                     <div className="flex items-center gap-1 text-[10px] font-black text-orange-600 bg-orange-50 w-fit px-2 py-0.5 rounded-md mt-1 border border-orange-100"><MapPin size={10} strokeWidth={3} /> {order.address}</div>
                                 )}
@@ -1192,12 +1160,18 @@ useEffect(() => {
         <div className="bg-white w-full max-w-md h-full rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-500">
             {/* Header del Modal */}
             <div className="p-8 border-b flex justify-between items-center bg-gray-50/50">
-                <div>
-                    <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{selectedTableForDetail.name}</span>
-                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 mt-2">
-                        {selectedTableForDetail.activeOrder.customer_name}
-                    </h3>
-                </div>
+               <div>
+    <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+        {selectedTableForDetail.name}
+    </span>
+    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 mt-2">
+        {selectedTableForDetail.activeOrder.customer_name}
+    </h3>
+    {/* AGREGAMOS EL WHATSAPP ACÁ TAMBIÉN */}
+    <p className="text-blue-600 font-bold text-xs flex items-center gap-1 mt-1">
+        <Phone size={12} strokeWidth={3}/> {selectedTableForDetail.activeOrder.customer_phone}
+    </p>
+</div>
                 <button onClick={() => setSelectedTableForDetail(null)} className="p-3 bg-white rounded-full shadow-lg text-gray-400 hover:text-gray-900 transition-all active:scale-90"><X size={24} strokeWidth={3}/></button>
             </div>
 

@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Check, ChefHat, Bike, Clock, XCircle, Zap, ShoppingBag, CalendarCheck } from 'lucide-react';
+import { Check, ChefHat, Bike, Clock, XCircle, Zap, ShoppingBag, CalendarCheck,MessageCircle,CreditCard,Copy } from 'lucide-react';
 
 interface OrderTrackerProps {
     orderId: string;
     restaurantPhone: string;
     businessType?: string;
+    paymentMethodProp?: string; 
+    aliasMpProp?: string;
     onStatusChange?: (status: string) => void;
 }
 
@@ -16,35 +18,41 @@ const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function OrderTracker({ orderId, restaurantPhone, businessType = 'gastronomico', onStatusChange }: OrderTrackerProps) {
+export default function OrderTracker({ orderId, restaurantPhone, businessType = 'gastronomico', paymentMethodProp, aliasMpProp, onStatusChange }: OrderTrackerProps) {
     const [status, setStatus] = useState('pendiente');
-    // 🚀 ESTADO PARA EL HORARIO PROGRAMADO
     const [scheduledTime, setScheduledTime] = useState<string | null>(null);
-
-    // 🚀 AHORA TRAEMOS TAMBIÉN EL TIPO DE PEDIDO
     const [orderType, setOrderType] = useState(businessType); 
+    const [paymentMethod, setPaymentMethod] = useState(paymentMethodProp); 
+    const [copied, setCopied] = useState(false); 
 
-    const fetchOrderData = useCallback(async () => {
-        if (!orderId) return;
-        const { data } = await supabase
-            .from('orders')
-            .select('status, scheduled_delivery_time, order_type') // <--- Agregamos order_type
-            .eq('id', orderId)
-            .single();
+  const fetchOrderData = useCallback(async () => {
+    if (!orderId) return;
+    const { data } = await supabase
+        .from('orders')
+        .select('status, scheduled_delivery_time, order_type, payment_method')
+        .eq('id', orderId)
+        .single();
 
-        if (data) {
-            if (data.status !== status) {
-                setStatus(data.status);
-                if(onStatusChange) onStatusChange(data.status);
-            }
-            // Seteamos el tipo real del pedido (mesa, delivery o retiro)
-            if (data.order_type) setOrderType(data.order_type);
-            
-            if (data.scheduled_delivery_time && data.scheduled_delivery_time !== 'Inmediato') {
-                setScheduledTime(data.scheduled_delivery_time);
-            }
+    if (data) {
+        // 1. Sincronizar el estado (solo si cambió)
+        if (data.status !== status) {
+            setStatus(data.status);
+            if(onStatusChange) onStatusChange(data.status);
         }
-    }, [orderId, onStatusChange, status]);
+        
+        // 🚀 2. ESTO DEBE ESTAR AFUERA (Para que se cargue apenas abre el tracker)
+        if (data.payment_method) setPaymentMethod(data.payment_method);
+        if (data.order_type) setOrderType(data.order_type);
+        
+        if (data.scheduled_delivery_time && data.scheduled_delivery_time !== 'Inmediato') {
+            setScheduledTime(data.scheduled_delivery_time);
+        }
+    }
+}, [orderId, onStatusChange, status]);
+
+useEffect(() => {
+    if (paymentMethodProp) setPaymentMethod(paymentMethodProp);
+}, [paymentMethodProp]);
 
     useEffect(() => {
         fetchOrderData();
@@ -105,10 +113,41 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
     }
 
     const Icon = currentStep.icon;
+const isTransfer = paymentMethod === 'transferencia';
+    const showPaymentCard = isTransfer && status === 'pendiente';
+
 
     return (
         <div className="relative h-full flex flex-col justify-between py-4">
             <div className="flex-1 flex flex-col justify-center items-center">
+                {showPaymentCard && (
+    <div className="mb-6 w-full px-4 animate-in slide-in-from-top-4 duration-500">
+        <div className="bg-purple-50 border-2 border-purple-200 p-5 rounded-[2.5rem] shadow-xl">
+            <div className="flex flex-col items-center text-center gap-3">
+                <div className="bg-purple-600 text-white p-2.5 rounded-2xl shadow-lg">
+                    <CreditCard size={20} strokeWidth={2.5} />
+                </div>
+                <div className="space-y-1">
+                    <h4 className="text-sm font-black uppercase italic tracking-tighter text-purple-950">Pendiente de Pago</h4>
+                    <p className="text-[11px] font-bold text-purple-700/80 leading-tight">Transferí al Alias y envianos el comprobante para que comencemos a cocinar.</p>
+                </div>
+
+                <button onClick={() => { navigator.clipboard.writeText(aliasMpProp || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="w-full bg-white border-2 border-purple-100 p-3 rounded-2xl flex justify-between items-center active:scale-95 transition-all">
+                    <div className="text-left">
+                        <p className="text-[8px] font-black text-gray-400 uppercase">Copiar Alias</p>
+                        <p className="text-xs font-black text-purple-900">{aliasMpProp || 'Configurá tu Alias'}</p>
+                    </div>
+                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-purple-300" />}
+                </button>
+
+                <button onClick={() => { const msg = encodeURIComponent(`Hola! mi pedido es ${orderId.slice(0,5)}, te adjunto el comprobante.`); window.open(`whatsapp://send?phone=${restaurantPhone.replace(/\D/g, '')}&text=${msg}`); }} className="w-full bg-green-600 text-white py-3.5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                    <MessageCircle size={16} fill="white" /> Enviar Comprobante
+                </button>
+                <p className="text-[9px] font-bold text-purple-400 uppercase italic mt-1 leading-tight">Sino, esperá a que confirmemos <br/> el ingreso manualmente.</p>
+            </div>
+        </div>
+    </div>
+)}
                 
                 {/* 🚀 CARTEL DE AGUENDA (Solo si es programado y está en espera) */}
                 {showAgendaNotice && (
@@ -118,12 +157,16 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
                                 <CalendarCheck size={18} strokeWidth={2.5} />
                             </div>
                             <div className="text-center">
-                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.1em] italic">Pedido Agendado</p>
-                                <p className="text-[11px] font-bold text-indigo-950 leading-tight">
-                                    ¡Recibimos tu pedido! Lo prepararemos para el horario seleccionado: <br/>
-                                    <span className="text-sm font-black underline">{scheduledTime}</span>
-                                </p>
-                            </div>
+    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.1em] italic">
+    {showPaymentCard ? 'Pedido en Espera' : 'Pedido Agendado'}
+</p>
+    <p className="text-[11px] font-bold text-indigo-950 leading-tight">
+        {showPaymentCard 
+            ? `Prepararemos tu pedido para las ${scheduledTime} apenas se confirme el pago.` // 🚀 Texto si falta pagar
+            : `¡Recibimos tu pedido! Lo prepararemos para el horario seleccionado: ${scheduledTime}`      // Texto si es efectivo o ya pagó
+        }
+    </p>
+</div>
                         </div>
                     </div>
                 )}
@@ -135,13 +178,15 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
                     </div>
                 </div>
                 
-                <h3 className="text-3xl font-black text-gray-900 tracking-tighter leading-none mb-2 text-center italic uppercase">
-                    {currentStep.label}
-                </h3>
+          <h3 className="text-3xl font-black text-gray-900 tracking-tighter leading-none mb-2 text-center italic uppercase">
+    {/* 🚀 LÓGICA DINÁMICA: Si es transferencia y está pendiente, cambiamos el título */}
+    {showPaymentCard ? 'Esperando Pago' : currentStep.label}
+</h3>
                 
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center px-4">
-                    {currentStep.subLabel}
-                </p>
+         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center px-4">
+    {/* 🚀 CAMBIO DE TEXTO: Menos presión, más servicio */}
+    {showPaymentCard ? 'Si tenés preguntas o dudas sobre tu pedido, envianos un msj' : currentStep.subLabel}
+</p>
                 
                 <div className="flex gap-1.5 h-1.5 mt-8 px-8 w-full max-w-[280px]">
                     {steps.map((step: any, i: number) => (
