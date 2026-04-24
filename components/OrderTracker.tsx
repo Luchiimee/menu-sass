@@ -21,12 +21,14 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
     // 🚀 ESTADO PARA EL HORARIO PROGRAMADO
     const [scheduledTime, setScheduledTime] = useState<string | null>(null);
 
+    // 🚀 AHORA TRAEMOS TAMBIÉN EL TIPO DE PEDIDO
+    const [orderType, setOrderType] = useState(businessType); 
+
     const fetchOrderData = useCallback(async () => {
         if (!orderId) return;
-        // 🚀 TRAEMOS EL STATUS Y EL HORARIO PROGRAMADO
         const { data } = await supabase
             .from('orders')
-            .select('status, scheduled_delivery_time')
+            .select('status, scheduled_delivery_time, order_type') // <--- Agregamos order_type
             .eq('id', orderId)
             .single();
 
@@ -35,7 +37,9 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
                 setStatus(data.status);
                 if(onStatusChange) onStatusChange(data.status);
             }
-            // Guardamos el horario si no es "Inmediato"
+            // Seteamos el tipo real del pedido (mesa, delivery o retiro)
+            if (data.order_type) setOrderType(data.order_type);
+            
             if (data.scheduled_delivery_time && data.scheduled_delivery_time !== 'Inmediato') {
                 setScheduledTime(data.scheduled_delivery_time);
             }
@@ -71,16 +75,18 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
             { id: 'listo', label: '¡Plato Listo! 🍽️', subLabel: 'El mozo te lo alcanza enseguida', icon: Zap, color: 'bg-blue-500', textColor: 'text-blue-600' },
             { id: 'completado', label: '¡Provecho! ✨', subLabel: 'Esperamos que lo disfrutes', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ],
-        retiro: [
+      retiro: [
             { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
             { id: 'recibido', label: '¡Pedido Tomado! ✅', subLabel: 'Enseguida lo preparamos', icon: Check, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
             { id: 'en_proceso', label: 'Cocinando 🔥', subLabel: '¡El fuego está prendido!', icon: ChefHat, color: 'bg-orange-500', textColor: 'text-orange-600' },
-            { id: 'en_camino', label: '¡Pedido Listo! 🛍️', subLabel: 'Ya podés pasar a retirarlo', icon: ShoppingBag, color: 'bg-blue-600', textColor: 'text-blue-600' },
+            // 🚀 CAMBIO AQUÍ: Texto específico para retiro
+            { id: 'en_camino', label: '¡Pedido Listo! 🛍️', subLabel: 'Tu pedido está listo para retirar', icon: ShoppingBag, color: 'bg-blue-600', textColor: 'text-blue-600' },
             { id: 'completado', label: '¡Entregado! ✨', subLabel: 'Gracias por tu visita', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ]
     };
 
-    const steps = stepsConfig[businessType] || stepsConfig.gastronomico;
+    const mappedType = orderType === 'delivery' ? 'gastronomico' : orderType;
+    const steps = stepsConfig[mappedType] || stepsConfig.gastronomico;
     const normalizedStatus = status === 'entregado' ? 'completado' : status;
     const currentIndex = steps.findIndex((s: any) => s.id === normalizedStatus);
     const currentStep = steps[currentIndex] || steps[0];

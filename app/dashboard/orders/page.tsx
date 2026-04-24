@@ -992,11 +992,11 @@ useEffect(() => {
             ? <CalendarIcon size={12} strokeWidth={3} /> 
             : <Zap size={12} fill="currentColor" />
         }
-        <span className="text-[10px] font-black uppercase tracking-tight">
-            {order.scheduled_delivery_time === 'Inmediato' || !order.scheduled_delivery_time
-                ? (order.order_type === 'delivery' ? 'Enviar lo antes posible' : 'Retiro inmediato')
-                : `PROGRAMADO: ${order.scheduled_delivery_time}`}
-        </span>
+     <span className="text-[10px] font-black uppercase tracking-tight">
+    {order.scheduled_delivery_time === 'Inmediato' || !order.scheduled_delivery_time
+        ? (order.order_type === 'delivery' ? 'Enviar lo antes posible' : 'Retiro') 
+        : `PROGRAMADO: ${order.scheduled_delivery_time}`}
+</span>
     </div>
 )}
                                 </div>
