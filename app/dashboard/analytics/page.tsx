@@ -18,7 +18,11 @@ export default function AnalyticsPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   
   // Control de Fecha (ISO para la lógica interna)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const getArgentinaDate = () => {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+};
+  const [selectedDate, setSelectedDate] = useState(getArgentinaDate());
+  
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Modales
@@ -62,17 +66,19 @@ const loadData = async (date: string) => {
         const shouldBeLocked = rest.subscription_plan === "light" && !isSuperAdmin;
         setIsLocked(shouldBeLocked);
 
-        if (!shouldBeLocked) {
-          const { data: ords } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('restaurant_id', rest.id)
-            .gte('created_at', `${date}T00:00:00`)
-            .lte('created_at', `${date}T23:59:59`)
-            .neq('status', 'cancelado');
-          
-          setOrders(ords || []);
-        }
+        // 🚀 CAMBIO CLAVE EN LA CONSULTA
+if (!shouldBeLocked) {
+    const { data: ords } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('restaurant_id', rest.id)
+        // Agregamos el -03:00 para "anclar" la búsqueda a Argentina
+        .gte('created_at', `${date}T00:00:00-03:00`) 
+        .lte('created_at', `${date}T23:59:59-03:00`)
+        .neq('status', 'cancelado');
+    
+    setOrders(ords || []);
+}
       }
     } catch (error) { console.error(error); } finally { setLoading(false); }
   };
