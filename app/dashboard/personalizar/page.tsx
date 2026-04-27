@@ -955,41 +955,58 @@ const confirmReset = () => {
                     </section>
                   )}
 
-{/* 🎫 GESTIÓN DE RESERVAS (BLOQUEADO - PRÓXIMAMENTE) */}
-<section className="p-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2.5rem] relative overflow-hidden opacity-70 group shadow-sm">
+
+
+{/* 🎫 GESTIÓN DE RESERVAS (BLOQUEO POR PLAN) */}
+{(() => {
+    // 🛡️ Chequeamos si tiene acceso (Plus, Max o Admin)
+    const hasAccess = data.subscription_plan === 'plus' || data.subscription_plan === 'max' || isAdmin;
     
-    {/* Etiqueta Proximamente */}
-    <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[7px] font-black uppercase px-2 py-1 rounded-full shadow-lg transform rotate-3">
-        Próximamente
-    </div>
-
-    <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gray-200 rounded-2xl text-gray-400">
-                <CalendarIcon size={20} />
+    return (
+        <section className={`p-6 border-2 rounded-[2.5rem] space-y-4 shadow-sm mb-6 transition-all ${hasAccess ? 'bg-white border-amber-100' : 'bg-gray-50 border-gray-200 opacity-80'}`}>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2.5 rounded-2xl text-white shadow-lg ${hasAccess ? 'bg-amber-500 shadow-amber-100' : 'bg-gray-400'}`}>
+                        <CalendarIcon size={20} />
+                    </div>
+                    <div className="text-left">
+                        <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none flex items-center gap-2">
+                            Reservas de Mesa {!hasAccess && <Lock size={10} className="text-gray-400" />}
+                        </h3>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Habilitar reservas en el Menú</p>
+                    </div>
+                </div>
+                
+                {hasAccess ? (
+                    // ✅ SWITCH ACTIVO (PLAN PLUS)
+                    <button 
+                        type="button"
+                        onClick={() => { setData({...data, reservations_enabled: !data.reservations_enabled}); setUnsavedChanges(true); }}
+                        className={`w-12 h-6 rounded-full flex items-center px-1 transition-all ${data.reservations_enabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                    >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${data.reservations_enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                ) : (
+                    // ❌ BOTÓN DE UPGRADE (PLAN LIGHT/GO)
+                    <Link href="/dashboard/settings" className="bg-gray-900 text-white px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:bg-black transition-all active:scale-95">
+                        <Zap size={10} className="text-yellow-400 fill-yellow-400"/> Subir a Plus
+                    </Link>
+                )}
             </div>
-            <div className="text-left">
-                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-400 leading-none flex items-center gap-2">
-                    Reservas de Mesa <Lock size={10} />
-                </h3>
-                <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest mt-1">Habilitar reservas en el Menú</p>
+            
+            <div className={`p-4 rounded-2xl border transition-all ${hasAccess ? (data.reservations_enabled ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-100') : 'bg-white/50 border-gray-100'}`}>
+                <p className="text-[10px] font-bold text-gray-600 leading-tight text-left">
+                    {!hasAccess 
+                        ? "💎 Esta función es exclusiva del Plan Plus. Permite que tus clientes reserven mesa desde el Menú."
+                        : data.reservations_enabled 
+                            ? "✅ El botón de reservas es visible para tus clientes." 
+                            : "❌ El botón de reservas está oculto en el Menú."
+                    }
+                </p>
             </div>
-        </div>
-        
-        {/* Switch Bloqueado (No tiene onClick) */}
-        <div className="w-12 h-6 rounded-full bg-gray-200 flex items-center px-1 cursor-not-allowed border border-gray-300">
-            <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
-        </div>
-    </div>
-    
-    <div className="mt-4 p-4 rounded-2xl bg-white/50 border border-gray-100">
-        <p className="text-[10px] font-bold text-gray-400 leading-tight text-left italic">
-            Estamos trabajando en esta función. Muy pronto tus clientes podrán reservar mesa directamente desde tu menú digital.
-        </p>
-    </div>
-</section>
-
-
+        </section>
+    );
+})()}
 
 {/* 📅 GESTIÓN DE TURNOS Y BLOQUES HORARIOS */}
 <section className="p-6 bg-white border-2 border-indigo-100 rounded-[2.5rem] space-y-6 shadow-sm">

@@ -325,13 +325,15 @@ const plan = restaurant.plan;
       locked: hasNoPlan || isLight, 
       msg: hasNoPlan ? "Elegí un plan para gestionar pedidos." : "La gestión de pedidos requiere Plan GO. 🚀"
     }, 
-    // Alrededor de la línea 275
-    { 
+    
+   { 
       name: 'Reservas', 
       href: '/dashboard/reservations', 
       icon: CalendarCheck, 
-      locked: true, // 🚀 Forzamos el bloqueo total
-      msg: "¡Próximamente! Estamos terminando de poner a punto el sistema de reservas para tu local. ⏳" 
+      // 🚀 Se bloquea visualmente si es Light o GO. 
+      // Pero si sos Admin (bypassBlock), el link funcionará igual (lógica del Link más abajo).
+      locked: hasNoPlan || isLight || isGo, 
+      msg: "La gestión de reservas requiere Plan Plus. 💎" 
     },
     
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },

@@ -17,7 +17,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  ShieldCheck // <--- AGREGÁ ESTE
+  ShieldCheck, CalendarCheck,Lock
 } from 'lucide-react';
 import PushNotificationManager from '@/components/PushNotificationManager';
 
@@ -31,6 +31,7 @@ interface MobileNavProps {
 export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmin, onLogout }: MobileNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isPlus = displaySubtext?.includes('Plus') || displaySubtext?.includes('Max') || isAdmin;
 
   const mainNavItems = [
     { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
@@ -40,6 +41,13 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
   ];
 
   const secondaryNavItems = [
+    { 
+        name: 'Reservas', 
+        href: '/dashboard/reservations', 
+        icon: CalendarCheck, 
+        locked: !isPlus, // 🚀 Bloqueado si NO es plus
+        msg: "La gestión de reservas requiere Plan Plus. 💎" 
+    },
     { name: 'Personalizar Diseño', href: '/dashboard/personalizar', icon: Palette },
     { name: 'Galería de Plantillas', href: '/dashboard/templates', icon: Layout },
     { name: 'Ajustes y Cuenta', href: '/dashboard/settings', icon: Settings },
@@ -106,15 +114,32 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
               <div>
                 <p className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 text-left">Diseño y Visualización</p>
                 <div className="space-y-1">
-                   {secondaryNavItems.map((item) => (
-                     <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 rounded-2xl active:bg-slate-100 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 bg-slate-100 rounded-xl text-slate-600"><item.icon size={20} /></div>
-                          <span className="font-bold text-slate-800">{item.name}</span>
-                        </div>
-                        <ChevronRight size={18} className="text-slate-300" />
-                     </Link>
-                   ))}
+                 {secondaryNavItems.map((item: any) => (
+  <Link 
+    key={item.href} 
+    href={item.locked ? '#' : item.href} 
+    onClick={(e) => {
+      if (item.locked) {
+        e.preventDefault();
+        alert(item.msg);
+      } else {
+        setIsMenuOpen(false);
+      }
+    }} 
+    className={`flex items-center justify-between p-4 rounded-2xl transition-all ${item.locked ? 'opacity-50' : 'active:bg-slate-100'}`}
+  >
+    <div className="flex items-center gap-4">
+      <div className={`p-2 rounded-xl ${item.locked ? 'bg-gray-100 text-gray-400' : 'bg-slate-100 text-slate-600'}`}>
+        <item.icon size={20} />
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`font-bold ${item.locked ? 'text-gray-400' : 'text-slate-800'}`}>{item.name}</span>
+        {item.locked && <Lock size={12} className="text-gray-400" />}
+      </div>
+    </div>
+    <ChevronRight size={18} className="text-slate-300" />
+  </Link>
+))}
                 </div>
               </div>
 
