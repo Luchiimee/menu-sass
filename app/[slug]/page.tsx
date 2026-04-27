@@ -14,7 +14,18 @@ import {
   Clock,
   Zap,
   Ticket,
-  Lock,Store,Phone,Facebook,Instagram,Music2,ExternalLink ,MapPin
+  Lock,
+  Store,
+  Phone,
+  Facebook,
+  Instagram,
+  Music2,
+  ExternalLink,
+  MapPin,
+  Minus,
+  CalendarIcon,
+  Eye,
+  CheckCircle2,XCircle
 } from "lucide-react";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
@@ -53,23 +64,27 @@ async function getRestaurant(slug: string) {
       .select("*")
       .eq("restaurant_id", menuData.id)
       .order("name", { ascending: true });
-      
+
     const { data: allExtras } = await supabase
       .from("extras")
       .select(`*, product_extras (product_id)`)
       .eq("restaurant_id", menuData.id);
 
-    const categoriesWithProducts = (menuData.categories || []).map((cat: any) => ({
-      ...cat,
-      products: (products || []).filter((p: any) => String(p.category_id) === String(cat.id)),
-    }));
+    const categoriesWithProducts = (menuData.categories || []).map(
+      (cat: any) => ({
+        ...cat,
+        products: (products || []).filter(
+          (p: any) => String(p.category_id) === String(cat.id),
+        ),
+      }),
+    );
 
-    return { 
-      ...menuData, 
-      categories: categoriesWithProducts, 
-      fetched_products: products || [], 
-      fetched_extras: allExtras || [], 
-      page_type: 'menu' 
+    return {
+      ...menuData,
+      categories: categoriesWithProducts,
+      fetched_products: products || [],
+      fetched_extras: allExtras || [],
+      page_type: "menu",
     };
   }
 
@@ -83,12 +98,12 @@ async function getRestaurant(slug: string) {
   if (bioData) {
     console.log("✅ BIO ENCONTRADA - NO HABÍA MENÚ CON ESTE SLUG");
     return {
-      ...bioData.restaurant, 
+      ...bioData.restaurant,
       snappylink_bio: bioData.bio,
       snappylink_links: bioData.links,
       snappylink_template_id: bioData.template_id,
       is_bio_active: bioData.is_active,
-      snappylink_title: bioData.title, 
+      snappylink_title: bioData.title,
       snappylink_bg_color: bioData.bg_color,
       snappylink_bg_img: bioData.bg_img,
       snappylink_btn_color: bioData.btn_color,
@@ -96,9 +111,9 @@ async function getRestaurant(slug: string) {
       snappylink_shadow_color: bioData.shadow_color,
       snappylink_title_color: bioData.title_color,
       snappylink_desc_color: bioData.desc_color,
-      snappylink_social_links: (bioData as any).social_links || [], 
-      snappylink_social_pos: (bioData as any).social_pos || 'bottom',
-      page_type: 'bio'
+      snappylink_social_links: (bioData as any).social_links || [],
+      snappylink_social_pos: (bioData as any).social_pos || "bottom",
+      page_type: "bio",
     };
   }
 
@@ -164,8 +179,7 @@ const getStyles = (
   DESC_FONT?: string,
   PROMO_FONT?: string,
 ) => {
- 
-const common = `
+  const common = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');
     
     html, body { 
@@ -364,7 +378,7 @@ height: 26px !important;
             .sushi-msg-box { 
                 margin: 5px 15px 18px; 
                 /* Si el color es transparente o no existe, forzamos el gris oscuro del editor */
-                background-color: ${PROMO_BG === 'transparent' || !PROMO_BG ? '#1E1E1E' : PROMO_BG}; 
+                background-color: ${PROMO_BG === "transparent" || !PROMO_BG ? "#1E1E1E" : PROMO_BG}; 
                 color: ${PROMO_TEXT}; 
                 border-left: 4px solid ${THEME}; 
                 padding: 10px 14px; 
@@ -578,8 +592,8 @@ height: 26px !important;
               color: ${BTN_TEXT} !important;
             }
         `;
- case "marketpro":
-  return `
+    case "marketpro":
+      return `
         ${common}
         /* Bloqueo total del rebote elástico del navegador (Safari iOS) */
         html, body {
@@ -624,14 +638,36 @@ function MenuContent({
   const [activeCardId, setActiveCardId] = useState<any>(null);
   const [showClosedAlert, setShowClosedAlert] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [showCheckModal, setShowCheckModal] = useState(false);
+  const [searchPhone, setSearchPhone] = useState("");
+  const [myReservation, setMyReservation] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]); 
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [resData, setResData] = useState({
+    name: "",
+    phone: "",
+    lastname: "",
+    date: new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    }),
+    time: "21:00",
+    guests: 2,
+    notes: "",
+  });
+
   console.log("Dato del botón:", restaurant.card_btn_text);
-  const { cart, addToCart, updateQuantity, activeOrderId, setActiveOrderId } = useCart();
+  const { cart, addToCart, updateQuantity, activeOrderId, setActiveOrderId } =
+    useCart();
   const [showTracking, setShowTracking] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [currentExtras, setCurrentExtras] = useState<any[]>([]);
   const [notificacion, setNotificacion] = useState<string | null>(null);
   const [showHeroModal, setShowHeroModal] = useState(false);
   const [heroQty, setHeroQty] = useState(1);
+  const [showBlockedModal, setShowBlockedModal] = useState(false); 
   const [variationsQuantities, setVariationsQuantities] = useState<{
     [key: number]: number;
   }>({});
@@ -639,6 +675,111 @@ function MenuContent({
     [key: string]: number | null;
   }>({});
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
+  const validatePhone = async (phone: string) => {
+    if (phone.length < 8) { // No buscamos si el número es muy corto
+        setPhoneError(null);
+        return;
+    }
+
+    const { data } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('restaurant_id', restaurant.id)
+      .eq('customer_phone', phone)
+      .neq('status', 'cancelada') // Ignoramos si la reserva anterior fue cancelada
+      .maybeSingle();
+
+    if (data) {
+      setPhoneError("⚠️ Ya tenés una reserva activa con este número.");
+    } else {
+      setPhoneError(null);
+    }
+  };
+const handleSendReservation = async () => {
+    const now = new Date();
+    // 🕒 Obtenemos fecha y hora actual de Argentina para comparar
+    const argDate = now.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+    const argTime = now.toLocaleTimeString("en-GB", { timeZone: "America/Argentina/Buenos_Aires", hour: '2-digit', minute: '2-digit' });
+
+    // 🛡️ DEFINICIÓN DE BLOQUEO (Esto arregla el error de tu captura)
+    const isDayBlocked = blockedDates.includes(resData.date);
+
+    // 🛡️ ESCUDO 1: Bloqueo de día cerrado
+    if (isDayBlocked) {
+        setShowBlockedModal(true); // ✅ Abrimos tu nuevo modal
+        return;
+    }
+
+    // 🛡️ ESCUDO 2: Bloqueo de hora pasada (solo si es para hoy)
+    if (resData.date === argDate && resData.time <= argTime) {
+        setShowBlockedModal(true); // ✅ Abrimos el modal también si la hora pasó
+        return;
+    }
+
+    if (!resData.name || !resData.lastname || !resData.phone) {
+        return alert("Por favor, completá nombre, apellido y WhatsApp.");
+    }
+
+    setIsSubmitting(true);
+
+    try {
+        // 🚀 VERIFICACIÓN DE ÚLTIMO SEGUNDO
+        const { data: isStillBlocked } = await supabase
+            .from('blocked_dates')
+            .select('id')
+            .eq('restaurant_id', restaurant.id)
+            .eq('blocked_date', resData.date)
+            .maybeSingle();
+
+        if (isStillBlocked) {
+            setIsSubmitting(false);
+            setShowBlockedModal(true);
+            return;
+        }
+
+        const { error } = await supabase.from('reservations').insert({
+            restaurant_id: restaurant.id,
+            customer_name: resData.name,
+            customer_lastname: resData.lastname,
+            customer_phone: resData.phone,
+            reservation_date: resData.date,
+            reservation_time: resData.time,
+            guests: resData.guests,
+            notes: resData.notes,
+            status: 'pendiente'
+        });
+
+        if (error) throw error;
+
+        setShowSuccessModal(true); 
+        setShowReservationModal(false);
+        setResData({ ...resData, name: '', lastname: '', phone: '', notes: '' });
+
+    } catch (error: any) {
+        alert("Error: " + error.message);
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+  const handleCheckReservation = async () => {
+    if (!searchPhone) return alert("Ingresá tu número de WhatsApp");
+
+    const { data, error } = await supabase
+      .from("reservations")
+      .select("*")
+      .eq("customer_phone", searchPhone)
+      .eq("restaurant_id", restaurant.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      setMyReservation(data);
+    } else {
+      alert("No encontramos ninguna reserva con ese número.");
+    }
+  };
+
   const handleAddHeroToCart = () => {
     if (!restaurant.hero_title || !restaurant.hero_price) return;
 
@@ -663,12 +804,13 @@ function MenuContent({
   useEffect(() => {
     const handleAndroidPrompt = (e: any) => {
       // 1. Esto le dice a Chrome: "No muestres tu barrita de instalar, yo me encargo"
-      e.preventDefault(); 
+      e.preventDefault();
       console.log("Cartel de Android bloqueado para el cliente.");
     };
 
-    window.addEventListener('beforeinstallprompt', handleAndroidPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleAndroidPrompt);
+    window.addEventListener("beforeinstallprompt", handleAndroidPrompt);
+    return () =>
+      window.removeEventListener("beforeinstallprompt", handleAndroidPrompt);
   }, []);
   useEffect(() => {
     const handleBeforeUnload = (e: any) => {
@@ -686,6 +828,24 @@ function MenuContent({
     };
   }, []);
 
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      const { data } = await supabase
+        .from('blocked_dates')
+        .select('blocked_date')
+        .eq('restaurant_id', restaurant.id);
+      
+      const blocks = data?.map(d => d.blocked_date) || [];
+      setBlockedDates(blocks);
+
+      
+      const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+      if (blocks.includes(todayStr)) {
+          setResData(prev => ({ ...prev, date: '' }));
+      }
+    };
+    fetchBlocks();
+  }, [restaurant.id]);
 
   // --- 1. VARIABLES DE DISEÑO (SINCRONIZADAS CON EL EDITOR) ---
   const TEMPLATE = restaurant.template_id || "classic";
@@ -841,51 +1001,51 @@ function MenuContent({
     const allProducts = restaurant.fetched_products || [];
     // 2. LÓGICA DE CATEGORÍAS PARA ALTERNA-PRO (Filtra "General" y pone defaults)
     const rawCats = restaurant.categories || [];
-  // 1. Filtramos la categoría "General" si existe
-const cleanCats = rawCats.filter(
-  (c: any) => c.name.toLowerCase() !== "general",
-);
+    // 1. Filtramos la categoría "General" si existe
+    const cleanCats = rawCats.filter(
+      (c: any) => c.name.toLowerCase() !== "general",
+    );
 
-// 🚀 LA SOLUCIÓN: Si no hay categorías, mandamos una lista vacía 
-// para que no aparezcan botones de ejemplo.
-const displayCats = cleanCats;
+    // 🚀 LA SOLUCIÓN: Si no hay categorías, mandamos una lista vacía
+    // para que no aparezcan botones de ejemplo.
+    const displayCats = cleanCats;
     switch (TEMPLATE) {
- case "urban":
-  return (
-    <UrbanoDark
-      restaurant={restaurant}
-      products={allProducts}
-      categories={displayCats}
-      fetchedExtras={restaurant.fetched_extras}
-      isOpen={isOpen}
-      onAddToCart={(product: any, qty: number) => {
-        for (let i = 0; i < qty; i++) {
-          addToCart(product);
-        }
-        mostrarAviso("✅ Producto agregado");
-      }}
-      isMockup={false}
-      setShowInfo={setShowInfo} // 🚀 AGREGÁ ESTA LÍNEA AQUÍ
-    />
-  );
-  case "classic":
-  return (
-    <ClassicDelivery
-      restaurant={restaurant}
-      products={allProducts}
-      categories={displayCats}
-      fetchedExtras={restaurant.fetched_extras || []}
-      isOpen={isOpen}
-      onAddToCart={(product: any, qty: number = 1) => {
-        for (let i = 0; i < qty; i++) {
-          addToCart(product);
-        }
-        mostrarAviso("✅ Agregado");
-      }}
-      isMockup={false}
-      setShowInfo={setShowInfo} // 🚀 ESTA LÍNEA ES LA QUE HACE LA MAGIA
-    />
-  );
+      case "urban":
+        return (
+          <UrbanoDark
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras}
+            isOpen={isOpen}
+            onAddToCart={(product: any, qty: number) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Producto agregado");
+            }}
+            isMockup={false}
+            setShowInfo={setShowInfo} // 🚀 AGREGÁ ESTA LÍNEA AQUÍ
+          />
+        );
+      case "classic":
+        return (
+          <ClassicDelivery
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras || []}
+            isOpen={isOpen}
+            onAddToCart={(product: any, qty: number = 1) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Agregado");
+            }}
+            isMockup={false}
+            setShowInfo={setShowInfo} // 🚀 ESTA LÍNEA ES LA QUE HACE LA MAGIA
+          />
+        );
       case "minimal":
         return (
           <MinimalWhite
@@ -904,27 +1064,29 @@ const displayCats = cleanCats;
             setShowInfo={setShowInfo}
           />
         );
-       
-case "visualgrid":
-  return (
-    <VisualGrid
-      restaurant={restaurant}
-      products={allProducts}
-      categories={displayCats}
-      fetchedExtras={restaurant.fetched_extras}
-      isOpen={isOpen}
-      setShowInfo={setShowInfo} // 🚀 ESTA TIENE QUE ESTAR SÍ O SÍ
-      isMockup={false}
-      onAddToCart={(product: any) => {
-        const exists = cart.find(item => item.id === product.id && !item.parentId);
-        if (!exists || product.parentId) {
-           addToCart(product);
-        }
-        mostrarAviso("✅ Pedido agregado"); 
-      }}
-    />
-  );
-        
+
+      case "visualgrid":
+        return (
+          <VisualGrid
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras}
+            isOpen={isOpen}
+            setShowInfo={setShowInfo} // 🚀 ESTA TIENE QUE ESTAR SÍ O SÍ
+            isMockup={false}
+            onAddToCart={(product: any) => {
+              const exists = cart.find(
+                (item) => item.id === product.id && !item.parentId,
+              );
+              if (!exists || product.parentId) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Pedido agregado");
+            }}
+          />
+        );
+
       case "pop":
         // Usamos la nueva columna de la DB para los bordes y sombras rígidas
         const shadow = restaurant.card_shadow_color || "#000000";
@@ -1229,20 +1391,25 @@ case "visualgrid":
                         key={prod.id}
                         className="spot-product-card text-left"
                       >
-                       <div className="spot-product-thumb overflow-hidden bg-zinc-100">
-  {prod.video_url ? (
-    <video 
-      src={prod.video_url} 
-      autoPlay muted loop playsInline 
-      className="w-full h-full object-cover"
-    />
-  ) : (
-    <div 
-      className="w-full h-full bg-cover bg-center"
-      style={{ backgroundImage: `url('${prod.image_url || ""}')` }}
-    />
-  )}
-</div>
+                        <div className="spot-product-thumb overflow-hidden bg-zinc-100">
+                          {prod.video_url ? (
+                            <video
+                              src={prod.video_url}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div
+                              className="w-full h-full bg-cover bg-center"
+                              style={{
+                                backgroundImage: `url('${prod.image_url || ""}')`,
+                              }}
+                            />
+                          )}
+                        </div>
                         <div className="flex-1">
                           <h3 className="spot-product-name">{prod.name}</h3>
                           <p className="spot-product-desc">
@@ -1571,8 +1738,9 @@ case "visualgrid":
             restaurant={restaurant}
             products={allProducts}
             categories={restaurant.categories || []}
-            fetchedExtras={restaurant.fetched_extras} 
+            fetchedExtras={restaurant.fetched_extras}
             isOpen={isOpen}
+            setShowInfo={setShowInfo} // 👈 AGREGÁ ESTA LÍNEA QUE FALTA
             onAddToCart={(product: any, qty: number) => {
               for (let i = 0; i < qty; i++) {
                 addToCart(product);
@@ -1627,7 +1795,7 @@ case "visualgrid":
         <style dangerouslySetInnerHTML={{ __html: memoizedStyles }} />
         <ClearCartLogic currentRestaurantId={restaurant.id} />
 
-    {/* 🚀 NOTIFICACIÓN PREMIUM CORREGIDA (Centrada y con Salida) */}
+        {/* 🚀 NOTIFICACIÓN PREMIUM CORREGIDA (Centrada y con Salida) */}
         {notificacion && (
           <div className="fixed top-8 inset-x-0 z-[10000] flex justify-center pointer-events-none px-4">
             <div className="bg-zinc-900/95 backdrop-blur-xl text-white px-6 py-3 rounded-full shadow-[0_15px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 border border-white/10 animate-notification">
@@ -1663,22 +1831,298 @@ case "visualgrid":
         </a>
 
         <div className="sticky bottom-0 left-0 w-full z-[50]">
-       <CartFooter
-    phone={restaurant.phone}
-    deliveryCost={Number(restaurant.delivery_cost)}
-    restaurantId={restaurant.id}
-    aliasMp={restaurant.alias_mp}
-    planType={restaurant.subscription_plan}
-    receiveWhatsapp={restaurant.receive_whatsapp}
-    businessType={restaurant.business_type}
-    restaurantName={restaurant.name}
-    // 🚀 LÓGICA DE PROGRAMACIÓN ACTIVADA:
-    scheduled_delivery_enabled={restaurant.scheduled_delivery_enabled}
-    scheduled_delivery_slots={restaurant.scheduled_delivery_slots}
-    scheduled_delivery_config={restaurant.scheduled_delivery_config}
-    isAdmin={false}
-/>
+          <CartFooter
+            phone={restaurant.phone}
+            deliveryCost={Number(restaurant.delivery_cost)}
+            restaurantId={restaurant.id}
+            aliasMp={restaurant.alias_mp}
+            planType={restaurant.subscription_plan}
+            receiveWhatsapp={restaurant.receive_whatsapp}
+            businessType={restaurant.business_type}
+            restaurantName={restaurant.name}
+            // 🚀 LÓGICA DE PROGRAMACIÓN ACTIVADA:
+            scheduled_delivery_enabled={restaurant.scheduled_delivery_enabled}
+            scheduled_delivery_slots={restaurant.scheduled_delivery_slots}
+            scheduled_delivery_config={restaurant.scheduled_delivery_config}
+            isAdmin={false}
+          />
         </div>
+        {showReservationModal && (
+          <div className="fixed inset-0 z-[10001] bg-black/70 backdrop-blur-md flex items-end md:items-center justify-center">
+            <div className="w-full max-w-md bg-white rounded-t-[2.5rem] md:rounded-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom-10">
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-left">
+                  <h3 className="text-xl font-black uppercase italic tracking-tighter text-gray-900">
+                    Reservar Mesa
+                  </h3>
+
+                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                    Completá tus datos
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowReservationModal(false)}
+                  className="p-2 bg-gray-100 rounded-full"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+            <div className="space-y-4">
+                {/* NOMBRE Y APELLIDO EN DOS COLUMNAS */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="text-left space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Nombre</label>
+                        <input type="text" value={resData.name} onChange={(e)=>setResData({...resData, name: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-amber-500" placeholder="Ej: Juan" />
+                    </div>
+                    <div className="text-left space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Apellido</label>
+                        <input type="text" value={resData.lastname} onChange={(e)=>setResData({...resData, lastname: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-amber-500" placeholder="Ej: Pérez" />
+                    </div>
+                </div>
+
+                <div className="text-left space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">WhatsApp</label>
+                    <input type="tel" value={resData.phone} onChange={(e) => {
+            const val = e.target.value;
+            setResData({...resData, phone: val});
+            validatePhone(val); // 🚀 Validamos en tiempo real
+        }}className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm outline-none focus:ring-2 ring-amber-500" placeholder="Ej: 1123456789" />
+        {phoneError && (
+        <p className="text-[10px] font-bold text-red-500 ml-2 animate-pulse">
+            {phoneError}
+        </p>
+    )}
+                </div>
+
+                {/* DÍA Y HORA */}
+                <div className="grid grid-cols-2 gap-3">
+             <div className="text-left space-y-1">
+    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Día</label>
+    <input 
+        type="date" 
+        value={resData.date} 
+        onChange={(e) => {
+            const chosen = e.target.value;
+            if (blockedDates.includes(chosen)) {
+                alert("🚫 Cupo lleno: No aceptamos más reservas para este día.");
+                setResData({...resData, date: ''});
+            } else {
+                setResData({...resData, date: chosen});
+            }
+        }} 
+        className={`w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-xs ${!resData.date && 'ring-2 ring-red-500'}`} 
+    />
+    {!resData.date && <p className="text-[9px] text-red-500 font-bold ml-2">Día no disponible o no seleccionado</p>}
+</div>
+                    <div className="text-left space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Hora</label>
+                        <input type="time" value={resData.time} onChange={(e)=>setResData({...resData, time: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-xs" />
+                    </div>
+                </div>
+
+                {/* NOTAS / DESCRIPCIÓN */}
+                <div className="text-left space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">¿Alguna nota especial?</label>
+                    <textarea value={resData.notes} onChange={(e)=>setResData({...resData, notes: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm outline-none h-20 resize-none focus:ring-2 ring-amber-500" placeholder="Ej: Cumpleaños, mesa cerca de la ventana..." />
+                </div>
+
+
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    ¿Cuántas personas?
+                  </span>
+
+                  <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm">
+                    <button
+                      onClick={() =>
+                        setResData({
+                          ...resData,
+                          guests: Math.max(1, resData.guests - 1),
+                        })
+                      }
+                    >
+                      <Minus size={18} className="text-red-500" />
+                    </button>
+
+                    <span className="font-black text-sm w-4 text-center">
+                      {resData.guests}
+                    </span>
+
+                    <button
+                      onClick={() =>
+                        setResData({ ...resData, guests: resData.guests + 1 })
+                      }
+                    >
+                      <Plus size={18} className="text-green-600" />
+                    </button>
+                  </div>
+                </div>
+
+               <button 
+    onClick={handleSendReservation} 
+    disabled={isSubmitting || !!phoneError} // 🚀 Si hay error, el botón se bloquea
+    className="w-full py-5 bg-amber-500 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 disabled:opacity-50 disabled:grayscale"
+>
+    {isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : 'Enviar Solicitud'}
+</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* 🎫 MODAL: CONSULTAR MI RESERVA */}
+        {showCheckModal && (
+          <div className="fixed inset-0 z-[10001] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="bg-[#18181b] border border-white/10 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative text-center animate-in zoom-in-95">
+              <button
+                onClick={() => {
+                  setShowCheckModal(false);
+                  setMyReservation(null);
+                }}
+                className="absolute top-5 right-5 text-gray-500 p-2"
+              >
+                <X size={20} />
+              </button>
+
+              {!myReservation ? (
+                <div className="space-y-6">
+                  <div className="text-left">
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
+                      Mi Reserva
+                    </h3>
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mt-1">
+                      Ingresá tu número para ver el estado
+                    </p>
+                  </div>
+                  <input
+                    type="tel"
+                    placeholder="WhatsApp (Ej: 1123456789)"
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value)}
+                    className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 ring-amber-500 font-bold"
+                  />
+                  <button
+                    onClick={handleCheckReservation}
+                    className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all"
+                  >
+                    Buscar Reserva
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in fade-in">
+                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
+                    {myReservation.status === "confirmada" ? (
+                      <CheckCircle2 className="text-emerald-500" size={40} />
+                    ) : (
+                      <Clock className="text-amber-500" size={40} />
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="text-white font-black uppercase text-lg leading-none">
+                      Hola, {myReservation.customer_name}
+                    </h4>
+                    <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase tracking-widest">
+                      Reserva:{" "}
+                      {myReservation.reservation_date
+                        .split("-")
+                        .reverse()
+                        .join("/")}{" "}
+                      a las {myReservation.reservation_time.slice(0, 5)} hs
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-3xl bg-white/5 border border-white/10">
+                    <p className="text-xs font-black text-white uppercase tracking-widest">
+                      Estado:
+                      {myReservation.status === "pendiente" && (
+                        <span className="text-amber-500 ml-2">
+                          ⏳ PENDIENTE
+                        </span>
+                      )}
+                      {myReservation.status === "confirmada" && (
+                        <span className="text-emerald-500 ml-2">
+                          ✅ CONFIRMADA
+                        </span>
+                      )}
+                      {myReservation.status === "suspendida" && (
+                        <span className="text-orange-500 ml-2">
+                          ⚠️ SUSPENDIDA
+                        </span>
+                      )}
+                      {myReservation.status === "programada" && (
+                        <span className="text-blue-500 ml-2">
+                          📅 REPROGRAMADA
+                        </span>
+                      )}
+                      {myReservation.status === "cancelada" && (
+                        <span className="text-red-500 ml-2">❌ CANCELADA</span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-gray-300 mt-4 leading-relaxed font-medium">
+                      {myReservation.status === "programada" ? (
+                        <>
+                          <span className="text-blue-400 font-black">
+                            ¡Atención!
+                          </span>{" "}
+                          El local movió tu reserva para el día{" "}
+                          <span className="text-white font-black">
+                            {myReservation.reservation_date
+                              .split("-")
+                              .reverse()
+                              .join("/")}
+                          </span>{" "}
+                          a las{" "}
+                          <span className="text-white font-black">
+                            {myReservation.reservation_time.slice(0, 5)} hs
+                          </span>
+                          .
+                        </>
+                      ) : myReservation.status === "suspendida" ? (
+                        "Tu reserva se encuentra suspendida temporalmente por factores climáticos o fuerza mayor. El local se contactará con vos."
+                      ) : (
+                        "Tu reserva se encuentra " +
+                        myReservation.status +
+                        " para el día " +
+                        myReservation.reservation_date
+                          .split("-")
+                          .reverse()
+                          .join("/") +
+                        "."
+                      )}
+                    </p>
+
+                    {/* Mensajes extra según el estado */}
+                    <p className="text-[10px] text-gray-400 mt-4 leading-relaxed italic">
+                      {myReservation.status === "pendiente" &&
+                        "Estamos revisando tu solicitud. Te avisaremos pronto."}
+                      {myReservation.status === "confirmada" &&
+                        "¡Todo listo! Te esperamos en el horario pactado."}
+                      {myReservation.status === "suspendida" &&
+                        "Por lluvia o fuerza mayor se suspendió. Nos contactaremos con vos."}
+                      {myReservation.status === "programada" &&
+                        "Tu reserva fue movida. Revisá el horario arriba."}
+                      {myReservation.status === "cancelada" &&
+                        "Esta reserva ya no es válida."}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowCheckModal(false);
+                      setMyReservation(null);
+                    }}
+                    className="w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] tracking-widest"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* --- CÓDIGO DEL MODAL PARA EL PRODUCTO DESTACADO --- */}
@@ -1747,9 +2191,9 @@ case "visualgrid":
           </div>
         </div>
       )}
-    
+
+  
       {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
-    {/* --- MODAL DE COMPRA MÚLTIPLE (DIETÉTICA/HELADERÍA) --- */}
       {selectedProduct && !["alterna-pro", "marketpro"].includes(TEMPLATE) && (
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
           <div
@@ -1798,10 +2242,14 @@ case "visualgrid":
                     className={`flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${qty > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-gray-100 bg-gray-50"}`}
                   >
                     <div className="flex flex-col text-left">
-                      <span className={`font-black text-sm uppercase ${qty > 0 ? "text-indigo-900" : "text-gray-500"}`}>
+                      <span
+                        className={`font-black text-sm uppercase ${qty > 0 ? "text-indigo-900" : "text-gray-500"}`}
+                      >
                         {v.label}
                       </span>
-                      <span className={`font-bold text-xs ${qty > 0 ? "text-indigo-600" : "text-gray-400"}`}>
+                      <span
+                        className={`font-bold text-xs ${qty > 0 ? "text-indigo-600" : "text-gray-400"}`}
+                      >
                         {formatPrice(v.price)}
                       </span>
                     </div>
@@ -1818,7 +2266,9 @@ case "visualgrid":
                       >
                         -
                       </button>
-                      <span className={`font-black text-sm w-4 text-center ${qty > 0 ? "text-gray-900" : "text-gray-300"}`}>
+                      <span
+                        className={`font-black text-sm w-4 text-center ${qty > 0 ? "text-gray-900" : "text-gray-300"}`}
+                      >
                         {qty}
                       </span>
                       <button
@@ -1838,77 +2288,95 @@ case "visualgrid":
               })}
 
               {/* --- SECCIÓN EXTRAS (DINÁMICA: SE OCULTA SI NO HAY) --- */}
-          {/* --- SECCIÓN EXTRAS DINÁMICA --- */}
-{(() => {
-    // 1. Filtramos los extras que pertenecen a este producto específico
-    const extrasDisponibles = restaurant.fetched_extras?.filter((ex: any) =>
-        ex.product_extras?.some(
-            (re: any) => String(re.product_id) === String(selectedProduct.id)
-        )
-    ) || [];
+              {/* --- SECCIÓN EXTRAS DINÁMICA --- */}
+              {(() => {
+                // 1. Filtramos los extras que pertenecen a este producto específico
+                const extrasDisponibles =
+                  restaurant.fetched_extras?.filter((ex: any) =>
+                    ex.product_extras?.some(
+                      (re: any) =>
+                        String(re.product_id) === String(selectedProduct.id),
+                    ),
+                  ) || [];
 
-    // 2. Si no hay extras para este producto, devolvemos NULL y no se muestra nada
-    if (extrasDisponibles.length === 0) return null;
+                // 2. Si no hay extras para este producto, devolvemos NULL y no se muestra nada
+                if (extrasDisponibles.length === 0) return null;
 
-    // 3. Si hay extras, mostramos el título y la lista
-    return (
-        <div className="mt-8 space-y-3 pb-4 px-1 animate-in fade-in duration-500">
-            <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
-                ¿Querés sumar algo más?
-            </p>
-            <div className="grid grid-cols-1 gap-2">
-                {extrasDisponibles.map((ex: any) => {
-                    const isSelected = selectedExtras.some((s) => s.id === ex.id);
-                    const hasMainQty = Object.values(variationsQuantities).some((q) => q > 0);
+                // 3. Si hay extras, mostramos el título y la lista
+                return (
+                  <div className="mt-8 space-y-3 pb-4 px-1 animate-in fade-in duration-500">
+                    <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest ml-1 text-left">
+                      ¿Querés sumar algo más?
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {extrasDisponibles.map((ex: any) => {
+                        const isSelected = selectedExtras.some(
+                          (s) => s.id === ex.id,
+                        );
+                        const hasMainQty = Object.values(
+                          variationsQuantities,
+                        ).some((q) => q > 0);
 
-                    return (
-                        <button
+                        return (
+                          <button
                             key={ex.id}
                             type="button"
                             disabled={!hasMainQty}
                             onClick={() =>
-                                setSelectedExtras((prev) =>
-                                    isSelected
-                                        ? prev.filter((s) => s.id !== ex.id)
-                                        : [...prev, ex]
-                                )
+                              setSelectedExtras((prev) =>
+                                isSelected
+                                  ? prev.filter((s) => s.id !== ex.id)
+                                  : [...prev, ex],
+                              )
                             }
                             className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
-                                !hasMainQty
-                                    ? "opacity-30 grayscale cursor-not-allowed border-gray-100"
-                                    : isSelected
-                                        ? "border-emerald-500 bg-emerald-50"
-                                        : "border-gray-100 bg-white"
+                              !hasMainQty
+                                ? "opacity-30 grayscale cursor-not-allowed border-gray-100"
+                                : isSelected
+                                  ? "border-emerald-500 bg-emerald-50"
+                                  : "border-gray-100 bg-white"
                             }`}
-                        >
+                          >
                             <div className="flex items-center gap-3">
-                                <div
-                                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                        isSelected ? "bg-emerald-500 border-emerald-500" : "border-gray-200"
-                                    }`}
-                                >
-                                    {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
-                                </div>
-                                <span className={`text-[10px] font-black uppercase ${isSelected ? "text-emerald-900" : "text-gray-400"}`}>
-                                    {ex.name}
-                                </span>
+                              <div
+                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                  isSelected
+                                    ? "bg-emerald-500 border-emerald-500"
+                                    : "border-gray-200"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <Check
+                                    size={10}
+                                    className="text-white"
+                                    strokeWidth={4}
+                                  />
+                                )}
+                              </div>
+                              <span
+                                className={`text-[10px] font-black uppercase ${isSelected ? "text-emerald-900" : "text-gray-400"}`}
+                              >
+                                {ex.name}
+                              </span>
                             </div>
                             <span className="text-[10px] font-bold text-gray-400">
-                                +{formatPrice(ex.price)}
+                              +{formatPrice(ex.price)}
                             </span>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    );
-})()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* BOTÓN FINAL DE CONFIRMACIÓN */}
             <div className="p-6 bg-gray-50 border-t border-gray-100">
               <button
-                disabled={Object.values(variationsQuantities).every((q) => q === 0)}
+                disabled={Object.values(variationsQuantities).every(
+                  (q) => q === 0,
+                )}
                 onClick={() => {
                   Object.entries(variationsQuantities).forEach(([idx, qty]) => {
                     if (qty > 0) {
@@ -1943,16 +2411,24 @@ case "visualgrid":
                 Confirmar y Sumar
                 <div className="h-4 w-[1px] bg-white/20" />
                 {formatPrice(
-                  Object.entries(variationsQuantities).reduce((acc, [idx, qty]) => {
-                    return acc + Number(selectedProduct.variations[Number(idx)].price) * qty;
-                  }, 0) + selectedExtras.reduce((acc, e) => acc + Number(e.price), 0)
+                  Object.entries(variationsQuantities).reduce(
+                    (acc, [idx, qty]) => {
+                      return (
+                        acc +
+                        Number(selectedProduct.variations[Number(idx)].price) *
+                          qty
+                      );
+                    },
+                    0,
+                  ) +
+                    selectedExtras.reduce((acc, e) => acc + Number(e.price), 0),
                 )}
               </button>
             </div>
           </div>
         </div>
       )}
-  
+
       {/* --- PEGÁ ESTO JUSTO ARRIBA DE </main> --- */}
       {showClosedAlert && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1975,36 +2451,50 @@ case "visualgrid":
           </div>
         </div>
       )}
+
      
-    
-{/* --- MODAL DE INFO GLOBAL (DISEÑO PREMIUM MAESTRO) --- */}
       {/* --- MODAL DE INFO GLOBAL (DISEÑO PREMIUM MAESTRO) --- */}
       {showInfo && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-[#18181b] border border-white/10 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 text-center">
-            <button onClick={() => setShowInfo(false)} className="absolute top-5 right-5 text-gray-400 hover:text-white transition-colors">
-              <X size={20}/>
+            <button
+              onClick={() => setShowInfo(false)}
+              className="absolute top-5 right-5 text-gray-400 p-2"
+            >
+              <X size={20} />
             </button>
-            
+
             <div className="flex items-center justify-center gap-2 mb-8">
               <Store size={20} className="text-white opacity-60" />
-              <h3 className="text-base font-black uppercase italic tracking-tighter text-white">Información del Local</h3>
+              <h3 className="text-base font-black uppercase italic tracking-tighter text-white">
+                Información del Local
+              </h3>
             </div>
 
             <div className="space-y-6 text-left mb-8">
               {/* UBICACIÓN: Link real a Google Maps */}
               <div className="flex items-start gap-4">
                 <div className="p-2.5 rounded-2xl flex-shrink-0 bg-white/5 text-white/50 border border-white/5">
-                  <MapPin size={18} strokeWidth={1.5}/>
+                  <MapPin size={18} strokeWidth={1.5} />
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-white/20">Ubicación</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-white/20">
+                    Ubicación
+                  </p>
                   {restaurant.google_maps_link ? (
-                    <a href={restaurant.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-gray-200 underline decoration-white/20 hover:text-white transition-colors flex items-center gap-1">
-                      {restaurant.address || 'Ver en mapa'} <ExternalLink size={10} className="opacity-30"/>
+                    <a
+                      href={restaurant.google_maps_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-gray-200 underline decoration-white/20 hover:text-white transition-colors flex items-center gap-1"
+                    >
+                      {restaurant.address || "Ver en mapa"}{" "}
+                      <ExternalLink size={10} className="opacity-30" />
                     </a>
                   ) : (
-                    <p className="text-xs font-bold text-gray-200">{restaurant.address || 'No especificada'}</p>
+                    <p className="text-xs font-bold text-gray-200">
+                      {restaurant.address || "No especificada"}
+                    </p>
                   )}
                 </div>
               </div>
@@ -2013,11 +2503,43 @@ case "visualgrid":
               {restaurant.opening_hours && (
                 <div className="flex items-start gap-4">
                   <div className="p-2.5 rounded-2xl flex-shrink-0 bg-white/5 text-white/50 border border-white/5">
-                    <Clock size={18} strokeWidth={1.5}/>
+                    <Clock size={18} strokeWidth={1.5} />
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-white/20">Horarios</p>
-                    <p className="text-xs font-bold text-gray-200 whitespace-pre-line leading-tight">{restaurant.opening_hours}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-white/20">
+                      Horarios
+                    </p>
+                    <p className="text-xs font-bold text-gray-200 whitespace-pre-line leading-tight">
+                      {restaurant.opening_hours}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {restaurant.reservations_enabled && (
+                <div className="space-y-3 pt-6 border-t border-white/5 mt-6">
+                  <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">
+                    ¿Querés venir al local?
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        setShowInfo(false);
+                        setShowReservationModal(true);
+                      }}
+                      className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                    >
+                      <CalendarIcon size={16} strokeWidth={3} /> Reservar Mesa
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowInfo(false);
+                        setShowCheckModal(true);
+                      }}
+                      className="w-full py-3 bg-white/5 text-gray-300 border border-white/10 rounded-2xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    >
+                      <Eye size={14} /> Ver mi reserva
+                    </button>
                   </div>
                 </div>
               )}
@@ -2025,67 +2547,163 @@ case "visualgrid":
               {/* REDES SOCIALES: Iconos blancos de trazo fino */}
               <div className="flex justify-center gap-6 pt-8 border-t border-white/5">
                 {restaurant.instagram && (
-                  <a href={restaurant.instagram.startsWith('http') ? restaurant.instagram : (restaurant.instagram.includes('.') ? `https://${restaurant.instagram.replace('https://', '')}` : `https://instagram.com/${restaurant.instagram.replace('@','')}`)} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                  <a
+                    href={
+                      restaurant.instagram.startsWith("http")
+                        ? restaurant.instagram
+                        : restaurant.instagram.includes(".")
+                          ? `https://${restaurant.instagram.replace("https://", "")}`
+                          : `https://instagram.com/${restaurant.instagram.replace("@", "")}`
+                    }
+                    target="_blank"
+                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+                  >
                     <Instagram size={24} strokeWidth={1.5} />
                   </a>
                 )}
                 {restaurant.facebook && (
-                  <a href={restaurant.facebook.startsWith('http') ? restaurant.facebook : `https://facebook.com/${restaurant.facebook}`} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                  <a
+                    href={
+                      restaurant.facebook.startsWith("http")
+                        ? restaurant.facebook
+                        : `https://facebook.com/${restaurant.facebook}`
+                    }
+                    target="_blank"
+                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+                  >
                     <Facebook size={24} strokeWidth={1.5} />
                   </a>
                 )}
                 {restaurant.tiktok && (
-                  <a href={restaurant.tiktok.startsWith('http') ? restaurant.tiktok : `https://tiktok.com/@${restaurant.tiktok.replace('@','')}`} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                  <a
+                    href={
+                      restaurant.tiktok.startsWith("http")
+                        ? restaurant.tiktok
+                        : `https://tiktok.com/@${restaurant.tiktok.replace("@", "")}`
+                    }
+                    target="_blank"
+                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+                  >
                     <Music2 size={24} strokeWidth={1.5} />
                   </a>
                 )}
                 {restaurant.phone && (
-                  <a href={`https://wa.me/${restaurant.phone}`} target="_blank" className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all">
+                  <a
+                    href={`https://wa.me/${restaurant.phone}`}
+                    target="_blank"
+                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+                  >
                     <Phone size={24} strokeWidth={1.5} />
                   </a>
                 )}
               </div>
             </div>
 
-            <button onClick={() => setShowInfo(false)} className="w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all">
+            <button
+              onClick={() => setShowInfo(false)}
+              className="w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all"
+            >
               Cerrar
             </button>
           </div>
         </div>
       )}
+     {showSuccessModal && (
+      <div className="fixed inset-0 z-[10002] bg-zinc-900/90 backdrop-blur-md flex items-center justify-center p-6">
+        <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl text-center animate-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={48} strokeWidth={3} />
+          </div>
+          <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">
+            ¡Solicitud Enviada!
+          </h3>
+          <p className="text-gray-500 text-[11px] font-bold mt-4 leading-relaxed uppercase tracking-widest text-center">
+            Tu reserva está siendo procesada. <br /> 
+            <span className="text-emerald-600">¡Te avisaremos pronto!</span>
+          </p>
+          <button 
+            onClick={() => setShowSuccessModal(false)}
+            className="mt-8 w-full py-5 bg-zinc-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all"
+          >
+            Entendido, gracias
+          </button>
+        </div>
+      </div>
+    )}
+    {/* 🚫 MODAL: CUPO LLENO / DISPONIBILIDAD (DISEÑO PREMIUM) */}
+    {showBlockedModal && (
+      <div className="fixed inset-0 z-[10003] bg-zinc-900/90 backdrop-blur-md flex items-center justify-center p-6">
+        <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl text-center animate-in zoom-in-95 duration-300 border-4 border-red-50">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <XCircle size={48} strokeWidth={3} />
+          </div>
+          <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">
+            Sin Disponibilidad
+          </h3>
+          <p className="text-gray-500 text-[11px] font-bold mt-4 leading-relaxed uppercase tracking-widest text-center">
+            Lo sentimos, el local ya <span className="text-red-500">no acepta más reservas</span> para el horario o día seleccionado. 
+            <br /><br />
+            Por favor, <span className="text-gray-900">elegí otra fecha</span> para que podamos recibirte.
+          </p>
+          <button 
+            onClick={() => setShowBlockedModal(false)}
+            className="mt-8 w-full py-5 bg-red-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all"
+          >
+            Elegir otro día
+          </button>
+        </div>
+      </div>
+    )}
     </main>
   );
 }
 function BioContent({ restaurant }: { restaurant: any }) {
   const mainStyle = {
     backgroundColor: restaurant.snappylink_bg_color || "#ffffff",
-    backgroundImage: restaurant.snappylink_bg_img ? `url(${restaurant.snappylink_bg_img})` : 'none',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed',
+    backgroundImage: restaurant.snappylink_bg_img
+      ? `url(${restaurant.snappylink_bg_img})`
+      : "none",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundAttachment: "fixed",
   };
-  
+
   const displayTitle = restaurant.snappylink_title || restaurant.name;
-  
+
   return (
     <main className="min-h-screen flex flex-col" style={mainStyle}>
       <div className="max-w-[500px] mx-auto w-full flex-1 flex flex-col items-center pt-16 px-6 relative z-10">
-        
         {/* HEADER (Logo) */}
-        <div className="w-24 h-24 rounded-full border-4 shadow-xl overflow-hidden mb-6" 
-             style={{ borderColor: restaurant.snappylink_btn_color || restaurant.theme_color }}>
-          <img src={restaurant.snappylink_logo_url || restaurant.logo_url || '/placeholder.png'} 
-               className="w-full h-full object-cover" alt="logo" />
+        <div
+          className="w-24 h-24 rounded-full border-4 shadow-xl overflow-hidden mb-6"
+          style={{
+            borderColor:
+              restaurant.snappylink_btn_color || restaurant.theme_color,
+          }}
+        >
+          <img
+            src={
+              restaurant.snappylink_logo_url ||
+              restaurant.logo_url ||
+              "/placeholder.png"
+            }
+            className="w-full h-full object-cover"
+            alt="logo"
+          />
         </div>
-        
+
         {/* TEXTOS (Título y Bio con colores dinámicos) */}
         <div className="text-center space-y-2 mb-10">
-          <h1 className="font-black text-2xl uppercase italic tracking-tighter leading-none" 
-              style={{ color: restaurant.snappylink_title_color || '#000000' }}>
+          <h1
+            className="font-black text-2xl uppercase italic tracking-tighter leading-none"
+            style={{ color: restaurant.snappylink_title_color || "#000000" }}
+          >
             {displayTitle}
           </h1>
-          <p className="text-xs font-medium max-w-xs" 
-             style={{ color: restaurant.snappylink_desc_color || '#666666' }}>
+          <p
+            className="text-xs font-medium max-w-xs"
+            style={{ color: restaurant.snappylink_desc_color || "#666666" }}
+          >
             {restaurant.snappylink_bio}
           </p>
         </div>
@@ -2097,14 +2715,20 @@ function BioContent({ restaurant }: { restaurant: any }) {
 
         {/* FOOTER */}
         <div className="mt-auto py-10">
-          <a href="https://snappy.uno" target="_blank" className="no-underline opacity-30 hover:opacity-100 transition-opacity">
+          <a
+            href="https://snappy.uno"
+            target="_blank"
+            className="no-underline opacity-30 hover:opacity-100 transition-opacity"
+          >
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-2">
-              Potenciado por <Zap size={12} className="fill-yellow-400 text-yellow-400" /> Snappy
+              Potenciado por{" "}
+              <Zap size={12} className="fill-yellow-400 text-yellow-400" />{" "}
+              Snappy
             </p>
           </a>
         </div>
       </div>
-      
+
       {restaurant.snappylink_bg_img && (
         <div className="absolute inset-0 bg-black/20 pointer-events-none z-0"></div>
       )}
@@ -2112,7 +2736,11 @@ function BioContent({ restaurant }: { restaurant: any }) {
   );
 }
 // --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y LÓGICA DE PAUSA) ---
-export default function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function MenuPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -2132,19 +2760,22 @@ export default function MenuPage({ params }: { params: Promise<{ slug: string }>
       }
     }
     load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [params]);
 
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-black" size={40} />
-    </div>
-  );
-  
+  if (loading)
+    return (
+      <div className="h-screen flex items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-black" size={40} />
+      </div>
+    );
+
   if (!restaurant) return notFound();
 
   // 🚀 SI EL SLUG ERA DE UNA BIO
-  if (restaurant.page_type === 'bio') {
+  if (restaurant.page_type === "bio") {
     if (restaurant.is_bio_active === false) return notFound();
     return <BioContent restaurant={restaurant} />;
   }
@@ -2154,7 +2785,10 @@ export default function MenuPage({ params }: { params: Promise<{ slug: string }>
     <CartProvider>
       <MenuContent
         restaurant={restaurant}
-        isOpen={restaurant.always_open || (restaurant.is_open && checkIsOpen(restaurant.business_hours))}
+        isOpen={
+          restaurant.always_open ||
+          (restaurant.is_open && checkIsOpen(restaurant.business_hours))
+        }
       />
     </CartProvider>
   );

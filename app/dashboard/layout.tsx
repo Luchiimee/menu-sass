@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -325,6 +325,15 @@ const plan = restaurant.plan;
       locked: hasNoPlan || isLight, 
       msg: hasNoPlan ? "Elegí un plan para gestionar pedidos." : "La gestión de pedidos requiere Plan GO. 🚀"
     }, 
+    // Alrededor de la línea 275
+    { 
+      name: 'Reservas', 
+      href: '/dashboard/reservations', 
+      icon: CalendarCheck, 
+      locked: true, // 🚀 Forzamos el bloqueo total
+      msg: "¡Próximamente! Estamos terminando de poner a punto el sistema de reservas para tu local. ⏳" 
+    },
+    
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
   if (isAdmin) {

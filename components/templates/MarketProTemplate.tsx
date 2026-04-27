@@ -4,14 +4,14 @@ import CartFooter from "../CartFooter";
 import { useState } from "react";
 import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone,Check } from "lucide-react";
 
-export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false }: any) {
+export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
-  const [showInfo, setShowInfo] = useState(false);
+
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
 
   
@@ -342,73 +342,7 @@ const isOpenNow = isOpen;
         </div>
       )}
 
-      {/* MODAL INFO */}
-      {showInfo && (
-        <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-2 text-gray-900">
-                <Store size={20} strokeWidth={2.5} />
-                <h3 className="text-lg font-black uppercase italic tracking-tighter">Información</h3>
-              </div>
-              <button onClick={() => setShowInfo(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
-                <X size={18}/>
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* Ubicación */}
-              <div className="flex gap-4">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl flex-shrink-0"><MapPin size={22}/></div>
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Ubicación</p>
-                  {restaurant.google_maps_link ? (
-                    <a href={restaurant.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-gray-800 underline decoration-blue-200">
-                      {restaurant.address || 'Ver en mapa'} <ExternalLink size={12} className="inline ml-1"/>
-                    </a>
-                  ) : <p className="text-sm font-bold text-gray-800">{restaurant.address || 'No especificada'}</p>}
-                </div>
-              </div>
-
-              {/* Horarios Informativos */}
-              {restaurant.opening_hours && (
-                <div className="flex gap-4">
-                  <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl flex-shrink-0"><Clock size={22}/></div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Nuestros Horarios</p>
-                    <p className="text-sm font-bold text-gray-800 whitespace-pre-line leading-snug">{restaurant.opening_hours}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* WhatsApp */}
-              {restaurant.phone && (
-                <div className="flex gap-4">
-                  <div className="p-3 bg-green-50 text-green-600 rounded-2xl flex-shrink-0"><Phone size={22}/></div>
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">WhatsApp de contacto</p>
-                    <a href={`https://wa.me/${restaurant.phone}`} target="_blank" className="text-sm font-bold text-green-600 underline decoration-green-200">Enviar mensaje</a>
-                  </div>
-                </div>
-              )}
-
-              {/* Redes Sociales Lineales Azul */}
-              {(restaurant.instagram || restaurant.facebook || restaurant.tiktok) && (
-                <div className="pt-6 border-t border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Nuestras Redes</p>
-                  <div className="flex gap-4 items-center">
-                    {restaurant.instagram && <a href={restaurant.instagram.startsWith('http') ? restaurant.instagram : `https://instagram.com/${restaurant.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:scale-110 active:scale-95 transition-all p-1"><Instagram size={24} strokeWidth={1.5}/></a>}
-                    {restaurant.facebook && <a href={restaurant.facebook.startsWith('http') ? restaurant.facebook : `https://facebook.com/${restaurant.facebook}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:scale-110 active:scale-95 transition-all p-1"><Facebook size={24} strokeWidth={1.5}/></a>}
-                    {restaurant.tiktok && <a href={restaurant.tiktok.startsWith('http') ? restaurant.tiktok : `https://tiktok.com/@${restaurant.tiktok.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:scale-110 active:scale-95 transition-all p-1"><Music2 size={24} strokeWidth={1.5}/></a>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button onClick={() => setShowInfo(false)} className="w-full mt-10 py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-zinc-800 active:scale-[0.98] transition-all">Entendido</button>
-          </div>
-        </div>
-      )}
+    
 
       {/* MODAL LOCAL CERRADO */}
       {showClosedModal && (

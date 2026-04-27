@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle, CalendarIcon 
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
@@ -204,7 +204,7 @@ if (activeTab === 'snappylinks') {
   } : data;
 
 const props = { 
-  restaurant: { ...finalRenderData, categories }, 
+  restaurant: { ...finalRenderData, categories, reservations_enabled: data.reservations_enabled }, 
   products: displayProds || [], 
   categories: categories || [], 
   
@@ -237,11 +237,12 @@ const props = {
             }
           })()}
         </div>
-      {/* 🚀 VISTA PREVIA DEL MODAL (IDÉNTICO A LA WEB CON TRAZO BLANCO) */}
+    
+    {/* 🚀 VISTA PREVIA DEL MODAL (CON BOTONES DE RESERVA) */}
         {showInfoMock && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
             <div className="bg-[#18181b] border border-white/10 w-full rounded-[2.5rem] p-6 shadow-2xl relative text-center">
-              <button onClick={() => setShowInfoMock(false)} className="absolute top-4 right-4 text-gray-500"><X size={16}/></button>
+              <button onClick={() => setShowInfoMock(false)} className="absolute top-4 right-4 text-gray-400"><X size={16}/></button>
               
               <div className="flex items-center justify-center gap-2 mb-6">
                 <Store size={14} className="text-white opacity-60"/>
@@ -265,7 +266,23 @@ const props = {
                   </div>
                 </div>
 
-                {/* ICONOS DINÁMICOS CON TRAZO FINO BLANCO */}
+                {/* 🎫 BOTONES DE RESERVA (Aparecen si el switch está en ON) */}
+                {data.reservations_enabled && (
+                    <div className="space-y-3 pt-4 border-t border-white/5 animate-in slide-in-from-top-2">
+                        <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] text-center mb-1">
+                            ¿Querés venir al local?
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            <div className="w-full py-3 bg-amber-500 text-white rounded-2xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 shadow-lg">
+                                <CalendarIcon size={14} strokeWidth={3} /> Reservar Mesa
+                            </div>
+                            <div className="w-full py-2 bg-white/5 text-gray-400 border border-white/10 rounded-2xl font-black uppercase text-[8px] tracking-widest flex items-center justify-center gap-2">
+                                <Eye size={12} /> Ver mi reserva
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex justify-center gap-5 pt-4 border-t border-white/5">
                     {data.instagram && <Instagram size={18} strokeWidth={1.5} className="text-white opacity-60" />}
                     {data.facebook && <Facebook size={18} strokeWidth={1.5} className="text-white opacity-60" />}
@@ -277,6 +294,7 @@ const props = {
             </div>
           </div>
         )}
+
       </div>
     
     </CartProvider>
@@ -345,7 +363,8 @@ snappylink_title: '',
   scheduled_delivery_config: {
     interval_minutes: 30, // Duración de cada bloque
     buffer_minutes: 15    // Tiempo de margen
-  }
+  },
+  reservations_enabled: false
 });
 const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
@@ -449,6 +468,7 @@ const getLinksLimit = () => {
      scheduled_delivery_enabled: rest.scheduled_delivery_enabled ?? false,
   scheduled_delivery_slots: rest.scheduled_delivery_slots ?? {},
   scheduled_delivery_config: rest.scheduled_delivery_config ?? { interval_minutes: 30, buffer_minutes: 15 },
+  reservations_enabled: rest.reservations_enabled ?? false,
       });
 
       // Carga de productos y categorías (lo que ya tenías abajo)
@@ -935,6 +955,41 @@ const confirmReset = () => {
                     </section>
                   )}
 
+{/* 🎫 GESTIÓN DE RESERVAS (BLOQUEADO - PRÓXIMAMENTE) */}
+<section className="p-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2.5rem] relative overflow-hidden opacity-70 group shadow-sm">
+    
+    {/* Etiqueta Proximamente */}
+    <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[7px] font-black uppercase px-2 py-1 rounded-full shadow-lg transform rotate-3">
+        Próximamente
+    </div>
+
+    <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gray-200 rounded-2xl text-gray-400">
+                <CalendarIcon size={20} />
+            </div>
+            <div className="text-left">
+                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-400 leading-none flex items-center gap-2">
+                    Reservas de Mesa <Lock size={10} />
+                </h3>
+                <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest mt-1">Habilitar reservas en el Menú</p>
+            </div>
+        </div>
+        
+        {/* Switch Bloqueado (No tiene onClick) */}
+        <div className="w-12 h-6 rounded-full bg-gray-200 flex items-center px-1 cursor-not-allowed border border-gray-300">
+            <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+        </div>
+    </div>
+    
+    <div className="mt-4 p-4 rounded-2xl bg-white/50 border border-gray-100">
+        <p className="text-[10px] font-bold text-gray-400 leading-tight text-left italic">
+            Estamos trabajando en esta función. Muy pronto tus clientes podrán reservar mesa directamente desde tu menú digital.
+        </p>
+    </div>
+</section>
+
+
 
 {/* 📅 GESTIÓN DE TURNOS Y BLOQUES HORARIOS */}
 <section className="p-6 bg-white border-2 border-indigo-100 rounded-[2.5rem] space-y-6 shadow-sm">
@@ -943,6 +998,7 @@ const confirmReset = () => {
             <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg">
                 <Clock size={20} />
             </div>
+            
             <div className="text-left">
                 <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none">Turnos de Entrega</h3>
                 <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Configurá tus franjas horarias</p>
