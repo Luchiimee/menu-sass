@@ -130,16 +130,17 @@ setHasPhone(!!(profile?.phone && profile.phone.trim() !== ""));
         displayName = rest.name;
     }
 
+// Alrededor de la línea 116 en DashboardLayout
 setRestaurant({
     id: rest?.id, 
     name: displayName, 
-    // Si es Sabrina o Vos, le damos Plan Max para que nada esté bloqueado
-    plan: (isSuperAdmin || isUGCUser) ? 'max' : (rest?.subscription_plan || null),
-    status: (isSuperAdmin || isUGCUser) ? 'active' : (rest?.subscription_status || 'active'),
+    // 🚀 CAMBIO: No forzamos 'max' aquí, así podés ver los candados si bajás tu plan a Light
+    plan: rest?.subscription_plan || null, 
+    status: rest?.subscription_status || 'trialing',
     logo_url: rest?.logo_url || null,
     sale_type: rest?.sale_type || null,
     onboarding_completed: rest?.onboarding_completed || false
-});     
+});
             setIsLoading(false);
         }
       } catch (error) {
@@ -214,11 +215,10 @@ const getPlanLabel = () => {
   const needsPlan = !restaurant.plan;
   
   // Esta es la llave maestra: si el status es alguno de estos, la suscripción es válida
-const isSubscriptionValid = restaurant.status === 'active' || 
-                               restaurant.status === 'authorized' || 
-                               restaurant.status === 'past_due' || 
-                               restaurant.status === 'paused'
-                               bypassBlock; // <--- Si es VIP, la suscripción es válida
+// Alrededor de la línea 173
+const isSubscriptionValid = (restaurant.status === 'active' || 
+                             restaurant.status === 'authorized') || 
+                             bypassBlock;
 
   const trialDuration = 14;
   let daysRemaining = 14;
@@ -238,6 +238,7 @@ const isSubscriptionValid = restaurant.status === 'active' ||
     isExpired = daysRemaining <= 0 && !paymentConfigured && !isSubscriptionValid;
     showWarning = daysRemaining <= 4 && daysRemaining > 0 && !paymentConfigured && !isSubscriptionValid;
   }
+  
  // Reemplaza tu handleLogout actual por este:
 const handleLogout = async () => {
   setIsLoading(true); // Ponemos el estado de carga para que el usuario espere
@@ -325,16 +326,15 @@ const plan = restaurant.plan;
       locked: hasNoPlan || isLight, 
       msg: hasNoPlan ? "Elegí un plan para gestionar pedidos." : "La gestión de pedidos requiere Plan GO. 🚀"
     }, 
-    
-   { 
-      name: 'Reservas', 
-      href: '/dashboard/reservations', 
-      icon: CalendarCheck, 
-      // 🚀 Se bloquea visualmente si es Light o GO. 
-      // Pero si sos Admin (bypassBlock), el link funcionará igual (lógica del Link más abajo).
-      locked: hasNoPlan || isLight || isGo, 
-      msg: "La gestión de reservas requiere Plan Plus. 💎" 
-    },
+
+{ 
+  name: 'Reservas', 
+  href: '/dashboard/reservations', 
+  icon: CalendarCheck, 
+  
+  locked: hasNoPlan || isLight || isGo, 
+  msg: "La gestión de reservas requiere Plan Plus. 💎" 
+},
     
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ];
@@ -393,16 +393,15 @@ const plan = restaurant.plan;
             const isLocked = item.locked; 
 
             return (
-              <Link 
-                key={item.href} 
-                href={isLocked ? '#' : item.href} // Si está bloqueado, el link no hace nada
-                onClick={(e) => {
-                  if (isLocked) {
-                    e.preventDefault();
-                    
-                    alert(item.msg);
-                  }
-                }}
+            <Link 
+    key={item.href} 
+    href={isLocked && !bypassBlock ? '#' : item.href} // 🚀 !bypassBlock permite que el Admin pase
+    onClick={(e) => {
+        if (isLocked && !bypassBlock) { // 🚀 El Admin ignora el bloqueo del click
+            e.preventDefault();
+            alert(item.msg);
+        }
+    }}
                 className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2 rounded-lg text-xs font-bold transition-all 
                   ${isLocked ? 'opacity-50 cursor-not-allowed text-gray-400' : isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50 hover:text-black'}`}
                 title={isCollapsed ? item.name : ''}
@@ -577,7 +576,7 @@ const plan = restaurant.plan;
     const isSettingsPage = pathname === '/dashboard/settings';
     const isDashboardPage = pathname === '/dashboard';
     const isTemplatesPage = pathname === '/dashboard/templates';
-    
+    const showExpiredModal = isExpired && !isSettingsPage;
     // Si está cancelado, bloqueamos todo menos settings
     const showSuspendedModal = isCancelled && !isSettingsPage;
 
@@ -589,7 +588,8 @@ const plan = restaurant.plan;
          (needsRubro && !isTemplatesPage && !isSettingsPage)) && 
         !isSubscriptionValid && !bypassBlock;
 
-    const isAnyBlocked = showSuspendedModal || showOnboardingBlock;
+   
+const isAnyBlocked = showSuspendedModal || showOnboardingBlock || showExpiredModal; // 🚀 AGREGÁ 'showExpiredModal' AL FINAL
 
     return (
       <>
@@ -652,6 +652,23 @@ const plan = restaurant.plan;
                         </Link>
                     </>
                 )}
+            </div>
+          </div>
+        )}
+        {showExpiredModal && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+            <div className="bg-white p-10 rounded-[3rem] shadow-2xl border-2 border-red-50 max-w-sm text-center animate-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Clock size={40} />
+              </div>
+              <h2 className="text-2xl font-black mb-4 uppercase italic text-gray-900">Prueba Finalizada</h2>
+              <p className="text-gray-500 mb-8 text-sm leading-relaxed">
+                Tus 14 días de prueba han terminado. <br/> 
+                Configurá tu suscripción para seguir usando tu panel y mantener tu menú online.
+              </p>
+              <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline">
+                CONFIGURAR PLAN
+              </Link>
             </div>
           </div>
         )}
