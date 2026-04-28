@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
   LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
   LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck
+  ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck,Phone
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 import TrialBanner from '@/components/TrialBanner';
@@ -15,6 +15,7 @@ import OrderListener from '@/components/OrderListener';
 import PushNotificationManager from '@/components/PushNotificationManager'; 
 
 function GoogleAuthHandler() {
+ 
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -51,6 +52,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isCollapsed, setIsCollapsed] = useState(false); 
   const [isAdmin, setIsAdmin] = useState(false);
   const [profileData, setProfileData] = useState<any>(null); 
+  const [showPlanHint, setShowPlanHint] = useState(false);
+ 
   const isSuperAdmin = profileData?.email === 'luchiimee2@gmail.com' || isAdmin;
   const isUGCUser = profileData?.email === 'sabrinaidiartcm@gmail.com';
   const bypassBlock = isSuperAdmin || isUGCUser;
@@ -73,7 +76,10 @@ const [restaurant, setRestaurant] = useState<{
     
   useEffect(() => {
     let mounted = true;
-
+const hintDismissed = localStorage.getItem('plan-hint-dismissed');
+    if (!hintDismissed) {
+        setShowPlanHint(true);
+    }
     const loadData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -163,7 +169,7 @@ setRestaurant({
       loadData(); 
     };
 
-// Escuchamos el evento que mandamos desde Settings
+
 window.addEventListener('profile-updated', handleRefresh);
 
 return () => {
@@ -174,6 +180,10 @@ return () => {
 }; 
 
   }, [router]);
+  const handleDismissPlanHint = () => {
+    setShowPlanHint(false);
+    localStorage.setItem('plan-hint-dismissed', 'true');
+  };
 useEffect(() => {
     window.history.pushState(null, '', window.location.href);
 
@@ -526,26 +536,7 @@ const plan = restaurant.plan;
     </button>
   </div>
 )}
-        {/* --- BANNER DE TELÉFONO PERSONAL (GLOBAL) --- */}
-        {!isLoading && !hasPhone && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between shadow-sm relative z-20 animate-in slide-in-from-top-full">
-            <div className="flex items-center gap-3 text-amber-800 text-left">
-              <div className="bg-amber-100 p-2 rounded-lg hidden sm:block">
-                <AlertTriangle size={18} className="text-amber-600" />
-              </div>
-              <div>
-                <p className="font-bold text-xs sm:text-sm">Falta tu teléfono de contacto</p>
-                <p className="text-[10px] sm:text-xs text-amber-700 opacity-80">Completa tu perfil en configuración para una mejor asistencia.</p>
-              </div>
-            </div>
-            <Link 
-              href="/dashboard/settings" 
-              className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-amber-700 transition flex items-center gap-1 whitespace-nowrap"
-            >
-              Completar <ArrowRight size={14} />
-            </Link>
-          </div>
-        )}
+        
          {/* --- BANNER DE ADVERTENCIA DE TRIAL --- */}
 {showWarning && !isSubscriptionValid && (
   <div className="bg-orange-600 text-white px-4 py-3 flex flex-col md:flex-row items-center justify-between shadow-lg gap-2 sticky top-0 z-[50] animate-in slide-in-from-top-2">
@@ -571,25 +562,30 @@ const plan = restaurant.plan;
           
         
 {(() => {
-    // 1. LÓGICA DE BLOQUEO GLOBAL
-    const isCancelled = restaurant.status === 'cancelled';
+    // 1. Identificadores de página
     const isSettingsPage = pathname === '/dashboard/settings';
     const isDashboardPage = pathname === '/dashboard';
     const isTemplatesPage = pathname === '/dashboard/templates';
+    const isCancelled = restaurant.status === 'cancelled';
+
+    // 2. Definición de necesidades
+    const needsPhone = !hasPhone; 
+    const needsPlan = !restaurant.plan; 
+    const needsRubro = restaurant.plan && !restaurant.onboarding_completed;
+
     const showExpiredModal = isExpired && !isSettingsPage;
-    // Si está cancelado, bloqueamos todo menos settings
     const showSuspendedModal = isCancelled && !isSettingsPage;
+    const showPlanHintModal = needsPlan && !needsPhone && isSettingsPage && showPlanHint && !bypassBlock;
 
-    // LÓGICA DE ONBOARDING ESTRICTA
-    // Si no tiene plan: bloqueamos TODO excepto Inicio y Settings.
-    // Si tiene plan pero falta rubro: bloqueamos todo excepto Templates (donde elige rubro).
-    const showOnboardingBlock = !isLoading && 
-        ((needsPlan && !isDashboardPage && !isSettingsPage) || 
-         (needsRubro && !isTemplatesPage && !isSettingsPage)) && 
-        !isSubscriptionValid && !bypassBlock;
+  // 🚀 LÓGICA DE ONBOARDING LIMPIA
+   const showOnboardingBlock = !isLoading && !isSubscriptionValid && !bypassBlock && (
+        // 1. Bloqueamos cualquier sección de gestión si falta el PLAN o el RUBRO
+        (!isDashboardPage && !isSettingsPage && !isTemplatesPage && (needsPlan || needsRubro)) ||
+        // 2. Bloqueamos todo excepto Templates si ya pagó pero le falta elegir el RUBRO
+        (needsRubro && !isTemplatesPage && !isSettingsPage)
+    );
 
-   
-const isAnyBlocked = showSuspendedModal || showOnboardingBlock || showExpiredModal; // 🚀 AGREGÁ 'showExpiredModal' AL FINAL
+    const isAnyBlocked = showSuspendedModal || showOnboardingBlock || showExpiredModal;
 
     return (
       <>
@@ -616,62 +612,58 @@ const isAnyBlocked = showSuspendedModal || showOnboardingBlock || showExpiredMod
           </div>
         )}
 
-        {/* MODAL DE ONBOARDING (Sidebar libre + Centrado que te sigue) */}
+{/* 🚀 MODAL DE ONBOARDING: SOLO PARA EL PASO FINAL (RUBRO) */}
         {showOnboardingBlock && !showSuspendedModal && (
           <div className="fixed inset-0 z-[50] flex items-center justify-center p-6 bg-black/5 backdrop-blur-[2px] pointer-events-none">
             <div className="bg-white p-10 rounded-[40px] shadow-2xl border-2 border-gray-50 max-w-md text-center animate-in zoom-in-95 duration-300 pointer-events-auto">
-                
-                {needsPlan ? (
-                    /* --- CASO A: NO ELIGIÓ PLAN TODAVÍA --- */
-                    <>
-                        <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                            <Zap size={40} fill="currentColor" />
-                        </div>
-                        <h2 className="text-2xl font-black mb-4 uppercase italic">Activá tu Prueba</h2>
-                        <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-                            Para acceder a esta sección y configurar tu local, primero debés <b>elegir un plan</b>. 
-                            <br/><span className="text-blue-600 font-bold">¡Tenés 14 días gratis!</span>
-                        </p>
-                        <Link href="/dashboard" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline">
-                             VER PLANES DISPONIBLES
-                        </Link>
-                    </>
-                ) : (
-                    /* --- CASO B: TIENE PLAN PERO NO ELIGIÓ RUBRO --- */
-                    <>
-                        <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                            <Store size={40} />
-                        </div>
-                        <h2 className="text-2xl font-black mb-4 uppercase italic">Configurá tu Rubro</h2>
-                        <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-                            ¡Plan activado! 🚀 <br/> 
-                            Ahora necesitamos saber qué vendés para adaptar tu catálogo y habilitar tus productos.
-                        </p>
-                        <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline">
-                            ELEGIR MI RUBRO
-                        </Link>
-                    </>
-                )}
+                <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <Store size={40} />
+                </div>
+                <h2 className="text-2xl font-black mb-4 uppercase italic text-gray-900 leading-none">Configurá tu Rubro</h2>
+                <p className="text-gray-500 mb-8 text-sm leading-relaxed text-center">
+                    ¡Plan activado! 🚀 <br/> 
+                    Ahora seleccioná qué vendés (Pizzería, Sushi, Heladería, etc.) para habilitar tus productos y el diseño de tu menú.
+                </p>
+                <Link href="/dashboard/templates" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline shadow-xl">
+                    ELEGIR MI RUBRO
+                </Link>
             </div>
           </div>
         )}
-        {showExpiredModal && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-            <div className="bg-white p-10 rounded-[3rem] shadow-2xl border-2 border-red-50 max-w-sm text-center animate-in zoom-in-95 duration-300">
-              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <Clock size={40} />
-              </div>
-              <h2 className="text-2xl font-black mb-4 uppercase italic text-gray-900">Prueba Finalizada</h2>
-              <p className="text-gray-500 mb-8 text-sm leading-relaxed">
-                Tus 14 días de prueba han terminado. <br/> 
-                Configurá tu suscripción para seguir usando tu panel y mantener tu menú online.
-              </p>
-              <Link href="/dashboard/settings" className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition text-center no-underline">
-                CONFIGURAR PLAN
-              </Link>
-            </div>
-          </div>
-        )}
+       {showPlanHintModal && (
+  <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/20 backdrop-blur-[2px]">
+    <div className="bg-white p-8 rounded-[3rem] shadow-2xl border-2 border-indigo-50 max-w-sm text-center animate-in zoom-in-95 duration-300 relative">
+        
+        {/* 🚀 USAR handleDismissPlanHint ACÁ */}
+        <button 
+          onClick={handleDismissPlanHint} 
+          className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <Zap size={40} fill="currentColor" />
+        </div>
+        
+        <h2 className="text-2xl font-black mb-4 uppercase italic text-gray-900 leading-none">¡WhatsApp Guardado!</h2>
+        
+        <p className="text-gray-500 text-sm leading-relaxed text-center mb-6">
+          Ya podés elegir el plan que quieras para continuar. 
+          <br /><br />
+          Podés configurar el pago ahora o cuando quieras, pero recordá: <span className="text-indigo-600 font-bold">si no lo hacés dentro de los 14 días de prueba</span>, el servicio se bloqueará hasta que lo configures.
+        </p>
+
+        {/* 🚀 Y USAR handleDismissPlanHint ACÁ TAMBIÉN */}
+        <button 
+          onClick={handleDismissPlanHint}
+          className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition shadow-xl active:scale-95"
+        >
+          Ver Planes Disponibles
+        </button>
+    </div>
+  </div>
+)}
       </>
     );
 })()}

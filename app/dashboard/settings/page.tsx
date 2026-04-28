@@ -377,6 +377,20 @@ const renderPlanButton = (plan: 'light' | 'go' | 'plus') => {
       </button>
     );
   };
+  const getTrialStatus = () => {
+    if (!restaurant.created_at || restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized') return null;
+    
+    const start = new Date(restaurant.created_at);
+    const today = new Date();
+    const diff = today.getTime() - start.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1; // +1 para que el primer día sea "Día 1"
+    
+    return days > 14 ? 14 : days;
+};
+
+const trialDay = getTrialStatus();
+const isTrialing = restaurant.subscription_status === 'trialing' || !restaurant.subscription_plan;
+
   if (loading) return <div className="flex h-[80vh] w-full items-center justify-center"><Loader2 className="animate-spin text-gray-300" size={40} /></div>;
 
   return (
@@ -394,13 +408,20 @@ const renderPlanButton = (plan: 'light' | 'go' | 'plus') => {
           </div>
         </div>
       )}
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-            <p className="text-sm text-gray-500 font-medium italic">Los cambios se guardan automáticamente</p>
-          </div>
+     {/* HEADER ACTUALIZADO */}
+<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="text-left">
+      <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
+      <div className="flex items-center gap-2 mt-1">
+        <p className="text-sm text-gray-500 font-medium italic">Los cambios se guardan automáticamente</p>
+        {isTrialing && trialDay !== null && (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-tighter border border-indigo-100">
+                <Clock size={10} /> Día {trialDay} de 14 gratis
+            </span>
+        )}
       </div>
+    </div>
+</div>
 
    {/* SECCIÓN PLANES (ACORDEÓN PERFECTO + TOOLTIPS) */}
 {/* SECCIÓN PLANES (ACORDEÓN INDEPENDIENTE + FIX DE ALTURA) */}
