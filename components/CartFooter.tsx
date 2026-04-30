@@ -881,18 +881,29 @@ return (
                             Medio de Pago
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                            <button 
-                                onClick={() => setMetodoPago('efectivo')} 
-                                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}
-                            >
-                                <Wallet size={18} /> Efectivo
-                            </button>
-                            <button 
-                                onClick={() => setMetodoPago('transferencia')} 
-                                className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${metodoPago === 'transferencia' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400'}`}
-                            >
-                                <Landmark size={18} /> Transferencia
-                            </button>
+                         // Busca donde dice setMetodoPago y cambia las clases de texto:
+
+<button 
+    onClick={() => setMetodoPago('efectivo')} 
+    className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+        metodoPago === 'efectivo' 
+        ? 'border-green-600 bg-green-50 text-green-700' 
+        : 'border-gray-100 text-slate-600' // 👈 Cambiado de gray-400 a slate-600
+    }`}
+>
+    <Wallet size={18} /> Efectivo
+</button>
+
+<button 
+    onClick={() => setMetodoPago('transferencia')} 
+    className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+        metodoPago === 'transferencia' 
+        ? 'border-blue-500 bg-blue-50 text-blue-700' 
+        : 'border-gray-100 text-slate-600' // 👈 Cambiado de gray-400 a slate-600
+    }`}
+>
+    <Landmark size={18} /> Transferencia
+</button>
                         </div>
 
                         {metodoPago === 'transferencia' && aliasMp && (

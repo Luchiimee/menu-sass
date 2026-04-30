@@ -495,9 +495,9 @@ useEffect(() => {
             event: '*', 
             schema: 'public', 
             table: 'orders' 
-            // ❌ Eliminamos el filtro de aquí para que no bloquee mensajes parciales
+            // ❌ QUITAMOS EL FILTER DE AQUÍ: Supabase no envía restaurant_id en cada update
         }, (payload) => {
-            // ✅ Filtramos manualmente en JavaScript
+            // ✅ FILTRAMOS MANUALMENTE EN JS
             const data = (payload.new as any) || (payload.old as any);
             if (data.restaurant_id !== restaurantId) return;
 
@@ -507,7 +507,6 @@ useEffect(() => {
             else if (payload.eventType === 'UPDATE') {
                 setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
                 
-                // Actualizamos el detalle lateral si es la mesa activa
                 setSelectedTableForDetail((prev: any) => {
                     if (prev?.activeOrder?.id === payload.new.id) {
                         return { ...prev, activeOrder: { ...prev.activeOrder, ...payload.new } };
@@ -520,7 +519,7 @@ useEffect(() => {
             event: 'UPDATE', 
             schema: 'public', 
             table: 'tables',
-            filter: `restaurant_id=eq.${restaurantId}` 
+            filter: `restaurant_id=eq.${restaurantId}` // En tables sí funciona porque el mozo envía restaurant_id
         }, () => {
             fetchTables(restaurantId);
         })
