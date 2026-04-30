@@ -67,32 +67,36 @@ const handleFinalizarTodo = () => {
         window.location.reload(); // Refresca para que el sistema empiece de cero
     };
     // Función para avisar al comercio del pago
-  const handleNotificarPagoMesa = async (metodo: string) => {
-        if (!activeOrderId) return;
-        setIsSending(true);
+const handleNotificarPagoMesa = async (metodo: string) => {
+    if (!activeOrderId || isSending) return;
+    
+    setIsSending(true);
+    // 1. CAMBIO CLAVE: Movemos al usuario a un estado visual de carga 
+    // antes de la respuesta del servidor para evitar "doble click" y dar feedback.
+    setMetodoPago(metodo); 
 
-        try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ 
-                    payment_method: metodo,
-                    // Si es transferencia usa el nombre del input nuevo, sino el nombre del pedido original
-                    payer_name: metodo === 'transferencia' ? nombreApellidoPago : nombre,
-                    payment_status: 'esperando_confirmacion' 
-                })
-                .eq('id', activeOrderId);
+    try {
+        const { error } = await supabase
+            .from('orders')
+            .update({ 
+                payment_method: metodo,
+                payment_status: 'esperando_confirmacion',
+                // Mantenemos el payer_name por trazabilidad de caja (Audit Trail)
+                payer_name: metodo === 'transferencia' ? nombreApellidoPago : nombre,
+            })
+            .eq('id', activeOrderId);
 
-            if (error) throw error;
-            
-            setMetodoPago(metodo); // Guardamos el método para mostrar el mensaje correcto
-            setPasoPago('espera'); // Saltamos al mensaje de aviso
-        } catch (error: any) {
-            console.error("Error al notificar pago:", error.message);
-            alert("Hubo un error al avisar al local. Por favor, intenta de nuevo.");
-        } finally {
-            setIsSending(false);
-        }
-    };
+        if (error) throw error;
+        
+        // 2. Aquí NO setees PasoPago('espera') manualmente. 
+        // Deja que el useEffect de syncStatus lo detecte para confirmar que la DB impactó.
+        
+    } catch (error: any) {
+        console.error("Error al notificar pago:", error.message);
+        setIsSending(false); // Liberamos el botón si falló
+        alert("Error de conexión. Tu pedido sigue activo, intenta avisar de nuevo.");
+    }
+};
 
     // --- 3. DATOS DEL CLIENTE Y FORMULARIO ---
     const [nombre, setNombre] = useState('');
@@ -169,27 +173,49 @@ const [nroMesa, setNroMesa] = useState('')
             }
         }
     }, [activeOrderId, planType, orderStatus, metodoEnvio]); // Agregamos metodoEnvio aquí
- // 🧠 SINCRONIZACIÓN Y LIMPIEZA AUTOMÁTICA
-   // 🧠 SINCRONIZACIÓN Y LIMPIEZA AUTOMÁTICA (CORREGIDA)
+
 useEffect(() => {
     if (activeOrderId) {
         const syncStatus = async () => {
-            const { data } = await supabase.from('orders').select('status, payment_method').eq('id', activeOrderId).maybeSingle();
+            // AGREGAR: payment_status a la consulta select
+            const { data } = await supabase
+                .from('orders')
+                .select('status, payment_method, payment_status')
+                .eq('id', activeOrderId)
+                .maybeSingle();
+
             if (data) {
                 setOrderStatus(data.status);
-                // Si ya estaba completado de antes, mantenemos el paso en espera para ver el final
-                if (data.status === 'completado') setPasoPago('espera');
+                setMetodoPago(data.payment_method);
+                
+                // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación, 
+                // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
+                if (data.payment_status === 'esperando_confirmacion') {
+                    setPasoPago('espera');
+                }
+                if (data.status === 'completado') {
+                    setPasoPago('espera');
+                }
             }
         };
         syncStatus();
 
         const orderChannel = supabase.channel(`order-update-${activeOrderId}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${activeOrderId}` }, 
-            (payload) => {
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'orders', 
+                filter: `id=eq.${activeOrderId}` 
+            }, (payload) => {
                 const newStatus = payload.new.status;
+                const newPayStatus = payload.new.payment_status; // NUEVA LÍNEA
+
                 setOrderStatus(newStatus);
-                // Cuando el comercio confirma, nos aseguramos de estar en el paso que muestra el éxito
-                if (newStatus === 'completado') setPasoPago('espera');
+                
+                // Si el backend actualizó el estado de pago, la UI reacciona aquí
+                if (newPayStatus === 'esperando_confirmacion' || newStatus === 'completado') {
+                    setPasoPago('espera');
+                }
             })
             .subscribe();
 

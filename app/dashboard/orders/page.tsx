@@ -1445,16 +1445,28 @@ useEffect(() => {
                     </p>
 
                     <div className="flex flex-col gap-3">
-                        <button  
-                            onClick={async () => {
-                                await updateStatus(showConfirmPaymentModal.id, 'completado');
-                                setShowConfirmPaymentModal(null);
-                                setSelectedTableForDetail(null);
-                            }}
-                            className="w-full bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-green-200 hover:bg-green-700 transition-all active:scale-95"
-                        >
-                            ¡Sí, Pago Recibido!
-                        </button>
+                  
+<button  
+    onClick={async () => {
+        // SOLUCIÓN ESTRUCTURAL: No solo cambies el status a completado,
+        // debes limpiar el payment_status para cerrar el ciclo de vida de la transacción.
+        const { error } = await supabase
+            .from('orders')
+            .update({ 
+                status: 'completado',
+                payment_status: 'pagado' // O null, según tu esquema
+            })
+            .eq('id', showConfirmPaymentModal.id);
+
+        if (!error) {
+            setShowConfirmPaymentModal(null);
+            setSelectedTableForDetail(null);
+        }
+    }}
+    className="..."
+>
+    ¡Sí, Pago Recibido!
+</button>
                         
                         <button  
                             onClick={() => setShowConfirmPaymentModal(null)}
