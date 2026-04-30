@@ -485,52 +485,49 @@ const getActiveOrderForTable = (tableName: string) => {
 };
 
 
-// 🚀 MOTOR ÚNICO: TIEMPO REAL TOTAL (NUEVOS PEDIDOS, PAGOS Y MOZO)
-    useEffect(() => {
-        if (!restaurantId || isLocked) return;
+// 🚀 MOTOR ÚNICO: TIEMPO REAL TOTAL (FIX PARA TABLETS)
+useEffect(() => {
+    if (!restaurantId || isLocked) return;
 
-        const channel = supabase
-            .channel('main-app-sync')
-            // A. ESCUCHAR CAMBIOS EN PEDIDOS (INSERT = Nuevos, UPDATE = Pagos/Cambios)
-            .on('postgres_changes', { 
-                event: '*', // 👈 ESCUCHA TODO (Antes decía UPDATE solo)
-                schema: 'public', 
-                table: 'orders',
-                filter: `restaurant_id=eq.${restaurantId}` 
-            }, (payload) => {
-                if (payload.eventType === 'INSERT') {
-                    console.log("🆕 ¡Llegó un pedido nuevo!", payload.new);
-                    // Agregamos el pedido a la lista local sin refrescar
-                    setOrders(prev => [payload.new, ...prev]);
-                } 
-                else if (payload.eventType === 'UPDATE') {
-                    console.log("💰 Cambio detectado!", payload.new.payment_status);
-                    // Actualizamos el pago/estado (esto hace que la mesa titile)
-                    setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
-                    
-                    // Actualizamos detalle lateral si está abierto
-                    setSelectedTableForDetail((prev: any) => {
-                        if (prev?.activeOrder?.id === payload.new.id) {
-                            return { ...prev, activeOrder: { ...prev.activeOrder, ...payload.new } };
-                        }
-                        return prev;
-                    });
-                }
-            })
-            // B. ESCUCHAR LLAMADOS DE MOZO EN MESAS
-            .on('postgres_changes', { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'tables',
-                filter: `restaurant_id=eq.${restaurantId}` 
-            }, (payload) => {
-                console.log("🔔 ¡Llamado a Mozo!");
-                fetchTables(restaurantId);
-            })
-            .subscribe();
+    const channel = supabase
+        .channel('main-app-sync')
+        .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders' 
+            // ❌ Eliminamos el filtro de aquí para que no bloquee mensajes parciales
+        }, (payload) => {
+            // ✅ Filtramos manualmente en JavaScript
+            const data = (payload.new as any) || (payload.old as any);
+            if (data.restaurant_id !== restaurantId) return;
 
-        return () => { supabase.removeChannel(channel); };
-    }, [restaurantId, isLocked]);
+            if (payload.eventType === 'INSERT') {
+                setOrders(prev => [payload.new, ...prev]);
+            } 
+            else if (payload.eventType === 'UPDATE') {
+                setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
+                
+                // Actualizamos el detalle lateral si es la mesa activa
+                setSelectedTableForDetail((prev: any) => {
+                    if (prev?.activeOrder?.id === payload.new.id) {
+                        return { ...prev, activeOrder: { ...prev.activeOrder, ...payload.new } };
+                    }
+                    return prev;
+                });
+            }
+        })
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'tables',
+            filter: `restaurant_id=eq.${restaurantId}` 
+        }, () => {
+            fetchTables(restaurantId);
+        })
+        .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+}, [restaurantId, isLocked]);
 
   if (loading) {
     
