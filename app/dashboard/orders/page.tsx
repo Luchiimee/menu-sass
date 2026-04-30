@@ -498,10 +498,11 @@ useEffect(() => {
             // ❌ QUITAMOS EL FILTER DE AQUÍ: Supabase no envía restaurant_id en cada update
         }, (payload) => {
             // ✅ FILTRAMOS MANUALMENTE EN JS
-            console.log("📡 Payload recibido de Supabase:", payload); // 👈 SEÑOR, MIRE ESTO EN LA CONSOLA DE LA PC
+           
     
    
             const data = (payload.new as any) || (payload.old as any);
+            console.log("🔍 Payload de Orden:", data);
             if (data.restaurant_id !== restaurantId) return;
 
             if (payload.eventType === 'INSERT') {
