@@ -286,8 +286,7 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
     setReceiveWhatsapp(newValue);
     await supabase.from("restaurants").update({ receive_whatsapp: newValue }).eq("id", restaurantId);
   };
-  // --- 2. CARGA DE PEDIDOS (UNIFICADA) ---
-// --- 2. CARGA DE PEDIDOS (CON FIX DE ZONA HORARIA ARG) ---
+ 
 const loadOrders = async () => {
   if (!restaurantId || isLocked) return;
   try {
@@ -485,63 +484,82 @@ const getActiveOrderForTable = (tableName: string) => {
 };
 
 
-// 🚀 MOTOR ÚNICO: TIEMPO REAL TOTAL (FIX PARA TABLETS)
+// 🚀 MOTOR DE TIEMPO REAL REFORZADO CON DIAGNÓSTICO
 useEffect(() => {
     if (!restaurantId || isLocked) return;
 
+    console.log("🛰️ J.A.R.V.I.S.: Iniciando escucha para restaurante:", restaurantId);
+
     const channel = supabase
         .channel('main-app-sync')
-       // 🚀 MOTOR DE TIEMPO REAL REFORZADO
-.on('postgres_changes', { 
-    event: '*', 
-    schema: 'public', 
-    table: 'orders' 
-}, (payload) => {
-    const newData = payload.new as any;
-    const eventType = payload.eventType;
+        .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders' 
+            // ❌ Mantenemos esto sin filtro de servidor por ahora para asegurar recepción
+        }, (payload) => {
+            const newData = payload.new as any;
+            const oldData = payload.old as any;
+            const eventType = payload.eventType;
 
-    // 1. Si es un INSERT, el restaurant_id siempre viene, lo filtramos normal
-    if (eventType === 'INSERT') {
-        if (newData.restaurant_id === restaurantId) {
-            setOrders(prev => [newData, ...prev]);
-        }
-    } 
-    
-    // 2. Si es un UPDATE, somos más tolerantes por si falta el restaurant_id
-    else if (eventType === 'UPDATE') {
-        setOrders(prev => {
-            // Verificamos si el pedido ya estaba en nuestra lista local
-            const orderExists = prev.some(o => o.id === newData.id);
-            
-            if (orderExists || newData.restaurant_id === restaurantId) {
-                // Actualizamos la lista
-                const updatedOrders = prev.map(o => o.id === newData.id ? { ...o, ...newData } : o);
+            // 🔍 SENSOR DE DIAGNÓSTICO
+            console.log(`🔔 Evento ${eventType} detectado en la red:`, payload);
+
+            // Verificamos de quién es el pedido
+            const resId = newData?.restaurant_id || oldData?.restaurant_id;
+
+            if (!resId) {
+                console.warn("⚠️ Advertencia: El payload no contiene restaurant_id. Verifique REPLICA IDENTITY FULL.");
+            }
+
+            // Si el ID no coincide, lo ignoramos silenciosamente
+            if (resId && resId !== restaurantId) return;
+
+            if (eventType === 'INSERT') {
+                setOrders(prev => [newData, ...prev]);
+                // Si tiene audio habilitado, dispárelo aquí
+            } 
+            else if (eventType === 'UPDATE') {
+                setOrders(prev => {
+                    // Si el pedido ya estaba en pantalla por su ID, lo actualizamos sí o sí
+                    const exists = prev.some(o => o.id === newData.id);
+                    if (exists) {
+                        return prev.map(o => o.id === newData.id ? { ...o, ...newData } : o);
+                    }
+                    // Si es nuevo para esta vista (ej. cambio de fecha), lo agregamos
+                    if (newData.restaurant_id === restaurantId) {
+                        return [newData, ...prev];
+                    }
+                    return prev;
+                });
                 
-                // 🔔 Sincronizamos el detalle lateral si está abierto
+                // 🔔 Actualizar detalle lateral
                 setSelectedTableForDetail((prevDetail: any) => {
                     if (prevDetail?.activeOrder?.id === newData.id) {
+                        console.log("📋 Actualizando detalle lateral de mesa:", prevDetail.name);
                         return { ...prevDetail, activeOrder: { ...prevDetail.activeOrder, ...newData } };
                     }
                     return prevDetail;
                 });
-                
-                return updatedOrders;
             }
-            return prev;
-        });
-    }
-})
+        })
         .on('postgres_changes', { 
             event: 'UPDATE', 
             schema: 'public', 
             table: 'tables',
-            filter: `restaurant_id=eq.${restaurantId}` // En tables sí funciona porque el mozo envía restaurant_id
-        }, () => {
+            filter: `restaurant_id=eq.${restaurantId}` 
+        }, (payload) => {
+            console.log("🛎️ Cambio en mesas detectado:", payload);
             fetchTables(restaurantId);
         })
-        .subscribe();
+        .subscribe((status) => {
+            console.log("📡 Estado de la conexión Realtime:", status);
+        });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+        console.log("🔌 Desconectando canal de comunicación.");
+        supabase.removeChannel(channel); 
+    };
 }, [restaurantId, isLocked]);
 
   if (loading) {
