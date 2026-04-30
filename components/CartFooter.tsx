@@ -881,7 +881,7 @@ return (
                             Medio de Pago
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                         // Busca donde dice setMetodoPago y cambia las clases de texto:
+                      
 
 <button 
     onClick={() => setMetodoPago('efectivo')} 
