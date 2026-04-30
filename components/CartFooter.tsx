@@ -71,8 +71,6 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     if (!activeOrderId || isSending) return;
     
     setIsSending(true);
-    // 1. CAMBIO CLAVE: Movemos al usuario a un estado visual de carga 
-    // antes de la respuesta del servidor para evitar "doble click" y dar feedback.
     setMetodoPago(metodo); 
 
     try {
@@ -81,20 +79,22 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             .update({ 
                 payment_method: metodo,
                 payment_status: 'esperando_confirmacion',
-                // Mantenemos el payer_name por trazabilidad de caja (Audit Trail)
                 payer_name: metodo === 'transferencia' ? nombreApellidoPago : nombre,
             })
             .eq('id', activeOrderId);
 
         if (error) throw error;
         
-        // 2. Aquí NO setees PasoPago('espera') manualmente. 
-        // Deja que el useEffect de syncStatus lo detecte para confirmar que la DB impactó.
+        // 🚀 SOLUCIÓN ESTRUCTURAL: 
+        // Si la DB respondió OK (200), avanzamos la UI inmediatamente.
+        // No dependemos del WebSocket para este paso crítico en móviles.
+        setPasoPago('espera');
         
     } catch (error: any) {
         console.error("Error al notificar pago:", error.message);
-        setIsSending(false); // Liberamos el botón si falló
-        alert("Error de conexión. Tu pedido sigue activo, intenta avisar de nuevo.");
+        alert("Error de conexión. Intenta de nuevo.");
+    } finally {
+        setIsSending(false);
     }
 };
 
@@ -217,7 +217,35 @@ useEffect(() => {
                     setPasoPago('espera');
                 }
             })
-            .subscribe();
+           
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log("🛰️ Snappy Realtime: Radar de pagos activo");
+                }
+                
+                // 🚨 MECANISMO DE RESILIENCIA PARA MÓVILES
+                // Si el sistema detecta que el canal se cerró o hubo un error (común en cambios de 4G/Wi-Fi)
+                if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                    console.warn("⚠️ Snappy Realtime: Canal inestable, ejecutando re-sincronización forzada...");
+                    
+                    const { data, error } = await supabase
+                        .from('orders')
+                        .select('payment_status, status')
+                        .eq('id', activeOrderId)
+                        .maybeSingle();
+
+                    if (error) {
+                        console.error("❌ Fallo en re-sincronización manual:", error.message);
+                        return;
+                    }
+
+                    // Forzamos el estado de la UI según la realidad de la DB
+                    if (data?.payment_status === 'esperando_confirmacion' || data?.status === 'completado') {
+                        setPasoPago('espera');
+                        if (data.status) setOrderStatus(data.status);
+                    }
+                }
+            });
 
         return () => { supabase.removeChannel(orderChannel); };
     }
