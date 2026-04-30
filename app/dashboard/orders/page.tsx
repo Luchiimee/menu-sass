@@ -491,34 +491,46 @@ useEffect(() => {
 
     const channel = supabase
         .channel('main-app-sync')
-        .on('postgres_changes', { 
-            event: '*', 
-            schema: 'public', 
-            table: 'orders' 
-            // ❌ QUITAMOS EL FILTER DE AQUÍ: Supabase no envía restaurant_id en cada update
-        }, (payload) => {
-            // ✅ FILTRAMOS MANUALMENTE EN JS
-           
-    
-   
-            const data = (payload.new as any) || (payload.old as any);
-            console.log("🔍 Payload de Orden:", data);
-            if (data.restaurant_id !== restaurantId) return;
+       // 🚀 MOTOR DE TIEMPO REAL REFORZADO
+.on('postgres_changes', { 
+    event: '*', 
+    schema: 'public', 
+    table: 'orders' 
+}, (payload) => {
+    const newData = payload.new as any;
+    const eventType = payload.eventType;
 
-            if (payload.eventType === 'INSERT') {
-                setOrders(prev => [payload.new, ...prev]);
-            } 
-            else if (payload.eventType === 'UPDATE') {
-                setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
+    // 1. Si es un INSERT, el restaurant_id siempre viene, lo filtramos normal
+    if (eventType === 'INSERT') {
+        if (newData.restaurant_id === restaurantId) {
+            setOrders(prev => [newData, ...prev]);
+        }
+    } 
+    
+    // 2. Si es un UPDATE, somos más tolerantes por si falta el restaurant_id
+    else if (eventType === 'UPDATE') {
+        setOrders(prev => {
+            // Verificamos si el pedido ya estaba en nuestra lista local
+            const orderExists = prev.some(o => o.id === newData.id);
+            
+            if (orderExists || newData.restaurant_id === restaurantId) {
+                // Actualizamos la lista
+                const updatedOrders = prev.map(o => o.id === newData.id ? { ...o, ...newData } : o);
                 
-                setSelectedTableForDetail((prev: any) => {
-                    if (prev?.activeOrder?.id === payload.new.id) {
-                        return { ...prev, activeOrder: { ...prev.activeOrder, ...payload.new } };
+                // 🔔 Sincronizamos el detalle lateral si está abierto
+                setSelectedTableForDetail((prevDetail: any) => {
+                    if (prevDetail?.activeOrder?.id === newData.id) {
+                        return { ...prevDetail, activeOrder: { ...prevDetail.activeOrder, ...newData } };
                     }
-                    return prev;
+                    return prevDetail;
                 });
+                
+                return updatedOrders;
             }
-        })
+            return prev;
+        });
+    }
+})
         .on('postgres_changes', { 
             event: 'UPDATE', 
             schema: 'public', 
