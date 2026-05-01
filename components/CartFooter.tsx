@@ -66,33 +66,26 @@ const handleFinalizarTodo = () => {
         setActiveOrderId(null);
         window.location.reload(); // Refresca para que el sistema empiece de cero
     };
-    // Función para avisar al comercio del pago
+// En CartFooter.tsx -> handleNotificarPagoMesa
 const handleNotificarPagoMesa = async (metodo: string) => {
     if (!activeOrderId || isSending) return;
-    
     setIsSending(true);
-    setMetodoPago(metodo); 
 
     try {
-        const { error } = await supabase
-            .from('orders')
-            .update({ 
-                payment_method: metodo,
-                payment_status: 'esperando_confirmacion',
-                payer_name: metodo === 'transferencia' ? nombreApellidoPago : nombre,
-            })
-            .eq('id', activeOrderId);
+        // 🚀 CAMBIO ESTRUCTURAL: No usamos .update(), usamos .rpc()
+        const { error } = await supabase.rpc('solicitar_pago_mesa', {
+            p_order_id: activeOrderId,
+            p_method: metodo,
+            p_payer_name: metodo === 'transferencia' ? nombreApellidoPago : nombre
+        });
 
         if (error) throw error;
         
-        // 🚀 SOLUCIÓN ESTRUCTURAL: 
-        // Si la DB respondió OK (200), avanzamos la UI inmediatamente.
-        // No dependemos del WebSocket para este paso crítico en móviles.
         setPasoPago('espera');
         
     } catch (error: any) {
-        console.error("Error al notificar pago:", error.message);
-        alert("Error de conexión. Intenta de nuevo.");
+        console.error("Error de seguridad/red:", error.message);
+        alert("No se pudo procesar la solicitud de pago.");
     } finally {
         setIsSending(false);
     }
