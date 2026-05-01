@@ -59,6 +59,9 @@ const validatePhone = () => {
   const [showHours, setShowHours] = useState(false);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [showPlanSuccessModal, setShowPlanSuccessModal] = useState(false);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+const [newEmail, setNewEmail] = useState('');
+const [emailUpdateLoading, setEmailUpdateLoading] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -270,8 +273,25 @@ const saveProfileData = async (newData: any) => {
           toast.success("¡Correo enviado! Revisá tu bandeja de entrada.");
       }
   };
-// --- ACTIVAR TRIAL 14 DÍAS (CORREGIDO PARA NO RESETEAR RUBRO) ---
-// --- ACTIVAR TRIAL (ACTUALIZADO CON PLAN GO) ---
+const handleUpdateEmail = async () => {
+    if (!newEmail || newEmail === profile.email) {
+      return toast.error("Ingresá un correo electrónico nuevo y válido.");
+    }
+
+    setEmailUpdateLoading(true);
+    
+    // 🚀 Envía confirmación a ambos correos
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+
+    if (error) {
+      toast.error(`Error: ${error.message}`);
+    } else {
+      toast.success("¡Casi listo! Revisa tu mail actual y el nuevo para confirmar.");
+      setIsEditingEmail(false);
+      setNewEmail('');
+    }
+    setEmailUpdateLoading(false);
+  };
 const handleActivateTrial = async (planType: 'light' | 'go' | 'plus') => {
   if (!validatePhone()) return;
   if (!userId) return;
@@ -650,11 +670,56 @@ const isTrialing = restaurant.subscription_status === 'trialing' || !restaurant.
             />
         </div>
 
-        <div className="text-left">
-            <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Correo de Acceso</label>
-            <input value={profile.email} disabled className="w-full p-3 bg-gray-100 border-none rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed outline-none" />
+        <div className="text-left space-y-2">
+    <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Correo de Acceso</label>
+    
+    {!isEditingEmail ? (
+        <div className="flex gap-2">
+            <input 
+                value={profile.email} 
+                disabled 
+                className="flex-1 p-3 bg-gray-100 border-none rounded-xl text-sm font-bold text-gray-400 cursor-not-allowed outline-none" 
+            />
+            <button 
+                onClick={() => {
+                    setNewEmail(profile.email);
+                    setIsEditingEmail(true);
+                }}
+                className="px-4 py-2 text-[10px] font-black text-blue-600 bg-blue-50 rounded-xl uppercase tracking-tighter hover:bg-blue-100 transition-all"
+            >
+                Cambiar
+            </button>
         </div>
-
+    ) : (
+        <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex gap-2">
+                <input 
+                    type="email"
+                    value={newEmail} 
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Nuevo correo electrónico"
+                    className="flex-1 p-3 bg-white border-2 border-blue-500 rounded-xl text-sm font-bold outline-none shadow-lg shadow-blue-50" 
+                />
+                <button 
+                    onClick={() => setIsEditingEmail(false)}
+                    className="p-3 text-gray-400 hover:text-red-500 bg-gray-100 rounded-xl"
+                >
+                    <X size={18} />
+                </button>
+            </div>
+            <button 
+                onClick={handleUpdateEmail}
+                disabled={emailUpdateLoading}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+                {emailUpdateLoading ? <Loader2 className="animate-spin" size={14}/> : 'Confirmar nuevo email'}
+            </button>
+            <p className="text-[9px] text-amber-600 font-bold leading-tight px-1">
+                * Deberás confirmar el link que te llegará a ambas casillas para que el cambio se complete.
+            </p>
+        </div>
+    )}
+</div>
         <div className="pt-4 flex flex-col gap-3">
             <button onClick={handlePasswordReset} className="w-full py-3 text-[10px] font-black text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">
                 Cambiar Contraseña
