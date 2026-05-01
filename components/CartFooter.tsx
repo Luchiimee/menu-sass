@@ -231,7 +231,7 @@ useEffect(() => {
                     const { data, error } = await supabase
                         .from('orders')
                         .select('payment_status, status')
-                        .eq('id', activeOrderId)
+                        .eq('id', activeOrderId) 
                         .maybeSingle();
 
                     if (error) {
