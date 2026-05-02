@@ -92,48 +92,46 @@ function PlanContent() {
     }
   };
 useEffect(() => {
-    const loadData = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user) return;
-            setUserId(session.user.id);
+   const loadData = async () => {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        setUserId(session.user.id);
 
-            // Función interna para capitalizar (Ej: tamara -> Tamara)
-           const formatName = (str: string | any) => {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-};
+        const formatName = (str: string | any) => {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        };
 
-            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-            const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle();
+        // Traemos los datos
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+        const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle();
 
-            // 🚀 MAPEADO INTELIGENTE
-            const metadata = session.user.user_metadata;
-            
-            setProfile({ 
-                // Aplicamos formatName a nombre y apellido
-                first_name: formatName(profileData?.first_name || metadata.first_name || metadata.full_name?.split(' ')[0] || ''), 
-                last_name: formatName(profileData?.last_name || metadata.last_name || metadata.full_name?.split(' ').slice(1).join(' ') || ''), 
-                
-                // REVISIÓN TELÉFONO: Buscamos en 'phone' (DB) o 'whatsapp' (Metadata del registro manual)
-                phone: profileData?.phone || metadata.whatsapp || metadata.phone || '', 
-                
-                email: profileData?.email || session.user.email || '' 
+        const metadata = session.user.user_metadata;
+        
+        // 1. Cargamos el Perfil
+        setProfile({ 
+            first_name: formatName(profileData?.first_name || metadata.first_name || metadata.full_name?.split(' ')[0] || ''), 
+            last_name: formatName(profileData?.last_name || metadata.last_name || metadata.full_name?.split(' ').slice(1).join(' ') || ''), 
+            phone: profileData?.phone || metadata.whatsapp || metadata.phone || '', 
+            email: profileData?.email || session.user.email || '' 
+        });
+
+        // 2. 🚀 CARGAMOS EL RESTAURANTE (Esto te faltaba para que se active la card)
+        if (restData) {
+            setRestaurant({ 
+                ...restData, 
+                subscription_plan: restData.subscription_plan || null,
+                subscription_status: restData.subscription_status || 'trialing',
+                business_hours: restData.business_hours || {} 
             });
-
-            if (restData) {
-                setRestaurant({ 
-                    ...restData, 
-                    name: formatName(restData.name || "Mi Local"), // También capitalizamos el nombre del local
-                    business_hours: restData.business_hours || {} 
-                });
-            }
-        } catch (error) {
-            console.error("Error cargando datos:", error);
-        } finally {
-            setTimeout(() => setLoading(false), 300);
         }
-    };
+    } catch (error) {
+        console.error("Error cargando datos:", error);
+    } finally {
+        setTimeout(() => setLoading(false), 300);
+    }
+};
     
     loadData();
 
@@ -193,29 +191,44 @@ useEffect(() => {
     setSaveTimeout(newTimeout);
   };
 
-  // 1. Esta función SOLO guarda la elección del plan en Supabase
-  const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
+const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
     setProcessingPlan(planType);
     try {
+      // 1. Creamos un slug temporal basado en el ID por si es un usuario nuevo
+      // Usamos .substring para que sea corto y limpio
+      const tempSlug = `local-${userId?.substring(0, 5)}`;
+
+      // 2. Ejecutamos el upsert
       const { error } = await supabase
         .from("restaurants")
-        .update({ subscription_plan: planType })
-        .eq("user_id", userId);
+        .upsert({ 
+          user_id: userId, 
+          subscription_plan: planType,
+          name: restaurant.name || "Mi Local", 
+          slug: restaurant.slug || tempSlug, // 🚀 CAMBIO AQUÍ: usamos restaurant.slug
+          subscription_status: 'trialing' 
+        }, { onConflict: 'user_id' });
 
-      if (error) throw error;
+      if (error) {
+          console.error("Detalle del error de Supabase:", error);
+          throw error;
+      }
 
-      // Actualizamos localmente para que cambien los botones
+      // 3. Actualizamos el estado local
       setRestaurant({ ...restaurant, subscription_plan: planType });
+      
+      // 4. Avisamos al Dashboard (Inicio) que el plan cambió
       window.dispatchEvent(new Event("profile-updated"));
-
+      
       toast.success(`Plan ${planType.toUpperCase()} seleccionado con éxito`);
-    } catch (err) {
-      toast.error("No se pudo cambiar el plan");
+
+    } catch (err: any) {
+      console.error("Error capturado:", err);
+      toast.error(err.message || "No se pudo guardar el plan");
     } finally {
       setProcessingPlan(null);
     }
-  };
-
+};
   // 2. Esta función SOLO abre el modal de Mercado Pago
   const handleOpenPaymentForm = (planType: string) => {
     setShowCardForm(true);
