@@ -91,29 +91,50 @@ function PlanContent() {
       setLoading(false);
     }
   };
-  // --- CARGA DE DATOS (IGUAL A SETTINGS) ---
-  useEffect(() => {
+useEffect(() => {
     const loadData = async () => {
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
-        setUserId(session.user.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
+            setUserId(session.user.id);
 
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-
-        // 🚀 Si hay perfil lo usamos, si no, usamos los datos de la sesión (Google)
-        if (profileData) {
-            setProfile({ 
-                first_name: profileData.first_name || session.user.user_metadata.full_name?.split(' ')[0] || '', 
-                last_name: profileData.last_name || '', 
-                phone: profileData.phone || '', 
-                email: profileData.email || session.user.email || '' 
-            });
-        }
-    } finally {
-        setTimeout(() => setLoading(false), 300);
-    }
+            // Función interna para capitalizar (Ej: tamara -> Tamara)
+           const formatName = (str: string | any) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
+
+            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+            const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle();
+
+            // 🚀 MAPEADO INTELIGENTE
+            const metadata = session.user.user_metadata;
+            
+            setProfile({ 
+                // Aplicamos formatName a nombre y apellido
+                first_name: formatName(profileData?.first_name || metadata.first_name || metadata.full_name?.split(' ')[0] || ''), 
+                last_name: formatName(profileData?.last_name || metadata.last_name || metadata.full_name?.split(' ').slice(1).join(' ') || ''), 
+                
+                // REVISIÓN TELÉFONO: Buscamos en 'phone' (DB) o 'whatsapp' (Metadata del registro manual)
+                phone: profileData?.phone || metadata.whatsapp || metadata.phone || '', 
+                
+                email: profileData?.email || session.user.email || '' 
+            });
+
+            if (restData) {
+                setRestaurant({ 
+                    ...restData, 
+                    name: formatName(restData.name || "Mi Local"), // También capitalizamos el nombre del local
+                    business_hours: restData.business_hours || {} 
+                });
+            }
+        } catch (error) {
+            console.error("Error cargando datos:", error);
+        } finally {
+            setTimeout(() => setLoading(false), 300);
+        }
+    };
+    
     loadData();
 
     const script = document.createElement("script");
