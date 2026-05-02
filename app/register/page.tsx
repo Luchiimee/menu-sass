@@ -38,14 +38,12 @@ export default function RegisterPage() {
     }
   };
 
-// --- REGISTRO MANUAL ---
 const handleRegister = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
 
   try {
-    // 1. Crear usuario Auth
-    // Enviamos los metadatos EXACTOS que espera nuestro Trigger de SQL
+    // 1. Solo creamos el usuario en Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -53,7 +51,7 @@ const handleRegister = async (e: React.FormEvent) => {
         data: {
           first_name: formData.firstName,
           last_name: formData.lastName,
-          whatsapp: formData.phone // El Trigger mapeará esto a la columna 'phone'
+          whatsapp: formData.phone 
         }
       }
     });
@@ -61,15 +59,13 @@ const handleRegister = async (e: React.FormEvent) => {
     if (authError) throw authError;
     if (!authData.user) throw new Error("Error creando usuario");
 
-    // NOTA: El paso de "Actualizar perfil" y el "Fetch a Resend" se eliminan.
-    // El Trigger de SQL crea el perfil automáticamente.
-    // Hostinger envía el mail porque ya lo configuraste en el panel.
+    // Ya no hace falta el fetch('/api/auth/callback/register')
+    // Porque Hostinger se encarga del mail desde el panel de Supabase.
 
-    alert("¡Cuenta creada! Revisa tu correo hola@snappy.uno para confirmar.");
+    alert("¡Cuenta creada! Revisa tu correo para confirmar.");
     router.push('/login');
 
   } catch (error: any) {
-    // Si sigue saliendo "Error sending confirmation email", el problema es el SMTP en el panel
     alert("Error: " + error.message);
   } finally {
     setLoading(false);
