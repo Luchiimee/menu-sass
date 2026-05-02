@@ -38,12 +38,14 @@ export default function RegisterPage() {
     }
   };
 
+// --- REGISTRO MANUAL ---
 const handleRegister = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
 
   try {
-    // 1. Solo creamos el usuario en Supabase Auth
+    // 1. Solo creamos el usuario en Auth. 
+    // Los datos (nombre, apellido, whatsapp) viajan en "data" para el Trigger.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -59,10 +61,10 @@ const handleRegister = async (e: React.FormEvent) => {
     if (authError) throw authError;
     if (!authData.user) throw new Error("Error creando usuario");
 
-    // Ya no hace falta el fetch('/api/auth/callback/register')
-    // Porque Hostinger se encarga del mail desde el panel de Supabase.
+    // ✅ BORRAMOS LA SECCIÓN "supabase.from('profiles').update..." 
+    // No hace falta porque el Trigger de SQL ya lo hizo en el servidor.
 
-    alert("¡Cuenta creada! Revisa tu correo para confirmar.");
+    alert("¡Cuenta creada! Revisa tu email de Hostinger para confirmar.");
     router.push('/login');
 
   } catch (error: any) {
