@@ -38,7 +38,7 @@ export default function RegisterPage() {
     }
   };
 
-  // --- REGISTRO MANUAL ---
+ // --- REGISTRO MANUAL ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -50,7 +50,7 @@ export default function RegisterPage() {
         password: formData.password,
         options: {
             data: {
-                full_name: `${formData.firstName} ${formData.lastName}`, // Para el trigger
+                full_name: `${formData.firstName} ${formData.lastName}`,
                 phone: formData.phone
             }
         }
@@ -59,15 +59,30 @@ export default function RegisterPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Error creando usuario");
 
-      // 2. Actualizar perfil con datos específicos manuales (Teléfono)
-      // El Trigger ya creó la fila, ahora actualizamos lo que falta
+      // 2. Actualizar perfil en Supabase
       await supabase.from('profiles').update({
         first_name: formData.firstName,
         last_name: formData.lastName,
         phone: formData.phone
       }).eq('id', authData.user.id);
 
-      alert("¡Cuenta creada! Revisa tu correo.");
+      // 🚀 3. NUEVO: AGREGAR A LA AUDIENCIA DE RESEND (WELCOME EMAIL)
+      // Esto dispara la automatización que hiciste en el panel de Resend
+      try {
+        await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: formData.email, 
+            firstName: formData.firstName 
+          }),
+        });
+      } catch (emailError) {
+        // Loggeamos el error pero no frenamos el registro si falla el mail
+        console.error("Error al registrar en Resend:", emailError);
+      }
+
+      alert("¡Cuenta creada! Revisa tu correo para verificar tu cuenta.");
       router.push('/login');
 
     } catch (error: any) {

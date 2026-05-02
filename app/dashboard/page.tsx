@@ -341,7 +341,7 @@ const confirmDelete = async () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto px-4 mt-8">
             
             {/* PLAN LIGHT: Inicial */}
-            <Link href="/dashboard/settings?focus=phone" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-black transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+            <Link href="/dashboard/plan" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-black transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
                 <div className="w-10 h-10 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-black group-hover:text-white transition-colors">
                     <ShoppingBag size={20} />
                 </div>
@@ -358,7 +358,7 @@ const confirmDelete = async () => {
             </Link>
 
             {/* PLAN GO: El Profesional */}
-            <Link href="/dashboard/settings?focus=phone" className="group bg-blue-50 border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-blue-600 transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
+            <Link href="/dashboard/plan" className="group bg-blue-50 border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-blue-600 transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
                 <div className="absolute top-0 right-0 bg-blue-600 text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">EL MÁS ELEGIDO</div>
                 <div className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
                     <Zap size={20} fill="currentColor" />
@@ -376,7 +376,7 @@ const confirmDelete = async () => {
             </Link>
 
             {/* PLAN PLUS: Gestión Física */}
-            <Link href="/dashboard/settings?focus=phone" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-emerald-500 transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+            <Link href="/dashboard/plan" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-emerald-500 transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
                 <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
                     <Crown size={20} />
                 </div>
@@ -455,7 +455,7 @@ const confirmDelete = async () => {
         </div>
 
         {/* 2. GRID OPERATIVO: COLUMNA IZQUIERDA (PROMO + ESTADO) | COLUMNA DERECHA (CUPONES) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+       <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* --- COLUMNA IZQUIERDA (PROMO Y ESTADO) --- */}
           <div className="lg:col-span-4 space-y-6">
@@ -674,7 +674,7 @@ const confirmDelete = async () => {
             )}
           </div>
         ) : ( 
-          <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="mt-10 bg-white border border-gray-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
               <div className="flex items-center gap-4 text-left">
                   <div className="bg-blue-50 p-4 rounded-3xl text-blue-600">
                       <Lock size={28}/>
@@ -684,7 +684,7 @@ const confirmDelete = async () => {
     <p className="text-sm text-gray-500 font-medium">Subí al Plan GO para habilitar métricas y pedidos en tiempo real.</p>
 </div>
               </div>
-              <Link href="/dashboard/settings?focus=phone" className="w-full md:w-auto bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-gray-800 transition-all">
+              <Link href="/dashboard/plan" className="w-full md:w-auto bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-gray-800 transition-all">
                   Ver Planes ⚡
               </Link>
           </div>
@@ -765,7 +765,7 @@ const confirmDelete = async () => {
 
         <div className="flex flex-col gap-3">
           <Link 
-            href="/dashboard/settings?focus=phone" 
+            href="/dashboard/plan"
             className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
           >
             Ver Planes <Zap size={14} fill="currentColor" />

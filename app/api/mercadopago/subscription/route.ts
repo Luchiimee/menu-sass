@@ -14,7 +14,7 @@ const supabase = createClient(
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { planType, userId, email } = body;
+        const { planType, userId, email, token, payment_method_id } = body;
 
         // 1. Buscamos datos del restaurante (Trial y Suscripción Actual)
         const { data: restaurant, error: dbError } = await supabase
@@ -65,12 +65,14 @@ if (!prices[planType] || prices[planType] === 0) {
         }
        const amount = prices[planType];
 
-        // 5. Crear la NUEVA suscripción en Mercado Pago
+    // 5. Crear la suscripción DIRECTA usando el Token de la tarjeta
         const response = await preapproval.create({
             body: {
                 reason: `Plan ${planType.toUpperCase()} - Snappy`,
                 external_reference: userId,
-                payer_email: email,
+                payer_email: email.trim().toLowerCase(),
+                // 🚀 ESTA ES LA MAGIA: Usamos el token generado por el Brick en el frontend
+                card_token_id: token, 
                 auto_recurring: {
                     frequency: 1,
                     frequency_type: 'months',
@@ -79,8 +81,33 @@ if (!prices[planType] || prices[planType] === 0) {
                     start_date: fechaInicioCobro.toISOString(), 
                 },
                 back_url: 'https://snappy.uno/dashboard/settings',
-                status: 'pending',
+                // Al usar Checkout API, la suscripción se intenta activar de inmediato
+                status: 'authorized', 
             }
+        });
+
+        // 6. Actualizar el restaurante en tu base de datos con el nuevo ID de suscripción
+        await supabase
+            .from('restaurants')
+            .update({ 
+                mp_preapproval_id: response.id,
+                subscription_status: 'authorized',
+                subscription_plan: planType
+            })
+            .eq('user_id', userId);
+
+        return NextResponse.json({ 
+            success: true, 
+            message: "Suscripción activada con éxito",
+            id: response.id 
+        });
+
+        // LOG de Auditoría
+        console.log(`✅ Suscripción generada para ${userId} (${email}): ${response.id}`);
+
+        return NextResponse.json({ 
+            url: response.init_point,
+            preapproval_id: response.id 
         });
 
         return NextResponse.json({ url: response.init_point });
