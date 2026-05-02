@@ -44,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState("");
 
+// --- ESTADOS ACTUALIZADOS ---
   const [restaurant, setRestaurant] = useState<any>({
     name: 'Cargando...',      
     plan: null,    
@@ -58,24 +59,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle();
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      // Traemos ambos datos en paralelo
+      const [restRes, profileRes] = await Promise.all([
+        supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
+      ]);
 
-      if (mounted && rest) {
+      const rest = restRes.data;
+      const profile = profileRes.data;
+
+      if (mounted) {
         setProfileData(profile);
         setIsAdmin(session.user.email === 'luchiimee2@gmail.com');
+
+        // 🚀 LÓGICA DE NOMBRE: Prioridad Perfil > Google > Restaurant > Default
+        const displayName = 
+          profile?.first_name || 
+          session.user.user_metadata.full_name?.split(' ')[0] || 
+          rest?.name || 
+          "Mi Local";
+
         setRestaurant({
-            ...rest,
-            name: rest.name || "Mi Local",
-            plan: rest.subscription_plan || null,
-            status: rest.subscription_status || 'trialing'
+            ...(rest || {}), // Mantiene los datos del local si existen
+            name: displayName,
+            plan: rest?.subscription_plan || null,
+            status: rest?.subscription_status || 'trialing'
         });
+        
         setIsLoading(false);
       }
     };
+
     loadData();
+    
+    // Escuchamos el evento que disparas desde la página de Planes
     window.addEventListener('profile-updated', loadData);
-    return () => { mounted = false; window.removeEventListener('profile-updated', loadData); };
+    return () => { 
+      mounted = false; 
+      window.removeEventListener('profile-updated', loadData); 
+    };
   }, []);
 
   // --- 🚀 LÓGICA DE BLOQUEO ESTRICTA POR PLAN ---

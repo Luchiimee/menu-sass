@@ -44,8 +44,8 @@ const handleRegister = async (e: React.FormEvent) => {
   setLoading(true);
 
   try {
-    // 1. Solo creamos el usuario en Auth. 
-    // Los datos (nombre, apellido, whatsapp) viajan en "data" para el Trigger.
+    // 1. Solo creamos el usuario en Auth
+    // Los datos viajan en 'data' y el Trigger de SQL los acomoda en la tabla profiles
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -59,12 +59,11 @@ const handleRegister = async (e: React.FormEvent) => {
     });
 
     if (authError) throw authError;
-    if (!authData.user) throw new Error("Error creando usuario");
+    
+    // --- AQUÍ HABÍA UN BLOQUE QUE DECÍA supabase.from('profiles').update ---
+    // --- ESE BLOQUE ES EL QUE TENÉS QUE BORRAR COMPLETAMENTE ---
 
-    // ✅ BORRAMOS LA SECCIÓN "supabase.from('profiles').update..." 
-    // No hace falta porque el Trigger de SQL ya lo hizo en el servidor.
-
-    alert("¡Cuenta creada! Revisa tu email de Hostinger para confirmar.");
+    alert("¡Cuenta creada! Revisa tu email para confirmar.");
     router.push('/login');
 
   } catch (error: any) {
