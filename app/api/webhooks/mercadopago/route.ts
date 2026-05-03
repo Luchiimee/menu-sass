@@ -12,74 +12,61 @@ const supabase = createClient(
 );
 // ... (imports y config inicial igual)
 
+// ... (imports y config inicial igual)
+
 export async function POST(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id'); 
         const topic = searchParams.get('topic'); 
 
-      
-// ... dentro de tu función POST del Webhook
+        if (topic === 'preapproval' && id) {
+            const preapproval = new PreApproval(client);
+            const subData = await preapproval.get({ id });
 
-if (topic === 'preapproval' && id) {
-    const preapproval = new PreApproval(client);
-    const subData = await preapproval.get({ id });
+            const userId = subData.external_reference;
+            const status = subData.status; 
 
-    const userId = subData.external_reference;
-    const status = subData.status; 
+            // --- CASO 1: PAGO EXITOSO O RE-ACTIVACIÓN ---
+            if (status === 'authorized') {
+                const mpAmount = Number(subData.auto_recurring?.transaction_amount || 0);
+                const mpReason = subData.reason || "";
+                
+                let confirmedPlan = 'light'; 
+                if (mpReason.toLowerCase().includes('plus') || mpAmount >= 27000) confirmedPlan = 'plus';
+                else if (mpReason.toLowerCase().includes('go') || mpAmount >= 16900) confirmedPlan = 'go';
 
-    if (status === 'authorized') {
-        // 1. Calculamos el plan según lo que pagó (para que sea dinámico)
-        const mpReason = subData.reason || "";
-        const mpAmount = Number(subData.auto_recurring?.transaction_amount || 0);
-        
-        let confirmedPlan = 'light'; 
-        if (mpReason.toLowerCase().includes('plus') || mpAmount >= 27000) confirmedPlan = 'plus';
-        else if (mpReason.toLowerCase().includes('go') || mpAmount >= 16900) confirmedPlan = 'go';
+                await Promise.all([
+                    supabase.from('restaurants').update({ 
+                        subscription_status: 'authorized', // 🚀 Limpia banners y bloqueos
+                        subscription_plan: confirmedPlan,
+                        mp_preapproval_id: id,
+                        updated_at: new Date().toISOString()
+                    }).eq('user_id', userId),
 
-        // 🚀 AQUÍ VA EL FRAGMENTO:
-        // Usamos Promise.all para que se actualicen las dos tablas a la vez
-        await Promise.all([
-            // Actualizamos la tabla de Restaurantes (Lógica de bloqueo)
-            supabase.from('restaurants').update({ 
-                subscription_status: 'authorized',
-                subscription_plan: confirmedPlan,
-                mp_preapproval_id: id,
-                updated_at: new Date().toISOString()
-            }).eq('user_id', userId),
-
-            // Actualizamos la tabla de Perfiles (Carteles visuales)
-            supabase.from('profiles').update({ 
-                payment_configured: true 
-            }).eq('id', userId)
-        ]);
-        
-        console.log(`✅ ÉXITO: Usuario ${userId} activado en plan ${confirmedPlan}`);
-    }
-    
-    // ... resto de los casos (past_due, paused, etc)
-
-            // --- CASO 2: FALLO DE PAGO (past_due) ---
-            // Mercado Pago intentó cobrar y la tarjeta rebotó.
-            else if (status === 'past_due') {
+                    supabase.from('profiles').update({ payment_configured: true }).eq('id', userId)
+                ]);
+                console.log(`✅ Usuario ${userId} activo en plan ${confirmedPlan}`);
+            }
+            
+            // --- CASO 2: FALLO DE PAGO O PAUSA (PERIODO DE GRACIA) ---
+            else if (status === 'past_due' || status === 'paused') {
                 await supabase.from('restaurants').update({ 
-                    subscription_status: 'past_due', // Esto activa el banner naranja de "Problema con el cobro"
+                    subscription_status: 'suspended', // 🚀 Activa el banner naranja de 3 días
+                    updated_at: new Date().toISOString() // 🕒 Marca el inicio de la cuenta regresiva
+                }).eq('user_id', userId);
+
+                console.log(`⚠️ GRACIA: El usuario ${userId} entró en mora/pausa.`);
+            }
+
+            // --- CASO 3: SUSCRIPCIÓN ELIMINADA (BLOQUEO TOTAL) ---
+            else if (status === 'cancelled') {
+                await supabase.from('restaurants').update({ 
+                    subscription_status: 'cancelled', // 🚀 Activa el modal de Panel Suspendido
                     updated_at: new Date().toISOString()
                 }).eq('user_id', userId);
 
-                console.log(`⚠️ PAGO REBOTADO: El usuario ${userId} entró en mora.`);
-            }
-
-        // --- CASO 3: MERCADO PAGO SE RINDIÓ (cancelled) O SE PAUSÓ (paused) ---
-            else if (status === 'cancelled' || status === 'paused') {
-                await supabase.from('restaurants').update({ 
-                    // 🚀 Ponemos el estado en 'paused' para que tu Layout empiece a contar los 3 días
-                    subscription_status: 'paused', 
-                    // 🕒 Guardamos el momento exacto donde empieza la cuenta regresiva
-                    updated_at: new Date().toISOString() 
-                }).eq('user_id', userId);
-
-                console.log(`⚠️ PERIODOD DE GRACIA: El usuario ${userId} tiene 3 días para regularizar.`);
+                console.log(`🚫 BLOQUEO: Suscripción de ${userId} cancelada.`);
             }
         }
 

@@ -20,7 +20,12 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-
+declare global {
+  interface Window {
+    cardPaymentBrickController: any;
+    MercadoPago: any;
+  }
+}
 function PlanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -229,55 +234,90 @@ const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
       setProcessingPlan(null);
     }
 };
-  // 2. Esta función SOLO abre el modal de Mercado Pago
-  const handleOpenPaymentForm = (planType: string) => {
+ 
+// 1. Abre el modal y prepara el terreno
+const handleOpenPaymentForm = (planType: string) => {
+    // Si no hay email, avisamos (MP lo exige sí o sí)
+    if (!profile.email) {
+        toast.error("Falta el email en tu perfil para configurar el pago.");
+        return;
+    }
     setShowCardForm(true);
-    setTimeout(() => mountCardBrick(planType), 100);
-  };
+    // Esperamos un poquito más para que el div #cardPaymentBrick_container aparezca en el DOM
+    setTimeout(() => mountCardBrick(planType), 300);
+};
 
-  const mountCardBrick = async (planType: string) => {
+// 2. Monta el Brick con limpieza previa
+const mountCardBrick = async (planType: string) => {
     if (!mpInstance) return;
+
+    // 🚀 LIMPIEZA: Si ya existía un brick, lo desmontamos para evitar el error de "container not empty"
+    if (window.cardPaymentBrickController) {
+        window.cardPaymentBrickController.unmount();
+    }
+
     const bricksBuilder = mpInstance.bricks();
+    
+    // Calculamos el monto exacto
+    const planAmount = planType === 'light' ? 10000 : planType === 'go' ? 16900 : 27000;
+
     const settings = {
-      initialization: {
-        amount:
-          planType === "light" ? 10000 : planType === "go" ? 16900 : 27000,
-        payer: { email: profile.email },
-      },
-      callbacks: {
-        onReady: () => setProcessingPlan(null),
-        onSubmit: (formData: any) => {
-          return new Promise(async (resolve, reject) => {
-            const res = await fetch("/api/mercadopago/subscription", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                token: formData.token,
-                payment_method_id: formData.payment_method_id,
-                planType,
-                userId,
-                email: profile.email,
-              }),
-            });
-            if (res.ok) {
-              toast.success("Pago configurado con éxito");
-              window.location.reload();
-              resolve(null);
-            } else {
-              toast.error("Error al procesar");
-              reject();
-            }
-          });
+        initialization: {
+            amount: planAmount,
+            payer: { email: profile.email },
         },
-      },
+        customization: {
+            paymentMethods: {
+                maxInstallments: 1, // Para suscripciones suele ser mejor 1 cuota
+            }
+        },
+        callbacks: {
+            onReady: () => {
+                setProcessingPlan(null);
+                console.log("Brick de MP listo");
+            },
+            onSubmit: (formData: any) => {
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        const res = await fetch('/api/mercadopago/subscription', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                token: formData.token, 
+                                payment_method_id: formData.payment_method_id, 
+                                planType, 
+                                userId, 
+                                email: profile.email 
+                            })
+                        });
+                        if (res.ok) {
+                            toast.success("¡Suscripción activa!");
+                            window.location.reload();
+                            resolve(null);
+                        } else {
+                            throw new Error();
+                        }
+                    } catch (err) {
+                        toast.error("Error al procesar el pago");
+                        reject();
+                    }
+                });
+            },
+            onError: (error: any) => {
+                console.error("Error en Brick:", error);
+                toast.error("Error al cargar Mercado Pago");
+            }
+        }
     };
-    // @ts-ignore
-    window.cardBrickController = await bricksBuilder.create(
-      "cardPayment",
-      "cardPaymentBrick_container",
-      settings,
+
+    // Renderizamos el brick
+    window.cardPaymentBrickController = await bricksBuilder.create(
+        'cardPayment', 
+        'cardPaymentBrick_container', 
+        settings
     );
-  };
+};
+
 
   const renderPlanButton = (planId: "light" | "go" | "plus") => {
     const isThisPlanSelected = restaurant.subscription_plan === planId;
@@ -740,31 +780,44 @@ const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
         </div>
       </section>
 
-      {/* MODAL DEL BRICK (IDEM SETTINGS) */}
-      {showCardForm && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl relative">
-            <button
-              onClick={() => {
-                setShowCardForm(false);
-                setProcessingPlan(null);
-              }}
-              className="absolute top-6 right-6 text-gray-400 hover:text-black"
+   {/* MODAL DEL BRICK CON AVISO DE COBRO */}
+{showCardForm && (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+                onClick={() => {setShowCardForm(false); setProcessingPlan(null);}} 
+                className="absolute top-6 right-6 text-gray-400 hover:text-black"
             >
-              <X size={24} />
+                <X size={24} />
             </button>
+            
             <div className="text-left mb-6">
-              <h3 className="text-xl font-black uppercase italic tracking-tighter">
-                Vincular Tarjeta
-              </h3>
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
-                Pago seguro vía Mercado Pago
-              </p>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter">Vincular Tarjeta</h3>
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Suscripción Mensual Segura</p>
             </div>
+
+            {/* 📢 CARTEL DE AVISO IMPORTANTE */}
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl mb-6">
+                <div className="flex gap-3">
+                    <Clock className="text-indigo-600 shrink-0" size={20} />
+                    <div className="text-left">
+                        <p className="text-[11px] font-black text-indigo-900 uppercase">Período de prueba activo</p>
+                        <p className="text-[10px] text-indigo-700 font-medium leading-relaxed mt-1">
+                            Se te cobrará recién el día <span className="font-black">{getChargeDate()}</span>. 
+                            Luego, se renovará automáticamente cada mes. Podés cancelar cuando quieras desde configuración.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <div id="cardPaymentBrick_container"></div>
-          </div>
+            
+            <p className="text-[9px] text-gray-400 text-center mt-4 uppercase font-bold tracking-widest">
+                🔒 Encriptación de 256 bits por Mercado Pago
+            </p>
         </div>
-      )}
+    </div>
+)}
     </div>
   );
 }

@@ -14,12 +14,12 @@ const supabase = createClient(
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { planType, userId, email, token, payment_method_id } = body;
+        const { planType, userId, email, token } = body;
 
-        // 1. Buscamos datos del restaurante (Trial y Suscripción Actual)
+        // 1. Buscamos datos del restaurante
         const { data: restaurant, error: dbError } = await supabase
             .from('restaurants')
-            .select('created_at, mp_preapproval_id')
+            .select('id, created_at, mp_preapproval_id')
             .eq('user_id', userId)
             .single();
 
@@ -27,51 +27,45 @@ export async function POST(request: Request) {
 
         const preapproval = new PreApproval(client);
 
-        // --- 2. LÓGICA DE LIMPIEZA (EVITAR DOBLE COBRO) ---
-        // Si el usuario ya tiene una suscripción vinculada, la cancelamos antes de crear la nueva
+        // 2. Limpieza de suscripciones viejas
         if (restaurant.mp_preapproval_id) {
             try {
-                console.log(`Cancelando suscripción anterior: ${restaurant.mp_preapproval_id}`);
                 await preapproval.update({ 
                     id: restaurant.mp_preapproval_id, 
                     body: { status: 'cancelled' } 
                 });
             } catch (err) {
-                console.error("Error al cancelar suscripción vieja (tal vez ya estaba cancelada):", err);
+                console.error("Error al cancelar vieja:", err);
             }
         }
 
-        // 3. Lógica de 14 días de prueba (Mantenemos tu excelente lógica)
+        // 3. Cálculo de Fecha de Inicio de Cobro
         const fechaRegistro = new Date(restaurant.created_at);
         const fechaFinTrial = new Date(fechaRegistro);
         fechaFinTrial.setDate(fechaRegistro.getDate() + 14);
 
         const hoy = new Date();
         
-        // Si el trial no venció, el cobro empieza al vencer. 
-        // Si ya venció (o es cambio de plan), empieza en 5 min.
+        // Si el trial no venció, cobramos al finalizar los 14 días.
+        // Si ya venció, cobramos ahora (más 5 minutos de margen para MP).
         let fechaInicioCobro = fechaFinTrial > hoy ? fechaFinTrial : hoy;
         fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
 
-        // 4. Precios actualizados
-       const prices: Record<string, number> = {
+        // 4. Precios
+        const prices: Record<string, number> = {
             light: 10000,
             go: 16900,
-            plus: 27000,
-            max: 0 // Aún no disponible para cobro
+            plus: 27000
         };
-if (!prices[planType] || prices[planType] === 0) {
-            throw new Error("El plan seleccionado no está disponible para suscripción actualmente.");
-        }
-       const amount = prices[planType];
 
-    // 5. Crear la suscripción DIRECTA usando el Token de la tarjeta
+        const amount = prices[planType];
+
+        // 5. Crear Suscripción en Mercado Pago
         const response = await preapproval.create({
             body: {
                 reason: `Plan ${planType.toUpperCase()} - Snappy`,
                 external_reference: userId,
                 payer_email: email.trim().toLowerCase(),
-                // 🚀 ESTA ES LA MAGIA: Usamos el token generado por el Brick en el frontend
                 card_token_id: token, 
                 auto_recurring: {
                     frequency: 1,
@@ -80,14 +74,13 @@ if (!prices[planType] || prices[planType] === 0) {
                     currency_id: 'ARS',
                     start_date: fechaInicioCobro.toISOString(), 
                 },
-                back_url: 'https://snappy.uno/dashboard/settings',
-                // Al usar Checkout API, la suscripción se intenta activar de inmediato
+                back_url: 'https://snappy.uno/dashboard/plan',
                 status: 'authorized', 
             }
         });
 
-        // 6. Actualizar el restaurante en tu base de datos con el nuevo ID de suscripción
-        await supabase
+        // 6. Actualizar Supabase
+        const { error: updateError } = await supabase
             .from('restaurants')
             .update({ 
                 mp_preapproval_id: response.id,
@@ -96,21 +89,13 @@ if (!prices[planType] || prices[planType] === 0) {
             })
             .eq('user_id', userId);
 
+        if (updateError) throw updateError;
+
         return NextResponse.json({ 
             success: true, 
-            message: "Suscripción activada con éxito",
+            message: "Suscripción configurada con éxito",
             id: response.id 
         });
-
-        // LOG de Auditoría
-        console.log(`✅ Suscripción generada para ${userId} (${email}): ${response.id}`);
-
-        return NextResponse.json({ 
-            url: response.init_point,
-            preapproval_id: response.id 
-        });
-
-        return NextResponse.json({ url: response.init_point });
 
     } catch (error: any) {
         console.error("Error MP Subscription:", error);
