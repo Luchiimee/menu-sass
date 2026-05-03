@@ -156,9 +156,8 @@ function PlanContent() {
   };
 
 const handleRedirectToMP = async (planType: string) => {
-    // 1. Validación preventiva para evitar el 400
     if (!profile.email || !restaurant.id) {
-      toast.error("Faltan datos de perfil o restaurante para continuar.");
+      toast.error("Faltan datos de perfil o restaurante.");
       return;
     }
 
@@ -168,9 +167,9 @@ const handleRedirectToMP = async (planType: string) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan: planType,
+          plan: planType.toLowerCase().trim(), // 👈 Forzamos limpieza absoluta
           restaurant_id: restaurant.id,
-          email: profile.email.trim().toLowerCase() // 👈 Limpieza de strings
+          email: profile.email.trim().toLowerCase() 
         }),
       });
 
@@ -179,7 +178,7 @@ const handleRedirectToMP = async (planType: string) => {
       if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
-        // Captura el mensaje exacto del backend para debugging
+        // Este es el error que te está saltando (linea 183)
         throw new Error(data.error || "Error en la API de pagos");
       }
     } catch (error: any) {
@@ -187,7 +186,7 @@ const handleRedirectToMP = async (planType: string) => {
       toast.error(error.message);
       setProcessingPlan(null);
     }
-  };
+};
 
 const renderPlanButton = (planId: any) => {
     const isThisPlanSelected = restaurant.subscription_plan === planId;
@@ -206,13 +205,17 @@ const renderPlanButton = (planId: any) => {
     // Si el plan está seleccionado en DB pero falta configurar el pago en MP
     if (isThisPlanSelected && !isPaid) {
       return (
-        <button
-          onClick={() => handleRedirectToMP(planId)}
-          disabled={processingPlan !== null}
-          className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors"
-        >
-          {processingPlan === planId ? <Loader2 className="animate-spin" size={14} /> : "Configurar Pago 💳"}
-        </button>
+      // Dentro de renderPlanButton, en la sección de !isPaid:
+<button
+  onClick={() => {
+    console.log("💳 Iniciando pago para:", planId); // Debug para ver qué mandamos
+    handleRedirectToMP(planId);
+  }}
+  disabled={processingPlan !== null}
+  className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors"
+>
+  {processingPlan === planId ? <Loader2 className="animate-spin" size={14} /> : "Configurar Pago 💳"}
+</button>
       );
     }
 
