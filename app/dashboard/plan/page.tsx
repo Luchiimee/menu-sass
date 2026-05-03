@@ -492,7 +492,8 @@ const mountCardBrick = async (planType: string) => {
           </div>
         </section>
 
-       <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
+       {/* SECCIÓN INFORMACIÓN DE MEMBRESÍA ACTUALIZADA */}
+<section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
   <div>
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-3">
@@ -501,16 +502,14 @@ const mountCardBrick = async (planType: string) => {
           Información de Membresía
         </h2>
       </div>
-      {/* Badge de antigüedad */}
       <span className="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-1 rounded uppercase tracking-tighter">
         Miembro desde {new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })}
       </span>
     </div>
 
-    {restaurant?.subscription_status === "authorized" || 
-     restaurant?.subscription_status === "active" ? (
+    {/* Solo mostramos los detalles si el estado es de alguien que TIENE o TUVO plan */}
+    {(restaurant?.subscription_status === "authorized" || restaurant?.subscription_status === "active") ? (
       <div className="space-y-6">
-        {/* Info del Plan y Fecha */}
         <div className="text-left">
           <p className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">
             Plan {restaurant.subscription_plan}
@@ -520,34 +519,46 @@ const mountCardBrick = async (planType: string) => {
           </p>
         </div>
 
-        {/* Visual de la Tarjeta vinculada */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-6 bg-gray-200 rounded flex items-center justify-center font-black text-[8px] text-gray-400 uppercase">
-              VISA
+        {/* 💳 INFO DE TARJETA: Solo si existe el ID de Mercado Pago */}
+        {restaurant.mp_preapproval_id ? (
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-6 bg-gray-200 rounded flex items-center justify-center font-black text-[8px] text-gray-400 uppercase">
+                VISA
+              </div>
+              <span className="text-xs font-black text-gray-700">•••• •••• •••• 9980</span>
             </div>
-            <span className="text-xs font-black text-gray-700">•••• •••• •••• 9980</span>
+            <Check className="text-emerald-500" size={16} />
           </div>
-          <Check className="text-emerald-500" size={16} />
-        </div>
+        ) : (
+          /* Si no hay tarjeta, mostramos el estado vacío */
+          <div className="p-4 border-2 border-dashed border-gray-50 rounded-2xl text-center">
+            <p className="text-[9px] font-black text-gray-300 uppercase italic">Sin tarjeta vinculada</p>
+          </div>
+        )}
 
-        {/* Botonera de Acciones */}
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => handleOpenPaymentForm(restaurant.subscription_plan)}
             className="py-2.5 bg-gray-900 text-white text-[9px] font-black uppercase italic tracking-tighter rounded-xl hover:bg-black transition-all"
           >
-            Reemplazar Tarjeta
+            {restaurant.mp_preapproval_id ? 'Reemplazar Tarjeta' : 'Vincular Tarjeta'}
           </button>
+          
           <button
             onClick={handleEliminarTarjeta}
-            className="py-2.5 bg-white text-gray-400 border border-gray-100 text-[9px] font-black uppercase italic tracking-tighter rounded-xl hover:text-red-600 hover:border-red-100 transition-all"
+            disabled={!restaurant.mp_preapproval_id}
+            className={`py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl transition-all ${
+              restaurant.mp_preapproval_id 
+              ? 'bg-white text-gray-400 border border-gray-100 hover:text-red-600 hover:border-red-100' 
+              : 'bg-gray-50 text-gray-200 border border-transparent cursor-not-allowed'
+            }`}
           >
             Eliminar Tarjeta
           </button>
         </div>
 
-        {/* Aviso de Advertencia (Si borró la tarjeta pero el plan sigue vigente) */}
+        {/* ⚠️ AVISO DE ADVERTENCIA */}
         {!restaurant.mp_preapproval_id && (
            <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 animate-pulse">
             <Clock className="text-amber-600 shrink-0" size={16} />
@@ -558,17 +569,11 @@ const mountCardBrick = async (planType: string) => {
         )}
       </div>
     ) : (
-      /* Estado cuando no hay nada cargado (Igual al que tenías) */
+      /* Estado para usuarios que nunca tuvieron un plan seleccionado */
       <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
         <p className="text-[10px] font-black text-gray-300 uppercase italic mb-4">
-          No hay un método de pago activo
+          Seleccioná un plan para comenzar
         </p>
-        <button
-          onClick={() => handleOpenPaymentForm(restaurant?.subscription_plan || "light")}
-          className="px-6 py-3 bg-blue-600 text-white text-[10px] font-black uppercase italic tracking-tighter rounded-2xl shadow-lg shadow-blue-100"
-        >
-          Vincular Tarjeta Ahora
-        </button>
       </div>
     )}
   </div>
