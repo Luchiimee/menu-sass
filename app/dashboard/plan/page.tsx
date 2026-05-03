@@ -400,11 +400,15 @@ const mountCardBrick = async (planType: string) => {
             Gestión de suscripción y facturación
           </p>
         </div>
-        {isTrialing && (
-          <span className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-tighter border border-indigo-100 shadow-sm">
-            <Clock size={12} /> Día {trialDay} de 14 gratis
-          </span>
-        )}
+      {(trialDay < 14) && (
+    <span className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-tighter border border-indigo-100 shadow-sm">
+      <Clock size={12} /> 
+      {/* Si ya pagó (isPaid), mostramos los días que le quedan de regalo */}
+      {restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active'
+        ? `Quedan ${14 - trialDay} días de regalo` 
+        : `Día ${trialDay} de 14 gratis`}
+    </span>
+  )}
       </header>
 
       {/* SECCIÓN SUPERIOR: DATOS Y PAGO (SMALLER) */}
