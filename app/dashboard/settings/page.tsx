@@ -148,27 +148,42 @@ function SettingsContent() {
     }
   };
 
-  const handleCancelSubscription = async () => {
+const handleCancelSubscription = async () => {
     if (!restaurant.mp_preapproval_id) return;
-    if (!confirm("⚠️ ¿CANCELAR DEFINITIVAMENTE?\n\nTu suscripción en Mercado Pago se dará de baja y tu menú dejará de estar online inmediatamente.")) return;
+    
+    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nTu tarjeta se desvinculará y no habrá nuevos cobros. Seguirás teniendo acceso al panel hasta que termine tu periodo actual.";
+    if (!confirm(confirmMsg)) return;
 
     setLoading(true);
     try {
-      const res = await fetch('/api/mercadopago/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, mpPreapprovalId: restaurant.mp_preapproval_id })
-      });
+        // 1. Primero limpiamos el ID en Supabase para que el dashboard sepa que NO hay tarjeta
+        const { error: dbError } = await supabase
+            .from('restaurants')
+            .update({ 
+                mp_preapproval_id: null,
+                // Mantenemos el status para que no se bloquee el acceso hoy
+            })
+            .eq('user_id', userId);
 
-      if (res.ok) {
-        toast.success("Suscripción cancelada correctamente");
+        if (dbError) throw dbError;
+
+        // 2. Avisamos a la API para que Mercado Pago cancele el débito automático
+        await fetch('/api/mercadopago/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, mpPreapprovalId: restaurant.mp_preapproval_id })
+        });
+
+        toast.success("Tarjeta desvinculada. Acceso activo hasta el vencimiento.");
         window.location.reload();
-      } else throw new Error();
+
     } catch (err) {
-      toast.error("Error al cancelar la suscripción");
-      setLoading(false);
+        console.error("Error al cancelar:", err);
+        toast.error("Error al procesar la cancelación");
+    } finally {
+        setLoading(false);
     }
-  };
+};
   // --- FUNCIONES DE HORARIOS ---
   const updateHour = async (day: string, field: string, value: any) => {
       const updatedHours = {
