@@ -58,36 +58,29 @@ function PlanContent() {
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const handleEliminarTarjeta = async () => {
   const confirmDelete = confirm(
-    "⚠️ ¿ELIMINAR TARJETA?\n\nTu suscripción se cancelará al finalizar el periodo actual. Deberás vincular una nueva antes de la fecha de cobro para no perder el acceso."
+    "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nSe detendrán los cobros y perderás acceso al finalizar tu periodo actual. ¿Estás seguro?"
   );
 
   if (!confirmDelete) return;
 
+  setLoading(true);
   try {
-    // 1. Avisamos a Mercado Pago para que cancele el débito automático
-    if (restaurant.mp_preapproval_id) {
-        await fetch('/api/mercadopago/subscription', {
-            method: 'PATCH', // O el método que uses para cancelar en tu API
-            body: JSON.stringify({ id: restaurant.mp_preapproval_id, status: 'cancelled' })
-        });
+    const response = await fetch('/api/mercadopago/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mpPreapprovalId: restaurant.mp_preapproval_id })
+    });
+
+    if (response.ok) {
+      toast.success("Suscripción cancelada correctamente.");
+      window.location.reload();
+    } else {
+      throw new Error();
     }
-
-    // 2. Limpiamos Supabase pero mantenemos el plan activo hasta el vencimiento
-    await supabase
-      .from("restaurants")
-      .update({ 
-        mp_preapproval_id: null,
-        // No cambiamos el status a 'cancelled' todavía para que siga entrando
-      })
-      .eq("user_id", userId);
-
-    setShowDeleteWarning(true);
-    toast.success("Tarjeta eliminada. Recuerda vincular una nueva antes del cobro.");
-    
-    // Recargamos para refrescar la UI
-    setTimeout(() => window.location.reload(), 1500);
   } catch (error) {
-    toast.error("No se pudo eliminar la tarjeta");
+    toast.error("No se pudo cancelar. Contacta a soporte.");
+  } finally {
+    setLoading(false);
   }
 };
   // --- FUNCIÓN: PAUSAR / REANUDAR SUSCRIPCIÓN ---
@@ -205,17 +198,16 @@ useEffect(() => {
     restaurant?.subscription_status === "trialing" ||
     !restaurant?.subscription_plan;
 
-  const getChargeDate = () => {
-    const dateBase = restaurant.created_at
-      ? new Date(restaurant.created_at)
-      : new Date();
-    const chargeDate = new Date(dateBase);
-    chargeDate.setDate(dateBase.getDate() + 14);
-    return chargeDate.toLocaleDateString("es-AR", {
-      day: "numeric",
-      month: "long",
-    });
-  };
+const getChargeDate = () => {
+  // Asegúrate de que use restaurant.created_at que viene de Supabase
+  const dateBase = restaurant.created_at ? new Date(restaurant.created_at) : new Date();
+  const chargeDate = new Date(dateBase);
+  chargeDate.setDate(dateBase.getDate() + 14); // Los mismos 14 días que el backend
+  return chargeDate.toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+  });
+};
   const updateProfile = (field: string, value: string) => {
     const newData = { ...profile, [field]: value };
     setProfile(newData);
@@ -499,7 +491,7 @@ const mountCardBrick = async (planType: string) => {
           </div>
         </section>
 
-       {/* SECCIÓN INFORMACIÓN DE MEMBRESÍA ACTUALIZADA */}
+       {/* SECCIÓN INFORMACIÓN DE MEMBRESÍA ACTUALIZADA ESTILO NETFLIX */}
 <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
   <div>
     <div className="flex items-center justify-between mb-6">
@@ -514,8 +506,8 @@ const mountCardBrick = async (planType: string) => {
       </span>
     </div>
 
-    {/* Solo mostramos los detalles si el estado es de alguien que TIENE o TUVO plan */}
-    {(restaurant?.subscription_status === "authorized" || restaurant?.subscription_status === "active") ? (
+    {/* Lógica estilo Netflix: Si tiene suscripción o está en trial con plan seleccionado */}
+    {restaurant?.subscription_plan ? (
       <div className="space-y-6">
         <div className="text-left">
           <p className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">
@@ -526,63 +518,57 @@ const mountCardBrick = async (planType: string) => {
           </p>
         </div>
 
-        {/* 💳 INFO DE TARJETA: Solo si existe el ID de Mercado Pago */}
+        {/* 💳 INFO DE TARJETA: Aquí usamos los nuevos campos mp_preapproval_id y card_last_four */}
         {restaurant.mp_preapproval_id ? (
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
-             <div className="w-10 h-6 bg-gray-200 rounded flex items-center justify-center font-black text-[8px] text-gray-400 uppercase">
-  {restaurant.card_brand}
-</div>
-
-<span className="text-xs font-black text-gray-700">
-  •••• •••• •••• {restaurant.card_last_four}
-</span>
-             
+              {/* Logo de marca de tarjeta */}
+              <div className="w-12 h-8 bg-white border border-gray-200 rounded flex items-center justify-center font-black text-[9px] text-gray-500 uppercase shadow-sm">
+                {restaurant.card_brand || 'Card'}
+              </div>
+              <span className="text-sm font-black text-gray-700">
+                •••• •••• •••• {restaurant.card_last_four || '****'}
+              </span>
             </div>
-            <Check className="text-emerald-500" size={16} />
+            <button 
+              onClick={() => handleOpenPaymentForm(restaurant.subscription_plan)}
+              className="text-[10px] font-black text-blue-600 uppercase hover:underline"
+            >
+              Cambiar
+            </button>
           </div>
         ) : (
-          /* Si no hay tarjeta, mostramos el estado vacío */
-          <div className="p-4 border-2 border-dashed border-gray-50 rounded-2xl text-center">
-            <p className="text-[9px] font-black text-gray-300 uppercase italic">Sin tarjeta vinculada</p>
-          </div>
+          /* Botón para vincular si eligió plan pero no cargó tarjeta */
+          <button 
+            onClick={() => handleOpenPaymentForm(restaurant.subscription_plan)}
+            className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 transition-all flex flex-col items-center gap-1"
+          >
+            <span className="text-xs uppercase font-black">+ Vincular Forma de Pago</span>
+            <span className="text-[9px] font-medium italic">Se cobrará al finalizar los 14 días</span>
+          </button>
         )}
 
+        {/* Botones de gestión */}
         <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => handleOpenPaymentForm(restaurant.subscription_plan)}
+           <button
+            onClick={handleTogglePause}
             className="py-2.5 bg-gray-900 text-white text-[9px] font-black uppercase italic tracking-tighter rounded-xl hover:bg-black transition-all"
           >
-            {restaurant.mp_preapproval_id ? 'Reemplazar Tarjeta' : 'Vincular Tarjeta'}
+            {restaurant.subscription_status === 'paused' ? 'Reanudar' : 'Pausar Suscripción'}
           </button>
           
           <button
             onClick={handleEliminarTarjeta}
-            disabled={!restaurant.mp_preapproval_id}
-            className={`py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl transition-all ${
-              restaurant.mp_preapproval_id 
-              ? 'bg-white text-gray-400 border border-gray-100 hover:text-red-600 hover:border-red-100' 
-              : 'bg-gray-50 text-gray-200 border border-transparent cursor-not-allowed'
-            }`}
+            className="py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-white text-gray-400 border border-gray-100 hover:text-red-600 hover:border-red-100 transition-all"
           >
-            Eliminar Tarjeta
+            Cancelar Cuenta
           </button>
         </div>
-
-        {/* ⚠️ AVISO DE ADVERTENCIA */}
-        {!restaurant.mp_preapproval_id && (
-           <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 animate-pulse">
-            <Clock className="text-amber-600 shrink-0" size={16} />
-            <p className="text-[9px] text-amber-800 font-bold leading-tight uppercase">
-              Atención: Sin tarjeta vinculada. Tu servicio se cancelará el {getChargeDate()} si no agregas una nueva.
-            </p>
-          </div>
-        )}
       </div>
     ) : (
-      /* Estado para usuarios que nunca tuvieron un plan seleccionado */
+      /* Estado vacío si no hay plan */
       <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
-        <p className="text-[10px] font-black text-gray-300 uppercase italic mb-4">
+        <p className="text-[10px] font-black text-gray-300 uppercase italic">
           Seleccioná un plan para comenzar
         </p>
       </div>
