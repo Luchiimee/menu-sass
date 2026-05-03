@@ -61,8 +61,8 @@ export async function POST(req: Request) {
     }
 
     const startDate = new Date(restData.created_at);
-    startDate.setDate(startDate.getDate() + 14);
-    const mpStartDate = startDate.toISOString().split('.')[0] + "Z"; 
+startDate.setDate(startDate.getDate() + 14);
+    const mpStartDate = startDate.toISOString().split('.')[0] + "Z";
 
     // 🚀 RECUERDA: Pon aquí los IDs que sacaste del dashboard
     const planIds = {
@@ -73,15 +73,15 @@ export async function POST(req: Request) {
 
     const preApprovalClient = new PreApproval(client);
 
-    const subscriptionBody: any = {
-      preapproval_plan_id: planIds[plan as keyof typeof planIds], 
-      payer_email: email,
-      card_token_id: token,
-      status: "authorized",
-      auto_start_date: mpStartDate, 
-      external_reference: restaurant_id,
-      back_url: "https://snappy.uno/dashboard/plan"
-    };
+   const subscriptionBody: any = {
+  preapproval_plan_id: planIds[plan as keyof typeof planIds], 
+  payer_email: email,
+  card_token_id: token,
+  status: "authorized",
+  auto_start_date: mpStartDate, // Ahora MP sí lo tomará como fecha futura
+  external_reference: restaurant_id,
+  back_url: "https://snappy.uno/dashboard/plan"
+};
 
     const subscription = await preApprovalClient.create({
       body: subscriptionBody

@@ -36,23 +36,28 @@ if (!mpRes.ok) {
 }
 
 const subscription = await mpRes.json();
+// 4. Lógica de Idempotencia y Actualización
+const status = subscription.status;
+const nextPayment = subscription.next_payment_date;
+const externalRef = subscription.external_reference; 
 
-    // 4. Lógica de Idempotencia y Actualización
-    // 'authorized' significa que la suscripción está activa y el trial corriendo
-    // 'paused' o 'cancelled' disparan la lógica de bloqueo en el SaaS
-    const status = subscription.status;
-    const nextPayment = subscription.next_payment_date;
-    const externalRef = subscription.external_reference; // Aquí guardamos el restaurant_id
+// Sacamos los datos de la tarjeta del objeto de MP
+// MP suele devolver 'last_four_digits' y 'payment_method_id' en la suscripción
+const cardLastFour = subscription.payment_methods_allowed?.last_four_digits || null;
+const cardBrand = subscription.payment_methods_allowed?.payment_method_id || null;
 
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
-        subscription_status: status,
-        next_billing_date: nextPayment,
-        // Guardamos el ID de suscripción si no lo teníamos (idempotencia)
-        mp_preapproval_id: subscription.id 
-      })
-      .or(`mp_preapproval_id.eq.${subscription.id},id.eq.${externalRef}`);
+const { error } = await supabase
+  .from("restaurants")
+  .update({
+    subscription_status: status,
+    subscription_plan: subscription.reason.split(' ')[1]?.toLowerCase(), // Intenta recuperar el plan del nombre
+    next_billing_date: nextPayment,
+    mp_preapproval_id: subscription.id,
+    // ¡IMPORTANTE! Si no actualizamos esto, la UI nunca muestra la tarjeta
+    card_last_four: cardLastFour, 
+    card_brand: cardBrand
+  })
+  .eq("id", externalRef); // Usamos el external_reference que es el ID del restaurante
 
     if (error) {
       console.error("Error DB Webhook:", error.message);
