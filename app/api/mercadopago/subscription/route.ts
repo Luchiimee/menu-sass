@@ -11,12 +11,23 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const PLAN_IDS: Record<string, string> = {
+    light: process.env.MP_PLAN_ID_LIGHT!,
+    go:    process.env.MP_PLAN_ID_GO!,
+    plus:  process.env.MP_PLAN_ID_PLUS!,
+};
+
+const PRICES: Record<string, number> = {
+    light: 10000,
+    go:    16900,
+    plus:  27000,
+};
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { planType, userId, email, token } = body;
 
-        // --- 1. Buscamos datos del restaurante (necesitamos created_at) ---
         const { data: restaurant, error: dbError } = await supabase
             .from('restaurants')
             .select('id, created_at, mp_preapproval_id')
@@ -27,7 +38,6 @@ export async function POST(request: Request) {
 
         const preapproval = new PreApproval(client);
 
-        // --- 2. Limpieza de suscripciones viejas ---
         if (restaurant.mp_preapproval_id) {
             try {
                 await preapproval.update({ 
@@ -39,65 +49,53 @@ export async function POST(request: Request) {
             }
         }
 
-        // --- 3. Lógica de Trial Dinámico (14 días desde el REGISTRO) ---
         const fechaRegistro = new Date(restaurant.created_at);
         const fechaFinTrial = new Date(fechaRegistro);
-        fechaFinTrial.setDate(fechaRegistro.getDate() + 14); // El trial vence a los 14 días de registrarse
+        fechaFinTrial.setDate(fechaRegistro.getDate() + 14);
 
         const ahora = new Date();
-        let fechaInicioCobro;
+        const fechaInicioCobro = ahora < fechaFinTrial
+            ? fechaFinTrial
+            : new Date(ahora.getTime() + 10 * 60000);
 
-        if (ahora < fechaFinTrial) {
-            // Caso A: Todavía tiene días de regalo. Cobramos cuando venza el trial.
-            fechaInicioCobro = fechaFinTrial;
-        } else {
-            // Caso B: Ya pasaron los 14 días. Cobramos ahora (con 10 min de margen técnico).
-            fechaInicioCobro = new Date(ahora.getTime() + 10 * 60000);
-        }
-
-        /**
-         * 🚀 EL FORMATO DEFINITIVO (ISO 8601 UTC):
-         * Mercado Pago recomienda usar el formato .toISOString() puro (terminado en Z).
-         * Esto evita conflictos de zona horaria y errores de "Invalid format".
-         */
         const start_date_formatted = fechaInicioCobro.toISOString();
 
-        // --- 4. Precios ---
-        const prices: Record<string, number> = {
-            light: 10000,
-            go: 16900,
-            plus: 27000
-        };
-        const amount = prices[planType];
+        const planId = PLAN_IDS[planType];
+        if (!planId) {
+            throw new Error(
+                `No se encontró MP_PLAN_ID_${planType.toUpperCase()} en .env. ` +
+                `Ejecutá /api/setup-mp-plans primero.`
+            );
+        }
 
-        console.log(`Iniciando suscripción para ${userId}. Cobro programado: ${start_date_formatted}`);
+        console.log(`Sub para ${userId}. Plan: ${planType}. PlanId: ${planId}. Cobro: ${start_date_formatted}`);
 
-        // --- 5. Crear Suscripción en Mercado Pago ---
         const response = await preapproval.create({
             body: {
+                preapproval_plan_id: planId,
                 reason: `Plan ${planType.toUpperCase()} - Snappy`,
                 external_reference: userId,
                 payer_email: email.trim().toLowerCase(),
-                card_token_id: token, 
+                card_token_id: token,
                 auto_recurring: {
                     frequency: 1,
                     frequency_type: 'months',
-                    transaction_amount: amount,
+                    transaction_amount: PRICES[planType],
                     currency_id: 'ARS',
-                    start_date: start_date_formatted, // ✅ Fecha dinámica calculada
+                    start_date: start_date_formatted,
                 },
                 back_url: 'https://snappy.uno/dashboard/plan',
-                status: 'authorized', 
+                status: 'authorized',
             }
         });
 
-        // --- 6. Actualizar Supabase ---
         const { error: updateError } = await supabase
             .from('restaurants')
             .update({ 
                 mp_preapproval_id: response.id,
-                subscription_status: 'authorized',
-                subscription_plan: planType
+                subscription_status: 'trialing',
+                subscription_plan: planType,
+                trial_ends_at: fechaFinTrial.toISOString(),
             })
             .eq('user_id', userId);
 
@@ -105,9 +103,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ 
             success: true, 
-            message: "Suscripción configurada con éxito",
             id: response.id,
-            proximo_cobro: start_date_formatted
+            proximo_cobro: start_date_formatted,
         });
 
     } catch (error: any) {
