@@ -491,8 +491,7 @@ const mountCardBrick = async (planType: string) => {
           </div>
         </section>
 
-       {/* SECCIÓN INFORMACIÓN DE MEMBRESÍA ACTUALIZADA ESTILO NETFLIX */}
-<section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
+     <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
   <div>
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-3">
@@ -502,11 +501,17 @@ const mountCardBrick = async (planType: string) => {
         </h2>
       </div>
       <span className="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-1 rounded uppercase tracking-tighter">
-        Miembro desde {new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })}
+        {/* FIX: Blindaje contra fechas nulas o malformadas de Supabase */}
+        Miembro desde {restaurant?.created_at && !isNaN(new Date(restaurant.created_at).getTime()) 
+          ? new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }) 
+          : 'Pendiente'}
       </span>
     </div>
 
-    {/* Lógica estilo Netflix: Si tiene suscripción o está en trial con plan seleccionado */}
+    {/* 
+        Lógica Estilo Netflix: 
+        Priorizamos mostrar la tarjeta si existe un ID de suscripción y el estado es 'authorized' o 'active'.
+    */}
     {restaurant?.subscription_plan ? (
       <div className="space-y-6">
         <div className="text-left">
@@ -514,20 +519,24 @@ const mountCardBrick = async (planType: string) => {
             Plan {restaurant.subscription_plan}
           </p>
           <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">
-            Próximo pago: <span className="text-gray-900">{getChargeDate()}</span>
+            {/* 
+                Calculamos la fecha de cobro solo si tenemos el restaurant_id y el plan.
+                getChargeDate() debe validar internamente restaurant.created_at.
+            */}
+            Próximo pago: <span className="text-gray-900">{getChargeDate() || 'Calculando...'}</span>
           </p>
         </div>
 
-        {/* 💳 INFO DE TARJETA: Aquí usamos los nuevos campos mp_preapproval_id y card_last_four */}
-        {restaurant.mp_preapproval_id ? (
+        {/* 💳 INFO DE TARJETA: Renderizado condicional basado en la vinculación real en MP */}
+        {restaurant.mp_preapproval_id && restaurant.card_last_four ? (
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
-              {/* Logo de marca de tarjeta */}
+              {/* Marca de tarjeta con fallback visual */}
               <div className="w-12 h-8 bg-white border border-gray-200 rounded flex items-center justify-center font-black text-[9px] text-gray-500 uppercase shadow-sm">
                 {restaurant.card_brand || 'Card'}
               </div>
               <span className="text-sm font-black text-gray-700">
-                •••• •••• •••• {restaurant.card_last_four || '****'}
+                •••• •••• •••• {restaurant.card_last_four}
               </span>
             </div>
             <button 
@@ -538,38 +547,51 @@ const mountCardBrick = async (planType: string) => {
             </button>
           </div>
         ) : (
-          /* Botón para vincular si eligió plan pero no cargó tarjeta */
+          /* 
+             Boton de Acción: El usuario seleccionó un plan pero la tarjeta no se ha tokenizado 
+             o el proceso de 'subscribe' falló antes del upsert en la DB.
+          */
           <button 
             onClick={() => handleOpenPaymentForm(restaurant.subscription_plan)}
-            className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 transition-all flex flex-col items-center gap-1"
+            className="w-full py-4 border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-2xl text-indigo-600 font-bold hover:bg-indigo-50 transition-all flex flex-col items-center gap-1 group"
           >
-            <span className="text-xs uppercase font-black">+ Vincular Forma de Pago</span>
-            <span className="text-[9px] font-medium italic">Se cobrará al finalizar los 14 días</span>
+            <span className="text-xs uppercase font-black group-hover:scale-105 transition-transform">
+              + Vincular Forma de Pago
+            </span>
+            <span className="text-[9px] font-medium italic text-indigo-400">
+              Se cobrará automáticamente al finalizar los 14 días
+            </span>
           </button>
         )}
 
-        {/* Botones de gestión */}
+        {/* Panel de Gestión de Estados de Suscripción */}
         <div className="grid grid-cols-2 gap-2">
-           <button
+          <button
             onClick={handleTogglePause}
-            className="py-2.5 bg-gray-900 text-white text-[9px] font-black uppercase italic tracking-tighter rounded-xl hover:bg-black transition-all"
+            disabled={!restaurant.mp_preapproval_id}
+            className={`py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl transition-all ${
+              restaurant.subscription_status === 'paused' 
+                ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                : 'bg-gray-900 text-white hover:bg-black'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {restaurant.subscription_status === 'paused' ? 'Reanudar' : 'Pausar Suscripción'}
+            {restaurant.subscription_status === 'paused' ? 'Reanudar Plan' : 'Pausar Cobros'}
           </button>
           
           <button
             onClick={handleEliminarTarjeta}
-            className="py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-white text-gray-400 border border-gray-100 hover:text-red-600 hover:border-red-100 transition-all"
+            disabled={!restaurant.mp_preapproval_id}
+            className="py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-white text-gray-400 border border-gray-100 hover:text-red-600 hover:border-red-100 transition-all disabled:opacity-50"
           >
             Cancelar Cuenta
           </button>
         </div>
       </div>
     ) : (
-      /* Estado vacío si no hay plan */
+      /* Estado inicial: Sin plan seleccionado en la tabla 'restaurants' */
       <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
         <p className="text-[10px] font-black text-gray-300 uppercase italic">
-          Seleccioná un plan para comenzar
+          Seleccioná un plan para activar tu menú
         </p>
       </div>
     )}
