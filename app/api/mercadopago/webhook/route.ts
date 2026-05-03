@@ -1,73 +1,66 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
+  // 1. Configurar Supabase con Service Role para saltar RLS
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll() { return []; },
+        setAll() { },
+      },
+    }
+  );
+
   try {
     const body = await req.json();
-    const { action, type, data } = body;
+    console.log("🔔 Webhook recibido de MP:", body);
 
-    // 1. Usamos Service Role para saltar políticas RLS en el webhook
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Mercado Pago envía notificaciones de tipo 'subscription_preapproval'
+    if (body.type === "subscription_preapproval" || body.action?.includes("created")) {
+      const preapprovalId = body.data?.id || body.id;
 
-    // 2. Filtramos solo lo que nos interesa para Snappy
-    // MP envía 'subscription_preapproval' o 'preapproval' dependiendo de la versión
-    if (type !== "preapproval" && type !== "subscription_preapproval" && type !== "subscription_authorized_payment") {
-      return NextResponse.json({ received: true });
+      // 2. Consultar a Mercado Pago los detalles reales
+      const mpResponse = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`
+        }
+      });
+
+      if (!mpResponse.ok) throw new Error("No se pudo obtener datos de MP");
+      
+      const subscriptionData = await mpResponse.json();
+
+      // 3. Si está autorizado, activamos el plan por ID de restaurante
+      if (subscriptionData.status === "authorized") {
+        const restaurantId = subscriptionData.external_reference; 
+
+        if (!restaurantId) {
+          console.error("❌ No se encontró external_reference en la suscripción");
+          return NextResponse.json({ error: "No ID found" }, { status: 200 });
+        }
+
+        console.log(`🚀 Activando restaurante ID: ${restaurantId}`);
+
+        // 4. ACTUALIZACIÓN DIRECTA: Ya no necesitamos buscar perfiles por email
+        const { error } = await supabase
+          .from("restaurants")
+          .update({
+            subscription_status: "authorized",
+            mp_preapproval_id: preapprovalId,
+          })
+          .eq("id", restaurantId); 
+
+        if (error) throw error;
+        console.log("✅ Restaurante activado con éxito en Supabase");
+      }
     }
 
-    const resourceId = data.id;
-
-   const mpRes = await fetch(
-  `https://api.mercadopago.com/preapproval/${resourceId}`,
-  {
-    headers: {
-      Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
-    },
-  }
-);
-
-if (!mpRes.ok) {
-  const errorData = await mpRes.json();
-  console.error("Error al consultar MP:", errorData);
-  throw new Error(`Error consultando MP: ${mpRes.status}`);
-}
-
-const subscription = await mpRes.json();
-// 4. Lógica de Idempotencia y Actualización
-const status = subscription.status;
-const nextPayment = subscription.next_payment_date;
-const externalRef = subscription.external_reference; 
-
-// Sacamos los datos de la tarjeta del objeto de MP
-// MP suele devolver 'last_four_digits' y 'payment_method_id' en la suscripción
-const cardLastFour = subscription.payment_methods_allowed?.last_four_digits || null;
-const cardBrand = subscription.payment_methods_allowed?.payment_method_id || null;
-
-const { error } = await supabase
-  .from("restaurants")
-  .update({
-    subscription_status: status,
-    subscription_plan: subscription.reason.split(' ')[1]?.toLowerCase(), // Intenta recuperar el plan del nombre
-    next_billing_date: nextPayment,
-    mp_preapproval_id: subscription.id,
-    // ¡IMPORTANTE! Si no actualizamos esto, la UI nunca muestra la tarjeta
-    card_last_four: cardLastFour, 
-    card_brand: cardBrand
-  })
-  .eq("id", externalRef); // Usamos el external_reference que es el ID del restaurante
-
-    if (error) {
-      console.error("Error DB Webhook:", error.message);
-      return NextResponse.json({ error: "DB Update Failed" }, { status: 500 });
-    }
-
-    return NextResponse.json({ received: true });
-
+    return NextResponse.json({ received: true }, { status: 200 });
   } catch (error: any) {
-    console.error("Webhook Master Error:", error.message);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("❌ Error en Webhook:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 200 });
   }
 }
