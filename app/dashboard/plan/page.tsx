@@ -44,10 +44,12 @@ function PlanContent() {
     email: "",
   });
   const [restaurant, setRestaurant] = useState<any>({
-    business_hours: {},
-    subscription_plan: null,
-    subscription_status: "trialing",
-  });
+  id: null,
+  mp_preapproval_id: null,
+  business_hours: {},
+  subscription_plan: null,
+  subscription_status: "trialing",
+});
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
@@ -179,11 +181,10 @@ useEffect(() => {
     script.src = "https://sdk.mercadopago.com/js/v2";
     script.async = true;
     script.onload = () => {
-      // @ts-ignore
-      const mp = new window.MercadoPago(
-        process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY,
-        { locale: "es-AR" },
-      );
+    const mp = new window.MercadoPago(
+  process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY!,
+  { locale: "es-AR" }
+);
       setMpInstance(mp);
     };
     document.body.appendChild(script);
@@ -311,38 +312,42 @@ const mountCardBrick = async (planType: string) => {
                 setProcessingPlan(null);
                 console.log("Brick de MP listo");
             },
-            onSubmit: (formData: any) => {
-                return new Promise(async (resolve, reject) => {
-                    try {
-                        const res = await fetch('/api/mercadopago/subscription', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                token: formData.token, 
-                                payment_method_id: formData.payment_method_id, 
-                                planType, 
-                                userId, 
-                                email: profile.email 
-                            })
-                        });
-                        if (res.ok) {
-                            toast.success("¡Suscripción activa!");
-                            window.location.reload();
-                            resolve(null);
-                        } else {
-                            throw new Error();
-                        }
-                    } catch (err) {
-                        toast.error("Error al procesar el pago");
-                        reject();
-                    }
-                });
-            },
-            onError: (error: any) => {
-                console.error("Error en Brick:", error);
-                toast.error("Error al cargar Mercado Pago");
+      onSubmit: (formData: any) => {
+  return new Promise(async (resolve, reject) => {
+
+    if (!restaurant?.id) {
+      toast.error("Error: restaurante no encontrado");
+      reject();
+      return;
+    }
+
+    try {
+
+      const res = await fetch('/api/mercadopago/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: formData.token,
+          email: profile.email,
+          plan: planType,
+          restaurant_id: restaurant.id
+        })
+      });
+            if (res.ok) {
+                toast.success("¡Suscripción activa!");
+                window.location.reload();
+                resolve(null);
+            } else {
+                throw new Error();
             }
+
+        } catch (err) {
+            toast.error("Error al procesar el pago");
+            reject();
         }
+    });
+}
+   }
     };
 
     // Renderizamos el brick
