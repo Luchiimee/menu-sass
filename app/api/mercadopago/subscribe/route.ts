@@ -66,9 +66,9 @@ startDate.setDate(startDate.getDate() + 14);
 
     // 🚀 RECUERDA: Pon aquí los IDs que sacaste del dashboard
     const planIds = {
-      light: "TU_ID_REAL_LIGHT", 
-      go: "TU_ID_REAL_GO",
-      plus: "TU_ID_REAL_PLUS"
+      light: "3aa6c7cc41fb4bfab3e9967e1bcbaeb5", 
+      go: "979bc6ba5ebe4d5fa4d5b1c823586772",
+      plus: "65dd4645b714425c814a482978375c74"
     };
 
     const preApprovalClient = new PreApproval(client);
