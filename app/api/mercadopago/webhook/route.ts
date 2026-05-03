@@ -32,14 +32,16 @@ export async function POST(req: Request) {
 
     const subscription = await mpRes.json();
 
-    const status = subscription.status;
+    console.log("Estado suscripción:", subscription.status);
 
-    console.log("Estado suscripción:", status);
+    const status = subscription.status;
+    const nextPayment = subscription.next_payment_date;
 
     const { error } = await supabase
       .from("restaurants")
       .update({
         subscription_status: status,
+        next_payment_date: nextPayment
       })
       .eq("mp_preapproval_id", preapprovalId);
 

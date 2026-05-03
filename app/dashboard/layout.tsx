@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setRestaurant({
             ...(rest || {}), 
             name: displayName,
-            plan: rest?.subscription_plan || null,
+            plan: rest?.plan_id || null,
             status: rest?.subscription_status || 'trialing'
         });
         

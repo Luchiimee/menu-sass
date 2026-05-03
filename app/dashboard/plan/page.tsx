@@ -326,12 +326,14 @@ const mountCardBrick = async (planType: string) => {
       const res = await fetch('/api/mercadopago/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: formData.token,
-          email: profile.email,
-          plan: planType,
-          restaurant_id: restaurant.id
-        })
+     body: JSON.stringify({
+  token: formData.token,
+  email: profile.email,
+  plan: planType,
+  restaurant_id: restaurant.id,
+  last_four: formData.last_four_digits,
+  brand: formData.paymentMethodId
+})
       });
             if (res.ok) {
                 toast.success("¡Suscripción activa!");
@@ -528,10 +530,14 @@ const mountCardBrick = async (planType: string) => {
         {restaurant.mp_preapproval_id ? (
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-6 bg-gray-200 rounded flex items-center justify-center font-black text-[8px] text-gray-400 uppercase">
-                VISA
-              </div>
-              <span className="text-xs font-black text-gray-700">•••• •••• •••• 9980</span>
+             <div className="w-10 h-6 bg-gray-200 rounded flex items-center justify-center font-black text-[8px] text-gray-400 uppercase">
+  {restaurant.card_brand}
+</div>
+
+<span className="text-xs font-black text-gray-700">
+  •••• •••• •••• {restaurant.card_last_four}
+</span>
+             
             </div>
             <Check className="text-emerald-500" size={16} />
           </div>

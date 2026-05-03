@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { token, email, plan, restaurant_id } = body;
+    const { token, email, plan, restaurant_id, last_four, brand } = body;
 
     if (!token || !email || !plan || !restaurant_id) {
       return NextResponse.json(
@@ -34,7 +34,6 @@ export async function POST(req: Request) {
 
     const preapproval = new PreApproval(mp);
 
-    // trial 14 días
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + 14);
 
@@ -57,13 +56,14 @@ export async function POST(req: Request) {
       },
     });
 
-    // guardar en Supabase
     const { error } = await supabase
       .from("restaurants")
       .update({
         subscription_status: "authorized",
         plan_id: plan,
         mp_preapproval_id: subscription.id,
+        card_last_four: last_four,
+        card_brand: brand,
       })
       .eq("id", restaurant_id);
 
