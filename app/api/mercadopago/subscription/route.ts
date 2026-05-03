@@ -42,36 +42,38 @@ export async function POST(request: Request) {
         // 3. Cálculo de Fecha de Inicio de Cobro (14 días desde HOY)
 const hoy = new Date();
 const fechaInicioCobro = new Date(hoy);
-fechaInicioCobro.setDate(hoy.getDate() + 14); // Le damos 14 días desde que pone la tarjeta
-fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5); // Margen para MP
+fechaInicioCobro.setDate(hoy.getDate() + 14); 
+fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
 
-        // 4. Precios
-        const prices: Record<string, number> = {
-            light: 10000,
-            go: 16900,
-            plus: 27000
-        };
+       const start_date_formatted = fechaInicioCobro.toISOString().split('.')[0] + "-03:00";
 
-        const amount = prices[planType];
+// --- 4. Precios ---
+const prices: Record<string, number> = {
+    light: 10000,
+    go: 16900,
+    plus: 27000
+};
+const amount = prices[planType];
 
-        // 5. Crear Suscripción en Mercado Pago
-        const response = await preapproval.create({
-            body: {
-                reason: `Plan ${planType.toUpperCase()} - Snappy`,
-                external_reference: userId,
-                payer_email: email.trim().toLowerCase(),
-                card_token_id: token, 
-                auto_recurring: {
-                    frequency: 1,
-                    frequency_type: 'months',
-                    transaction_amount: amount,
-                    currency_id: 'ARS',
-                    start_date: fechaInicioCobro.toISOString(), 
-                },
-                back_url: 'https://snappy.uno/dashboard/plan',
-                status: 'authorized', 
-            }
-        });
+// --- 5. Crear Suscripción en Mercado Pago ---
+const response = await preapproval.create({
+    body: {
+        reason: `Plan ${planType.toUpperCase()} - Snappy`,
+        external_reference: userId,
+        payer_email: email.trim().toLowerCase(),
+        card_token_id: token, 
+        auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
+            transaction_amount: amount,
+            currency_id: 'ARS',
+            // ✅ USAMOS LA NUEVA VARIABLE FORMATEADA
+            start_date: start_date_formatted, 
+        },
+        back_url: 'https://snappy.uno/dashboard/plan',
+        status: 'authorized', 
+    }
+});
 
         // 6. Actualizar Supabase
         const { error: updateError } = await supabase
