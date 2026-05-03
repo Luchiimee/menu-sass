@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { planType, userId, email, token } = body;
 
-        // 1. Buscamos datos del restaurante
+        // --- 1. Buscamos datos del restaurante (necesitamos created_at) ---
         const { data: restaurant, error: dbError } = await supabase
             .from('restaurants')
             .select('id, created_at, mp_preapproval_id')
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
         const preapproval = new PreApproval(client);
 
-        // 2. Limpieza de suscripciones viejas
+        // --- 2. Limpieza de suscripciones viejas ---
         if (restaurant.mp_preapproval_id) {
             try {
                 await preapproval.update({ 
@@ -39,47 +39,59 @@ export async function POST(request: Request) {
             }
         }
 
-// --- 3. Cálculo de Fecha de Inicio de Cobro (Trial de 14 días) ---
-const fechaTrial = new Date();
-fechaTrial.setDate(fechaTrial.getDate() + 14);
-// Le sumamos unos minutos extra para evitar errores de "fecha en el pasado" por milisegundos
-fechaTrial.setMinutes(fechaTrial.getMinutes() + 10);
+        // --- 3. Lógica de Trial Dinámico (14 días desde el REGISTRO) ---
+        const fechaRegistro = new Date(restaurant.created_at);
+        const fechaFinTrial = new Date(fechaRegistro);
+        fechaFinTrial.setDate(fechaRegistro.getDate() + 14); // El trial vence a los 14 días de registrarse
 
-/**
- * 🚀 EL FIX PARA EL FORMATO:
- * Mercado Pago Argentina a veces falla si no ve exactamente el formato:
- * YYYY-MM-DDTHH:mm:ss.SSS-03:00
- */const start_date_formatted = fechaTrial.toISOString().replace('Z', '-03:00');
+        const ahora = new Date();
+        let fechaInicioCobro;
 
-// --- 4. Precios ---
-const prices: Record<string, number> = {
-    light: 10000,
-    go: 16900,
-    plus: 27000
-};
-const amount = prices[planType];
-console.log("Fecha enviada a MP:", start_date_formatted);
-// --- 5. Crear Suscripción en Mercado Pago ---
-const response = await preapproval.create({
-    body: {
-        reason: `Plan ${planType.toUpperCase()} - Snappy`,
-        external_reference: userId,
-        payer_email: email.trim().toLowerCase(),
-        card_token_id: token, 
-        auto_recurring: {
-            frequency: 1,
-            frequency_type: 'months',
-            transaction_amount: amount,
-            currency_id: 'ARS',
-            // ✅ USAMOS LA NUEVA VARIABLE FORMATEADA
-            start_date: start_date_formatted, 
-        },
-        back_url: 'https://snappy.uno/dashboard/plan',
-        status: 'authorized', 
-    }
-});
+        if (ahora < fechaFinTrial) {
+            // Caso A: Todavía tiene días de regalo. Cobramos cuando venza el trial.
+            fechaInicioCobro = fechaFinTrial;
+        } else {
+            // Caso B: Ya pasaron los 14 días. Cobramos ahora (con 10 min de margen técnico).
+            fechaInicioCobro = new Date(ahora.getTime() + 10 * 60000);
+        }
 
-        // 6. Actualizar Supabase
+        /**
+         * 🚀 EL FORMATO DEFINITIVO (ISO 8601 UTC):
+         * Mercado Pago recomienda usar el formato .toISOString() puro (terminado en Z).
+         * Esto evita conflictos de zona horaria y errores de "Invalid format".
+         */
+        const start_date_formatted = fechaInicioCobro.toISOString();
+
+        // --- 4. Precios ---
+        const prices: Record<string, number> = {
+            light: 10000,
+            go: 16900,
+            plus: 27000
+        };
+        const amount = prices[planType];
+
+        console.log(`Iniciando suscripción para ${userId}. Cobro programado: ${start_date_formatted}`);
+
+        // --- 5. Crear Suscripción en Mercado Pago ---
+        const response = await preapproval.create({
+            body: {
+                reason: `Plan ${planType.toUpperCase()} - Snappy`,
+                external_reference: userId,
+                payer_email: email.trim().toLowerCase(),
+                card_token_id: token, 
+                auto_recurring: {
+                    frequency: 1,
+                    frequency_type: 'months',
+                    transaction_amount: amount,
+                    currency_id: 'ARS',
+                    start_date: start_date_formatted, // ✅ Fecha dinámica calculada
+                },
+                back_url: 'https://snappy.uno/dashboard/plan',
+                status: 'authorized', 
+            }
+        });
+
+        // --- 6. Actualizar Supabase ---
         const { error: updateError } = await supabase
             .from('restaurants')
             .update({ 
@@ -94,7 +106,8 @@ const response = await preapproval.create({
         return NextResponse.json({ 
             success: true, 
             message: "Suscripción configurada con éxito",
-            id: response.id 
+            id: response.id,
+            proximo_cobro: start_date_formatted
         });
 
     } catch (error: any) {
