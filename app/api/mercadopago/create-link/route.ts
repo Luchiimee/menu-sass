@@ -5,7 +5,6 @@ export async function POST(req: Request) {
   try {
     const { plan, restaurant_id, email } = await req.json();
 
-    // 1. Validación de entrada para evitar errores 400
     if (!plan || !restaurant_id || !email) {
       return NextResponse.json({ error: "Faltan datos obligatorios" }, { status: 400 });
     }
@@ -16,21 +15,25 @@ export async function POST(req: Request) {
       plus: "65dd4645b714425c814a482978375c74"
     };
 
-
-    const startDate = new Date();
-    startDate.setHours(startDate.getHours() + 1); 
-    const isoStartDate = startDate.toISOString().split('.')[0] + "Z";
-
-    // 3. Payload para Mercado Pago
-const payload = {
+    // 🚀 EXPLICACIÓN TÉCNICA:
+    // Si tu Plan en el Dashboard de MP YA TIENE los 14 días de trial, 
+    // NO DEBES enviar 'auto_start_date'. MP lo gestiona solo.
+    // Si envías una fecha (aunque sea +1 hora), MP intenta validar el cobro inicial.
+    
+    const payload: any = {
       preapproval_plan_id: planIds[plan],
       payer_email: email.trim().toLowerCase(),
       external_reference: restaurant_id,
       back_url: "https://snappy.uno/dashboard/plan",
       reason: `Suscripción Plan ${plan.toUpperCase()} - Snappy`,
-      auto_start_date: isoStartDate,
-     
+      // status: "pending", // OPCIONAL: Forzamos el estado inicial a pendiente
     };
+
+    // Solo si el plan NO tiene trial en el dashboard, usamos esta lógica:
+    // const startDate = new Date();
+    // startDate.setHours(startDate.getHours() + 1);
+    // payload.auto_start_date = startDate.toISOString().split('.')[0] + "Z";
+
     console.log("🚀 Generando Preapproval para:", restaurant_id);
 
     const response = await fetch("https://api.mercadopago.com/preapproval", {
@@ -44,16 +47,14 @@ const payload = {
 
     const data = await response.json();
 
-    // 4. Debugging de errores de la API de MP
     if (!response.ok) {
       console.error("❌ Error MP API:", data);
       return NextResponse.json({ 
         error: data.message || "Error al contactar con Mercado Pago",
-        details: data.cause 
+        cause: data.cause 
       }, { status: response.status });
     }
     
-    // Devolvemos el init_point para la redirección
     return NextResponse.json({ url: data.init_point });
 
   } catch (error: any) {
