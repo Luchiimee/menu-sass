@@ -10,9 +10,7 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-// ... (imports y config inicial igual)
 
-// ... (imports y config inicial igual)
 
 export async function POST(request: Request) {
     try {

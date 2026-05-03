@@ -39,17 +39,11 @@ export async function POST(request: Request) {
             }
         }
 
-        // 3. Cálculo de Fecha de Inicio de Cobro
-        const fechaRegistro = new Date(restaurant.created_at);
-        const fechaFinTrial = new Date(fechaRegistro);
-        fechaFinTrial.setDate(fechaRegistro.getDate() + 14);
-
-        const hoy = new Date();
-        
-        // Si el trial no venció, cobramos al finalizar los 14 días.
-        // Si ya venció, cobramos ahora (más 5 minutos de margen para MP).
-        let fechaInicioCobro = fechaFinTrial > hoy ? fechaFinTrial : hoy;
-        fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
+        // 3. Cálculo de Fecha de Inicio de Cobro (14 días desde HOY)
+const hoy = new Date();
+const fechaInicioCobro = new Date(hoy);
+fechaInicioCobro.setDate(hoy.getDate() + 14); // Le damos 14 días desde que pone la tarjeta
+fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5); // Margen para MP
 
         // 4. Precios
         const prices: Record<string, number> = {

@@ -51,8 +51,43 @@ function PlanContent() {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
   const [mpInstance, setMpInstance] = useState<any>(null);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const handleEliminarTarjeta = async () => {
+  const confirmDelete = confirm(
+    "⚠️ ¿ELIMINAR TARJETA?\n\nTu suscripción se cancelará al finalizar el periodo actual. Deberás vincular una nueva antes de la fecha de cobro para no perder el acceso."
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    // 1. Avisamos a Mercado Pago para que cancele el débito automático
+    if (restaurant.mp_preapproval_id) {
+        await fetch('/api/mercadopago/subscription', {
+            method: 'PATCH', // O el método que uses para cancelar en tu API
+            body: JSON.stringify({ id: restaurant.mp_preapproval_id, status: 'cancelled' })
+        });
+    }
+
+    // 2. Limpiamos Supabase pero mantenemos el plan activo hasta el vencimiento
+    await supabase
+      .from("restaurants")
+      .update({ 
+        mp_preapproval_id: null,
+        // No cambiamos el status a 'cancelled' todavía para que siga entrando
+      })
+      .eq("user_id", userId);
+
+    setShowDeleteWarning(true);
+    toast.success("Tarjeta eliminada. Recuerda vincular una nueva antes del cobro.");
+    
+    // Recargamos para refrescar la UI
+    setTimeout(() => window.location.reload(), 1500);
+  } catch (error) {
+    toast.error("No se pudo eliminar la tarjeta");
+  }
+};
   // --- FUNCIÓN: PAUSAR / REANUDAR SUSCRIPCIÓN ---
   const handleTogglePause = async () => {
     const isPausing =
@@ -457,79 +492,87 @@ const mountCardBrick = async (planType: string) => {
           </div>
         </section>
 
-        <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <CreditCard size={18} className="text-emerald-600" />
-              <h2 className="font-bold text-lg text-gray-900 uppercase italic tracking-tighter">
-                Método de Pago
-              </h2>
+       <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
+  <div>
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-3">
+        <CreditCard size={20} className="text-gray-900" />
+        <h2 className="font-bold text-lg text-gray-900 uppercase italic tracking-tighter">
+          Información de Membresía
+        </h2>
+      </div>
+      {/* Badge de antigüedad */}
+      <span className="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-1 rounded uppercase tracking-tighter">
+        Miembro desde {new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })}
+      </span>
+    </div>
+
+    {restaurant?.subscription_status === "authorized" || 
+     restaurant?.subscription_status === "active" ? (
+      <div className="space-y-6">
+        {/* Info del Plan y Fecha */}
+        <div className="text-left">
+          <p className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">
+            Plan {restaurant.subscription_plan}
+          </p>
+          <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">
+            Próximo pago: <span className="text-gray-900">{getChargeDate()}</span>
+          </p>
+        </div>
+
+        {/* Visual de la Tarjeta vinculada */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-6 bg-gray-200 rounded flex items-center justify-center font-black text-[8px] text-gray-400 uppercase">
+              VISA
             </div>
-
-            {restaurant?.subscription_status === "authorized" ||
-            restaurant?.subscription_status === "active" ||
-            restaurant?.subscription_status === "paused" ? (
-              <div className="space-y-3">
-                <div
-                  className={`p-3 border rounded-xl flex items-center justify-between ${restaurant.subscription_status === "paused" ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}
-                >
-                  <div className="flex items-center gap-2">
-                    {restaurant.subscription_status === "paused" ? (
-                      <Clock className="text-amber-600" size={16} />
-                    ) : (
-                      <Check className="text-emerald-600" size={16} />
-                    )}
-                    <span
-                      className={`text-[9px] font-black uppercase ${restaurant.subscription_status === "paused" ? "text-amber-800" : "text-emerald-800"}`}
-                    >
-                      {restaurant.subscription_status === "paused"
-                        ? "Cobros Pausados"
-                        : "Tarjeta Vinculada"}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      handleOpenPaymentForm(restaurant.subscription_plan)
-                    }
-                    className="text-[9px] font-black uppercase text-gray-400 hover:text-black"
-                  >
-                    Cambiar
-                  </button>
-                </div>
-
-                {/* BOTÓN DINÁMICO DE PAUSA/REANUDAR */}
-                <button
-                  onClick={handleTogglePause}
-                  className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                    restaurant.subscription_status === "paused"
-                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700"
-                      : "bg-gray-50 text-gray-500 hover:bg-amber-50 hover:text-amber-600 border border-transparent hover:border-amber-100"
-                  }`}
-                >
-                  {restaurant.subscription_status === "paused"
-                    ? "▶️ Reanudar Cobros y Menú"
-                    : "⏸️ Pausar Cobros Temporalmente"}
-                </button>
-              </div>
-            ) : (
-              <div className="p-4 border-2 border-dashed border-gray-100 rounded-2xl text-center">
-                <p className="text-[9px] font-bold text-gray-400 uppercase mb-3">
-                  Sin tarjeta cargada
-                </p>
-                <button
-                  onClick={() =>
-                    handleOpenPaymentForm(
-                      restaurant?.subscription_plan || "light",
-                    )
-                  }
-                  className="text-[9px] font-black uppercase text-blue-600 hover:underline"
-                >
-                  Vincular Ahora
-                </button>
-              </div>
-            )}
+            <span className="text-xs font-black text-gray-700">•••• •••• •••• 9980</span>
           </div>
-        </section>
+          <Check className="text-emerald-500" size={16} />
+        </div>
+
+        {/* Botonera de Acciones */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => handleOpenPaymentForm(restaurant.subscription_plan)}
+            className="py-2.5 bg-gray-900 text-white text-[9px] font-black uppercase italic tracking-tighter rounded-xl hover:bg-black transition-all"
+          >
+            Reemplazar Tarjeta
+          </button>
+          <button
+            onClick={handleEliminarTarjeta}
+            className="py-2.5 bg-white text-gray-400 border border-gray-100 text-[9px] font-black uppercase italic tracking-tighter rounded-xl hover:text-red-600 hover:border-red-100 transition-all"
+          >
+            Eliminar Tarjeta
+          </button>
+        </div>
+
+        {/* Aviso de Advertencia (Si borró la tarjeta pero el plan sigue vigente) */}
+        {!restaurant.mp_preapproval_id && (
+           <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 animate-pulse">
+            <Clock className="text-amber-600 shrink-0" size={16} />
+            <p className="text-[9px] text-amber-800 font-bold leading-tight uppercase">
+              Atención: Sin tarjeta vinculada. Tu servicio se cancelará el {getChargeDate()} si no agregas una nueva.
+            </p>
+          </div>
+        )}
+      </div>
+    ) : (
+      /* Estado cuando no hay nada cargado (Igual al que tenías) */
+      <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
+        <p className="text-[10px] font-black text-gray-300 uppercase italic mb-4">
+          No hay un método de pago activo
+        </p>
+        <button
+          onClick={() => handleOpenPaymentForm(restaurant?.subscription_plan || "light")}
+          className="px-6 py-3 bg-blue-600 text-white text-[10px] font-black uppercase italic tracking-tighter rounded-2xl shadow-lg shadow-blue-100"
+        >
+          Vincular Tarjeta Ahora
+        </button>
+      </div>
+    )}
+  </div>
+</section>
       </div>
 
       {/* SECCIÓN PLANES (MISMAS CARDS Y LOGICA QUE SETTINGS) */}

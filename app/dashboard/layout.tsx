@@ -7,7 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { 
     LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
     LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
-    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck
+    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck,HelpCircle
 } from 'lucide-react';
 import MobileNav from '@/components/MobileNav';
 
@@ -268,7 +268,17 @@ const renderGlobalBanner = () => {
             );
           })}
         </nav>
-
+<a
+  href="https://wa.me/5492324313123?text=Hola%20Necesito%20soporte%20con%20mi%20cuenta%20de%20Snappy"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-green-600 transition-all group border-t border-gray-50 mt-4"
+>
+  <HelpCircle size={18} className="group-hover:rotate-12 transition-transform" />
+  <span className="text-[10px] font-black uppercase italic tracking-tighter">
+    Contactar con soporte
+  </span>
+</a>
         <div className="p-4 border-t mt-auto">
           <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 w-full text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold">
               <LogOut size={18} /> {!isCollapsed && <span>Cerrar Sesión</span>}
