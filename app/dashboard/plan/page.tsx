@@ -129,12 +129,11 @@ function PlanContent() {
     }, 1000);
     setSaveTimeout(newTimeout);
   };
-
-  const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
+const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
     setProcessingPlan(planType);
     try {
       const tempSlug = `local-${userId?.substring(0, 5)}`;
-      const { error } = await supabase
+      const { data: upserted, error } = await supabase
         .from("restaurants")
         .upsert({ 
           user_id: userId, 
@@ -142,10 +141,14 @@ function PlanContent() {
           name: restaurant.name || "Mi Local", 
           slug: restaurant.slug || tempSlug,
           subscription_status: 'trialing' 
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'user_id' })
+        .select()   // ← agregar esto
+        .single();  // ← y esto
 
       if (error) throw error;
-      setRestaurant({ ...restaurant, subscription_plan: planType });
+      
+      // ← Actualizar el estado completo incluyendo el id
+      setRestaurant({ ...restaurant, ...upserted, subscription_plan: planType });
       window.dispatchEvent(new Event("profile-updated"));
       toast.success(`Plan ${planType.toUpperCase()} seleccionado.`);
     } catch (err: any) {
@@ -153,8 +156,7 @@ function PlanContent() {
     } finally {
       setProcessingPlan(null);
     }
-  };
-
+};
 const handleRedirectToMP = async (planType: string) => {
     if (!profile.email || !restaurant.id) {
       toast.error("Faltan datos de perfil o restaurante.");
