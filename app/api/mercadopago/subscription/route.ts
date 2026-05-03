@@ -39,13 +39,17 @@ export async function POST(request: Request) {
             }
         }
 
-        // 3. Cálculo de Fecha de Inicio de Cobro (14 días desde HOY)
-const hoy = new Date();
-const fechaInicioCobro = new Date(hoy);
-fechaInicioCobro.setDate(hoy.getDate() + 14); 
-fechaInicioCobro.setMinutes(fechaInicioCobro.getMinutes() + 5);
+// --- 3. Cálculo de Fecha de Inicio de Cobro (Trial de 14 días) ---
+const fechaTrial = new Date();
+fechaTrial.setDate(fechaTrial.getDate() + 14);
+// Le sumamos unos minutos extra para evitar errores de "fecha en el pasado" por milisegundos
+fechaTrial.setMinutes(fechaTrial.getMinutes() + 10);
 
-       const start_date_formatted = fechaInicioCobro.toISOString().split('.')[0] + "-03:00";
+/**
+ * 🚀 EL FIX PARA EL FORMATO:
+ * Mercado Pago Argentina a veces falla si no ve exactamente el formato:
+ * YYYY-MM-DDTHH:mm:ss.SSS-03:00
+ */const start_date_formatted = fechaTrial.toISOString().replace('Z', '-03:00');
 
 // --- 4. Precios ---
 const prices: Record<string, number> = {
@@ -54,7 +58,7 @@ const prices: Record<string, number> = {
     plus: 27000
 };
 const amount = prices[planType];
-
+console.log("Fecha enviada a MP:", start_date_formatted);
 // --- 5. Crear Suscripción en Mercado Pago ---
 const response = await preapproval.create({
     body: {
