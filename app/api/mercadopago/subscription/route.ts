@@ -17,6 +17,8 @@ const PLAN_IDS: Record<string, string> = {
     plus:  process.env.MP_PLAN_ID_PLUS!,
 };
 
+// Mantenemos los precios por si los necesitas para otra lógica, 
+// pero MP ya los conoce por el PlanId.
 const PRICES: Record<string, number> = {
     light: 10000,
     go:    16900,
@@ -59,18 +61,12 @@ export async function POST(request: Request) {
             : new Date(ahora.getTime() + 10 * 60000);
 
         const start_date_formatted = fechaInicioCobro.toISOString();
-
         const planId = PLAN_IDS[planType];
-        if (!planId) {
-            throw new Error(
-                `No se encontró MP_PLAN_ID_${planType.toUpperCase()} en .env. ` +
-                `Ejecutá /api/setup-mp-plans primero.`
-            );
-        }
 
-        console.log(`Sub para ${userId}. Plan: ${planType}. PlanId: ${planId}. Cobro: ${start_date_formatted}`);
+        if (!planId) throw new Error(`Plan ID no encontrado para ${planType}`);
 
-        const response = await preapproval.create({
+        // --- 5. Crear Suscripción en Mercado Pago ---
+     const response = await preapproval.create({
             body: {
                 preapproval_plan_id: planId,
                 reason: `Plan ${planType.toUpperCase()} - Snappy`,
@@ -78,22 +74,25 @@ export async function POST(request: Request) {
                 payer_email: email.trim().toLowerCase(),
                 card_token_id: token,
                 auto_recurring: {
+                    // Agregamos estos dos para que TypeScript no chille:
                     frequency: 1,
                     frequency_type: 'months',
-                    transaction_amount: PRICES[planType],
-                    currency_id: 'ARS',
+                    // La fecha clave que calculamos:
                     start_date: start_date_formatted,
+                    currency_id: 'ARS',
                 },
                 back_url: 'https://snappy.uno/dashboard/plan',
                 status: 'authorized',
             }
         });
 
+        // --- 6. Actualizar Supabase ---
         const { error: updateError } = await supabase
             .from('restaurants')
             .update({ 
                 mp_preapproval_id: response.id,
-                subscription_status: 'trialing',
+                // ✅ CAMBIO CLAVE: Usamos 'authorized' para que tu Dashboard lo reconozca
+                subscription_status: 'authorized', 
                 subscription_plan: planType,
                 trial_ends_at: fechaFinTrial.toISOString(),
             })
