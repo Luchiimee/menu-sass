@@ -501,10 +501,11 @@ const mountCardBrick = async (planType: string) => {
         </h2>
       </div>
       <span className="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-1 rounded uppercase tracking-tighter">
-        {/* FIX: Blindaje contra fechas nulas o malformadas de Supabase */}
-        Miembro desde {restaurant?.created_at && !isNaN(new Date(restaurant.created_at).getTime()) 
-          ? new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }) 
-          : 'Pendiente'}
+        Miembro desde {
+          restaurant?.created_at && !isNaN(new Date(restaurant.created_at).getTime())
+          ? new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })
+          : 'Iniciando...'
+        }
       </span>
     </div>
 

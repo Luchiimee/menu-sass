@@ -88,30 +88,44 @@ export async function POST(req: Request) {
     const preApprovalClient = new PreApproval(client);
 
     // Bypass de tipos con 'any' debido a propiedades dinámicas del SDK v2
-    const subscriptionBody: any = {
-      preapproval_plan_id: targetPlanId,
-      payer_email: email,
-      card_token_id: token,
-      status: "authorized",
-      auto_start_date: mpStartDate,
-      external_reference: restaurant_id,
-      back_url: "https://snappy.uno/dashboard/plan",
-      reason: `Suscripción Plan ${plan.toUpperCase()} - Snappy`
-    };
+  const subscriptionBody: any = {
+  preapproval_plan_id: planIds[plan as keyof typeof planIds],
+  payer_email: email,
+  card_token_id: token,
+  status: "authorized",
+  auto_start_date: mpStartDate, // Formato YYYY-MM-DDTHH:mm:ssZ
+  external_reference: restaurant_id,
+  back_url: "https://snappy.uno/dashboard/plan"
+};
 
-    const subscription = await preApprovalClient.create({ body: subscriptionBody });
+   const subscription = await preApprovalClient.create({ body: subscriptionBody })
 
     if (!subscription.id) throw new Error("Mercado Pago no devolvió un ID de suscripción válido");
 
     // 6. Persistencia Atómica (Lógica de Negocio: Sincronizar como Authorized)
-    const updatePayload = {
-      subscription_plan: plan,
-      subscription_status: 'authorized', // Desbloquea UI inmediatamente
-      mp_preapproval_id: subscription.id,
-      card_last_four: last_four,
-      card_brand: brand,
-      next_billing_date: mpStartDate
-    };
+const updatePayload = {
+  subscription_plan: plan,
+  subscription_status: 'authorized', 
+  mp_preapproval_id: subscription.id,
+  card_last_four: last_four,
+  card_brand: brand,
+  next_billing_date: mpStartDate
+};
+await Promise.all([
+  supabase.from('subscriptions').upsert({
+    user_id: user.id,
+    mp_customer_id: mpCustomerId,
+    ...updatePayload,
+    trial_ends_at: mpStartDate
+  }),
+  supabase.from('restaurants').update({
+    subscription_plan: plan,
+    subscription_status: 'authorized',
+    mp_preapproval_id: subscription.id,
+    card_last_four: last_four,
+    card_brand: brand
+  }).eq('id', restaurant_id)
+]);
 
     const { error: upsertError } = await supabase.from('subscriptions').upsert({
       user_id: user.id,
