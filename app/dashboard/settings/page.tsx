@@ -93,28 +93,35 @@ function SettingsContent() {
     setEmailUpdateLoading(false);
   };
 
-  const handleDeleteAccount = async () => {
+ const handleDeleteAccount = async () => {
     const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe borrará tu menú y se cancelará tu suscripción permanentemente.");
     if (!confirm1) return;
-    const confirm2 = confirm("ESTA ACCIÓN ES IRREVERSIBLE. ¿Eliminar?");
+    
+    const confirm2 = confirm("ESTA ACCIÓN ES IRREVERSIBLE.\n\n¿Realmente deseás eliminar absolutamente todos tus datos?");
     if (!confirm2) return;
 
     setLoading(true);
-    const response = await fetch('/api/user/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-    });
+    try {
+        const response = await fetch('/api/user/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
 
-    if (response.ok) {
-        toast.success("Cuenta eliminada");
-        await supabase.auth.signOut();
-        router.push('/login');
-    } else {
-        toast.error("Error al eliminar.");
+        if (response.ok) {
+            toast.success("Cuenta eliminada con éxito.");
+            // Forzamos el cierre de sesión local y redirigimos
+            await supabase.auth.signOut();
+            router.push('/login');
+        } else {
+            throw new Error("Fallo en el servidor");
+        }
+    } catch (err) {
+        toast.error("Hubo un error al intentar eliminar la cuenta.");
+    } finally {
         setLoading(false);
     }
-  };
+};
 // --- FUNCIONES DE SUSCRIPCIÓN (Mercado Pago) ---
   const handleTogglePause = async () => {
     if (!restaurant.mp_preapproval_id) return;
@@ -399,6 +406,17 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
             </section>
         </div>
       </div>
+      {loading && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/80 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="text-center space-y-4">
+                <Loader2 className="animate-spin text-white mx-auto" size={60} strokeWidth={1} />
+                <div className="space-y-1">
+                    <h3 className="text-white font-black uppercase italic tracking-tighter text-xl">Eliminando Cuenta</h3>
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Desvinculando Mercado Pago y limpiando datos...</p>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

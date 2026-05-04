@@ -171,6 +171,36 @@ const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
       setProcessingPlan(null);
     }
 };
+const handleCancelPlan = async () => {
+    // 1. Mensaje claro: solo cancela el cobro, no borra la cuenta
+    if (!window.confirm("¿Estás seguro de cancelar la suscripción? Seguirás teniendo acceso hasta que termine tu periodo actual, pero no se realizarán nuevos cobros.")) return;
+    
+    setProcessingPlan(restaurant.subscription_plan);
+    try {
+        // 2. IMPORTANTE: Usá la ruta que creamos solo para CANCELAR (la que no borra el usuario)
+        const response = await fetch("/api/mercadopago/subscription/cancel", { 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId })
+        });
+
+        if (response.ok) {
+            setRestaurant(prev => ({ 
+                ...prev, 
+                subscription_status: 'cancelled',
+                mp_preapproval_id: null 
+            }));
+            toast.success("Suscripción cancelada. Podés seguir usando Snappy hasta el vencimiento.");
+            window.dispatchEvent(new Event("profile-updated"));
+        } else {
+            throw new Error();
+        }
+    } catch (err) {
+        toast.error("Error al cancelar la suscripción.");
+    } finally {
+        setProcessingPlan(null);
+    }
+};
 const handleRedirectToMP = async (planType: string) => {
     if (!profile.email || !restaurant.id) {
       toast.error("Faltan datos de perfil o restaurante.");
@@ -205,48 +235,58 @@ if (response.ok && data.url) {
     }
 };
 
-const renderPlanButton = (planId: any) => {
+const renderPlanButton = (planId: string) => {
     const isThisPlanSelected = restaurant.subscription_plan === planId;
-   const isPaid = restaurant.subscription_status === "active";
-    
-    // Si el plan es el actual y ya está pagado/autorizado
-    if (isThisPlanSelected && isPaid) {
-      return (
-        <div className="bg-emerald-50 p-3 rounded-2xl flex items-center justify-center gap-2 border border-emerald-200 w-full">
-          <Check size={14} className="text-emerald-600" />
-          <span className="text-[10px] font-black uppercase text-emerald-700 tracking-tighter">Plan Activo</span>
-        </div>
-      );
+    const isAuthorized = restaurant.subscription_status === "authorized" || restaurant.subscription_status === "active";
+    const isCancelled = restaurant.subscription_status === "cancelled";
+
+    // 1. Si no hay plan seleccionado en absoluto (Primer registro)
+    if (!restaurant.subscription_plan) {
+        return (
+            <button
+                onClick={() => handleSelectPlan(planId as any)}
+                disabled={processingPlan !== null}
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-indigo-700 transition-colors"
+            >
+                {processingPlan === planId ? <Loader2 className="animate-spin mx-auto" size={14} /> : "Activar Plan ⚡"}
+            </button>
+        );
     }
 
-    // Si el plan está seleccionado en DB pero falta configurar el pago en MP
-    if (isThisPlanSelected && !isPaid) {
-      return (
-      // Dentro de renderPlanButton, en la sección de !isPaid:
-<button
-  onClick={() => {
-    console.log("💳 Iniciando pago para:", planId); // Debug para ver qué mandamos
-    handleRedirectToMP(planId);
-  }}
-  disabled={processingPlan !== null}
-  className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors"
->
-  {processingPlan === planId ? <Loader2 className="animate-spin" size={14} /> : "Configurar Pago 💳"}
-</button>
-      );
+    // 2. Si es EL plan seleccionado y está pagado
+    if (isThisPlanSelected && isAuthorized) {
+        return (
+            <div className="bg-emerald-50 p-3 rounded-2xl flex items-center justify-center gap-2 border border-emerald-200 w-full">
+                <Check size={14} className="text-emerald-600" />
+                <span className="text-[10px] font-black uppercase text-emerald-700 tracking-tighter">Plan Activo</span>
+            </div>
+        );
     }
 
-    // Botón por defecto para seleccionar otro plan
+    // 3. Si es EL plan seleccionado pero falta pagar
+    if (isThisPlanSelected && (restaurant.subscription_status === 'trialing' || isCancelled)) {
+        return (
+            <button
+                onClick={() => handleRedirectToMP(planId)}
+                disabled={processingPlan !== null}
+                className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2"
+            >
+                {processingPlan === planId ? <Loader2 className="animate-spin" size={14} /> : "Configurar Pago 💳"}
+            </button>
+        );
+    }
+
+    // 4. Botón para cambiar (solo si no está bloqueado)
     return (
-      <button
-        onClick={() => handleSelectPlan(planId)}
-        disabled={processingPlan !== null}
-        className="w-full py-3 border border-gray-200 text-gray-900 rounded-xl text-[10px] font-black uppercase hover:bg-gray-50 transition-colors"
-      >
-        {processingPlan === planId ? <Loader2 className="animate-spin mx-auto" size={14} /> : "Cambiar a este plan"}
-      </button>
+        <button
+            onClick={() => handleSelectPlan(planId as any)}
+            disabled={processingPlan !== null}
+            className="w-full py-3 border border-gray-200 text-gray-400 rounded-xl text-[10px] font-black uppercase hover:bg-gray-50 transition-colors"
+        >
+            Cambiar Plan
+        </button>
     );
-  };
+};
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-gray-300" size={40} /></div>;
 
@@ -289,38 +329,73 @@ const renderPlanButton = (planId: any) => {
           </div>
         </section>
 
-        {/* ESTADO DE CUENTA */}
-        <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <CreditCard size={20} className="text-gray-900" />
-                <h2 className="font-bold text-lg text-gray-900 uppercase italic tracking-tighter">Estado de Suscripción</h2>
-              </div>
-              <span className="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-1 rounded uppercase tracking-tighter">
-                Miembro desde {restaurant?.created_at ? new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }) : '...'}
-              </span>
-            </div>
+       <section className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between">
+  <div>
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-3">
+        <CreditCard size={20} className="text-gray-900" />
+        <h2 className="font-bold text-lg text-gray-900 uppercase italic tracking-tighter">Estado de Suscripción</h2>
+      </div>
+      <span className="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-1 rounded uppercase tracking-tighter">
+        Miembro desde {restaurant?.created_at ? new Date(restaurant.created_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }) : '...'}
+      </span>
+    </div>
 
-            {restaurant?.subscription_plan ? (
-              <div className="space-y-6">
-                <div className="text-left">
-                  <p className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">Plan {restaurant.subscription_plan}</p>
-                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">
-                    Próximo pago: <span className="text-gray-900">{getChargeDate()}</span>
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => toast.info("Función en mantenimiento")} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-gray-900 text-white">Gestionar</button>
-                </div>
-              </div>
-            ) : (
-              <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
-                <p className="text-[10px] font-black text-gray-300 uppercase italic">Seleccioná un plan para activar tu menú</p>
-              </div>
-            )}
-          </div>
-        </section>
+    {restaurant?.subscription_plan ? (
+      <div className="space-y-6">
+        <div className="text-left">
+          <p className="text-xl font-black text-gray-900 uppercase italic tracking-tighter flex items-center gap-2">
+            Plan {restaurant.subscription_plan}
+            {(restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active') && 
+              <Check size={16} className="text-emerald-500" />
+            }
+          </p>
+          
+      {/* LÓGICA DE FECHAS Y DÍAS GRATIS */}
+{restaurant.subscription_status === 'trialing' ? (
+     <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wide mt-1">
+        Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span>
+     </p>
+) : restaurant.subscription_status === 'cancelled' ? (
+     <div className="mt-2 p-3 bg-amber-50 rounded-2xl border border-amber-100">
+        <p className="text-[10px] text-amber-700 font-black uppercase leading-tight">
+            Suscripción cancelada. Vuelva a suscribirse antes del <span className="text-amber-900 underline">{getChargeDate()}</span> para evitar el bloqueo del servicio.
+        </p>
+     </div>
+) : (
+     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">
+        Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span>
+     </p>
+)}
+        </div>
+
+        {/* BOTONES DE ACCIÓN */}
+        <div className="flex gap-2">
+          {(restaurant.subscription_status === 'authorized' || restaurant.subscription_status === 'active') && (
+            <button 
+                onClick={handleCancelPlan}
+                className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+            >
+                Cancelar Plan
+            </button>
+          )}
+          {restaurant.subscription_status === 'cancelled' && (
+            <button 
+                onClick={() => handleRedirectToMP(restaurant.subscription_plan!)}
+                className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white"
+            >
+                Re-activar Suscripción 💳
+            </button>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
+        <p className="text-[10px] font-black text-indigo-500 uppercase italic">Elegí un plan para comenzar tus 14 días gratis</p>
+      </div>
+    )}
+  </div>
+</section>
       </div>
 
       {/* PLANES DISPONIBLES */}
