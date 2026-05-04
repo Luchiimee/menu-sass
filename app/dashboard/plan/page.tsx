@@ -16,6 +16,16 @@ import {
   FileText,
 } from "lucide-react";
 
+type Restaurant = {
+  id: string | null;
+  mp_preapproval_id: string | null;
+  business_hours: any;
+  subscription_plan: string | null;
+  subscription_status: string;
+  name?: string;
+  slug?: string;
+  created_at?: string;
+};
 // 🚀 REGLA DE ORO: Estos IDs deben coincidir con tus planes en el Dashboard de MP
 const PLAN_IDS = {
   light: "3aa6c7cc41fb4bfab3e9967e1bcbaeb5",
@@ -39,13 +49,13 @@ function PlanContent() {
     phone: "",
     email: "",
   });
-  const [restaurant, setRestaurant] = useState<any>({
-    id: null,
-    mp_preapproval_id: null,
-    business_hours: {},
-    subscription_plan: null,
-    subscription_status: "trialing",
-  });
+ const [restaurant, setRestaurant] = useState<Restaurant>({
+  id: null,
+  mp_preapproval_id: null,
+  business_hours: {},
+  subscription_plan: null,
+  subscription_status: "trialing",
+});
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -148,7 +158,11 @@ const handleSelectPlan = async (planType: "light" | "go" | "plus") => {
       if (error) throw error;
       
       // ← Actualizar el estado completo incluyendo el id
-      setRestaurant({ ...restaurant, ...upserted, subscription_plan: planType });
+     setRestaurant((prev: any) => ({
+  ...prev,
+  ...upserted,
+  subscription_plan: planType
+}));
       window.dispatchEvent(new Event("profile-updated"));
       toast.success(`Plan ${planType.toUpperCase()} seleccionado.`);
     } catch (err: any) {
@@ -165,24 +179,25 @@ const handleRedirectToMP = async (planType: string) => {
 
     setProcessingPlan(planType);
     try {
-      const response = await fetch("/api/mercadopago/create-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan: planType.toLowerCase().trim(), // 👈 Forzamos limpieza absoluta
-          restaurant_id: restaurant.id,
-          email: profile.email.trim().toLowerCase() 
-        }),
-      });
+     const response = await fetch("/api/mercadopago/create-link", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    email: profile.email,
+    plan: planType,
+    userId: userId
+  })
+});
 
       const data = await response.json();
-
-      if (response.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        // Este es el error que te está saltando (linea 183)
-        throw new Error(data.error || "Error en la API de pagos");
-      }
+if (response.ok && data.url) {
+  window.location.href = data.url;
+} else {
+  console.error("MP FULL ERROR:", data);
+  throw new Error(data.error || "Error en la API de pagos");
+}
     } catch (error: any) {
       console.error("Error MP:", error);
       toast.error(error.message);
@@ -192,7 +207,7 @@ const handleRedirectToMP = async (planType: string) => {
 
 const renderPlanButton = (planId: any) => {
     const isThisPlanSelected = restaurant.subscription_plan === planId;
-    const isPaid = restaurant.subscription_status === "authorized" || restaurant.subscription_status === "active";
+   const isPaid = restaurant.subscription_status === "active";
     
     // Si el plan es el actual y ya está pagado/autorizado
     if (isThisPlanSelected && isPaid) {

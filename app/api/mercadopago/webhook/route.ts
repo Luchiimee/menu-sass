@@ -1,4 +1,4 @@
-// app/api/mercadopago/webhook/route.ts
+ // app/api/mercadopago/webhook/route.ts
 //
 // MP llama a este endpoint cuando cambia el estado de una suscripción.
 // Configuralo en: MP Dashboard → Tu App → Webhooks
