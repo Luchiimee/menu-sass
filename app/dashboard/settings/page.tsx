@@ -37,34 +37,48 @@ function SettingsContent() {
   const [profile, setProfile] = useState({ email: '' });
   const [restaurant, setRestaurant] = useState<any>({ id: null, business_hours: {}, subscription_plan: null });
 
-  // --- CARGA DE DATOS ---
-  useEffect(() => {
+ useEffect(() => {
+    let mounted = true;
+
     const loadData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
-        
-        setUserId(session.user.id);
-        setProfile({ email: session.user.email || '' });
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
+            
+            setUserId(session.user.id);
+            // ✅ Siempre usamos el mail que viene directamente del user de la sesión
+            setProfile({ email: session.user.email || '' });
 
-        const { data: restData } = await supabase
-            .from('restaurants')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-        
-        if (restData) {
-            setRestaurant({ ...restData, business_hours: restData.business_hours || {} });
+            const { data: restData } = await supabase
+                .from('restaurants')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+            
+            if (mounted && restData) {
+                setRestaurant({ ...restData, business_hours: restData.business_hours || {} });
+            }
+        } catch (error) { 
+            console.error("Error:", error); 
+        } finally { 
+            if (mounted) setLoading(false); 
         }
-      } catch (error) { 
-          console.error("Error:", error); 
-      } finally { 
-          setLoading(false); 
-      }
     };
-    loadData();
-  }, []);
 
+    loadData();
+
+    // 🔥 LA CLAVE: Escuchar cambios en la sesión
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+            loadData(); // Recarga los datos cuando Supabase confirma el cambio
+        }
+    });
+
+    return () => { 
+        mounted = false; 
+        subscription.unsubscribe();
+    };
+}, []);
   // --- FUNCIONES DE CUENTA ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
