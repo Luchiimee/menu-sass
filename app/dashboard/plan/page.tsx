@@ -338,14 +338,21 @@ const renderPlanButton = (planId: string) => {
                 <input value={profile.last_name} onChange={(e) => updateProfile("last_name", e.target.value)} className="w-full p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 ring-black/5" />
               </div>
             </div>
-            <div className="text-left">
-              <label className="text-[9px] font-black text-gray-400 mb-1 block uppercase tracking-widest">WhatsApp de Aviso</label>
-             <input 
-  value={profile.phone} 
-  onChange={(e) => updateProfile("phone", e.target.value)} 
-  className={`w-full p-2.5 ... ${searchParams.get('requirePhone') === 'true' && !profile.phone ? 'ring-2 ring-amber-500 animate-pulse' : ''}`} 
-/>
-            </div>
+           <div className="text-left">
+  <label className="text-[9px] font-black text-gray-400 mb-1 block uppercase tracking-widest">
+    WhatsApp de Aviso
+  </label>
+  <input 
+    value={profile.phone} 
+    onChange={(e) => updateProfile("phone", e.target.value)} 
+    placeholder="Ej: +54911..."
+    className={`w-full p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none transition-all duration-500 ${
+      searchParams.get('requirePhone') === 'true' && !profile.phone 
+        ? 'ring-2 ring-amber-500 animate-pulse bg-amber-50' 
+        : 'focus:ring-2 ring-black/5'
+    }`} 
+  />
+</div>
           </div>
         </section>
 

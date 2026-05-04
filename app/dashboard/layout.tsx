@@ -36,36 +36,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     created_at: null,
   });
 
-  // --- CARGA DE DATOS ---
+// --- CARGA DE DATOS ---
   const loadData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const [restRes, profileRes] = await Promise.all([
-      supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
-      supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
-    ]);
+      const [restRes, profileRes] = await Promise.all([
+        supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
+      ]);
 
-    if (restRes.data || profileRes.data) {
-      setProfileData(profileRes.data);
+      const metadata = session.user.user_metadata;
+      const profile = profileRes.data;
+      const rest = restRes.data;
+
+      // 🚀 MEJORA: Buscamos el teléfono en la tabla O en los metadatos de Google/Registro
+      const phoneExists = profile?.phone || metadata.phone || metadata.whatsapp;
+
+      // Seteamos el perfil mezclando los datos de la tabla con el teléfono encontrado
+      setProfileData({
+        ...profile,
+        phone: phoneExists 
+      });
+
       setIsAdmin(session.user.email === 'luchiimee2@gmail.com');
 
-      const displayName = profileRes.data?.first_name || session.user.user_metadata.full_name?.split(' ')[0] || restRes.data?.name || "Mi Local";
+      const displayName = profile?.first_name || metadata.full_name?.split(' ')[0] || rest?.name || "Mi Local";
 
       setRestaurant({
-          ...(restRes.data || {}), 
+          ...(rest || {}), 
           name: displayName,
-          plan: restRes.data?.subscription_plan || null,
-          status: restRes.data?.subscription_status || 'trialing'
+          plan: rest?.subscription_plan || null,
+          status: rest?.subscription_status || 'trialing'
       });
+      
       setIsLoading(false);
+    } catch (error) {
+      console.error("Error cargando datos del layout:", error);
     }
   };
 
   useEffect(() => {
     loadData();
+    
+    // Escuchamos actualizaciones de perfil para recargar los banners
     window.addEventListener('profile-updated', loadData);
-    return () => window.removeEventListener('profile-updated', loadData);
+    return () => { 
+      window.removeEventListener('profile-updated', loadData); 
+    };
   }, []);
 
   const handleLogout = async () => {

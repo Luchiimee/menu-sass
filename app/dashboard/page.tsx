@@ -56,14 +56,15 @@ const [newCoupon, setNewCoupon] = useState({
 useEffect(() => {
     let mounted = true;
     
-    const loadDashboardData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          if (mounted) setLoading(false);
-          return;
-        }
-        const { data: profileData } = await supabase
+   // --- MODIFICACIÓN EN DashboardHome (page.tsx) ---
+
+const loadDashboardData = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    // 1. Traer Perfil
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('phone')
       .eq('id', session.user.id)
@@ -73,45 +74,55 @@ useEffect(() => {
       setPhone(profileData?.phone || null);
     }
 
+    // 2. Traer Restaurante
+    const { data: rest } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+if (mounted) {
+      if (rest) {
+        // A. Verificamos si la cuenta está suspendida por falta de pago
+        const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
+        setIsLocked(isSubscriptionInactive);
 
-        const { data: rest } = await supabase
-          .from('restaurants')
-          .select('id, slug, subscription_plan, subscription_status, promo_message, show_promo, always_open')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+        // B. Seteamos el ID y el Restaurante
+        setRestaurantId(rest.id);
 
-        if (mounted) {
-         if (rest) {
-            const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
-            setIsLocked(isSubscriptionInactive);
-          }
-          if (rest && rest.subscription_plan) {
-              setIsNewUser(false);
-              setRestaurantId(rest.id);
-              setSlug(rest.slug || '');
-              setPromoMessage(rest.promo_message || '');
-              setShowPromo(rest.show_promo || false);
-              
-              const plan = rest.subscription_plan;
-              setHasPlan(true); 
-              setIsPlus(plan === 'go' || plan === 'plus' || plan === 'max');
-              setIsLight(plan === 'light');
-              setAlwaysOpen(plan === 'light' ? false : (rest.always_open || false));
-              
-              const origin = window.location.origin;
-              setStoreLink(`${origin}/${rest.slug}`);
-              
-              // Cargar stats... (mantener tu lógica de pedidos aquí abajo)
-          } else {
-              // Si no hay restaurante o no hay plan, es usuario nuevo
-              setIsNewUser(true);
-          }
-          setLoading(false);
+        // C. 🚀 Lógica de Slug y Link con fallback (Si no tiene slug, creamos uno temporal)
+        const currentSlug = rest.slug || `local-${rest.id.substring(0, 5)}`;
+        const origin = window.location.origin;
+        setSlug(currentSlug);
+        setStoreLink(`${origin}/${currentSlug}`);
+
+        // D. Verificamos si ya tiene un plan activado
+        if (rest.subscription_plan) {
+            setIsNewUser(false);
+            setHasPlan(true);
+            setPromoMessage(rest.promo_message || '');
+            setShowPromo(rest.show_promo || false);
+            
+            const plan = rest.subscription_plan;
+            setIsPlus(plan === 'go' || plan === 'plus' || plan === 'max');
+            setIsLight(plan === 'light');
+            
+            // Si es plan Light, el local se maneja solo por horarios (Manual = false)
+            setAlwaysOpen(plan === 'light' ? false : (rest.always_open || false));
+        } else {
+            // Tiene restaurante creado pero no eligió plan (Pantalla de bienvenida)
+            setIsNewUser(true);
         }
-      } catch (error) {
-        console.error("Error cargando dashboard:", error);
+      } else {
+        // No hay registro en la tabla restaurants aún
+        setIsNewUser(true);
+        setIsLocked(false);
       }
-    };
+      setLoading(false);
+    }
+  } catch (error) {
+    console.error("Error cargando dashboard:", error);
+  }
+};
 
     loadDashboardData();
 
@@ -497,32 +508,26 @@ const PhoneWarningBanner = () => {
                     </div>
                  </div>
                  <div className="flex flex-col items-end gap-1">
-                    <button 
-                      onClick={async () => {
-                        if (isLight) {
-                            setUpgradeModalInfo({
-                                title: "Apertura Manual",
-                                desc: "Controlá el estado de tu local en tiempo real. Esta función te permite abrir o cerrar fuera de tus horarios configurados.",
-                                plan: "GO"
-                            });
-                            setShowUpgradeModal(true);
-                            return;
-                        }
-                        const nuevoEstado = !alwaysOpen;
-                        setAlwaysOpen(nuevoEstado);
-                        await supabase.from('restaurants').update({ always_open: nuevoEstado }).eq('id', restaurantId);
-                      }}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${alwaysOpen ? 'bg-green-500' : 'bg-slate-200'} ${isLight ? 'opacity-70' : ''}`}
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${alwaysOpen ? 'translate-x-6' : 'translate-x-1'}`} />
-                      
-                      {/* CANDADITO MEJORADO: A la derecha y más visible */}
-                      {isLight && (
-                        <div className="absolute right-1.5 text-gray-500/50">
-                          <Lock size={10} strokeWidth={3} />
-                        </div>
-                      )}
-                    </button>
+                 <button 
+  onClick={async () => {
+    if (isLight) {
+      setUpgradeModalInfo({
+        title: "Apertura Manual",
+        desc: "El Plan Light solo permite apertura automática. Subí a GO para abrir o cerrar fuera de hora.",
+        plan: "GO"
+      });
+      setShowUpgradeModal(true);
+      return;
+    }
+    const nuevoEstado = !alwaysOpen;
+    setAlwaysOpen(nuevoEstado);
+    await supabase.from('restaurants').update({ always_open: nuevoEstado }).eq('id', restaurantId);
+  }}
+  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${alwaysOpen && !isLight ? 'bg-green-500' : 'bg-slate-200'} ${isLight ? 'opacity-50 cursor-not-allowed' : ''}`}
+>
+  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${alwaysOpen && !isLight ? 'translate-x-6' : 'translate-x-1'}`} />
+  {isLight && <div className="absolute right-1.5 text-gray-500"><Lock size={10} strokeWidth={3} /></div>}
+</button>
                     <span className={`text-[8px] font-black uppercase ${alwaysOpen ? 'text-green-600' : 'text-amber-600'}`}>
                       {alwaysOpen ? 'Manual' : 'Automático'}
                     </span>

@@ -44,24 +44,36 @@ const handleRegister = async (e: React.FormEvent) => {
   setLoading(true);
 
   try {
-    // 1. Solo creamos el usuario en Auth
-    // Los datos viajan en 'data' y el Trigger de SQL los acomoda en la tabla profiles
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          whatsapp: formData.phone 
-        }
-      }
-    });
+    // 1. Creamos el usuario en Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+  email: formData.email,
+  password: formData.password,
+  options: {
+    data: {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      phone: formData.phone // 👈 Cambiá 'whatsapp' por 'phone'
+    }
+  }
+});
 
     if (authError) throw authError;
-    
-    // --- AQUÍ HABÍA UN BLOQUE QUE DECÍA supabase.from('profiles').update ---
-    // --- ESE BLOQUE ES EL QUE TENÉS QUE BORRAR COMPLETAMENTE ---
+
+    if (authData.user) {
+      // 2. CREACIÓN MANUAL DEL RESTAURANTE (Para asegurar el estado 'trialing')
+      // Usamos .upsert para que si el Trigger ya creó algo, simplemente lo actualice
+      const { error: restError } = await supabase
+        .from('restaurants')
+        .upsert({
+          user_id: authData.user.id,
+          name: `Local de ${formData.firstName}`,
+          subscription_status: 'trialing', // 👈 ESTO ES LA CLAVE: Evita el 'cancelled'
+          subscription_plan: null,
+          slug: `local-${authData.user.id.substring(0, 5)}` // Generamos un slug temporal
+        }, { onConflict: 'user_id' });
+
+      if (restError) console.error("Error creando restaurante:", restError);
+    }
 
     alert("¡Cuenta creada! Revisa tu email para confirmar.");
     router.push('/login');
@@ -72,7 +84,6 @@ const handleRegister = async (e: React.FormEvent) => {
     setLoading(false);
   }
 };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
       
