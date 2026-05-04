@@ -2752,8 +2752,10 @@ export default function MenuPage({
       try {
         const resolvedParams = await params;
         const data = await getRestaurant(resolvedParams.slug);
+        
         const { data: { session } } = await supabase.auth.getSession();
         if (active) {
+          setCurrentUser(session?.user ?? null);
           setRestaurant(data);
           setLoading(false);
         }
@@ -2777,50 +2779,42 @@ export default function MenuPage({
 
   if (!restaurant) return notFound();
 
-  const isOwner = currentUser?.id === restaurant.user_id;
+const isOwner = currentUser?.id === restaurant.user_id;
   const isSuperAdmin = currentUser?.email === 'luchiimee2@gmail.com';
   const isBypass = isOwner || isSuperAdmin;
 
-  // Calculamos si el trial expiró (14 días)
   const trialStart = restaurant.trial_start_date ? new Date(restaurant.trial_start_date) : new Date(restaurant.created_at);
   const today = new Date();
   const diffDays = Math.floor((today.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
   
   const trialExpired = restaurant.subscription_status === 'trialing' && diffDays >= 14;
-  const isSuspended = restaurant.subscription_status === 'cancelled' || 
-                      restaurant.subscription_status === 'paused' || 
-                      trialExpired;
-
-// 🛡️ BLOQUEO 1: VISTA PARA EL CLIENTE FINAL (Fondo Blanco)
-if (isSuspended && !isBypass) {
-  return (
-    <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-3xl flex items-center justify-center mb-6">
-        <AlertCircle size={40} />
-      </div>
-      <h1 className="text-xl font-black uppercase italic tracking-tighter text-gray-900">Servicio Pausado</h1>
-      <p className="text-gray-500 text-sm mt-2 max-w-xs font-medium leading-relaxed">
-        Este menú no está recibiendo pedidos por el momento. <br/> Por favor, vuelve a intentarlo más tarde.
-      </p>
-
-      {/* --- FOOTER SEGURO --- */}
-      <Link 
-        href="https://snappy.uno" 
-        target="_blank" 
-        className="mt-20 flex items-center gap-1 no-underline"
-      >
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-          Potenciado por
-        </span>
-        <Zap size={12} className="fill-yellow-400 text-yellow-400 mx-1" />
-        <span className="text-[10px] font-black text-black uppercase tracking-[0.2em]">
-          Snappy
-        </span>
-      </Link>
-    </div>
+  
+  // 🛡️ Solo consideramos suspendido si NO es un usuario con Bypass (Vos)
+  const isSuspended = !isBypass && (
+    restaurant.subscription_status === 'cancelled' || 
+    restaurant.subscription_status === 'paused' || 
+    trialExpired
   );
-}
 
+  // 🚫 Si está suspendido y NO es admin, mostramos la pantalla de "Servicio Pausado"
+  if (isSuspended) {
+    return (
+      <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-3xl flex items-center justify-center mb-6">
+          <AlertCircle size={40} />
+        </div>
+        <h1 className="text-xl font-black uppercase italic tracking-tighter text-gray-900">Servicio Pausado</h1>
+        <p className="text-gray-500 text-sm mt-2 max-w-xs font-medium leading-relaxed">
+          Este menú no está recibiendo pedidos por el momento. <br/> Por favor, vuelve a intentarlo más tarde.
+        </p>
+        <Link href="https://snappy.uno" target="_blank" className="mt-20 flex items-center gap-1 no-underline">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Potenciado por</span>
+          <Zap size={12} className="fill-yellow-400 text-yellow-400 mx-1" />
+          <span className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Snappy</span>
+        </Link>
+      </div>
+    );
+  }
 // 🔑 BLOQUEO 2: VISTA PARA EL DUEÑO (Fondo Negro / Admin)
 if (isSuspended && isBypass) {
   return (
