@@ -42,6 +42,12 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
 
   const secondaryNavItems = [
     { 
+        name: 'Mi Plan Snappy', 
+        href: '/dashboard/plan', 
+        icon: Zap,
+        locked: false 
+    },
+    { 
         name: 'Reservas', 
         href: '/dashboard/reservations', 
         icon: CalendarCheck, 
