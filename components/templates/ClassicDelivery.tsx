@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react'; 
-import { Clock, Search, Layers, Plus, Minus, Check,MapPin,X,Store } from 'lucide-react';
+import { Clock, Search, Layers, Plus, Minus, Check,MapPin,X,Store,Zap } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
 
 interface Props { 
@@ -25,8 +25,8 @@ const ClassicDelivery: React.FC<Props> = ({
   const [selectedCategory, setSelectedCategory] = useState("todos");
 ; 
   // --- VARIABLES DE DISEÑO ---
-  const headerBg = restaurant.theme_color || '#d32f2f';
-  const headerDesc = restaurant.description_color || '#ffffff';
+const headerBg = restaurant.theme_color || '#a12929'; // El rojo premium
+  const headerDesc = restaurant.description_color || '#e5e7eb'; // El gris claro
   const headerText = restaurant.text_color || '#ffffff';
   
   const webBg = restaurant.bg_color || '#ffffff';
@@ -110,20 +110,24 @@ const handleMainStep = (p: any, delta: number) => {
       font-size: 16px; /* Subimos la fuente de las iniciales */
       box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Sombra más profunda */
     }
-  .classic-msg { 
+.classic-msg { 
       background: ${promoBg}; 
       color: ${promoText}; 
-      font-size: 10px; /* Un toque más chica */
-      padding: 5px 15px; /* Menos padding: 5 arriba/abajo, 15 lados */
+      font-size: 11px; 
+      padding: 12px 20px; 
       text-align: center; 
-      font-weight: 800; 
-      border-radius: 8px; /* Redondeado suave */
-      margin: 15px auto 0; /* 15px de separación de la descripción y centrado */
-      width: fit-content; /* 🚀 Clave: que sea solo del tamaño del texto */
-      display: block;
+      font-weight: 700; 
+      width: 100%; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      letter-spacing: 0.02em;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      /* 🚀 ESTO ELIMINA EL ESPACIO BLANCO */
+      margin: 0 !important; 
+      border-radius: 0 !important;
     }
     
     /* CENTRADO DE SIGNOS 🎯 */
@@ -219,15 +223,12 @@ const handleMainStep = (p: any, delta: number) => {
       <p style={{color: headerDesc, fontSize:'12px', opacity:0.85, marginTop:'6px', maxWidth: '280px', margin: '6px auto 0'}}>
           {restaurant.description}
         </p>
-
-        {/* 🚀 PROMO COMO ETIQUETA REFINADA */}
-        {restaurant.show_promo && restaurant.promo_message && (
-          <div className="classic-msg italic">
-            {restaurant.promo_message}
-          </div>
-        )}
     </div>
-    
+     {restaurant.show_promo && restaurant.promo_message && (
+        <div className="classic-msg italic">
+        {restaurant.promo_message}
+        </div>
+      )}
       <div className="p-4 space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />

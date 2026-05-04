@@ -35,17 +35,24 @@ const ColorBubble = ({ label, value, onChange }: { label: string, value: string,
 );
 
 const TEMPLATE_DEFAULTS: any = {
- classic: { 
-    theme: '#d32f2f', bg: '#ffffff', text: '#ffffff', desc: '#ffffff', 
-    card_name: '#000000', card_desc: '#666666', card_price: '#d32f2f', 
-    btn_bg: '#ffffff', btn_text: '#000000', promo_bg_color: '#ffebee', 
-    promo_text_color: '#d32f2f', banner: false,
+classic: { 
+    theme: '#a12929', // Un rojo más elegante y profundo
+    bg: '#ffffff', 
+    text: '#ffffff', 
+    desc: '#e5e7eb', // Gris muy claro para la descripción en el fondo rojo
+    card_name: '#111827', // Negro azulado profesional
+    card_desc: '#6b7280', // Gris suave para descripciones
+    card_price: '#a12929', // Precio a juego con el tema
+    btn_bg: '#ffffff', 
+    btn_text: '#a12929', 
+    promo_bg_color: '#fef2f2', // Fondo rosado/rojo muy tenue
+    promo_text_color: '#991b1b', // Texto rojo oscuro
+    banner: false,
     search_bg_color: '#f3f4f6', 
     search_icon_color: '#9ca3af',
-    // 🚀 AGREGAMOS ESTOS:
     cat_bg_color: '#f3f4f6',
-    cat_text_color: '#999999',
-    cat_active_bg_color: '#d32f2f',
+    cat_text_color: '#6b7280',
+    cat_active_bg_color: '#a12929',
     cat_active_text_color: '#ffffff'
   },
 
