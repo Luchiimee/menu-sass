@@ -161,6 +161,7 @@ const menuItems = [
       locked: restaurant.plan !== 'plus' || isTrialExpired, // 👈 Bloqueado si no es PLUS
       msg: "La gestión de reservas requiere Plan PLUS. 💎" 
   },
+  { name: 'SuperAdmin', href: '/admin/snappy', icon: ShieldCheck, locked: false },
   { name: 'Plan', href: '/dashboard/plan', icon: Zap, locked: false },
   { 
       name: 'Configuración', 

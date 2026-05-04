@@ -956,11 +956,15 @@ const confirmReset = () => {
                   )}
 
 
-
 {/* 🎫 GESTIÓN DE RESERVAS (BLOQUEO POR PLAN) */}
 {(() => {
-    // 🛡️ Chequeamos si tiene acceso (Plus, Max o Admin)
-    const hasAccess = data.subscription_plan === 'plus' || data.subscription_plan === 'max' || isAdmin;
+    // 🛡️ LÓGICA DE ACCESO ESTRICTA POR PLAN
+    // Quitamos "|| isAdmin" para que vos puedas testear el bloqueo al cambiar de plan
+    const plan = currentPlan?.toLowerCase();
+    const hasAccess = plan === 'plus' || plan === 'max';
+    
+    // Si no tiene acceso, forzamos que el switch se vea desactivado visualmente
+    const isEnabled = hasAccess ? data.reservations_enabled : false;
     
     return (
         <section className={`p-6 border-2 rounded-[2.5rem] space-y-4 shadow-sm mb-6 transition-all ${hasAccess ? 'bg-white border-amber-100' : 'bg-gray-50 border-gray-200 opacity-80'}`}>
@@ -978,29 +982,29 @@ const confirmReset = () => {
                 </div>
                 
                 {hasAccess ? (
-                    // ✅ SWITCH ACTIVO (PLAN PLUS)
+                    // ✅ SWITCH ACTIVO (Solo para PLUS/MAX)
                     <button 
                         type="button"
                         onClick={() => { setData({...data, reservations_enabled: !data.reservations_enabled}); setUnsavedChanges(true); }}
-                        className={`w-12 h-6 rounded-full flex items-center px-1 transition-all ${data.reservations_enabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                        className={`w-12 h-6 rounded-full flex items-center px-1 transition-all ${isEnabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
                     >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${data.reservations_enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
                     </button>
                 ) : (
-                    // ❌ BOTÓN DE UPGRADE (PLAN LIGHT/GO)
-                    <Link href="/dashboard/settings" className="bg-gray-900 text-white px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:bg-black transition-all active:scale-95">
+                    // ❌ BOTÓN DE UPGRADE (Para LIGHT/GO y Admin testeando)
+                    <Link href="/dashboard/plan" className="bg-gray-900 text-white px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md hover:bg-black transition-all active:scale-95">
                         <Zap size={10} className="text-yellow-400 fill-yellow-400"/> Subir a Plus
                     </Link>
                 )}
             </div>
             
-            <div className={`p-4 rounded-2xl border transition-all ${hasAccess ? (data.reservations_enabled ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-100') : 'bg-white/50 border-gray-100'}`}>
+            <div className={`p-4 rounded-2xl border transition-all ${hasAccess ? (isEnabled ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-100') : 'bg-white/50 border-gray-100'}`}>
                 <p className="text-[10px] font-bold text-gray-600 leading-tight text-left">
                     {!hasAccess 
-                        ? "💎 Esta función es exclusiva del Plan Plus. Permite que tus clientes reserven mesa desde el Menú."
-                        : data.reservations_enabled 
-                            ? "✅ El botón de reservas es visible para tus clientes." 
-                            : "❌ El botón de reservas está oculto en el Menú."
+                        ? "💎 Esta función es exclusiva del Plan Plus. Permite que tus clientes reserven mesa directamente desde tu menú digital."
+                        : isEnabled 
+                            ? "✅ El botón de reservas es visible para tus clientes en la sección de información." 
+                            : "❌ El botón de reservas está oculto. Tus clientes no verán la opción en el Menú."
                     }
                 </p>
             </div>
