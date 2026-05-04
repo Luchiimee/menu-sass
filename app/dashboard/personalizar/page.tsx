@@ -138,7 +138,17 @@ const PhoneMockup = ({ data, products, categories, previewTemplateId, activeTab 
   
 // ── VISTA SNAPPYLINKS (DENTRO DE PhoneMockup) ──────────────
 if (activeTab === 'snappylinks') {
-    // 🎨 Definimos los estilos en vivo usando las nuevas variables
+    // 🛡️ LIMITAMOS LOS LINKS SEGÚN EL PLAN PARA LA VISTA PREVIA
+    // Calculamos el límite de nuevo aquí dentro para seguridad
+    const plan = data?.subscription_plan?.toLowerCase() || 'light';
+    const limit = plan === 'light' ? 2 : plan === 'go' ? 4 : 100;
+    
+    // Filtramos los links: solo se pasan al diseño los primeros N según el plan
+    const visibleLinks = (data.snappylink_links || []).slice(0, limit);
+
+    // Creamos un clon de la data para no modificar el estado original, pero con los links filtrados
+    const dataForPreview = { ...data, snappylink_links: visibleLinks };
+
     const bioStyles = {
         backgroundColor: data.snappylink_bg_color || '#ffffff',
         backgroundImage: data.snappylink_bg_img ? `url(${data.snappylink_bg_img})` : 'none',
@@ -158,27 +168,20 @@ if (activeTab === 'snappylinks') {
         </div>
 
         {/* TEXTOS */}
-      <div className="text-center space-y-2">
-  <h2 className="font-black text-lg uppercase italic tracking-tighter leading-none" 
-      style={{ color: data.snappylink_title_color || '#000000' }}> {/* 🚀 AQUÍ APLICAMOS EL COLOR DEL TÍTULO EN VIVO */}
-    {data.snappylink_title || data.name}
-  </h2>
-  <p className="text-[10px] font-medium leading-relaxed" 
-     style={{ color: data.snappylink_desc_color || '#666666' }}> {/* 🚀 AQUÍ APLICAMOS EL COLOR DE LA BIO EN VIVO */}
-    {data.snappylink_bio || 'Tu bio aparecerá aquí.'}
-  </p>
-</div>
+        <div className="text-center space-y-2">
+          <h2 className="font-black text-lg uppercase italic tracking-tighter leading-none" 
+              style={{ color: data.snappylink_title_color || '#000000' }}>
+            {data.snappylink_title || data.name}
+          </h2>
+          <p className="text-[10px] font-medium leading-relaxed" 
+             style={{ color: data.snappylink_desc_color || '#666666' }}>
+            {data.snappylink_bio || 'Tu bio aparecerá aquí.'}
+          </p>
+        </div>
 
-        {/* BOTONES DINÁMICOS */}
+        {/* BOTONES DINÁMICOS (Usando la data filtrada) */}
         <div className="w-full pt-4 pb-10">
-          {(() => {
-            switch (data.snappylink_template_id) {
-              case 'bio-modern': 
-                return <BioModern data={data} />; // BioModern ya usa data.snappylink_btn_color, etc.
-              default: 
-                return <BioModern data={data} />;
-            }
-          })()}
+          <BioModern data={dataForPreview} />
         </div>
 
         <div className="mt-auto pb-6">
@@ -1804,10 +1807,19 @@ const confirmReset = () => {
     )}
 </div>
 
-        <div className="space-y-3">
-            {(data.snappylink_links || []).map((link: any, idx: number) => (
-                <div key={idx} className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-3 group animate-in zoom-in-95">
-                    <div className="flex gap-2">
+      <div className="space-y-3">
+    {(data.snappylink_links || []).map((link: any, idx: number) => {
+        // 🚀 Detectamos si este botón está por fuera del límite del plan actual
+        const isExcess = idx >= linkLimit;
+
+        return (
+            <div 
+                key={idx} 
+                className={`bg-white p-4 rounded-3xl border shadow-sm flex flex-col gap-3 group animate-in zoom-in-95 transition-all
+                    ${isExcess ? 'opacity-40 grayscale border-red-100 bg-red-50/10' : 'border-gray-100'}`}
+            >
+                <div className="flex gap-2">
+                    <div className="flex-1 relative">
                         <input
                             value={link.label}
                             onChange={(e) => {
@@ -1816,63 +1828,39 @@ const confirmReset = () => {
                                 setData({ ...data, snappylink_links: nextLinks });
                                 setUnsavedChanges(true);
                             }}
-                            className="flex-1 p-2 bg-gray-50 rounded-xl text-[11px] font-black uppercase outline-none focus:bg-white transition-all"
+                            className="w-full p-2 bg-gray-50 rounded-xl text-[11px] font-black uppercase outline-none focus:bg-white transition-all"
                             placeholder="Nombre del botón"
                         />
-                        <button onClick={() => {
-                            const nextLinks = data.snappylink_links.filter((_: any, i: number) => i !== idx);
-                            setData({ ...data, snappylink_links: nextLinks });
-                            setUnsavedChanges(true);
-                        }} className="p-2 text-red-300 hover:text-red-500 transition-colors">
-                            <Trash2 size={16} />
-                        </button>
+                        {/* ⚠️ Aviso de excedente */}
+                        {isExcess && (
+                            <span className="absolute -top-2 -right-1 bg-red-500 text-[7px] text-white font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                Fuera de Plan
+                            </span>
+                        )}
                     </div>
-                    <input
-                        value={link.url}
-                        onChange={(e) => {
-                            const nextLinks = [...data.snappylink_links];
-                            nextLinks[idx].url = e.target.value;
-                            setData({ ...data, snappylink_links: nextLinks });
-                            setUnsavedChanges(true);
-                        }}
-                        className="w-full p-2 border-b border-gray-100 text-[10px] text-blue-500 outline-none font-medium"
-                        placeholder="Pegá el link aquí"
-                    />
+                    <button onClick={() => {
+                        const nextLinks = data.snappylink_links.filter((_: any, i: number) => i !== idx);
+                        setData({ ...data, snappylink_links: nextLinks });
+                        setUnsavedChanges(true);
+                    }} className="p-2 text-red-300 hover:text-red-500 transition-colors">
+                        <Trash2 size={16} />
+                    </button>
                 </div>
-            ))}
-{/* --- SECCIÓN FINAL DE AGREGAR ENLACE --- */}
-            <div className="space-y-3 mt-4">
-                <button  
-                    disabled={isLimitReached}
-                    onClick={() => {
-                        const newLink = { label: 'Nuevo Enlace', url: '' };
-                        setData({ ...data, snappylink_links: [...(data.snappylink_links || []), newLink] });
+                <input
+                    value={link.url}
+                    onChange={(e) => {
+                        const nextLinks = [...data.snappylink_links];
+                        nextLinks[idx].url = e.target.value;
+                        setData({ ...data, snappylink_links: nextLinks });
                         setUnsavedChanges(true);
                     }}
-                    className={`w-full py-4 border-2 border-dashed rounded-[2rem] text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 
-                        ${isLimitReached 
-                            ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed' 
-                            : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-400'
-                        }`}
-                >
-                    {isLimitReached ? <Lock size={14}/> : <Plus size={14}/>}
-                    {isLimitReached ? 'Límite de enlaces alcanzado' : 'Agregar enlace'}
-                </button>
-
-                {/* AVISO DE UPGRADE (Solo si llegó al límite) */}
-                {isLimitReached && (
-                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl animate-in fade-in zoom-in duration-300">
-                        <p className="text-[10px] text-amber-700 font-bold text-center uppercase tracking-widest leading-relaxed">
-                            Tu plan <span className="font-black underline">{data.subscription_plan || 'Light'}</span> permite hasta {linkLimit} botones. 
-                            <br />
-                            <Link href="/dashboard/settings" className="text-indigo-600 underline font-black block mt-1 hover:text-indigo-800">
-                                Subí de plan para tener enlaces ilimitados ✨
-                            </Link>
-                        </p>
-                    </div>
-                )}
+                    className="w-full p-2 border-b border-gray-100 text-[10px] text-blue-500 outline-none font-medium"
+                    placeholder="Pegá el link aquí"
+                />
             </div>
-        </div>
+        );
+    })}
+</div>
     </section>
   </div>
 )}
