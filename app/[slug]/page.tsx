@@ -2659,6 +2659,19 @@ const handleSendReservation = async () => {
   );
 }
 function BioContent({ restaurant }: { restaurant: any }) {
+  // 🛡️ LÓGICA DE LÍMITES PARA EL LINK PÚBLICO
+  const plan = restaurant.subscription_plan?.toLowerCase() || 'light';
+  const limit = plan === 'light' ? 2 : plan === 'go' ? 4 : 100;
+  
+  // Recortamos la lista para que el cliente solo vea lo que el plan permite
+  const visibleLinks = (restaurant.snappylink_links || []).slice(0, limit);
+
+  // Creamos un objeto de datos filtrado para la plantilla
+  const filteredData = {
+    ...restaurant,
+    snappylink_links: visibleLinks
+  };
+
   const mainStyle = {
     backgroundColor: restaurant.snappylink_bg_color || "#ffffff",
     backgroundImage: restaurant.snappylink_bg_img
@@ -2674,6 +2687,7 @@ function BioContent({ restaurant }: { restaurant: any }) {
   return (
     <main className="min-h-screen flex flex-col" style={mainStyle}>
       <div className="max-w-[500px] mx-auto w-full flex-1 flex flex-col items-center pt-16 px-6 relative z-10">
+        
         {/* HEADER (Logo) */}
         <div
           className="w-24 h-24 rounded-full border-4 shadow-xl overflow-hidden mb-6"
@@ -2693,7 +2707,7 @@ function BioContent({ restaurant }: { restaurant: any }) {
           />
         </div>
 
-        {/* TEXTOS (Título y Bio con colores dinámicos) */}
+        {/* TEXTOS (Título y Bio) */}
         <div className="text-center space-y-2 mb-10">
           <h1
             className="font-black text-2xl uppercase italic tracking-tighter leading-none"
@@ -2709,9 +2723,9 @@ function BioContent({ restaurant }: { restaurant: any }) {
           </p>
         </div>
 
-        {/* DISEÑO DINÁMICO (BioModern ya gestiona los iconos arriba/abajo) */}
+        {/* DISEÑO DINÁMICO (Ahora con links filtrados) */}
         <div className="w-full">
-          <BioModern data={restaurant} />
+          <BioModern data={filteredData} /> 
         </div>
 
         {/* FOOTER */}
@@ -2736,6 +2750,7 @@ function BioContent({ restaurant }: { restaurant: any }) {
     </main>
   );
 }
+
 // --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y LÓGICA DE PAUSA) ---
 export default function MenuPage({
   params,
