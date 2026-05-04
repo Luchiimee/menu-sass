@@ -95,17 +95,31 @@ function SettingsContent() {
       else toast.success("¡Correo enviado! Revisá tu bandeja de entrada.");
   };
 
+  const [isPending, setIsPending] = useState(false);
+
   const handleUpdateEmail = async () => {
     if (!newEmail || newEmail === profile.email) return toast.error("Ingresá un email nuevo.");
+    
     setEmailUpdateLoading(true);
+    // Supabase envía el mail automáticamente al ejecutar esto
     const { error } = await supabase.auth.updateUser({ email: newEmail });
-    if (error) toast.error(`Error: ${error.message}`);
-    else {
-      toast.success("Confirmá el cambio en ambos correos.");
-      setIsEditingEmail(false);
+    
+    if (error) {
+        toast.error(`Error: ${error.message}`);
+    } else {
+        // Mensaje corregido: Solo confirmar en el nuevo
+        toast.success("Confirmá el link que enviamos a tu nuevo correo ✉️");
+        setIsPending(true); // Activamos el estado de pendiente
+        setIsEditingEmail(false);
     }
     setEmailUpdateLoading(false);
-  };
+};
+
+// Nueva función para reenviar
+const handleResendEmail = () => {
+    handleUpdateEmail(); // Simplemente volvemos a disparar la función
+    toast.info("Link reenviado. Revisá el SPAM por las dudas.");
+};
 
  const handleDeleteAccount = async () => {
     const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe borrará tu menú y se cancelará tu suscripción permanentemente.");
@@ -240,28 +254,91 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
             </h2>
             
             <div className="space-y-6">
-                {/* EMAIL */}
-                <div className="text-left">
-                    <label className="text-[10px] font-bold text-gray-400 mb-1 block uppercase">Email de Acceso</label>
-                    {!isEditingEmail ? (
-                        <div className="flex gap-2">
-                            <div className="flex-1 p-3 bg-gray-50 rounded-xl text-sm font-bold text-gray-400 flex items-center gap-2">
-                                <Mail size={14} /> {profile.email}
-                            </div>
-                            <button onClick={() => setIsEditingEmail(true)} className="px-4 py-2 text-[10px] font-black text-blue-600 bg-blue-50 rounded-xl uppercase tracking-tighter hover:bg-blue-100 transition-all">Cambiar</button>
+           <div className="text-left">
+    <label className="text-[10px] font-bold text-gray-400 mb-2 block uppercase tracking-widest">Email de Acceso</label>
+    
+    {!isEditingEmail ? (
+        <div className="space-y-3">
+            {/* CARD DE INFORMACIÓN DEL CORREO */}
+            <div className="p-4 bg-gray-50 rounded-[1.5rem] border border-gray-100 flex flex-col gap-3 relative overflow-hidden group">
+                <div className="flex items-start gap-3 pr-2">
+                    <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600 shrink-0">
+                        <Mail size={16} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        {/* break-all asegura que el mail se vea completo aunque sea larguísimo */}
+                        <span className="text-sm font-bold text-gray-800 break-all leading-tight">
+                            {profile.email}
+                        </span>
+                        <div className="mt-2 flex items-center gap-2">
+                            {isPending ? (
+                                <span className="text-[7px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-md font-black animate-pulse uppercase tracking-tighter">
+                                    Pendiente de Verificación
+                                </span>
+                            ) : (
+                                <span className="text-[7px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-black uppercase tracking-tighter flex items-center gap-1">
+                                    <Check size={8} /> Correo Activo
+                                </span>
+                            )}
                         </div>
-                    ) : (
-                        <div className="space-y-3 animate-in zoom-in-95">
-                            <div className="flex gap-2">
-                                <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Nuevo email" className="flex-1 p-3 bg-white border-2 border-blue-500 rounded-xl text-sm font-bold outline-none shadow-lg shadow-blue-50" />
-                                <button onClick={() => setIsEditingEmail(false)} className="p-3 text-gray-400 hover:text-red-500 bg-gray-100 rounded-xl"><X size={18} /></button>
-                            </div>
-                            <button onClick={handleUpdateEmail} disabled={emailUpdateLoading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest">
-                                {emailUpdateLoading ? <Loader2 className="animate-spin mx-auto" size={14}/> : 'Confirmar nuevo email'}
-                            </button>
-                        </div>
-                    )}
+                    </div>
                 </div>
+
+                {/* BOTÓN DE CAMBIO - POSICIONADO PARA NO ESTORBAR AL MAIL */}
+                <div className="pt-2 border-t border-gray-100 flex justify-end">
+                    <button 
+                        onClick={() => setIsEditingEmail(true)} 
+                        className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-tighter transition-all active:scale-95"
+                    >
+                        Cambiar Correo
+                    </button>
+                </div>
+            </div>
+
+            {/* AVISO DE REENVÍO (SOLO SI ESTÁ PENDIENTE) */}
+            {isPending && (
+                <div className="p-4 bg-amber-50/50 rounded-[1.5rem] border border-dashed border-amber-200 animate-in fade-in slide-in-from-top-2">
+                    <p className="text-[9px] text-amber-800 font-bold leading-tight uppercase tracking-tighter mb-3">
+                        Revisá tu casilla nueva para confirmar el cambio y activar el nuevo acceso.
+                    </p>
+                    <button 
+                        onClick={handleResendEmail}
+                        className="text-[9px] font-black text-blue-600 uppercase underline decoration-2 underline-offset-4 hover:text-blue-800"
+                    >
+                        Reenviar link de confirmación
+                    </button>
+                </div>
+            )}
+        </div>
+    ) : (
+        <div className="space-y-3 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col gap-2">
+                <input 
+                    type="email" 
+                    value={newEmail} 
+                    onChange={(e) => setNewEmail(e.target.value)} 
+                    placeholder="Nuevo correo electrónico" 
+                    className="w-full p-4 bg-white border-2 border-blue-500 rounded-2xl text-sm font-bold outline-none shadow-lg shadow-blue-50" 
+                />
+                <div className="flex gap-2">
+                    <button 
+                        onClick={handleUpdateEmail} 
+                        disabled={emailUpdateLoading} 
+                        className="flex-1 py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                        {emailUpdateLoading ? <Loader2 className="animate-spin mx-auto" size={14}/> : 'Confirmar nuevo email'}
+                    </button>
+                    <button 
+                        onClick={() => setIsEditingEmail(false)} 
+                        className="p-4 bg-gray-100 text-gray-400 rounded-2xl hover:text-red-500 transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+</div>
 
                 <hr className="border-gray-50" />
 {/* GESTIÓN DE SUSCRIPCIÓN (Solo si hay suscripción activa o pausada) */}
