@@ -104,60 +104,72 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const daysLeft = getTrialDaysLeft();
   const hasActivePayment = restaurant.status === 'authorized' || restaurant.status === 'active';
-  const trialExpired = daysLeft <= 0 && restaurant.status === 'trialing' && !hasActivePayment;
-  const showTrialWarning = daysLeft <= 4 && daysLeft > 0 && restaurant.status === 'trialing' && !hasActivePayment;
+  const isTrialExpired = daysLeft <= 0 && restaurant.status === 'trialing' && !hasActivePayment;
+  // Bloquea solo si venció Y NO estamos en la página de plan
+const trialExpired = isTrialExpired && pathname !== '/dashboard/plan' && !isAdmin;
+const showTrialWarning = daysLeft <= 4 && daysLeft > 0 && restaurant.status === 'trialing' && !hasActivePayment && pathname !== '/dashboard/plan' && !isAdmin;
   const missingPhone = !profileData?.phone;
   const noPlan = !restaurant.plan;
 
-  // --- ITEMS DEL MENÚ CON LÓGICA DE BLOQUEO ---
-  const menuItems = [
-    { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard, locked: false },
-    { 
-        name: 'Personalizar', 
-        href: '/dashboard/personalizar', 
-        icon: Palette, 
-        locked: noPlan, 
-        msg: "Elegí un plan para empezar a diseñar tu menú. 🎨" 
-    },
-    { 
-        name: 'Plantillas', 
-        href: '/dashboard/templates', 
-        icon: LayoutTemplate, 
-        locked: noPlan, 
-        msg: "Activá un plan para acceder a nuestras plantillas premium. 📐" 
-    },
-    { 
-        name: 'Mis Productos', 
-        href: '/dashboard/products', 
-        icon: UtensilsCrossed, 
-        locked: noPlan, 
-        msg: "Necesitás un plan activo para cargar tus productos. 🍕" 
-    },
-    { 
-        name: 'Caja', 
-        href: '/dashboard/analytics', 
-        icon: BarChart3, 
-        locked: restaurant.plan !== 'plus', 
-        msg: "La sección de Caja es exclusiva del Plan PLUS. 💎" 
-    }, 
-    { 
-        name: 'Pedidos', 
-        href: '/dashboard/orders', 
-        icon: ShoppingBag, 
-        locked: restaurant.plan === 'light' || noPlan, 
-        msg: "La gestión de pedidos requiere Plan GO o PLUS. 🚀" 
-    }, 
-    { 
-        name: 'Reservas', 
-        href: '/dashboard/reservations', 
-        icon: CalendarCheck, 
-        locked: restaurant.plan !== 'plus', 
-        msg: "La gestión de reservas requiere Plan PLUS. 💎" 
-    },
-    { name: 'Plan', href: '/dashboard/plan', icon: Zap, locked: false },
-    { name: 'Configuración', href: '/dashboard/settings', icon: Settings, locked: false },
-  ];
-
+const menuItems = [
+  { 
+      name: 'Inicio', 
+      href: '/dashboard', 
+      icon: LayoutDashboard, 
+      locked: isTrialExpired, 
+      msg: "Tu prueba venció. Activá un plan para volver al inicio. 🚀" 
+  },
+  { 
+      name: 'Personalizar', 
+      href: '/dashboard/personalizar', 
+      icon: Palette, 
+      locked: noPlan || isTrialExpired, 
+      msg: "Elegí un plan para empezar a diseñar tu menú. 🎨"
+  },
+  { 
+      name: 'Plantillas', 
+      href: '/dashboard/templates', 
+      icon: LayoutTemplate, 
+      locked: noPlan || isTrialExpired,
+      msg: "Activá un plan para acceder a nuestras plantillas premium. 📐" 
+  },
+  { 
+      name: 'Mis Productos', 
+      href: '/dashboard/products', 
+      icon: UtensilsCrossed, 
+      locked: noPlan || isTrialExpired,
+      msg: "Necesitás un plan activo para cargar tus productos. 🍕" 
+  },
+  { 
+      name: 'Caja', 
+      href: '/dashboard/analytics', 
+      icon: BarChart3, 
+      locked: restaurant.plan !== 'plus' || isTrialExpired, // 👈 Bloqueado si no es PLUS
+      msg: "La sección de Caja es exclusiva del Plan PLUS. 💎" 
+  }, 
+  { 
+      name: 'Pedidos', 
+      href: '/dashboard/orders', 
+      icon: ShoppingBag, 
+      locked: (restaurant.plan === 'light' || noPlan) || isTrialExpired, // 👈 Bloqueado en Light
+      msg: "La gestión de pedidos requiere Plan GO o PLUS. 🚀" 
+  }, 
+  { 
+      name: 'Reservas', 
+      href: '/dashboard/reservations', 
+      icon: CalendarCheck, 
+      locked: restaurant.plan !== 'plus' || isTrialExpired, // 👈 Bloqueado si no es PLUS
+      msg: "La gestión de reservas requiere Plan PLUS. 💎" 
+  },
+  { name: 'Plan', href: '/dashboard/plan', icon: Zap, locked: false },
+  { 
+      name: 'Configuración', 
+      href: '/dashboard/settings', 
+      icon: Settings, 
+      locked: isTrialExpired, 
+      msg: "Tu prueba venció. Activá un plan para acceder a la configuración. ⚙️" 
+  },
+];
   // --- RENDERIZADO DE BANNERS ---
   const renderBanners = () => {
     if (isLoading) return null;
@@ -201,7 +213,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         onLogout={handleLogout}
       />
 
-      <aside className={`hidden lg:flex ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r flex-col h-full z-20 transition-all duration-300 relative`}>
+      <aside className={`hidden lg:flex ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r flex-col h-full z-100 transition-all duration-300 relative`}>
         <div className={`p-6 border-b flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
             {restaurant.logo_url ? <img src={restaurant.logo_url} alt="logo" className="w-full h-full object-cover" /> : <Store size={20} />}
@@ -215,34 +227,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
         </div>
-        
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+  <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
+            
+            // 🛡️ LÓGICA DE BLOQUEO DINÁMICO
+            // 1. ¿Está bloqueado por el PLAN? (Ej: es Plan Light y la sección es para Plus)
+            // Filtramos 'isTrialExpired' para saber si el bloqueo es puramente por funciones del plan.
+            const isLockedByPlan = item.locked && (restaurant.plan !== 'plus' && item.name === 'Caja' || restaurant.plan !== 'plus' && item.name === 'Reservas' || (restaurant.plan === 'light' && item.name === 'Pedidos'));
+
+            // 2. ¿Debería ver el candado? 
+            // Lo ve si es un usuario normal con trial vencido O si es una sección bloqueada por su plan actual.
+            const shouldShowLock = (item.locked && !isAdmin) || isLockedByPlan;
+
             return (
               <Link 
                 key={item.name}
-                href={item.locked && !isAdmin ? '#' : item.href}
+                href={(shouldShowLock && !isAdmin) ? '#' : item.href}
                 onClick={(e) => { 
-                  if (item.locked && !isAdmin) { 
-                    e.preventDefault(); 
+                  // Si está bloqueado (ya sea por Plan o por Trial para mortales), mostramos el modal.
+                  if (shouldShowLock) {
+                    // El Admin puede entrar igual si quiere forzar la vista, pero le mostramos el aviso.
+                    if (!isAdmin) e.preventDefault(); 
+                    
                     setUpgradeMsg(item.msg ?? "");
                     setShowUpgradeModal(true); 
-                  } 
+                  }
                 }}
                 className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-xl text-xs font-bold transition-all 
-                  ${item.locked && !isAdmin ? 'opacity-60 grayscale' : isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+                  ${shouldShowLock ? 'opacity-60 grayscale' : isActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <div className="relative">
                   <item.icon size={18} /> 
-                  {item.locked && !isAdmin && (
-                    <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 border-2 border-white shadow-sm z-10"><Lock size={8} fill="currentColor" /></div>
+                  {/* Candado rojo: se muestra si la sección no corresponde al plan o si el trial venció */}
+                  {shouldShowLock && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 border-2 border-white shadow-sm z-10">
+                      <Lock size={8} fill="currentColor" />
+                    </div>
                   )}
                 </div>
                 {!isCollapsed && (
                   <div className="flex items-center justify-between w-full">
                     <span>{item.name}</span>
-                    {item.locked && !isAdmin && <Lock size={12} className="opacity-30" />}
+                    {shouldShowLock && <Lock size={12} className="opacity-30" />}
                   </div>
                 )}
               </Link>
@@ -274,10 +301,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* MODAL DE TRIAL VENCIDO */}
         {trialExpired && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/20 backdrop-blur-md animate-in fade-in">
+          <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 bg-black/20 backdrop-blur-md animate-in fade-in">
              <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border-2 border-red-100 max-w-sm w-full text-center animate-in zoom-in-95">
                 <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"><AlertTriangle size={40} /></div>
-                <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Prueba Vencida</h2>
+                <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">
+  {isTrialExpired ? "Prueba Vencida" : "Sección Pro"}
+</h2>
                 <p className="text-gray-500 text-xs leading-relaxed mb-8 font-bold uppercase tracking-tight">Tu periodo de 14 días terminó. Para seguir gestionando tu local y recibir pedidos, debés configurar un medio de pago.</p>
                 <Link href="/dashboard/plan" className="block w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">CONFIGURAR PAGO AHORA 💳</Link>
              </div>
@@ -290,7 +319,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-indigo-50 max-w-sm w-full text-center animate-in zoom-in-95">
             <button onClick={() => setShowUpgradeModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
-            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm"><Zap size={40} fill="currentColor" /></div>
+          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm ${isTrialExpired ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-600'}`}>
+  {isTrialExpired ? <AlertTriangle size={40} /> : <Zap size={40} fill="currentColor" />}
+</div>
             <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Sección Pro</h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium">{upgradeMsg}</p>
             <div className="space-y-3">
