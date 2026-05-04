@@ -129,14 +129,23 @@ if (cats) setCategories(cats);
   }, [supabase]);
 
 const openCreateModal = () => {
-    // Si llegó al límite de su plan y no es Admin
+    // 🚀 Lógica de límites mejorada: 20 para Light, 60 para GO
     if (!isAdmin && products.length >= maxProds) {
-         const nextPlan = currentPlan === 'light' ? 'GO (hasta 60 productos)' : 'Plus (Ilimitados)';
-if (confirm(`🚀 Límite de ${maxProds} productos alcanzado. ¿Pasar al plan ${nextPlan}?`)) {
-    router.push('/dashboard/settings');
-}
-         return; 
+        let msg = "";
+        let targetPath = "/dashboard/plan"; // Redirigimos a la pestaña de planes
+
+        if (currentPlan === 'light') {
+            msg = `🚀 Límite de ${maxProds} productos alcanzado en el Plan Light. ¿Pasar al Plan GO para cargar hasta 60 productos?`;
+        } else if (currentPlan === 'go') {
+            msg = `💎 Límite de ${maxProds} productos alcanzado en el Plan GO. ¿Pasar al Plan PLUS para productos ilimitados?`;
+        }
+
+        if (confirm(msg)) {
+            router.push(targetPath);
+        }
+        return; 
     }
+    
     setEditingId(null);
     setFormData({ 
       name: '', description: '', price: '', image_url: '', video_url: '', category_id: '',
@@ -376,7 +385,7 @@ if (loading) return (
 );
 const isNoPhotoTemplate = selectedTemplate && templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t));
 
-const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
+const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999;
   const isVideoDisabled = currentPlan === 'light' && !isAdmin;
   return (
    <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-4 md:pt-4 font-sans">
@@ -402,13 +411,15 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
         <span className="p-2 bg-violet-100 text-violet-600 rounded-lg"><UtensilsCrossed size={24}/></span>
         Menú Digital
         
-        {currentPlan === 'light' && !isAdmin && (
-          <span className={`ml-2 px-2 py-0.5 rounded-md text-xs font-bold border ${
-              products.length >= 15 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500'
-          }`}>
-              {products.length} / 15
-          </span>
-        )}
+      {/* Se muestra si es Light, GO o si sos Admin (mientras no sea el plan Plus que es ilimitado) */}
+{(currentPlan === 'light' || currentPlan === 'go' || isAdmin) && currentPlan !== 'plus' && (
+  <span className={`ml-2 px-2 py-0.5 rounded-md text-xs font-bold border ${
+      products.length >= maxProds ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500'
+  }`}>
+      {products.length} / {maxProds}
+  </span>
+)}
+
       </h1>
 
       {/* --- BADGE DE RUBRO ACTUALIZADO --- */}
@@ -792,7 +803,7 @@ const maxProds = currentPlan === 'light' ? 15 : currentPlan === 'go' ? 60 : 999;
             <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
                 <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
                     <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-              {currentPlan !== 'plus' && currentPlan !== 'max' && !isAdmin && (
+              {(currentPlan === 'light' || currentPlan === 'go' || isAdmin) && currentPlan !== 'plus' && (
     <div className="flex flex-col items-end mr-2">
         <div className="flex items-center gap-2">
             <span className={`text-[10px] font-black ${products.length >= maxProds ? 'text-red-500' : 'text-gray-400'}`}>
