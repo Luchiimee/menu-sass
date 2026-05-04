@@ -34,6 +34,7 @@ const PLAN_IDS = {
 };
 
 function PlanContent() {
+    
   const router = useRouter();
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +60,21 @@ function PlanContent() {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+const searchParams = useSearchParams();
+useEffect(() => {
+    const needPhone = searchParams.get('requirePhone');
+    
+    if (needPhone === 'true') {
+        // 1. Avisamos con el toast
+        toast.warning("¡Casi listo!", {
+            description: "Por favor, completá tu WhatsApp para recibir avisos de pedidos.",
+            duration: 5000,
+        });
+
+        // 2. Llevamos al usuario arriba de todo para que vea el input resaltado
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}, [searchParams]);
 
   // --- CARGA DE DATOS ---
   useEffect(() => {
@@ -324,7 +340,11 @@ const renderPlanButton = (planId: string) => {
             </div>
             <div className="text-left">
               <label className="text-[9px] font-black text-gray-400 mb-1 block uppercase tracking-widest">WhatsApp de Aviso</label>
-              <input value={profile.phone} onChange={(e) => updateProfile("phone", e.target.value)} className="w-full p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 ring-black/5" />
+             <input 
+  value={profile.phone} 
+  onChange={(e) => updateProfile("phone", e.target.value)} 
+  className={`w-full p-2.5 ... ${searchParams.get('requirePhone') === 'true' && !profile.phone ? 'ring-2 ring-amber-500 animate-pulse' : ''}`} 
+/>
             </div>
           </div>
         </section>

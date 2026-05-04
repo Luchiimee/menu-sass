@@ -38,6 +38,8 @@ const [showPromo, setShowPromo] = useState(false);
 const [isSavingPromo, setIsSavingPromo] = useState(false);
 const [coupons, setCoupons] = useState<any[]>([]);
 const [alwaysOpen, setAlwaysOpen] = useState(false);
+const [phone, setPhone] = useState<string | null>(null);
+const [isCheckingPhone, setIsCheckingPhone] = useState(true);
 const [newCoupon, setNewCoupon] = useState({ 
     code: '', 
     discount: 10, 
@@ -61,6 +63,16 @@ useEffect(() => {
           if (mounted) setLoading(false);
           return;
         }
+        const { data: profileData } = await supabase
+      .from('profiles')
+      .select('phone')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (mounted) {
+      setPhone(profileData?.phone || null);
+    }
+
 
         const { data: rest } = await supabase
           .from('restaurants')
@@ -69,7 +81,10 @@ useEffect(() => {
           .maybeSingle();
 
         if (mounted) {
-          // 🚀 Si hay restaurante Y tiene un plan, ya NO es usuario nuevo
+         if (rest) {
+            const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
+            setIsLocked(isSubscriptionInactive);
+          }
           if (rest && rest.subscription_plan) {
               setIsNewUser(false);
               setRestaurantId(rest.id);
@@ -252,12 +267,38 @@ const confirmDelete = async () => {
         setCouponPendingDelete(null);
     }
 };
+const PhoneWarningBanner = () => {
+    if (phone) return null; // Si hay teléfono, no se muestra
+
+    return (
+      <div className="max-w-4xl mx-auto mb-6 animate-in slide-in-from-top-4 duration-500">
+        <div className="bg-amber-50 border-2 border-dashed border-amber-200 p-4 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-left">
+            <div className="bg-amber-500 text-white p-2 rounded-xl shadow-lg shadow-amber-200">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-amber-800 tracking-tight">Falta información de contacto</p>
+              <p className="text-[9px] text-amber-600 font-bold uppercase tracking-widest">Necesitamos tu WhatsApp para enviarte avisos de ventas.</p>
+            </div>
+          </div>
+          <Link 
+            href="/dashboard/plan?requirePhone=true" 
+            className="bg-amber-500 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-amber-600 transition-all shadow-md active:scale-95"
+          >
+            Cargar Teléfono
+          </Link>
+        </div>
+      </div>
+    );
+  };
   if (loading) return <div className="h-[60vh] flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2"/> Cargando...</div>;
 
   // --- PANTALLA DE BIENVENIDA Y PLANES (REDiseño informativo) ---
   if (isNewUser) {
     return (
       <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20 pt-4 md:pt-0">
+        <PhoneWarningBanner />
         
         {/* 1. HEADER DE BIENVENIDA */}
         <div className="text-center space-y-4 mb-6">
@@ -290,7 +331,7 @@ const confirmDelete = async () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto px-4 mt-8">
             
             {/* PLAN LIGHT: Inicial */}
-            <Link href="/dashboard/plan" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-black transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-black transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
                 <div className="w-10 h-10 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-black group-hover:text-white transition-colors">
                     <ShoppingBag size={20} />
                 </div>
@@ -307,7 +348,7 @@ const confirmDelete = async () => {
             </Link>
 
             {/* PLAN GO: El Profesional */}
-            <Link href="/dashboard/plan" className="group bg-blue-50 border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-blue-600 transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
+            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-blue-50 border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-blue-600 transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
                 <div className="absolute top-0 right-0 bg-blue-600 text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">EL MÁS ELEGIDO</div>
                 <div className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
                     <Zap size={20} fill="currentColor" />
@@ -325,7 +366,7 @@ const confirmDelete = async () => {
             </Link>
 
             {/* PLAN PLUS: Gestión Física */}
-            <Link href="/dashboard/plan" className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-emerald-500 transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"}className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-emerald-500 transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
                 <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
                     <Crown size={20} />
                 </div>
@@ -336,7 +377,7 @@ const confirmDelete = async () => {
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Salones y locales. <br/> 
-                   Productos ilimitados, **impresión de tickets** y gestión de mesas.
+                   Productos ilimitados, impresión de tickets y gestión de mesas.
                 </p>
                 <span className="mt-4 text-[9px] font-black uppercase text-emerald-600 group-hover:underline">Elegir este plan →</span>
             </Link>
