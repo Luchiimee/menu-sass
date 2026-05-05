@@ -1,20 +1,21 @@
 import React from 'react';
+// 🚀 Paso 1: Importamos el ícono Store de Lucide
+import { Store, Plus } from 'lucide-react';
 
-export default function SpotlightHero({ restaurant, products }: any) {
- const accent = restaurant.theme_color || '#FFD700';
+export default function SpotlightHero({ restaurant, products, categories, onAddToCart, isOpen, setShowInfo }: any) {
+
+  const accent = restaurant.theme_color || '#FFD700';
   const bg = restaurant.bg_color || '#ffffff';
   const text = restaurant.text_color || '#000000';
   const descColor = restaurant.description_color || '#666666';
   const cardBg = restaurant.card_color || '#ffffff';
 
-  // --- VARIABLES PARA LA LISTA (LAS QUE FALTABAN) ---
   const pName = restaurant.card_name_color || text;
-  const prodDesc = restaurant.card_desc_color || descColor; // <--- AQUÍ ESTÁ EL FIX
+  const prodDesc = restaurant.card_desc_color || descColor;
   const pPrice = restaurant.card_price_color || text;
   const btnBg = restaurant.card_btn_bg || '#000000';
   const btnText = restaurant.card_btn_text || '#ffffff';
 
-  // Variables del Hero (Banner)
   const hBadgeBg = restaurant.hero_badge_bg || accent;
   const hBadgeColor = restaurant.hero_badge_color || '#000000';
   const hTitleColor = restaurant.hero_title_color || '#ffffff';
@@ -40,7 +41,12 @@ export default function SpotlightHero({ restaurant, products }: any) {
     .spot-logo { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); background-size: cover; background-position: center; flex-shrink: 0; background-color: #000; }
     .spot-brand { font-size: 14px; font-weight: 800; color: ${text}; line-height: 1.1; text-transform: uppercase; }
     .spot-desc-local { font-size: 10px; color: ${descColor}; }
-    .spot-status { margin-left: auto; background: #22c55e; color: white; font-size: 8px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+    
+    /* 🚀 Paso 2: Ajustamos el contenedor de la derecha para el status e icono */
+    .spot-header-right { margin-left: auto; display: flex; flex-direction: column; align-items: end; gap: 6px; }
+    .spot-status { background: #22c55e; color: white; font-size: 8px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+    .spot-info-btn { p: 2px; color: ${text}; opacity: 0.6; transition: all 0.2s; }
+    .spot-info-btn:active { transform: scale(0.9); opacity: 1; }
 
     .spot-banner { height: 180px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; flex-shrink: 0; }
     .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%); }
@@ -72,7 +78,21 @@ export default function SpotlightHero({ restaurant, products }: any) {
           <div className="spot-brand">{restaurant.name || 'Tu Marca'}</div>
           <div className="spot-desc-local">{restaurant.description || 'Descripción'}</div>
         </div>
-        <div className="spot-status">ABIERTO</div>
+
+        {/* 🚀 Paso 3: Agregamos el contenedor derecho con el Status y el Botón de Info */}
+        <div className="spot-header-right">
+          <div className="spot-status" style={{ backgroundColor: isOpen ? '#22c55e' : '#ef4444' }}>
+            {isOpen ? 'ABIERTO' : 'CERRADO'}
+          </div>
+          
+          <button 
+            onClick={() => setShowInfo(true)} 
+            className="spot-info-btn"
+            title="Información"
+          >
+            <Store size={18} />
+          </button>
+        </div>
       </div>
       
       {showBanner && (

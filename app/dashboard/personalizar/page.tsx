@@ -293,12 +293,17 @@ const props = {
                     </div>
                 )}
 
-                <div className="flex justify-center gap-5 pt-4 border-t border-white/5">
-                    {data.instagram && <Instagram size={18} strokeWidth={1.5} className="text-white opacity-60" />}
-                    {data.facebook && <Facebook size={18} strokeWidth={1.5} className="text-white opacity-60" />}
-                    {data.tiktok && <Music2 size={18} strokeWidth={1.5} className="text-white opacity-60" />}
-                    {data.phone && <Phone size={18} strokeWidth={1.5} className="text-white opacity-60" />}
-                </div>
+              <div className="flex justify-center gap-5 pt-4 border-t border-white/5">
+    {data.instagram && <Instagram size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+    {data.facebook && <Facebook size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+    {data.tiktok && <Music2 size={18} strokeWidth={1.5} className="text-white opacity-60" />}
+ {data.contact_phone && (
+      <a href={`https://wa.me/${data.contact_phone}`} target="_blank">
+        <Phone size={18} strokeWidth={1.5} className="text-white opacity-60" />
+      </a>
+    )}
+</div>
+
               </div>
               <button onClick={() => setShowInfoMock(false)} className="w-full py-3 bg-white text-black rounded-xl font-black uppercase text-[9px]">Cerrar</button>
             </div>
@@ -340,7 +345,7 @@ const [businessType, setBusinessType] = useState<string | null>(null);
 const [daysToRepeat, setDaysToRepeat] = useState<string[]>(['lunes', 'martes', 'miercoles', 'jueves', 'viernes']);
  const [data, setData] = useState<any>({
   id: null, name: '', slug: '', description: '', delivery_cost: 0, address: '', instagram: '',
-  facebook: '', tiktok: '', opening_hours: '', google_maps_link: '', phone: '',
+  facebook: '', tiktok: '', opening_hours: '', google_maps_link: '', phone: '', contact_phone: '', whatsapp: '',
   promo_message: '', show_promo: true, theme_color: '#d32f2f', bg_color: '#ffffff',
   text_color: '#ffffff', description_color: '#ffffff', promo_bg_color: '#ffebee',
   promo_text_color: '#d32f2f', card_name_color: '#000000', card_desc_color: '#666666',
@@ -628,7 +633,10 @@ const confirmReset = () => {
     });
 
     // 2. Intentar guardar Menú
-    const { error: restError } = await supabase.from('restaurants').update(restaurantUpdates).eq('id', data.id);
+  const { error: restError } = await supabase.from('restaurants').update({
+    ...restaurantUpdates,
+    contact_phone: data.contact_phone // 🚀 Agregamos esto para que se guarde en la DB
+}).eq('id', data.id);
     
     // Si la DB dice que el SLUG está duplicado:
     if (restError?.code === '23505') {
@@ -929,7 +937,18 @@ const confirmReset = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">WhatsApp</label>
-                        <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-green-50 text-green-600 border-r"><Phone size={14} /></div><input value={data.phone || ''} onChange={(e) => { setData({ ...data, phone: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="11..." /></div>
+                        <div className="flex items-center border rounded-lg bg-white overflow-hidden">
+    <div className="p-2 bg-green-50 text-green-600 border-r"><Phone size={14} /></div>
+    <input 
+  value={data.phone || ''} 
+  onChange={(e) => { 
+    setData({ ...data, phone: e.target.value }); // Guarda en 'phone'
+    setUnsavedChanges(true); 
+  }} 
+  className="w-full p-2 text-xs font-bold outline-none"
+      placeholder="11..." 
+    />
+  </div>
                         <p className="text-[10px] text-gray-400 mt-1 leading-tight">Este número recibirá los pedidos.</p>
                       </div>
                       <div>
@@ -945,8 +964,8 @@ const confirmReset = () => {
                     </div>
                   </section>
 
-                  {/* MARKET PRO EXTRA */}
-                 {['marketpro', 'urban', 'classic', 'minimal', 'visualgrid'].includes(data.template_id) && (
+       
+                
                     <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">
@@ -959,12 +978,24 @@ const confirmReset = () => {
                             <div key={field} className="space-y-1"><label className="text-[9px] font-bold text-gray-400 uppercase">{label}</label><input value={(data as any)[field] || ''} onChange={(e) => { setData({ ...data, [field]: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 border rounded-lg text-[10px] outline-none" placeholder={ph} /></div>
                           ))}
                         </div>
-                        <div className="space-y-1"><label className="text-[9px] font-bold text-green-600 uppercase flex items-center gap-1"><Phone size={10} /> WhatsApp Contacto</label><input value={data.phone || ''} onChange={(e) => { setData({ ...data, phone: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border-2 border-green-200 rounded-xl text-xs outline-none bg-green-50 font-bold text-green-900" placeholder="Ej: 54911..." /></div>
+     <div className="space-y-1">
+  <label className="text-[9px] font-bold text-green-600 uppercase flex items-center gap-1">
+    <Phone size={10} /> WhatsApp Contacto (Público)
+  </label>
+  <input 
+    value={data.contact_phone || ''} 
+    onChange={(e) => { 
+      setData({ ...data, contact_phone: e.target.value }); // 🚀 AHORA SÍ: Guarda en 'contact_phone'
+      setUnsavedChanges(true); 
+    }} 
+    className="w-full p-2.5 border-2 border-green-200 rounded-xl text-xs outline-none bg-green-50 font-bold text-green-900"
+    placeholder="Ej: 54911..." 
+  />
+</div>
                         <div className="space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Horarios</label><textarea value={data.opening_hours || ''} onChange={(e) => { setData({ ...data, opening_hours: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs outline-none bg-white resize-none" rows={2} /></div>
                       </div>
                     </section>
-                  )}
-
+         
 
 {/* 🎫 GESTIÓN DE RESERVAS (BLOQUEO POR PLAN) */}
 {(() => {
@@ -1696,101 +1727,7 @@ const confirmReset = () => {
       </div>
     </div>
 
-    {/* 🌐 SECCIÓN: REDES SOCIALES (DISEÑO GRID + DINÁMICO) */}
-    <section className="space-y-4 pt-4 border-t border-gray-100">
-        <div className="flex items-center justify-between px-2">
-            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
-                <Globe size={14} /> Iconos de Redes
-            </h3>
-            {/* SELECTOR DE POSICIÓN (ARRIBA/ABAJO) */}
-            <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
-                <button 
-                    onClick={() => { setData({...data, snappylink_social_pos: 'top'}); setUnsavedChanges(true); }}
-                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${data.snappylink_social_pos === 'top' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}
-                >
-                    Arriba
-                </button>
-                <button 
-                    onClick={() => { setData({...data, snappylink_social_pos: 'bottom'}); setUnsavedChanges(true); }}
-                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${data.snappylink_social_pos === 'bottom' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}
-                >
-                    Abajo
-                </button>
-            </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
-            {/* 1. CAMPOS PRINCIPALES (EL DISEÑO QUE TENÍAS ANTES) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 ml-2"><Instagram size={12} strokeWidth={1.5} className="text-pink-500"/><label className="text-[9px] font-black text-gray-400 uppercase">Instagram</label></div>
-                    <input value={data.instagram || ''} onChange={(e) => { setData({...data, instagram: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="instagram.com/user" />
-                </div>
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 ml-2"><Music2 size={12} strokeWidth={1.5} className="text-black"/><label className="text-[9px] font-black text-gray-400 uppercase">TikTok</label></div>
-                    <input value={data.tiktok || ''} onChange={(e) => { setData({...data, tiktok: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="tiktok.com/@user" />
-                </div>
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 ml-2"><Facebook size={12} strokeWidth={1.5} className="text-blue-600"/><label className="text-[9px] font-black text-gray-400 uppercase">Facebook</label></div>
-                    <input value={data.facebook || ''} onChange={(e) => { setData({...data, facebook: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="facebook.com/page" />
-                </div>
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 ml-2"><MessageCircle size={12} strokeWidth={1.5} className="text-green-500"/><label className="text-[9px] font-black text-gray-400 uppercase">WhatsApp</label></div>
-                    <input value={data.phone || ''} onChange={(e) => { setData({...data, phone: e.target.value}); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500" placeholder="54911..." />
-                </div>
-            </div>
-
-            {/* 2. CAMPOS EXTRAS (PARA CREAR NUEVAS REDES) */}
-            <div className="space-y-3 pt-4 border-t border-dashed border-gray-100">
-                {data.snappylink_social_links?.map((social: any, idx: number) => (
-                    <div key={idx} className="flex gap-2 animate-in zoom-in-95">
-                        <select 
-                            value={social.type}
-                            onChange={(e) => {
-                                const nextSocial = [...data.snappylink_social_links];
-                                nextSocial[idx].type = e.target.value;
-                                setData({...data, snappylink_social_links: nextSocial});
-                                setUnsavedChanges(true);
-                            }}
-                            className="p-3 bg-gray-50 border-none rounded-2xl text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value="web">Sitio Web</option>
-                            <option value="instagram">Instagram 2</option>
-                            <option value="facebook">Facebook 2</option>
-                            <option value="whatsapp">WhatsApp 2</option>
-                        </select>
-                        <input 
-                            value={social.url}
-                            onChange={(e) => {
-                                const nextSocial = [...data.snappylink_social_links];
-                                nextSocial[idx].url = e.target.value;
-                                setData({...data, snappylink_social_links: nextSocial});
-                                setUnsavedChanges(true);
-                            }}
-                            className="flex-1 p-3 bg-gray-50 border-none rounded-2xl text-xs font-medium outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all"
-                            placeholder="Pegá el link aquí..."
-                        />
-                        <button onClick={() => {
-                            const nextSocial = data.snappylink_social_links.filter((_: any, i: number) => i !== idx);
-                            setData({...data, snappylink_social_links: nextSocial});
-                            setUnsavedChanges(true);
-                        }} className="p-2 text-red-300 hover:text-red-500"><X size={18} /></button>
-                    </div>
-                ))}
-
-                <button 
-                    onClick={() => {
-                        const newSocial = { type: 'web', url: '' };
-                        setData({...data, snappylink_social_links: [...(data.snappylink_social_links || []), newSocial]});
-                        setUnsavedChanges(true);
-                    }}
-                    className="w-full py-4 border-2 border-dashed border-indigo-100 rounded-[2rem] text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
-                >
-                    <Plus size={14} strokeWidth={3} /> Crear campo social extra
-                </button>
-            </div>
-        </div>
-    </section>
+  
     {/* --- SECCIÓN DE BOTONES (A continuación de la card de texto) --- */}
     <section className="space-y-4">
       <div className="flex justify-between items-center px-2">

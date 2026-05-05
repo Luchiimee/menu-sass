@@ -61,7 +61,7 @@ setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
         phone: phoneExists 
       });
 
-      setIsAdmin(session.user.email === 'luchiimee2@gmail.com');
+      
 
       const displayName = profile?.first_name || metadata.full_name?.split(' ')[0] || rest?.name || "Mi Local";
 

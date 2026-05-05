@@ -431,7 +431,7 @@ const TEMPLATES = [
   { id: 'visualgrid', name: 'Visual Grid', type: 'visualgrid', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
   
   { id: 'pop', name: 'Pop Vibrante', type: 'pop', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true, isUpcoming: true },
+  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true, isUpcoming: false},
   { id: 'elegant', name: 'Elegante Serif', type: 'elegant', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
   { id: 'bistro', name: 'Bistro Chalk', type: 'bistro', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
 

@@ -28,6 +28,7 @@ import {
   Eye,
   CheckCircle2,XCircle,ShieldAlert, LogIn, AlertCircle, 
 } from "lucide-react";
+import SpotlightHero from "@/components/templates/SpotlightHero";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
 import ClearCartLogic from "@/components/ClearCartLogic";
@@ -1303,144 +1304,22 @@ const handleSendReservation = async () => {
           </div>
         );
 
-      case "spotlight":
-        const heroBanner =
-          restaurant.banner_url ||
-          (allProducts.length > 0 ? allProducts[0].image_url : "");
-        return (
-          <div className="app-wrapper">
-            {/* 1. Header con Logo y Status */}
-            <div className="spot-header-pub">
-              <div className="flex items-center gap-4 text-left">
-                <div
-                  className="spot-logo-pub"
-                  style={{ backgroundImage: `url('${LOGO || ""}')` }}
-                ></div>
-                <div>
-                  {/* Nombre más grande (XL) */}
-                  <h1
-                    className="text-xl font-black uppercase leading-none tracking-tight"
-                    style={{ color: TEXT }}
-                  >
-                    {restaurant.name}
-                  </h1>
-                  {/* Descripción más grande (SM) */}
-                  <p
-                    className="text-sm font-bold opacity-50 uppercase mt-1"
-                    style={{ color: DESC }}
-                  >
-                    {restaurant.description}
-                  </p>
-                </div>
-              </div>
-              <div
-                className="spot-status-pill"
-                style={{ backgroundColor: isOpen ? "#2ecc71" : "#e74c3c" }}
-              >
-                {isOpen ? "ABIERTO" : "CERRADO"}
-              </div>
-            </div>
-
-            {/* 2. Banner Héroe Interactivo */}
-            <div
-              className="spot-banner-container"
-              onClick={() =>
-                isOpen && restaurant.hero_title && setShowHeroModal(true)
-              }
-            >
-              <div
-                className="spot-hero-img"
-                style={{ backgroundImage: `url('${heroBanner}')` }}
-              ></div>
-              <div className="spot-overlay">
-                <div className="text-left">
-                  <div className="spot-badge">
-                    {restaurant.hero_badge_text || "DESTACADO"}
-                  </div>
-                  <h2 className="spot-hero-title">
-                    {restaurant.hero_title || allProducts[0]?.name}
-                  </h2>
-                  <div className="spot-hero-price">
-                    {formatPrice(
-                      restaurant.hero_price || allProducts[0]?.price || 0,
-                    )}
-                  </div>
-                </div>
-                {isOpen && restaurant.hero_title && (
-                  <button className="spot-plus-btn">
-                    <Plus size={24} strokeWidth={3} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* 3. Barra de Promoción */}
-            {restaurant.show_promo && restaurant.promo_message && (
-              <div className="spot-promo-bar">{restaurant.promo_message}</div>
-            )}
-
-            {/* 4. Lista de Productos con Thumbnails */}
-            <div className="flex-1">
-              {restaurant.categories?.map((cat: any) => (
-                <div key={cat.id} style={{ display: "contents" }}>
-                  {cat.products?.map((prod: any) => {
-                    const principalEnCarrito = cart.some(
-                      (item) => item.id === prod.id,
-                    );
-                    return (
-                      <div
-                        key={prod.id}
-                        className="spot-product-card text-left"
-                      >
-                        <div className="spot-product-thumb overflow-hidden bg-zinc-100">
-                          {prod.video_url ? (
-                            <video
-                              src={prod.video_url}
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div
-                              className="w-full h-full bg-cover bg-center"
-                              style={{
-                                backgroundImage: `url('${prod.image_url || ""}')`,
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="spot-product-name">{prod.name}</h3>
-                          <p className="spot-product-desc">
-                            {prod.description}
-                          </p>
-                          <div className="spot-product-price">
-                            {formatPrice(prod.price)}
-                          </div>
-                        </div>
-                        <div
-                          className="spot-add-wrapper"
-                          onClick={() =>
-                            !principalEnCarrito && mostrarAviso("✅ Agregado")
-                          }
-                        >
-                          <AddToCartBtn
-                            product={prod}
-                            variant="icon"
-                            disabled={!isOpen}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
+case "spotlight":
+  return (
+    <SpotlightHero
+      restaurant={restaurant}
+      products={allProducts}
+      categories={displayCats}
+      onAddToCart={(product: any, qty: number) => {
+        for (let i = 0; i < qty; i++) {
+          addToCart(product);
+        }
+        mostrarAviso("✅ Producto agregado");
+      }}
+      isOpen={isOpen}
+      setShowInfo={setShowInfo} // 🚀 Esta es la que activa el modal de info
+    />
+  );
       case "elegant":
         return (
           <div className="app-wrapper">
@@ -2588,15 +2467,15 @@ const handleSendReservation = async () => {
                     <Music2 size={24} strokeWidth={1.5} />
                   </a>
                 )}
-                {restaurant.phone && (
-                  <a
-                    href={`https://wa.me/${restaurant.phone}`}
-                    target="_blank"
-                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
-                  >
-                    <Phone size={24} strokeWidth={1.5} />
-                  </a>
-                )}
+             {restaurant.contact_phone && (
+    <a
+      href={`https://wa.me/${restaurant.contact_phone}`}
+      target="_blank"
+      className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+    >
+      <Phone size={24} strokeWidth={1.5} />
+    </a>
+  )}
               </div>
             </div>
 
