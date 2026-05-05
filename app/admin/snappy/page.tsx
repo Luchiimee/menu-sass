@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { 
-  ShieldCheck, Search, Loader2, MessageCircle, ArrowLeft, 
-  ExternalLink, Mail, LayoutGrid, PieChart, Users, Globe, 
-  Clock, Link2, DollarSign, CheckCircle2, AlertCircle, Zap, Trash2, 
-  TrendingUp, UserPlus
+  Search, Loader2, MessageCircle, ArrowLeft, 
+  Globe, Link2, DollarSign, Trash2, TrendingUp, 
+  UserMinus, AlertTriangle, Ghost, Clock, CreditCard, Banknote, Users
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -44,32 +43,45 @@ export default function AdminSnappyPage() {
       const merged = (profiles || []).map(p => {
         const r = (rests || []).find(res => res.user_id === p.id);
         const b = r ? (bios || []).find(bio => bio.restaurant_id === r.id) : null;
-        return { profile: p, restaurant: r || null, bio: b || null };
+        
+        const diffDays = Math.floor((new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 3600 * 24));
+        let statusTag = { text: "Activo", color: "bg-emerald-50 text-emerald-700", icon: Clock };
+        let abandonmentReason = "";
+
+        if (r?.subscription_status === 'authorized') {
+            statusTag = { text: "Pagando", color: "bg-emerald-500 text-white", icon: CreditCard };
+        } else if (r?.subscription_status === 'cancelled' || r?.subscription_status === 'paused') {
+            statusTag = { text: "Pago Cortado", color: "bg-orange-100 text-orange-700", icon: AlertTriangle };
+            abandonmentReason = "Dejó de pagar";
+        } else if (diffDays >= 14 && r?.subscription_status === 'trialing') {
+            statusTag = { text: "Trial Vencido", color: "bg-red-100 text-red-700", icon: Clock };
+            abandonmentReason = "No configuró pago";
+        } else if (!r?.slug || r?.slug.includes('mi-local')) {
+            if (diffDays >= 2) {
+                statusTag = { text: "Abandono Inicial", color: "bg-gray-200 text-gray-600", icon: Ghost };
+                abandonmentReason = "Link por defecto";
+            }
+        }
+
+        return { profile: p, restaurant: r || null, bio: b || null, statusTag, abandonmentReason, diffDays };
       });
       setData(merged);
     } catch (e) { console.error("Error:", e); } finally { setLoading(false); }
   };
 
   const handleDeleteGhost = async (userId: string, email: string) => {
-    if (!window.confirm(`¿Borrar permanentemente a ${email}? Se eliminará la cuenta y todo su contenido.`)) return;
+    if (!window.confirm(`¿Borrar a ${email}?`)) return;
     setDeletingId(userId);
     try {
-        const res = await fetch('/api/admin/delete-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-        });
+        const res = await fetch('/api/admin/delete-user', { method: 'POST', body: JSON.stringify({ userId }) });
         if (res.ok) {
-            toast.success("Usuario barrido");
+            toast.success("Usuario borrado");
             setData(prev => prev.filter(item => item.profile.id !== userId));
         } else throw new Error();
-    } catch (e) { toast.error("Error al borrar"); } finally { setDeletingId(null); }
+    } catch (e) { toast.error("Error"); } finally { setDeletingId(null); }
   };
 
-  // --- 📊 MOTOR DE MÉTRICAS ---
   const realData = data.filter(d => !EMAILS_EXCLUIDOS.includes(d.profile.email?.toLowerCase().trim()));
-  
-  // Suscriptores Pagando
   const suscriptores = realData.filter(d => d.restaurant?.subscription_status === 'authorized');
   const mrr = suscriptores.reduce((acc, curr) => {
     const plan = curr.restaurant?.subscription_plan;
@@ -79,150 +91,143 @@ export default function AdminSnappyPage() {
     return acc;
   }, 0);
 
-  // Conversión
-  const conversionRate = realData.length > 0 ? ((suscriptores.length / realData.length) * 100).toFixed(1) : 0;
-  
-  // Fantasmas (Sin alias + 30 días)
-  const ghostUsers = realData.filter(d => {
-    const diffDays = Math.floor((new Date().getTime() - new Date(d.profile.created_at).getTime()) / (1000 * 3600 * 24));
-    return !d.restaurant?.slug && diffDays >= 30;
-  });
+  const conversionRate = realData.length > 0 ? ((suscriptores.length / realData.length) * 100).toFixed(1) : "0";
+  const ghostUsers = realData.filter(d => d.statusTag.text === "Abandono Inicial" || d.statusTag.text === "Trial Vencido");
 
   const filtered = data.filter(d => 
     d.profile.first_name?.toLowerCase().includes(search.toLowerCase()) || 
     d.profile.email?.toLowerCase().includes(search.toLowerCase()) ||
-    d.restaurant?.name?.toLowerCase().includes(search.toLowerCase())
-  );
+    d.restaurant?.slug?.toLowerCase().includes(search.toLowerCase())
+  ).sort((a, b) => new Date(b.profile.created_at).getTime() - new Date(a.profile.created_at).getTime());
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
+  if (loading) return <div className="flex h-screen items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
 
   return (
-    <div className="p-4 lg:p-10 max-w-7xl mx-auto min-h-screen bg-gray-50/50 font-sans text-left">
+    <div className="p-4 lg:p-6 max-w-[1600px] mx-auto min-h-screen bg-gray-50/50 font-sans text-left">
       
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="p-2 bg-white rounded-xl border shadow-sm"><ArrowLeft size={20}/></Link>
+      {/* HEADER COMPACTO */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="p-2 bg-white rounded-xl border shadow-sm hover:bg-gray-50 transition-all"><ArrowLeft size={18}/></Link>
           <div>
-            <h1 className="text-2xl font-black italic tracking-tighter">SNAPPY ADMIN</h1>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Business Intelligence</p>
+            <h1 className="text-xl font-black italic tracking-tighter text-gray-900 leading-none">SNAPPY <span className="text-blue-600">COMMAND</span></h1>
+            <p className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">BI & Analytics</p>
           </div>
         </div>
-        <div className="relative w-full md:w-80">
+        <div className="relative w-full lg:w-[350px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
-            <input type="text" placeholder="Buscar cliente..." className="w-full bg-white p-4 pl-12 rounded-2xl border-none shadow-sm text-sm outline-none ring-2 ring-transparent focus:ring-blue-500/20 transition-all" onChange={(e) => setSearch(e.target.value)} />
+            <input type="text" placeholder="Email o slug..." className="w-full bg-white p-3 pl-12 rounded-2xl shadow-sm text-xs outline-none border border-gray-100" onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* 📊 NUEVAS MÉTRICAS ESTRATÉGICAS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div className="bg-black p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
-            <div className="absolute -right-4 -bottom-4 text-white/5"><DollarSign size={100}/></div>
-            <p className="text-gray-400 text-[10px] font-black uppercase mb-1">Ingreso Mensual (MRR)</p>
-            <span className="text-3xl font-black text-white">${mrr.toLocaleString()}</span>
-            <div className="mt-2 flex items-center gap-1 text-emerald-400 text-[10px] font-bold">
-                <TrendingUp size={12}/> Facturación Real
+      {/* 📊 MÉTRICAS ACHICADAS (5 Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 text-left">
+        {/* MRR */}
+        <div className="bg-zinc-900 p-4 rounded-3xl shadow-lg relative overflow-hidden text-white border border-white/5">
+            <p className="text-gray-400 text-[9px] font-black uppercase mb-1 tracking-widest">MRR Total</p>
+            <span className="text-xl font-black italic tracking-tighter">${mrr.toLocaleString()}</span>
+            <div className="mt-2 text-emerald-400 text-[8px] font-black uppercase flex items-center gap-1">
+                <TrendingUp size={10}/> Estimado
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
-            <p className="text-gray-400 text-[10px] font-black uppercase mb-1">Tasa de Conversión</p>
-            <span className="text-3xl font-black text-gray-900">{conversionRate}%</span>
-            <p className="text-[10px] text-blue-600 font-bold mt-2">Usuarios que pagan</p>
+        {/* 🚀 NUEVA: PAGANDO (Suscripciones Reales) */}
+        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm text-zinc-900">
+            <p className="text-gray-400 text-[9px] font-black uppercase mb-1 tracking-widest">Pagando</p>
+            <span className="text-xl font-black text-emerald-600 italic tracking-tighter">{suscriptores.length} Clientes</span>
+            <p className="text-[8px] text-gray-400 font-bold mt-2 uppercase flex items-center gap-1">
+               <DollarSign size={10}/> Suma: ${mrr.toLocaleString()}
+            </p>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
-            <p className="text-gray-400 text-[10px] font-black uppercase mb-1">Candidatos a Limpieza</p>
-            <span className="text-3xl font-black text-red-500">{ghostUsers.length}</span>
-            <p className="text-[10px] text-gray-400 font-bold mt-2">Fantasmas (30d+ inactivos)</p>
+        {/* CONVERSIÓN */}
+        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm text-zinc-900">
+            <p className="text-gray-400 text-[9px] font-black uppercase mb-1 tracking-widest">Conversión</p>
+            <span className="text-xl font-black text-blue-600 italic tracking-tighter">{conversionRate}%</span>
+            <p className="text-[8px] text-gray-400 font-bold mt-2 uppercase">Trial a Pago</p>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
-            <p className="text-gray-400 text-[10px] font-black uppercase mb-1">Total Usuarios Reales</p>
-            <span className="text-3xl font-black text-gray-900">{realData.length}</span>
-            <p className="text-[10px] text-gray-400 font-bold mt-2">Excluyendo admins</p>
+        {/* INACTIVOS */}
+        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm text-zinc-900">
+            <p className="text-gray-400 text-[9px] font-black uppercase mb-1 tracking-widest">Inactivos</p>
+            <span className="text-xl font-black text-red-500 italic tracking-tighter">{ghostUsers.length}</span>
+            <p className="text-[8px] text-gray-400 font-bold mt-2 uppercase">A Limpiar</p>
+        </div>
+
+        {/* TOTALES */}
+        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm text-zinc-900">
+            <p className="text-gray-400 text-[9px] font-black uppercase mb-1 tracking-widest">Reales</p>
+            <span className="text-xl font-black text-gray-900 italic tracking-tighter">{realData.length}</span>
+            <p className="text-[8px] text-gray-400 font-bold mt-2 uppercase">Total Usuarios</p>
         </div>
       </div>
 
-      {/* 💳 AUDITORÍA DE COBRO (LOS QUE PAGAN) */}
-      <div className="bg-emerald-50/50 border border-emerald-100 rounded-[2.5rem] p-8 mb-10">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-[12px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2 italic">
-              <CheckCircle2 size={18} strokeWidth={3}/> Suscriptores Activos ({suscriptores.length})
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {suscriptores.map((u, i) => (
-                  <div key={i} className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between group hover:scale-[1.02] transition-all">
-                      <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-black text-xs uppercase">
-                              {u.profile.first_name?.charAt(0) || 'U'}
-                          </div>
-                          <div className="flex flex-col">
-                              <span className="text-[11px] font-black text-gray-800 leading-none mb-1">{u.profile.first_name}</span>
-                              <span className="text-[9px] font-medium text-gray-400">{u.profile.email}</span>
-                          </div>
-                      </div>
-                      <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${u.restaurant?.subscription_plan === 'plus' ? 'bg-blue-600 text-white' : u.restaurant?.subscription_plan === 'go' ? 'bg-purple-600 text-white' : 'bg-black text-white'}`}>
-                          {u.restaurant?.subscription_plan}
-                      </span>
-                  </div>
-              ))}
-              {suscriptores.length === 0 && <p className="text-xs text-emerald-600 italic">No hay cobros activos detectados todavía.</p>}
-          </div>
-      </div>
-
-      {/* TABLA DE GESTIÓN TOTAL */}
-      <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+      {/* TABLA PRINCIPAL */}
+      <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden">
+        <div className="overflow-x-auto text-left">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50/50 border-b font-black text-[10px] uppercase text-gray-400 tracking-widest">
               <tr>
-                <th className="px-8 py-6">Estado / Cliente</th>
-                <th className="px-8 py-6 text-center">Configuración</th>
-                <th className="px-8 py-6 text-center">Plan</th>
-                <th className="px-8 py-6 text-right">Acciones</th>
+                <th className="px-6 py-4">Cliente</th>
+                <th className="px-4 py-4">Enlaces</th>
+                <th className="px-4 py-4 text-center">Pago</th>
+                <th className="px-4 py-4 text-center">Plan</th>
+                <th className="px-4 py-4">Situación</th>
+                <th className="px-6 py-4 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map(item => {
-                const diffDays = Math.floor((new Date().getTime() - new Date(item.profile.created_at).getTime()) / (1000 * 3600 * 24));
-                const isGhost = !item.restaurant?.slug && diffDays >= 30;
-                const status = item.restaurant?.subscription_status;
-
+                const TagIcon = item.statusTag.icon;
+                const currentPlan = item.restaurant?.subscription_plan;
+                const isPaying = item.restaurant?.subscription_status === 'authorized';
               return (
-                <tr key={item.profile.id} className={`hover:bg-blue-50/5 transition-colors ${isGhost ? 'bg-red-50/30' : ''}`}>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                        <div className={`w-2 h-2 rounded-full ${status === 'authorized' ? 'bg-emerald-500 animate-pulse' : isGhost ? 'bg-red-500' : 'bg-blue-500'}`}/>
-                        <div className="flex flex-col">
-                            <span className="font-black text-gray-900 text-sm">{item.profile.first_name} {item.profile.last_name}</span>
-                            <span className="text-[10px] text-gray-400">{item.profile.email}</span>
-                        </div>
+                <tr key={item.profile.id} className="hover:bg-blue-50/10 transition-all">
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                        <span className="font-black text-gray-900 text-xs uppercase italic">{item.profile.first_name || 'Nuevo'}</span>
+                        <span className="text-[10px] text-gray-400 truncate w-32">{item.profile.email}</span>
+                        <span className="text-[8px] font-bold text-blue-500 uppercase">{item.diffDays} días</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-center">
-                      <div className="inline-flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${item.restaurant?.slug ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-300'}`} title="Menú"><Globe size={14}/></div>
-                        <div className={`p-2 rounded-lg ${item.bio?.slug ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-300'}`} title="Bio"><Link2 size={14}/></div>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{diffDays}d inactivo</span>
-                      </div>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col gap-1">
+                        {item.restaurant?.slug ? (
+                          <a href={`https://snappy.uno/${item.restaurant.slug}`} target="_blank" className="flex items-center gap-1 text-[10px] font-bold text-gray-800 hover:text-blue-600 truncate underline decoration-gray-100">
+                            <Globe size={12} className="text-blue-500"/> /{item.restaurant.slug}
+                          </a>
+                        ) : <span className="text-[9px] text-gray-300 font-bold uppercase">Sin Menú</span>}
+                    </div>
                   </td>
-                  <td className="px-8 py-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                        status === 'authorized' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                  <td className="px-4 py-4 text-center">
+                    {isPaying ? (
+                      <span className="text-[11px] font-black text-emerald-700 italic">
+                        ${(currentPlan === 'plus' ? PRECIO_PLUS : currentPlan === 'go' ? PRECIO_GO : PRECIO_LIGHT).toLocaleString()}
+                      </span>
+                    ) : <span className="text-[10px] text-gray-200 font-black">$0</span>}
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase italic ${
+                        currentPlan === 'plus' ? 'bg-blue-600 text-white' : 
+                        currentPlan === 'go' ? 'bg-purple-600 text-white' : 
+                        'bg-zinc-100 text-zinc-500'
                       }`}>
-                        {item.restaurant?.subscription_plan || 'light'}
+                        {currentPlan || 'Light'}
                       </span>
                   </td>
-                  <td className="px-8 py-6 text-right">
-                    {!EMAILS_EXCLUIDOS.includes(item.profile.email) && (
-                        <button 
-                            disabled={deletingId === item.profile.id}
-                            onClick={() => handleDeleteGhost(item.profile.id, item.profile.email)}
-                            className={`p-2.5 rounded-xl transition-all ${isGhost ? 'bg-red-50 text-red-500 hover:bg-red-500 hover:text-white' : 'text-gray-300 hover:text-red-500'}`}
-                        >
-                            {deletingId === item.profile.id ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={16} />}
+                  <td className="px-4 py-4 text-left">
+                    <div className="flex flex-col gap-1">
+                        <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg w-fit ${item.statusTag.color}`}>
+                            <TagIcon size={12} strokeWidth={3}/>
+                            <span className="text-[9px] font-black uppercase">{item.statusTag.text}</span>
+                        </div>
+                        {item.abandonmentReason && <p className="text-[8px] font-medium text-red-400 italic">❌ {item.abandonmentReason}</p>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {!EMAILS_EXCLUIDOS.includes(item.profile.email?.toLowerCase().trim()) && (
+                        <button onClick={() => handleDeleteGhost(item.profile.id, item.profile.email)} className="p-2 bg-gray-50 text-gray-300 hover:bg-red-500 hover:text-white rounded-xl transition-all">
+                            <Trash2 size={14} />
                         </button>
                     )}
                   </td>
