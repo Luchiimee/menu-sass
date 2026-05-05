@@ -41,7 +41,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
+const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com'];
+setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
       const [restRes, profileRes] = await Promise.all([
         supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
         supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
@@ -229,12 +230,13 @@ const menuItems = [
           )}
         </div>
   <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href;
+        {menuItems
+    // 🚀 FILTRO DE SEGURIDAD: Solo mostramos SuperAdmin si isAdmin es true
+    .filter(item => item.name !== 'SuperAdmin' || isAdmin) 
+    .map((item) => {
+      const isActive = pathname === item.href;
             
-            // 🛡️ LÓGICA DE BLOQUEO DINÁMICO
-            // 1. ¿Está bloqueado por el PLAN? (Ej: es Plan Light y la sección es para Plus)
-            // Filtramos 'isTrialExpired' para saber si el bloqueo es puramente por funciones del plan.
+           
             const isLockedByPlan = item.locked && (restaurant.plan !== 'plus' && item.name === 'Caja' || restaurant.plan !== 'plus' && item.name === 'Reservas' || (restaurant.plan === 'light' && item.name === 'Pedidos'));
 
             // 2. ¿Debería ver el candado? 
