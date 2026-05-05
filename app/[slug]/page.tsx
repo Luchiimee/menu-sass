@@ -2750,8 +2750,11 @@ function BioContent({ restaurant }: { restaurant: any }) {
     </main>
   );
 }
+// ─── EXPORT DEFAULT MenuPage — REEMPLAZÁ COMPLETO ────────────────────────────
+// Solo cambia el bloque de lógica de suspensión. Todo lo demás igual.
 
-// --- 5. EXPORT PRINCIPAL (CORREGIDO PARA NEXT.JS 15 Y LÓGICA DE PAUSA) ---
+const ADMIN_EMAILS = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com'];
+
 export default function MenuPage({
   params,
 }: {
@@ -2759,7 +2762,6 @@ export default function MenuPage({
 }) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     let active = true;
@@ -2767,10 +2769,7 @@ export default function MenuPage({
       try {
         const resolvedParams = await params;
         const data = await getRestaurant(resolvedParams.slug);
-        
-        const { data: { session } } = await supabase.auth.getSession();
         if (active) {
-          setCurrentUser(session?.user ?? null);
           setRestaurant(data);
           setLoading(false);
         }
@@ -2780,9 +2779,7 @@ export default function MenuPage({
       }
     }
     load();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [params]);
 
   if (loading)
@@ -2794,85 +2791,66 @@ export default function MenuPage({
 
   if (!restaurant) return notFound();
 
-const isOwner = currentUser?.id === restaurant.user_id;
-  const isSuperAdmin = currentUser?.email === 'luchiimee2@gmail.com';
-  const isBypass = isOwner || isSuperAdmin;
+  // ✅ ADMIN IMMUNITY: se basa en el DUEÑO del restaurante, no en el visitante.
+  // Funciona en incógnito, celular, cualquier dispositivo — no requiere sesión activa.
+  const ownerEmail = restaurant.owner_email || '';
+  const isAdminRestaurant = ADMIN_EMAILS.includes(ownerEmail);
 
-  const trialStart = restaurant.trial_start_date ? new Date(restaurant.trial_start_date) : new Date(restaurant.created_at);
+  // Calculamos si el trial expiró
+  const trialStart = restaurant.trial_start_date
+    ? new Date(restaurant.trial_start_date)
+    : new Date(restaurant.created_at);
   const today = new Date();
-  const diffDays = Math.floor((today.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
-  
+  const diffDays = Math.floor(
+    (today.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24)
+  );
   const trialExpired = restaurant.subscription_status === 'trialing' && diffDays >= 14;
-  
-  // 🛡️ Solo consideramos suspendido si NO es un usuario con Bypass (Vos)
-  const isSuspended = !isBypass && (
-    restaurant.subscription_status === 'cancelled' || 
-    restaurant.subscription_status === 'paused' || 
+
+  // Si el restaurante es de un admin → NUNCA se bloquea para nadie
+  const isSuspended = !isAdminRestaurant && (
+    restaurant.subscription_status === 'cancelled' ||
+    restaurant.subscription_status === 'paused' ||
     trialExpired
   );
 
-  // 🚫 Si está suspendido y NO es admin, mostramos la pantalla de "Servicio Pausado"
+  // Pantalla para clientes cuando el servicio está pausado
   if (isSuspended) {
     return (
       <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 text-center">
         <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-3xl flex items-center justify-center mb-6">
           <AlertCircle size={40} />
         </div>
-        <h1 className="text-xl font-black uppercase italic tracking-tighter text-gray-900">Servicio Pausado</h1>
+        <h1 className="text-xl font-black uppercase italic tracking-tighter text-gray-900">
+          Servicio Pausado
+        </h1>
         <p className="text-gray-500 text-sm mt-2 max-w-xs font-medium leading-relaxed">
-          Este menú no está recibiendo pedidos por el momento. <br/> Por favor, vuelve a intentarlo más tarde.
+          Este menú no está recibiendo pedidos por el momento.{' '}
+          <br /> Por favor, vuelve a intentarlo más tarde.
         </p>
-        <Link href="https://snappy.uno" target="_blank" className="mt-20 flex items-center gap-1 no-underline">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Potenciado por</span>
+        <Link
+          href="https://snappy.uno"
+          target="_blank"
+          className="mt-20 flex items-center gap-1 no-underline"
+        >
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+            Potenciado por
+          </span>
           <Zap size={12} className="fill-yellow-400 text-yellow-400 mx-1" />
-          <span className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Snappy</span>
+          <span className="text-[10px] font-black text-black uppercase tracking-[0.2em]">
+            Snappy
+          </span>
         </Link>
       </div>
     );
   }
-// 🔑 BLOQUEO 2: VISTA PARA EL DUEÑO (Fondo Negro / Admin)
-if (isSuspended && isBypass) {
-  return (
-    <div className="h-screen w-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center text-white">
-      <div className="w-20 h-20 bg-red-500 text-white rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-red-500/20 animate-pulse">
-        <ShieldAlert size={40} />
-      </div>
-      <h1 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Tu Menú está Off-line</h1>
-      <p className="text-slate-400 text-sm mt-4 max-w-xs font-medium leading-relaxed">
-        ¡Hola <span className="text-white font-bold">{restaurant.name}</span>! Tus clientes no pueden ver tus productos porque <span className="text-red-400 font-bold underline">tu servicio está suspendido</span> por falta de pago o fin de la prueba.
-      </p>
-      
-      <Link 
-        href="/login" 
-        className="mt-8 flex items-center gap-2 bg-white text-black px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl no-underline"
-      >
-        <LogIn size={18} /> Arreglar mi página
-      </Link>
-      
-      {/* --- FOOTER ADMIN SEGURO --- */}
-      <Link 
-        href="https://snappy.uno" 
-        target="_blank" 
-        className="mt-12 flex items-center gap-1 no-underline opacity-50"
-      >
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-          Panel de Administración
-        </span>
-        <Zap size={12} className="fill-yellow-500 text-yellow-500 mx-1" />
-        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-          Snappy
-        </span>
-      </Link>
-    </div>
-  );
-}
-  // 🚀 SI EL SLUG ERA DE UNA BIO
-  if (restaurant.page_type === "bio") {
+
+  // Bio
+  if (restaurant.page_type === 'bio') {
     if (restaurant.is_bio_active === false) return notFound();
     return <BioContent restaurant={restaurant} />;
   }
 
-  // 🍔 SI EL SLUG ERA DE UN MENÚ
+  // Menú normal
   return (
     <CartProvider>
       <MenuContent
