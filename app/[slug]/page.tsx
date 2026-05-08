@@ -814,19 +814,15 @@ const handleSendReservation = async () => {
     return () =>
       window.removeEventListener("beforeinstallprompt", handleAndroidPrompt);
   }, []);
+ 
   useEffect(() => {
-    const handleBeforeUnload = (e: any) => {
-      // Esto hace que el navegador pregunte "¿Seguro que quieres salir?"
-      // si algo intenta refrescar la página.
-      e.preventDefault();
-      e.returnValue = "";
-      return "";
+   
+    window.onbeforeunload = () => {
+      return "Tienes productos en el carrito, ¿seguro que quieres salir?";
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.onbeforeunload = null; 
     };
   }, []);
 
