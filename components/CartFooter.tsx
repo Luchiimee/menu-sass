@@ -597,24 +597,26 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
         });
 
         if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
-       // --- 🏁 BLOQUE DE TOTALES OPTIMIZADO (Ticket Profesional) ---
+       // --- 🏁 BLOQUE DE TOTALES BLINDADO (UX Superior) ---
         mensaje += `\n------------------\n`;
-        mensaje += `💰 *Subtotal Productos:* ${formatPrice(subtotal)}\n`;
+        mensaje += `💰 *Subtotal (Productos):* ${formatPrice(subtotal)}\n`;
         
         if (appliedCoupon) {
-            mensaje += `🎟️ *Cupón ${appliedCoupon.code}:* -${formatPrice(montoDescuento)} (${appliedCoupon.discount_percent}% OFF)\n`;
+            // Mostramos el código y el porcentaje explícito
+            mensaje += `🎟️ *Cupón ${appliedCoupon.code} (-${appliedCoupon.discount_percent}%):* -${formatPrice(montoDescuento)}\n`;
             
-            // Calculamos el subtotal con el descuento aplicado
-            const subtotalConDescuento = subtotal - montoDescuento;
-            mensaje += `✨ *Subtotal con Descuento:* ${formatPrice(subtotalConDescuento)}\n`;
+            // Calculamos el subtotal de la comida YA con el descuento
+            const subtotalNeto = subtotal - montoDescuento;
+            mensaje += `✨ *Subtotal c/ Descuento:* ${formatPrice(subtotalNeto)}\n`;
         }
 
         if (envio > 0) {
+            // El signo + es clave para que entiendan que el envío suma después del descuento
             mensaje += `🚚 *Costo de Envío:* +${formatPrice(envio)}\n`;
         }
 
         mensaje += `------------------\n`;
-        mensaje += `🔥 *TOTAL A PAGAR: ${formatPrice(totalFinal)}*`;
+        mensaje += `🔥 *TOTAL FINAL: ${formatPrice(totalFinal)}*`;
         mensaje += `\n------------------`;
 
         // 🚀 3. PROTOCOLO DE REDIRECCIÓN INTELIGENTE
