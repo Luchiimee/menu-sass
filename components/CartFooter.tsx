@@ -597,10 +597,25 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
         });
 
         if (aclaraciones) mensaje += `\n📝 *Nota:* ${aclaraciones}\n`;
-        mensaje += `\n------------------\n💰 *Subtotal:* ${formatPrice(subtotal)}\n`;
-        if (appliedCoupon) { mensaje += `🎟️ *Cupón:* ${appliedCoupon.code} (-${appliedCoupon.discount_percent}%)\n➖ *Descuento:* -${formatPrice(montoDescuento)}\n`; }
-        if (envio > 0) mensaje += `🚚 *Envío:* ${formatPrice(envio)}\n`;
-        mensaje += `\n🔥 *TOTAL: ${formatPrice(totalFinal)}*`;
+       // --- 🏁 BLOQUE DE TOTALES OPTIMIZADO (Ticket Profesional) ---
+        mensaje += `\n------------------\n`;
+        mensaje += `💰 *Subtotal Productos:* ${formatPrice(subtotal)}\n`;
+        
+        if (appliedCoupon) {
+            mensaje += `🎟️ *Cupón ${appliedCoupon.code}:* -${formatPrice(montoDescuento)} (${appliedCoupon.discount_percent}% OFF)\n`;
+            
+            // Calculamos el subtotal con el descuento aplicado
+            const subtotalConDescuento = subtotal - montoDescuento;
+            mensaje += `✨ *Subtotal con Descuento:* ${formatPrice(subtotalConDescuento)}\n`;
+        }
+
+        if (envio > 0) {
+            mensaje += `🚚 *Costo de Envío:* +${formatPrice(envio)}\n`;
+        }
+
+        mensaje += `------------------\n`;
+        mensaje += `🔥 *TOTAL A PAGAR: ${formatPrice(totalFinal)}*`;
+        mensaje += `\n------------------`;
 
         // 🚀 3. PROTOCOLO DE REDIRECCIÓN INTELIGENTE
         setIsVisible(false);
