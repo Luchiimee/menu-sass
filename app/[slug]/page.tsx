@@ -1303,13 +1303,13 @@ const handleSendReservation = async () => {
             ))}
           </div>
         );
-
 case "spotlight":
   return (
     <SpotlightHero
       restaurant={restaurant}
       products={allProducts}
       categories={displayCats}
+      fetchedExtras={restaurant.fetched_extras} // 🚀 ESTO ES LO QUE FALTABA
       onAddToCart={(product: any, qty: number) => {
         for (let i = 0; i < qty; i++) {
           addToCart(product);
@@ -1317,9 +1317,9 @@ case "spotlight":
         mostrarAviso("✅ Producto agregado");
       }}
       isOpen={isOpen}
-      setShowInfo={setShowInfo} // 🚀 Esta es la que activa el modal de info
+      setShowInfo={setShowInfo}
     />
-  );
+  );;
       case "elegant":
         return (
           <div className="app-wrapper">

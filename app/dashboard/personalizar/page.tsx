@@ -356,7 +356,16 @@ const [daysToRepeat, setDaysToRepeat] = useState<string[]>(['lunes', 'martes', '
   cat_bg_color: '#f3f4f6', cat_text_color: '#999999', cat_title_color: '#000000',
   card_show_bg: true, card_btn_text: '#000000', business_type: 'gastronomico', pricing_type: 'unit',
   card_name_bg: '#ffffff', snappylink_slug: '', 
-  snappylink_bio: '', 
+  snappylink_bio: '', hero_dessert_id: null,
+  hero_drink_id: null,
+  secondary_menu_name: '',
+  secondary_menu_entrance_id: null,
+  secondary_menu_dessert_id: null,
+  secondary_menu_drink_id: null,
+  secondary_menu_price: 0, 
+  secondary_menu_drink_options:'',
+  secondary_menu_description: '',
+  hero_drink_size: '500cc',
   snappylink_links: [],
   is_bio_active: true,
   snappylink_template_id: 'bio-modern',
@@ -484,6 +493,16 @@ const getLinksLimit = () => {
   scheduled_delivery_slots: rest.scheduled_delivery_slots ?? {},
   scheduled_delivery_config: rest.scheduled_delivery_config ?? { interval_minutes: 30, buffer_minutes: 15 },
   reservations_enabled: rest.reservations_enabled ?? false,
+  hero_dessert_id: rest.hero_dessert_id || null,
+        hero_drink_id: rest.hero_drink_id || null,
+        secondary_menu_name: rest.secondary_menu_name || '',
+        secondary_menu_entrance_id: rest.secondary_menu_entrance_id || null,
+        secondary_menu_dessert_id: rest.secondary_menu_dessert_id || null,
+        secondary_menu_drink_id: rest.secondary_menu_drink_id || null,
+        secondary_menu_price: rest.secondary_menu_price || 0, 
+  secondary_menu_drink_options: rest.secondary_menu_drink_options || '',
+        secondary_menu_description: rest.secondary_menu_description || '',
+hero_drink_size: rest.hero_drink_size || '500cc',
       });
 
       // Carga de productos y categorías (lo que ya tenías abajo)
@@ -905,32 +924,117 @@ const confirmReset = () => {
                     </div>
                   </section>
 
-                  {/* HERO EDITOR */}
-                  {tConfig.showHeroEditor && (
-                    <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                      <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
-                        <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest mb-5 flex items-center gap-2"><Star size={14} className="fill-indigo-600 text-indigo-600" /> Producto en Banner (Hero)</h3>
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap md:flex-nowrap gap-3 items-end">
-                            <div className="flex-1 min-w-[200px] space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Texto Etiqueta</label><input value={data.hero_badge_text || ''} onChange={(e) => { setData({ ...data, hero_badge_text: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: PLATO DEL DÍA" /></div>
-                            <div className="flex gap-2">
-                              <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Fondo</label><input type="color" value={data.hero_badge_bg || '#FFD700'} onChange={(e) => { setData({ ...data, hero_badge_bg: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
-                              <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Texto</label><input type="color" value={data.hero_badge_color || '#000000'} onChange={(e) => { setData({ ...data, hero_badge_color: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
-                            </div>
-                          </div>
-                          <div className="flex gap-3 items-end">
-                            <div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Título del Plato</label><input value={data.hero_title || ''} onChange={(e) => { setData({ ...data, hero_title: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2.5 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: Ñoquis caseros" /></div>
-                            <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Color</label><input type="color" value={data.hero_title_color || '#ffffff'} onChange={(e) => { setData({ ...data, hero_title_color: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
-                          </div>
-                          <div className="flex gap-3 items-end">
-                            <div className="flex-1 space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Precio ($)</label><input type="number" value={data.hero_price ?? 0} onChange={(e) => { setData({ ...data, hero_price: Number(e.target.value) }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none border rounded-xl" placeholder="0" /></div>
-                            <div className="space-y-1"><label className="text-[9px] font-black text-gray-400 uppercase">Color</label><input type="color" value={data.hero_price_color || '#FFD700'} onChange={(e) => { setData({ ...data, hero_price_color: e.target.value }); setUnsavedChanges(true); }} className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm p-0 bg-transparent block" /></div>
-                          </div>
-                          <div className="space-y-1"><label className="text-[10px] font-bold text-gray-500 uppercase">Descripción Completa (se verá en el Modal)</label><textarea value={data.hero_description || ''} onChange={(e) => { setData({ ...data, hero_description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-300 resize-none bg-white" rows={3} placeholder="Escribe aquí los ingredientes o detalles..." /></div>
-                        </div>
-                      </div>
-                    </section>
-                  )}
+                {/* 🚀 CONFIGURACIÓN DE BANNER Y MENÚS ESPECIALES */}
+{tConfig.showHeroEditor && (
+  <section className="space-y-6 animate-in fade-in slide-in-from-top-2">
+    <div className="p-6 bg-indigo-50/50 border border-indigo-100 rounded-[2.5rem] space-y-6">
+      <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+        <Star size={14} className="fill-indigo-600 text-indigo-600" /> Producto en Banner (Hero)
+      </h3>
+      
+      {/* 1. Datos Básicos del Plato Principal */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Texto Etiqueta</label>
+            <input value={data.hero_badge_text || ''} onChange={(e) => { setData({ ...data, hero_badge_text: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: DESTACADO" />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Título del Plato</label>
+            <input value={data.hero_title || ''} onChange={(e) => { setData({ ...data, hero_title: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs font-bold outline-none bg-white" placeholder="Ej: Ñoquis caseros" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Precio ($)</label>
+            <input type="number" value={data.hero_price ?? 0} onChange={(e) => { setData({ ...data, hero_price: Number(e.target.value) }); setUnsavedChanges(true); }} className="w-full p-3 text-xs font-bold outline-none border rounded-xl" />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Postre Incluido</label>
+            <select value={data.hero_dessert_id || ''} onChange={(e) => { setData({ ...data, hero_dessert_id: e.target.value || null }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs font-bold bg-white">
+              <option value="">Ninguno</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 text-left">
+          <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Opciones de Bebida y Tamaño</label>
+          <div className="flex gap-2">
+            <input value={data.hero_drink_options || ''} onChange={(e) => { setData({ ...data, hero_drink_options: e.target.value }); setUnsavedChanges(true); }} className="flex-[2] p-3 border rounded-xl text-xs font-bold outline-none" placeholder="Coca, Sprite, Fanta..." />
+            <select value={data.hero_drink_size || '500cc'} onChange={(e) => { setData({ ...data, hero_drink_size: e.target.value }); setUnsavedChanges(true); }} className="flex-1 p-3 border rounded-xl text-[10px] font-black bg-indigo-50 text-indigo-600">
+              <option value="250cc">250cc</option>
+              <option value="500cc">500cc</option>
+              <option value="1lts">1lts</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 text-left">
+          <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Descripción (se verá en el Modal)</label>
+          <textarea value={data.hero_description || ''} onChange={(e) => { setData({ ...data, hero_description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none bg-white resize-none" rows={2} />
+        </div>
+      </div>
+
+      {/* 🍱 SECCIÓN: MENÚ SECUNDARIO / EJECUTIVO */}
+      <div className="mt-8 p-6 bg-white border-2 border-dashed border-indigo-200 rounded-[2.5rem] space-y-6 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-600 rounded-2xl text-white shadow-lg"><Layers size={18} /></div>
+          <div className="text-left">
+            <h4 className="text-[12px] font-black text-indigo-950 uppercase tracking-tighter italic leading-none">Configurar Menú Secundario</h4>
+            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Armá un combo fijo (Ej: Menú Ejecutivo)</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Nombre del Menú</label>
+            <input value={data.secondary_menu_name || ''} onChange={(e) => { setData({ ...data, secondary_menu_name: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none" placeholder="Ej: Menú Ejecutivo" />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Precio ($)</label>
+            <input type="number" value={data.secondary_menu_price || 0} onChange={(e) => { setData({ ...data, secondary_menu_price: Number(e.target.value) }); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none" />
+          </div>
+        </div>
+
+        <div className="space-y-1.5 text-left">
+          <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Descripción del combo</label>
+          <textarea value={data.secondary_menu_description || ''} onChange={(e) => { setData({ ...data, secondary_menu_description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs outline-none resize-none" rows={2} />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-indigo-600 uppercase italic ml-1">1. Plato Principal</label>
+            <select value={data.secondary_menu_entrance_id || ''} onChange={(e) => { setData({ ...data, secondary_menu_entrance_id: e.target.value || null }); setUnsavedChanges(true); }} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none">
+              <option value="">Elegir principal...</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5 text-left">
+            <label className="text-[10px] font-black text-indigo-600 uppercase italic ml-1">2. Postre Incluido</label>
+            <select value={data.secondary_menu_dessert_id || ''} onChange={(e) => { setData({ ...data, secondary_menu_dessert_id: e.target.value || null }); setUnsavedChanges(true); }} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none">
+              <option value="">Elegir postre...</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 text-left p-4 bg-indigo-50/50 rounded-3xl border border-indigo-100">
+          <label className="text-[10px] font-black text-indigo-600 uppercase italic ml-1">3. Bebidas y Tamaño</label>
+          <div className="flex gap-2">
+            <input value={data.secondary_menu_drink_options || ''} onChange={(e) => { setData({ ...data, secondary_menu_drink_options: e.target.value }); setUnsavedChanges(true); }} className="flex-[2] p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none" placeholder="Coca, Sprite, Agua..." />
+            <select value={data.secondary_menu_drink_size || '500cc'} onChange={(e) => { setData({ ...data, secondary_menu_drink_size: e.target.value }); setUnsavedChanges(true); }} className="flex-1 p-3 bg-white border border-dashed border-indigo-200 rounded-xl text-[10px] font-black text-indigo-600">
+              <option value="250cc">250cc</option>
+              <option value="500cc">500cc</option>
+              <option value="1lts">1 Litro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
 
                   {/* WHATSAPP / ENVÍO / MP */}
                   <section className="space-y-4">

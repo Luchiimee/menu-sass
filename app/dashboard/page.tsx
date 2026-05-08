@@ -56,9 +56,7 @@ const [newCoupon, setNewCoupon] = useState({
 useEffect(() => {
     let mounted = true;
     
-   // --- MODIFICACIÓN EN DashboardHome (page.tsx) ---
-
-const loadDashboardData = async () => {
+  const loadDashboardData = async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -80,50 +78,49 @@ const loadDashboardData = async () => {
       .select('*')
       .eq('user_id', session.user.id)
       .maybeSingle();
-if (mounted) {
-      if (rest) {
-        // A. Verificamos si la cuenta está suspendida por falta de pago
+
+    if (mounted && rest) {
+        // A. Verificamos suspensión
         const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
         setIsLocked(isSubscriptionInactive);
 
-        // B. Seteamos el ID y el Restaurante
         setRestaurantId(rest.id);
-
-        // C. 🚀 Lógica de Slug y Link con fallback (Si no tiene slug, creamos uno temporal)
         const currentSlug = rest.slug || `local-${rest.id.substring(0, 5)}`;
-        const origin = window.location.origin;
         setSlug(currentSlug);
-        setStoreLink(`${origin}/${currentSlug}`);
+        setStoreLink(`${window.location.origin}/${currentSlug}`);
 
-        // D. Verificamos si ya tiene un plan activado
         if (rest.subscription_plan) {
             setIsNewUser(false);
             setHasPlan(true);
             setPromoMessage(rest.promo_message || '');
             setShowPromo(rest.show_promo || false);
-            
             const plan = rest.subscription_plan;
             setIsPlus(plan === 'go' || plan === 'plus' || plan === 'max');
             setIsLight(plan === 'light');
-            
-            // Si es plan Light, el local se maneja solo por horarios (Manual = false)
             setAlwaysOpen(plan === 'light' ? false : (rest.always_open || false));
+            
+            // 🔥 AQUÍ ESTÁ LA REPARACIÓN: Traer los cupones guardados
+            const { data: couponsData } = await supabase
+                .from('coupons')
+                .select('*')
+                .eq('restaurant_id', rest.id)
+                .order('created_at', { ascending: false });
+
+            if (mounted) {
+                setCoupons(couponsData || []);
+            }
         } else {
-            // Tiene restaurante creado pero no eligió plan (Pantalla de bienvenida)
             setIsNewUser(true);
         }
-      } else {
-        // No hay registro en la tabla restaurants aún
+    } else if (mounted) {
         setIsNewUser(true);
         setIsLocked(false);
-      }
-      setLoading(false);
     }
+    if (mounted) setLoading(false);
   } catch (error) {
     console.error("Error cargando dashboard:", error);
   }
 };
-
     loadDashboardData();
 
     const handleRefresh = () => {
