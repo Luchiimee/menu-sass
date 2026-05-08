@@ -639,27 +639,30 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
         }
 
         // Si es Delivery/Retiro y tiene WhatsApp activado
-        if (isLight || receiveWhatsapp === true) {
+       if (isLight || receiveWhatsapp === true) {
             const cleanPhone = String(phone).replace(/\D/g, ''); 
             const textEncoded = encodeURIComponent(mensaje);
-            const protocolUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
+            
+            // 🚀 MEJORA PARA iOS: Usamos el Universal Link (HTTPS) en lugar del protocolo de app
+            // Esto reduce drásticamente la aparición del cartel de confirmación en Safari
+            const protocolUrl = `https://wa.me/${cleanPhone}?text=${textEncoded}`;
 
-            // 1. 🛠️ DESACTIVAR PROTECCIÓN: Silenciamos el cartel de "Deseas abandonar"
+            // 1. 🛠️ DESACTIVAR PROTECCIÓN: Matamos el cartel de "Deseas abandonar el sitio"
             window.onbeforeunload = null;
             
-            // 2. 🚀 LÓGICA DE ÉXITO (Para el flujo visual)
+            // 2. 🚀 LÓGICA DE ÉXITO (Para el flujo visual de Snappy)
             if (isLight) {
                 setTimeout(() => setShowSuccessScreen(true), 5000);
             }
 
-            // 3. 🎯 DISPARO DE PRECISIÓN (Link Simulado)
-            // Creamos un elemento invisible para que el navegador lo vea como una acción
-            // legítima del usuario y no como un intento de fuga.
-            setTimeout(() => {
-                const link = document.createElement('a');
-                link.href = protocolUrl;
-                link.click();
-            }, 100);
+           
+            const link = document.createElement('a');
+            link.href = protocolUrl;
+            link.target = "_blank"; 
+            link.rel = "noopener noreferrer";
+            document.body.appendChild(link); // Lo añadimos un milisegundo al DOM para máxima compatibilidad
+            link.click();
+            document.body.removeChild(link); // Lo eliminamos inmediatamente
 
         } else {
             // Si el restaurante tiene el WhatsApp apagado (Solo Panel)
