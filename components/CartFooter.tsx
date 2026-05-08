@@ -639,26 +639,35 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
         }
 
         // Si es Delivery/Retiro y tiene WhatsApp activado
-      if (isLight || receiveWhatsapp === true) {
+       if (isLight || receiveWhatsapp === true) {
             const cleanPhone = String(phone).replace(/\D/g, ''); 
             const textEncoded = encodeURIComponent(mensaje);
             
-            // 🚀 USAMOS EL ENLACE UNIVERSAL (HTTPS)
+            // 🚀 MEJORA PARA iOS: Usamos el Universal Link (HTTPS) en lugar del protocolo de app
+            // Esto reduce drásticamente la aparición del cartel de confirmación en Safari
             const protocolUrl = `https://wa.me/${cleanPhone}?text=${textEncoded}`;
 
-            // 1. 🛠️ SILENCIAR PROTECCIÓN: Matamos el cartel de salida
+            // 1. 🛠️ DESACTIVAR PROTECCIÓN: Matamos el cartel de "Deseas abandonar el sitio"
             window.onbeforeunload = null;
             
-            // 2. 🚀 LÓGICA DE ÉXITO
+            // 2. 🚀 LÓGICA DE ÉXITO (Para el flujo visual de Snappy)
             if (isLight) {
                 setTimeout(() => setShowSuccessScreen(true), 5000);
             }
 
-            // 3. 🎯 NAVEGACIÓN DIRECTA (Sin elementos extra en el DOM)
-            // Usar window.location.replace o assign es lo más "limpio" para el navegador
-            window.location.href = protocolUrl;
+            // 3. 🎯 DISPARO DE ALTA PRECISIÓN
+            // Creamos un link invisible, le damos propiedades de seguridad y lo ejecutamos.
+            // Usar target="_blank" en HTTPS suele ser "invisible" para el sistema de alertas de iOS.
+            const link = document.createElement('a');
+            link.href = protocolUrl;
+            link.target = "_blank"; 
+            link.rel = "noopener noreferrer";
+            document.body.appendChild(link); // Lo añadimos un milisegundo al DOM para máxima compatibilidad
+            link.click();
+            document.body.removeChild(link); // Lo eliminamos inmediatamente
 
         } else {
+            // Si el restaurante tiene el WhatsApp apagado (Solo Panel)
             console.log("Pedido guardado. Solo panel activado.");
         }
         
