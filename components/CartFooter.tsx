@@ -628,37 +628,52 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
             setIsSending(false);
             return; 
         }
+// 🚀 3. PROTOCOLO DE REDIRECCIÓN INTELIGENTE
+        setIsVisible(false);
 
+        // Si es mesa, no hay redirección, solo silenciamos y salimos
+        if (metodoEnvio === 'mesa') {
+            window.onbeforeunload = null; 
+            setIsSending(false);
+            return; 
+        }
+
+        // Si es Delivery/Retiro y tiene WhatsApp activado
         if (isLight || receiveWhatsapp === true) {
             const cleanPhone = String(phone).replace(/\D/g, ''); 
             const textEncoded = encodeURIComponent(mensaje);
             const protocolUrl = `whatsapp://send?phone=${cleanPhone}&text=${textEncoded}`;
 
+            // 1. 🛠️ DESACTIVAR PROTECCIÓN: Silenciamos el cartel de "Deseas abandonar"
             window.onbeforeunload = null;
-            setIsVisible(false); 
             
+            // 2. 🚀 LÓGICA DE ÉXITO (Para el flujo visual)
             if (isLight) {
-                setTimeout(() => {
-                    setShowSuccessScreen(true);
-                }, 5000);
+                setTimeout(() => setShowSuccessScreen(true), 5000);
             }
-            
+
+            // 3. 🎯 DISPARO DE PRECISIÓN (Link Simulado)
+            // Creamos un elemento invisible para que el navegador lo vea como una acción
+            // legítima del usuario y no como un intento de fuga.
             setTimeout(() => {
-                window.location.href = protocolUrl;
+                const link = document.createElement('a');
+                link.href = protocolUrl;
+                link.click();
             }, 100);
+
         } else {
+            // Si el restaurante tiene el WhatsApp apagado (Solo Panel)
             console.log("Pedido guardado. Solo panel activado.");
-            setIsVisible(false);
         }
         
-        setIsSending(false);
+        setIsSending(false); 
         
     } catch (err) { 
-        console.error("Error:", err); 
+        console.error("Error Snappy Core:", err); 
         alert("Error al procesar el pedido."); 
         setIsSending(false); 
     }
-  };
+};
  if (!showSuccessScreen && (!cart || cart.length === 0 || !isVisible)) {
         if (cart.length > 0) return (
             /* Contenedor invisible que centra el área del botón en PC */
