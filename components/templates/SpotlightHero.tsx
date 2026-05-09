@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Store, Plus, Minus, Layers, X, Check } from 'lucide-react';
+import { Store, Plus, Minus, Layers, X, Check, Search } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
 
 export default function SpotlightHero({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
   const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
   const [showHeroModal, setShowHeroModal] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("todos");
+
+  const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
   // 🚀 Estado para el efecto de "Tilde" al agregar productos
   const [addedItems, setAddedItems] = useState<string[]>([]);
 
@@ -18,7 +21,14 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
   const btnText = restaurant.card_btn_text || '#ffffff';
   const hBadgeBg = restaurant.hero_badge_bg || accent;
   const hBadgeColor = restaurant.hero_badge_color || '#000000';
-  
+  const catBg = restaurant.cat_bg_color || '#f3f4f6';
+  const catText = restaurant.cat_text_color || '#9ca3af';
+  const catActiveBg = restaurant.cat_active_bg_color || '#000000';
+  const catActiveText = restaurant.cat_active_text_color || '#ffffff';
+  const localDescColor = restaurant.description_color || '#4b5563'; // 👈 Agregamos esto
+  const prodDescColor = restaurant.card_desc_color || '#4b5563';
+  const searchBg = restaurant.search_bg_color || '#f3f4f6';
+  const searchIcon = restaurant.search_icon_color || '#9ca3af';
   // --- LÓGICA DE BANNER (HERO) ---
   const showBanner = restaurant.show_banner !== false;
   const hasProducts = products && products.length > 0;
@@ -76,22 +86,24 @@ const getExtrasForProduct = (productId: string) => {
     }
   };
 const styles = `
-    .spot-container { background: ${bg}; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column; text-align: left; }
+    .spot-container { 
+      background: ${bg}; 
+      font-family: 'Inter', sans-serif; 
+      text-align: left; 
+      width: 100%;
+    }
     
-    /* Header: Padding reducido en mockup */
+    /* Header: Padding adaptado */
     .spot-header { 
-      padding: ${isMockup ? '10px 12px' : '15px'}; 
+      padding: ${isMockup ? '10px 12px' : '18px 20px'}; 
       display: flex; 
       align-items: flex-start; 
       justify-content: space-between; 
       gap: 10px; 
       background: ${bg}; 
       border-bottom: 1px solid rgba(0,0,0,0.05); 
-      flex-shrink: 0; 
-      overflow: hidden; 
     }
     
-    /* Logo: De 58px a 42px en mockup */
     .spot-logo { 
       width: ${isMockup ? '42px' : '58px'}; 
       height: ${isMockup ? '42px' : '58px'}; 
@@ -106,7 +118,6 @@ const styles = `
       justify-content: center; 
     }
     
-    /* Título: De 20px a 15px en mockup */
     .spot-brand { 
       font-size: ${isMockup ? '15px' : '20px'}; 
       font-weight: 900; 
@@ -114,22 +125,14 @@ const styles = `
       line-height: 1.1; 
       text-transform: uppercase; 
       letter-spacing: -0.02em; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
     }
     
-    /* Descripción: De 13px a 10px en mockup */
-    .spot-desc-local { 
+   .spot-desc-local { 
       font-size: ${isMockup ? '10px' : '13px'}; 
-      color: #111827; 
+      color: ${localDescColor}; 
       font-weight: 600; 
       margin-top: 2px; 
       line-height: 1.2; 
-      display: -webkit-box; 
-      -webkit-line-clamp: 2; 
-      -webkit-box-orient: vertical; 
-      overflow: hidden; 
     }
 
     .spot-info-btn { 
@@ -137,16 +140,11 @@ const styles = `
       background: #f3f4f6; 
       border-radius: ${isMockup ? '8px' : '10px'}; 
       padding: ${isMockup ? '4px' : '6px'}; 
-      transition: all 0.2s; 
       border: none; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     .spot-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: ${isMockup ? '6px' : '10px'}; flex-shrink: 0; }
     
-    /* Cartel Abierto: Más pequeño en mockup */
     .spot-status { 
       color: white; 
       font-size: ${isMockup ? '7px' : '9px'}; 
@@ -154,26 +152,61 @@ const styles = `
       padding: ${isMockup ? '3px 8px' : '5px 12px'}; 
       border-radius: 8px; 
       text-transform: uppercase; 
-      letter-spacing: 0.05em; 
     }
 
-    .spot-banner { height: 180px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; flex-shrink: 0; overflow: hidden; background-color: #333; }
+    .spot-banner { height: 180px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; overflow: hidden; background-color: #333; }
     .spot-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 100%); z-index: 1; }
     .spot-hero-btn { position: absolute; bottom: 15px; right: 15px; width: 32px; height: 32px; background: white; color: black; border-radius: 50%; display: grid; place-items: center; font-size: 20px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10; border: none; }
     
-    .spot-msg { padding: 14px 20px; background: ${restaurant.promo_bg_color || '#fff8e1'}; color: ${restaurant.promo_text_color || text}; font-size: 13px; font-weight: 800; border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0; text-align: center; letter-spacing: -0.01em; }
+    .spot-msg { padding: 14px 20px; background: ${restaurant.promo_bg_color || '#fff8e1'}; color: ${restaurant.promo_text_color || text}; font-size: 13px; font-weight: 800; border-bottom: 1px solid rgba(0,0,0,0.05); text-align: center; }
     
-    .spot-list { flex: 1; overflow-y: auto; }
+    /* 🚀 QUITAMOS EL SCROLL INTERNO PARA QUE SCROLLEE TODO EL CELULAR */
+    .spot-list { width: 100%; }
+
     .spot-item-container { background: ${cardBg}; border-bottom: 1px solid rgba(0,0,0,0.04); }
     .spot-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; }
     .spot-thumb { width: 50px; height: 50px; border-radius: 8px; background-color: #f0f0f0; flex-shrink: 0; position: relative; overflow: hidden; background-size: cover; background-position: center; }
-    .spot-thumb video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
     .spot-btn { width: 28px; height: 28px; background: ${btnBg}; color: ${btnText}; border-radius: 50%; display: grid; place-items: center; font-size: 18px; border: none; font-weight: 900; }
+    
+    /* Buscador */
+    .spot-search-container { padding: 15px 15px 10px; background: ${bg}; }
+    .spot-search-wrapper { position: relative; display: flex; align-items: center; }
+  .spot-search-input { 
+      width: 100%; 
+      padding: 10px 10px 10px 35px; 
+      border-radius: 12px; 
+      background: ${searchBg}; /* 👈 CONECTADO */
+      color: ${text};           /* 👈 Usa el color de texto general */
+      border: none; 
+      font-size: 12px; 
+      font-weight: 600; 
+      outline: none; 
+    }
+    
+    .spot-search-icon { 
+      position: absolute; 
+      left: 12px; 
+      color: ${searchIcon}; /* 👈 CONECTADO */
+    }
+
+    /* Categorías - Altura automática para que no tape nada */
+    .spot-cats { display: flex; gap: 8px; overflow-x: auto; padding: 5px 15px 15px; background: ${bg}; width: 100%; }
+    .spot-cat-btn { 
+      padding: 8px 16px; 
+      border-radius: 20px; 
+      font-size: ${isMockup ? '9px' : '11px'}; 
+      font-weight: 900; 
+      text-transform: uppercase; 
+      tracking-widest; 
+      border: none; 
+      white-space: nowrap; 
+      transition: all 0.2s; 
+    }
   `;
 const isAddedA = cart.some((item: any) => String(item.id) === `A-${heroProduct?.id}`);
   const isAddedB = cart.some((item: any) => String(item.id) === `B-${secPrincipal?.id}`);
   return (
-    <div className="spot-container relative h-full flex flex-col">
+    <div className="spot-container relative">
       <style>{styles}</style>
       
 {/* HEADER: Logo, Título, Status e Info */}
@@ -222,10 +255,55 @@ const isAddedA = cart.some((item: any) => String(item.id) === `A-${heroProduct?.
       {restaurant.show_promo !== false && restaurant.promo_message && (
         <div className="spot-msg italic">{restaurant.promo_message}</div>
       )}
-      
+      {/* 🔍 BUSCADOR */}
+      <div className="spot-search-container">
+        <div className="spot-search-wrapper">
+          <Search size={16} className="spot-search-icon" />
+          <input 
+            type="text" 
+            placeholder="¿Qué buscás hoy?" 
+            className="spot-search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+   {/* 📂 CATEGORÍAS DINÁMICAS */}
+      <div className="spot-cats no-scrollbar">
+        <button 
+          onClick={() => setSelectedCategory("todos")}
+          className="spot-cat-btn shadow-sm"
+          style={{ 
+            backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg,
+            color: selectedCategory === "todos" ? catActiveText : catText,
+            borderColor: selectedCategory === "todos" ? catActiveBg : 'transparent'
+          }}
+        >
+          Todos
+        </button>
+        {displayCategories.map((cat: any) => (
+          <button 
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            className="spot-cat-btn shadow-sm"
+            style={{ 
+              backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg,
+              color: selectedCategory === cat.id ? catActiveText : catText,
+              borderColor: selectedCategory === cat.id ? catActiveBg : 'transparent'
+            }}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
   {/* LISTA DE PRODUCTOS INLINE */}
-      <div className="spot-list no-scrollbar">
-        {products?.map((p: any, i: number) => {
+     <div className="spot-list no-scrollbar">
+        {products?.filter((p: any) => {
+          const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchCat = selectedCategory === "todos" || String(p.category_id) === String(selectedCategory);
+          return matchSearch && matchCat;
+        }).map((p: any, i: number) => {
           const cartItem = getCartItem(p.id);
           const extras = getExtrasForProduct(p.id);
           
@@ -237,9 +315,10 @@ const isAddedA = cart.some((item: any) => String(item.id) === `A-${heroProduct?.
                 </div>
                 <div className="flex-1 text-left">
                   <div style={{ color: restaurant.card_name_color }} className="font-bold text-[13px]">{p.name}</div>
-                  <div style={{ color: '#4b5563' }} className="text-[11px] mt-1 leading-relaxed font-medium">
-                    {p.description}
-                  </div>
+             
+  <div style={{ color: prodDescColor }} className="text-[11px] mt-1 leading-relaxed font-medium">
+    {p.description}
+  </div>
                   <div style={{ color: restaurant.card_price_color }} className="font-black text-[12px] mt-1">{formatPrice(p.price)}</div>
                 </div>
                 

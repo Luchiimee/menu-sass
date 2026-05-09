@@ -89,7 +89,33 @@ visualgrid: {
     search_icon_color: '#ea580c'
 },
   pop: { theme: '#FF1493', bg: '#fffbe6', card: '#ffffff', text: '#000000', desc: '#444444', card_name: '#FF1493', card_desc: '#444444', card_price: '#000000', card_shadow_color: '#000000', btn_bg: '#ffffff', btn_text: '#FF1493', promo_bg: '#FFD700', promo_text: '#000000', banner: false },
-  spotlight: { theme: '#FFD700', bg: '#ffffff', card: '#ffffff', text: '#000000', desc: '#666666', card_name: '#000000', card_desc: '#666666', card_price: '#000000', btn_bg: '#000000', btn_text: '#ffffff', promo: '#fff3e0', promo_text: '#000000', banner: true, hero_badge_bg: '#FFD700', hero_badge_color: '#000000', hero_title_color: '#ffffff', hero_price_color: '#FFD700' },
+  spotlight: { 
+    theme: '#FFD700', 
+    bg: '#ffffff', 
+    card: '#ffffff', 
+    text: '#000000', 
+    desc: '#666666',         // Color para la descripción del local
+    card_desc: '#666666',    // Color para la descripción del producto
+    card_name: '#000000', 
+    card_price: '#000000', 
+    btn_bg: '#000000', 
+    btn_text: '#ffffff', 
+    promo: '#fff3e0', 
+    promo_text: '#000000', 
+    banner: true, 
+    // --- 🚀 AGREGAMOS ESTO PARA EL RESET ---
+    search_bg_color: '#f3f4f6', 
+    search_icon_color: '#9ca3af',
+    cat_bg_color: '#f3f4f6',
+    cat_text_color: '#9ca3af',
+    cat_active_bg_color: '#000000',
+    cat_active_text_color: '#ffffff',
+    // ----------------------------------------
+    hero_badge_bg: '#FFD700', 
+    hero_badge_color: '#000000', 
+    hero_title_color: '#ffffff', 
+    hero_price_color: '#FFD700' 
+  },
   elegant: { theme: '#D4AF37', bg: '#f9f5f0', text: '#333333', desc: '#777777', card_name: '#333333', card_color: '#f9f5f0', card_desc: '#888888', card_price: '#D4AF37', btn_bg: '#D4AF37', btn_text: '#ffffff', promo_bg: '#f0e8dc', promo_text: '#5c4b30', banner: false },
   bistro: { theme: '#e6c87e', bg: '#222222', text: '#eeeeee', desc: '#aaaaaa', card_name: '#ffffff', card: '#222222', card_desc: '#999999', card_price: '#e6c87e', btn_bg: '#e6c87e', btn_text: '#222222', promo: '#333333', promo_text: '#e6c87e', banner: false },
   marketpro: { theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', card_name: '#000000', card_desc: '#999999', card_price: '#059669', btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#f3f4f6', promo_text: '#000000', banner: true, cat_bg_color: '#f3f4f6', cat_text_color: '#999999', cat_title_color: '#000000', cat_active_bg_color: '#000000', cat_active_text_color: '#ffffff', search_bg_color: '#f3f4f6', search_icon_color: '#9ca3af', card_show_bg: true, card_color: '#ffffff' },
@@ -529,7 +555,7 @@ const getTemplateConfig = () => {
       showCard: true, 
       showHeroEditor: id === 'spotlight', 
       
-      showSearch: ['marketpro', 'classic', 'urban', 'minimal'].includes(id),
+      showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
      
       showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic', 'minimal'].includes(id),
@@ -816,7 +842,7 @@ const confirmReset = () => {
                           <ColorBubble label="Desc. Local" value={data.description_color} onChange={(v) => setData({ ...data, description_color: v })} />
                           {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
                      {['alterna-pro', 'marketpro', 'urban', 'classic', 'minimal'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
-                         {['marketpro', 'urban', 'classic', 'minimal','visualgrid'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
+                        {['marketpro', 'urban', 'classic', 'minimal', 'visualgrid', 'spotlight'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
                           {tConfig.showClassicBanner && <ColorBubble 
   label="Banner Nom" 
   value={data.theme_color} 
