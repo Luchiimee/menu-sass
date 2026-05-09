@@ -101,7 +101,7 @@ const CUSTOM_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;900&display=swap');
   .preview-scroll { width: 100%; height: 100%; overflow-y: auto; scrollbar-width: none; padding-top: 35px; position: relative; display: flex; flex-direction: column; }
   .preview-scroll::-webkit-scrollbar { display: none; }
-  .preview-scroll > div { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+ .preview-scroll > div { width: 100%; display: flex; flex-direction: column; gap: 0px; }
   .preview-scroll { padding-bottom: 80px !important; }
   .status-bar-fixed { position: absolute; top: 0; left: 0; width: 100%; height: 35px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 10px; font-weight: bold; z-index: 50; pointer-events: none; }
   @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -109,7 +109,7 @@ const CUSTOM_STYLES = `
 `;
 
 // ── PhoneMockup: acepta activeTab para mostrar vista SnappyLinks ──────────────
-const PhoneMockup = ({ data, products, categories, previewTemplateId, activeTab }: any) => {
+const PhoneMockup = ({ data, products, categories, previewTemplateId, activeTab, isMockup = true }: any) => {
   const [showInfoMock, setShowInfoMock] = useState(false);
   const activeId = previewTemplateId || data?.template_id || 'classic';
   const defaults = TEMPLATE_DEFAULTS[activeId] || TEMPLATE_DEFAULTS['classic'];
@@ -221,7 +221,7 @@ const props = {
   fetchedExtras: [], 
   isOpen: true, 
   onAddToCart: () => {}, 
-  isMockup: true, 
+isMockup: isMockup,
   setShowInfo: setShowInfoMock
 };
 
@@ -1926,13 +1926,24 @@ const confirmReset = () => {
               )}
             </div>
 
-            {/* ── PANEL DERECHO: VISTA PREVIA ── */}
+        {/* ── PANEL DERECHO: VISTA PREVIA ── */}
             <div className="hidden xl:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
+              
               <div className="absolute top-4 text-gray-400 text-xs font-medium flex items-center gap-2 z-20">
                 <MonitorSmartphone size={14} /> Vista Previa en Vivo
               </div>
-              <div className="w-[300px] h-[600px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col transform-gpu mt-8">
-                <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} />
+
+              {/* 🚀 NUEVO BOTÓN: Mira cómo lo ven tus clientes (Versión PC) */}
+              <button 
+                onClick={() => setShowMobilePreview(true)} 
+                className="absolute top-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 border-2 border-white/10"
+              >
+                <Eye size={16} /> Mira cómo lo ven tus clientes
+              </button>
+
+              <div className="w-[300px] h-[600px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col transform-gpu mt-20">
+                {/* 🚀 ACÁ VA TRUE: para que se vea chiquito en la barra lateral */}
+                <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} isMockup={true} />
               </div>
             </div>
 
@@ -1951,7 +1962,7 @@ const confirmReset = () => {
           </div>
         </div>
 
-        {/* MODAL VISTA PREVIA MOBILE */}
+      {/* MODAL VISTA PREVIA MOBILE (VERSIÓN REAL) */}
         {showMobilePreview && (
           <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
             <div className="w-full max-w-sm h-[85vh] bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative border-[6px] border-zinc-800">
@@ -1959,10 +1970,11 @@ const confirmReset = () => {
                 <X size={24} />
               </button>
               <div className="h-full">
-                <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} />
+                {/* 🚀 ACÁ VA: Ponemos isMockup={false} para que se vea GRANDE como en slugpage */}
+                <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} isMockup={false} />
               </div>
             </div>
-            <p className="mt-6 text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse italic">Vista Previa en Vivo</p>
+            <p className="mt-6 text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse italic">Vista Previa Real</p>
           </div>
         )}
       </div>
