@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Store, Zap, Search, Plus, Layers, Minus } from 'lucide-react';
+import { X, Store, Zap, Search, Plus, Layers, Minus , Utensils} from 'lucide-react';
 import AddToCartBtn from "@/components/AddToCartBtn";
 import { useCart } from "@/context/CartContext";
 
@@ -38,7 +38,17 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
       ex.product_extras?.some((re: any) => String(re.product_id) === String(productId))
     ) || [];
   };
+const getContrastColor = (hexcolor: string) => {
+    if (!hexcolor) return '#ffffff';
+    const r = parseInt(hexcolor.slice(1, 3), 16);
+    const g = parseInt(hexcolor.slice(3, 5), 16);
+    const b = parseInt(hexcolor.slice(5, 7), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#000000' : '#ffffff';
+  };
 
+  const searchBg = restaurant.search_bg_color || '#111111';
+  const searchTextColor = getContrastColor(searchBg)
   return (
     <div style={{ background: restaurant.bg_color || '#1a1a1a', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: isMockup ? '8px' : '12px', fontFamily: 'Inter, sans-serif' }}>
       
@@ -78,11 +88,10 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
         </div>
       )}
 
-      {/* BUSCADOR */}
-      {/* BUSCADOR DINÁMICO */}
+     {/* BUSCADOR DINÁMICO */}
       <div style={{ padding: '0 4px', marginBottom: '15px' }}>
         <div style={{ 
-          background: restaurant.search_bg_color || '#111111', // 🚀 Cambiado de fijos a variables
+          background: searchBg, 
           borderRadius: '15px', 
           padding: isMockup ? '10px' : '14px 15px', 
           display: 'flex', 
@@ -90,16 +99,62 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
           gap: '10px', 
           border: '1px solid rgba(255,255,255,0.05)' 
         }}>
-          <Search size={16} color={restaurant.search_icon_color || ACENTO} /> {/* 🚀 Lupita dinámica */}
-          <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '13px', width: '100%' }} />
+          <Search size={16} color={restaurant.search_icon_color || ACENTO} />
+          <input 
+            type="text" 
+            placeholder="Buscar..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              outline: 'none', 
+              color: searchTextColor, // 🚀 AHORA CAMBIA SEGÚN EL FONDO
+              fontSize: '13px', 
+              width: '100%' 
+            }} 
+          />
         </div>
       </div>
 
-      {/* CATEGORÍAS */}
-      <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 4px 20px' }} className="no-scrollbar">
-        <button onClick={() => setSelectedCategory("todos")} style={{ background: selectedCategory === "todos" ? ACENTO : '#1a1a1a', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '15px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Todos</button>
+  {/* CATEGORÍAS */}
+      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 4px 20px' }} className="no-scrollbar">
+        <button 
+          onClick={() => setSelectedCategory("todos")} 
+          style={{ 
+            background: selectedCategory === "todos" ? ACENTO : 'transparent', 
+            color: 'white', 
+            border: `1px solid ${selectedCategory === "todos" ? ACENTO : 'rgba(255,255,255,0.2)'}`, // 🚀 BORDE SÓLIDO
+            padding: '10px 20px', 
+            borderRadius: '15px', 
+            fontSize: '10px', 
+            fontWeight: '900', 
+            textTransform: 'uppercase', 
+            whiteSpace: 'nowrap',
+            transition: 'all 0.2s'
+          }}
+        >
+          Todos
+        </button>
         {categories?.filter((c: any) => c.name.toLowerCase() !== 'general').map((cat: any) => (
-          <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ background: selectedCategory === cat.id ? ACENTO : '#1a1a1a', color: selectedCategory === cat.id ? 'white' : '#777', border: 'none', padding: '10px 20px', borderRadius: '15px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{cat.name}</button>
+          <button 
+            key={cat.id} 
+            onClick={() => setSelectedCategory(cat.id)} 
+            style={{ 
+              background: selectedCategory === cat.id ? ACENTO : 'transparent', 
+              color: selectedCategory === cat.id ? 'white' : '#777', 
+              border: `1px solid ${selectedCategory === cat.id ? ACENTO : 'rgba(255,255,255,0.2)'}`, // 🚀 BORDE SÓLIDO
+              padding: '10px 20px', 
+              borderRadius: '15px', 
+              fontSize: '10px', 
+              fontWeight: '800', 
+              textTransform: 'uppercase', 
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s'
+            }}
+          >
+            {cat.name}
+          </button>
         ))}
       </div>
 
@@ -113,8 +168,24 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
 
             return (
               <div key={p.id} onClick={() => setActiveId(isActive ? null : p.id)} style={{ aspectRatio: '1 / 1.25', borderRadius: '20px', position: 'relative', overflow: 'hidden', backgroundColor: CARD_BG, border: isActive ? `2px solid ${ACENTO}` : 'none' }}>
-                <div style={{ position: 'absolute', inset: 0, filter: isActive ? 'brightness(0.2) blur(12px)' : 'none', transition: 'all 0.5s ease' }}>
-                  {p.video_url ? <video src={p.video_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', backgroundImage: `url('${p.image_url || ""}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
+               <div style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  filter: isActive ? 'brightness(0.2) blur(12px)' : 'none', 
+                  transition: 'all 0.5s ease',
+                  display: 'flex',         // 👈 Agregamos esto
+                  alignItems: 'center',    // 👈 Agregamos esto
+                  justifyContent: 'center', // 👈 Agregamos esto
+                  backgroundColor: '#222'  // Fondo oscuro base
+                }}>
+                  {p.video_url ? (
+                    <video src={p.video_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : p.image_url ? (
+                    <div style={{ width: '100%', height: '100%', backgroundImage: `url('${p.image_url}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                  ) : (
+                    /* 🚀 PLAN B: Si no hay foto ni video, mostramos los cubiertos */
+                    <Utensils size={48} strokeWidth={1} style={{ color: 'rgba(255,255,255,0.1)' }} />
+                  )}
                 </div>
 
                 {isActive ? (

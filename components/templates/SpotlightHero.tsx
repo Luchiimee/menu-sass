@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, Plus, Minus, Layers, X, Check, Search } from 'lucide-react';
+import { Store, Plus, Minus, Layers, X, Check, Search, Utensils } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
 
 export default function SpotlightHero({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
@@ -310,8 +310,17 @@ const isAddedA = cart.some((item: any) => String(item.id) === `A-${heroProduct?.
           return (
             <div key={i} className="spot-item-container">
               <div className="spot-item">
-                <div className="spot-thumb" style={{ backgroundImage: p.video_url ? 'none' : `url('${p.image_url || ''}')` }}>
+                <div className="spot-thumb flex items-center justify-center" 
+                     style={{ 
+                       backgroundImage: (p.image_url && !p.video_url) ? `url('${p.image_url}')` : 'none',
+                       backgroundColor: '#f3f4f6' // Fondo gris clarito
+                     }}>
                   {p.video_url && <video autoPlay loop muted playsInline preload="metadata"><source src={p.video_url} /></video>}
+                  
+                  {/* 🚀 PLAN B: Si no hay nada, cubiertos elegantes */}
+                  {!p.image_url && !p.video_url && (
+                    <Utensils size={20} strokeWidth={1.5} className="text-gray-300" />
+                  )}
                 </div>
                 <div className="flex-1 text-left">
                   <div style={{ color: restaurant.card_name_color }} className="font-bold text-[13px]">{p.name}</div>
@@ -373,10 +382,16 @@ const isAddedA = cart.some((item: any) => String(item.id) === `A-${heroProduct?.
           
           <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl relative z-[10000] animate-in zoom-in-95 duration-300 flex flex-col max-h-[92vh]">
             
-            {/* Header Imagen */}
-            <div className="h-44 bg-cover bg-center relative shrink-0" style={{ backgroundImage: bannerVideo ? 'none' : `url('${bannerImage}')` }}>
+           {/* Header Imagen en Modal */}
+            <div className="h-44 bg-cover bg-center relative shrink-0 flex items-center justify-center bg-gray-100" 
+                 style={{ backgroundImage: (bannerImage && !bannerVideo) ? `url('${bannerImage}')` : 'none' }}>
               {bannerVideo && <video autoPlay loop muted playsInline className="w-full h-full object-cover"><source src={bannerVideo} /></video>}
-              <button onClick={() => setShowHeroModal(false)} className="absolute top-5 right-5 bg-black/50 text-white p-2 rounded-full"><X size={18}/></button>
+              
+              {!bannerImage && !bannerVideo && (
+                <Utensils size={40} strokeWidth={1} className="text-gray-300" />
+              )}
+              
+              <button onClick={() => setShowHeroModal(false)} className="absolute top-5 right-5 bg-black/50 text-white p-2 rounded-full z-10"><X size={18}/></button>
             </div>
 
         <div className="p-6 overflow-y-auto no-scrollbar flex-1 space-y-8 bg-white">

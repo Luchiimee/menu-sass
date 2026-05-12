@@ -267,7 +267,19 @@ isMockup: isMockup,
               case 'elegant': return <ElegantSerif {...props} />;
               case 'bistro': return <BistroChalk {...props} />;
               case 'marketpro': return <MarketProTemplate {...props} categories={categories} fetchedExtras={data.fetched_extras || []} onAddToCart={() => {}} />;
-              case 'alterna-pro': return <AlternaPro restaurant={{ ...finalRenderData, categories: categories.length > 0 ? categories.slice(0,2) : [{id:'cat-1',name:'General'},{id:'cat-2',name:'Pizzas'}] }} products={displayProds} onAddToCart={() => {}} setSelectedProduct={() => {}} isMockup={true} />;
+              case 'alterna-pro': 
+  return (
+    <AlternaPro 
+      /* Pasamos todos los datos del restaurante */
+      restaurant={{ ...finalRenderData, categories: categories.length > 0 ? categories.slice(0,2) : [{id:'cat-1',name:'General'},{id:'cat-2',name:'Pizzas'}] }} 
+      products={displayProds} 
+      onAddToCart={() => {}} 
+      setSelectedProduct={() => {}} 
+      isMockup={true} 
+      isOpen={true}
+      setShowInfo={setShowInfoMock} // 🚀 ESTO ARREGLA EL ERROR EN EL EDITOR
+    />
+  );
               case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
               default: return <ClassicDelivery {...props} />;
             }
@@ -319,17 +331,23 @@ isMockup: isMockup,
                     </div>
                 )}
 
-              <div className="flex justify-center gap-5 pt-4 border-t border-white/5">
-    {data.instagram && <Instagram size={18} strokeWidth={1.5} className="text-white opacity-60" />}
-    {data.facebook && <Facebook size={18} strokeWidth={1.5} className="text-white opacity-60" />}
-    {data.tiktok && <Music2 size={18} strokeWidth={1.5} className="text-white opacity-60" />}
- {data.contact_phone && (
-      <a href={`https://wa.me/${data.contact_phone}`} target="_blank">
-        <Phone size={18} strokeWidth={1.5} className="text-white opacity-60" />
-      </a>
-    )}
+ <div className="flex justify-center gap-5 pt-4 border-t border-white/5">
+  {data.instagram && (
+    <a href={data.instagram.startsWith("http") ? data.instagram : data.instagram.includes(".") ? `https://${data.instagram}` : `https://instagram.com/${data.instagram.replace("@", "")}`} target="_blank">
+      <Instagram size={18} strokeWidth={1.5} className="text-white opacity-60" />
+    </a>
+  )}
+  {data.facebook && (
+    <a href={data.facebook.startsWith("http") ? data.facebook : data.facebook.includes(".") ? `https://${data.facebook}` : `https://facebook.com/${data.facebook}`} target="_blank">
+      <Facebook size={18} strokeWidth={1.5} className="text-white opacity-60" />
+    </a>
+  )}
+  {data.tiktok && (
+    <a href={data.tiktok.startsWith("http") ? data.tiktok : data.tiktok.includes(".") ? `https://${data.tiktok}` : `https://tiktok.com/@${data.tiktok.replace("@", "")}`} target="_blank">
+      <Music2 size={18} strokeWidth={1.5} className="text-white opacity-60" />
+    </a>
+  )}
 </div>
-
               </div>
               <button onClick={() => setShowInfoMock(false)} className="w-full py-3 bg-white text-black rounded-xl font-black uppercase text-[9px]">Cerrar</button>
             </div>
@@ -1235,7 +1253,7 @@ const confirmReset = () => {
     
     {/* 1. TURNOS CADA (INTERVALO) */}
     <div className="space-y-1.5 text-left">
-        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">Turnos cada:</label>
+        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">Pedidos cada:</label>
         <select 
             value={data.scheduled_delivery_config.interval_minutes}
             onChange={(e) => {

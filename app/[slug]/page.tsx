@@ -1642,20 +1642,21 @@ case "spotlight":
       }
       case "alterna-pro":
         return (
-          <AlternaPro
-            restaurant={{ ...restaurant, selectedProduct }}
-            products={allProducts}
-            setSelectedProduct={setSelectedProduct}
-            isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
-            onAddToCart={(product: any, qty: number) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
-              mostrarAviso("✅ Producto agregado");
-            }}
-            isMockup={false}
-          />
-        );
+        <AlternaPro
+      restaurant={{ ...restaurant, selectedProduct }}
+      products={allProducts}
+      setSelectedProduct={setSelectedProduct}
+      isOpen={isOpen}
+      onAddToCart={(product: any, qty: number) => {
+        for (let i = 0; i < qty; i++) {
+          addToCart(product);
+        }
+        mostrarAviso("✅ Producto agregado");
+      }}
+      isMockup={false}
+      setShowInfo={setShowInfo} // 🚀 ESTO ARREGLA EL ERROR EN EL CELULAR DEL CLIENTE
+    />
+  );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }
@@ -2420,59 +2421,56 @@ case "spotlight":
                 </div>
               )}
 
-              {/* REDES SOCIALES: Iconos blancos de trazo fino */}
-              <div className="flex justify-center gap-6 pt-8 border-t border-white/5">
-                {restaurant.instagram && (
-                  <a
-                    href={
-                      restaurant.instagram.startsWith("http")
-                        ? restaurant.instagram
-                        : restaurant.instagram.includes(".")
-                          ? `https://${restaurant.instagram.replace("https://", "")}`
-                          : `https://instagram.com/${restaurant.instagram.replace("@", "")}`
-                    }
-                    target="_blank"
-                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
-                  >
-                    <Instagram size={24} strokeWidth={1.5} />
-                  </a>
-                )}
-                {restaurant.facebook && (
-                  <a
-                    href={
-                      restaurant.facebook.startsWith("http")
-                        ? restaurant.facebook
-                        : `https://facebook.com/${restaurant.facebook}`
-                    }
-                    target="_blank"
-                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
-                  >
-                    <Facebook size={24} strokeWidth={1.5} />
-                  </a>
-                )}
-                {restaurant.tiktok && (
-                  <a
-                    href={
-                      restaurant.tiktok.startsWith("http")
-                        ? restaurant.tiktok
-                        : `https://tiktok.com/@${restaurant.tiktok.replace("@", "")}`
-                    }
-                    target="_blank"
-                    className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
-                  >
-                    <Music2 size={24} strokeWidth={1.5} />
-                  </a>
-                )}
-             {restaurant.contact_phone && (
+            {/* REDES SOCIALES: Lógica inteligente para links o nombres de usuario */}
+<div className="flex justify-center gap-6 pt-8 border-t border-white/5">
+  {restaurant.instagram && (
     <a
-      href={`https://wa.me/${restaurant.contact_phone}`}
+      href={
+        restaurant.instagram.startsWith("http")
+          ? restaurant.instagram
+          : restaurant.instagram.includes(".")
+            ? `https://${restaurant.instagram.replace("https://", "")}`
+            : `https://instagram.com/${restaurant.instagram.replace("@", "")}`
+      }
       target="_blank"
       className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
     >
-      <Phone size={24} strokeWidth={1.5} />
+      <Instagram size={24} strokeWidth={1.5} />
     </a>
   )}
-              </div>
+  
+  {restaurant.facebook && (
+    <a
+      href={
+        restaurant.facebook.startsWith("http")
+          ? restaurant.facebook
+          : restaurant.facebook.includes(".") // 🚀 FIX: Si puso un link como google.com
+            ? `https://${restaurant.facebook.replace("https://", "")}`
+            : `https://facebook.com/${restaurant.facebook}`
+      }
+      target="_blank"
+      className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+    >
+      <Facebook size={24} strokeWidth={1.5} />
+    </a>
+  )}
+  
+  {restaurant.tiktok && (
+    <a
+      href={
+        restaurant.tiktok.startsWith("http")
+          ? restaurant.tiktok
+          : restaurant.tiktok.includes(".") // 🚀 FIX: Si puso un link externo
+            ? `https://${restaurant.tiktok.replace("https://", "")}`
+            : `https://tiktok.com/@${restaurant.tiktok.replace("@", "")}`
+      }
+      target="_blank"
+      className="text-white opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+    >
+      <Music2 size={24} strokeWidth={1.5} />
+    </a>
+  )}
+</div>
             </div>
 
             <button

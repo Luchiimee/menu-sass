@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, X, Minus, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone, Check } from "lucide-react";
+import { Search, Plus, X, Minus, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone, Check, Utensils } from "lucide-react";
 
 export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -214,26 +214,32 @@ const sz = isMockup ? {
                     setVariationsQuantities({});
                   }}
                 >
-                  <div 
-                    className="urbano-img" 
+     <div 
+                    className="urbano-img flex items-center justify-center" 
                     style={{
                       backgroundImage: p.image_url && !p.video_url ? `url("${p.image_url}")` : 'none',
-                      backgroundColor: '#333',
+                      backgroundColor: '#1E1E1E', // Fondo oscuro para que resalte el icono
                       position: 'relative',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.05)'
                     }}
                   >
                     {p.video_url && (
-                     <video 
-  autoPlay={!isMockup} 
-  loop={!isMockup} 
-  muted 
-  playsInline 
-  preload="metadata"
-  style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}
->
-  <source src={p.video_url} />
-</video>
+                      <video 
+                        autoPlay={!isMockup} 
+                        loop={!isMockup} 
+                        muted 
+                        playsInline 
+                        preload="metadata"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}
+                      >
+                        <source src={p.video_url} />
+                      </video>
+                    )}
+                    
+                    {/* 🚀 ICONO DE COMIDA SI NO HAY FOTO NI VIDEO */}
+                    {!p.image_url && !p.video_url && (
+                      <Utensils size={28} strokeWidth={1.2} className="text-zinc-700" />
                     )}
                   </div>
                   <div className="urbano-info">
@@ -304,19 +310,30 @@ const sz = isMockup ? {
             <button onClick={() => { setSelectedProduct(null); setQuantity(1); setVariationsQuantities({}); setSelectedExtras([]); }} className="absolute top-4 right-6 z-[210] bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-gray-100">
               <X size={18} className="text-gray-900" />
             </button>
-            <div className="overflow-y-auto no-scrollbar flex-1">
-              <div className="relative aspect-[16/15] w-full bg-gray-100 overflow-hidden" 
-                style={{ backgroundImage: selectedProduct.image_url && !selectedProduct.video_url ? `url("${selectedProduct.image_url}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                {selectedProduct.video_url && (
-                 <video 
-  autoPlay 
-  loop 
-  muted 
-  playsInline 
-  className="absolute inset-0 w-full h-full object-cover"
->
-  <source src={selectedProduct.video_url} />
-</video>
+           <div className="overflow-y-auto no-scrollbar flex-1">
+              <div className="relative aspect-[16/15] w-full bg-zinc-50 overflow-hidden flex items-center justify-center">
+                {selectedProduct.video_url ? (
+                  <video 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline 
+                    className="absolute inset-0 w-full h-full object-cover"
+                  >
+                    <source src={selectedProduct.video_url} />
+                  </video>
+                ) : selectedProduct.image_url ? (
+                  <img 
+                    src={selectedProduct.image_url} 
+                    className="w-full h-full object-cover" 
+                    alt={selectedProduct.name}
+                  />
+                ) : (
+                  /* 🚀 PLAN B EN MODAL: Cubiertos grandes y elegantes */
+                  <div className="flex flex-col items-center gap-3 opacity-20">
+                    <Utensils size={80} strokeWidth={1} className="text-gray-400" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Menú Digital</span>
+                  </div>
                 )}
               </div>
               <div className="p-6 text-black">
