@@ -17,7 +17,8 @@ const PRECIO_LIGHT = 10000;
 
 const EMAILS_EXCLUIDOS = [
   'luchiimee@gmail.com', 'luchiimee2@gmail.com', 
-  'snappyuno25@gmail.com', 'tamarabenitez990@gmail.com'
+   'tamarabenitez990@gmail.com', 'ginoroblabelleggia@gmail.com'
+   
 ];
 
 export default function AdminSnappyPage() {

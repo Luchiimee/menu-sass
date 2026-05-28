@@ -41,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com'];
+const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginoroblabelleggia@gmail.com'];
 setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
       const [restRes, profileRes] = await Promise.all([
         supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
