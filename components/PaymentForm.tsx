@@ -25,8 +25,8 @@ export default function PaymentForm({ plan, userId, userEmail, onSuccess, onClos
   const amount = PLAN_PRICES[plan] ?? 0;
 
   useEffect(() => {
-    if (!mpInitialized && process.env.NEXT_PUBLIC_MP_PUBLIC_KEY) {
-      initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY, { locale: 'es-AR' });
+    if (!mpInitialized && process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY) {
+      initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY, { locale: 'es-AR' });
       mpInitialized = true;
     }
   }, []);
