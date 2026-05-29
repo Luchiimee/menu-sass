@@ -7,9 +7,9 @@ import { toast } from 'sonner';
 initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY!, { locale: 'es-AR' });
 
 const PLAN_PRICES: Record<string, number> = {
-  light: 10000,
-  go: 16900,
-  plus: 27000,
+  light: 15000,
+  go: 22000,
+  plus: 35000,
 };
 
 interface PaymentFormProps {

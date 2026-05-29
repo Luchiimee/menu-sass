@@ -434,7 +434,7 @@ const renderPlanButton = (planId: string) => {
             <div className="flex justify-between items-start mb-4 text-left">
               <div>
                 <h3 className="font-bold text-gray-400 text-[9px] uppercase tracking-widest leading-none">Para empezar</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1">Light <span className="text-xs text-gray-400 font-bold">$10.000</span></p>
+                <p className="text-2xl font-black text-gray-900 mt-1">Light <span className="text-xs text-gray-400 font-bold">$15.000</span></p>
               </div>
               {restaurant.subscription_plan === "light" && restaurant.subscription_status === 'active' && (
                 <span className="bg-black text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>
@@ -462,7 +462,7 @@ const renderPlanButton = (planId: string) => {
             <div className="flex justify-between items-start mb-4 text-left">
               <div>
                 <h3 className="font-bold text-blue-500 text-[9px] uppercase tracking-widest leading-none">Más Potencia</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1">GO <span className="text-xs text-gray-400 font-bold">$16.900</span></p>
+                <p className="text-2xl font-black text-gray-900 mt-1">GO <span className="text-xs text-gray-400 font-bold">$22.000</span></p>
               </div>
               {restaurant.subscription_plan === "go" && restaurant.subscription_status === 'active' && (
                 <span className="bg-blue-600 text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>
@@ -491,7 +491,7 @@ const renderPlanButton = (planId: string) => {
             <div className="flex justify-between items-start mb-4 text-left">
               <div>
                 <h3 className="font-bold text-emerald-600 text-[9px] uppercase tracking-widest leading-none">Profesional ✨</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1">Plus <span className="text-xs text-gray-400 font-bold">$27.000</span></p>
+                <p className="text-2xl font-black text-gray-900 mt-1">Plus <span className="text-xs text-gray-400 font-bold">$35.000</span></p>
               </div>
               {restaurant.subscription_plan === "plus" && restaurant.subscription_status === 'active' && (
                 <span className="bg-emerald-600 text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>

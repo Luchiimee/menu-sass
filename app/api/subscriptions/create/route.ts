@@ -7,9 +7,9 @@ const supabase = createClient(
 );
 
 const prices: Record<string, number> = {
-  light: 10000,
-  go: 16900,
-  plus: 27000,
+  light: 15000,
+  go: 22000,
+  plus: 35000,
 };
 
 const MP_BASE = 'https://api.mercadopago.com';
