@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
 import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react';
 import { X, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+
+initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY!, { locale: 'es-AR' });
 
 const PLAN_PRICES: Record<string, number> = {
   light: 10000,
@@ -19,17 +20,8 @@ interface PaymentFormProps {
   onClose: () => void;
 }
 
-let mpInitialized = false;
-
 export default function PaymentForm({ plan, userId, userEmail, onSuccess, onClose }: PaymentFormProps) {
   const amount = PLAN_PRICES[plan] ?? 0;
-
-  useEffect(() => {
-    if (!mpInitialized && process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY) {
-      initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY, { locale: 'es-AR' });
-      mpInitialized = true;
-    }
-  }, []);
 
   const handleSubmit = async (formData: any) => {
     try {
