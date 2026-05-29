@@ -80,7 +80,7 @@ export default function AlternaPro({
     }
 
     return (
-      <button key={p.id} onClick={() => setSelectedProduct(p)} className={`w-full flex items-center gap-4 active:scale-95 transition-transform ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
+     <button key={p.id} onClick={() => { if (!isOpen && !isMockup) return setShowClosedModal(true); setSelectedProduct(p); }} className={`w-full flex items-center gap-4 active:scale-95 transition-transform ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
         <div className="shrink-0 relative">
           <div className={`${sizeProductImg} rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center`} style={{ boxShadow: `0 0 0 1px ${THEME}` }}>
             {p.video_url ? (

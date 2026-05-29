@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: "Snappy | Tu Menú Digital",
   description: "Tu carta digital inteligente.",
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png', 
+    icon: '/logo-snappy192.svg',
+    apple: '/logo-snappy192.svg', 
   },
   appleWebApp: {
     capable: true,

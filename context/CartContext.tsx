@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 interface CartContextType {
   cart: any[];
@@ -20,68 +20,72 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<any[]>([]);
   const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
+  // Contador incremental — nunca repite aunque se llame en el mismo milisegundo
+  const counterRef = useRef(0);
+
+  const generateUniqueId = (productId: string) => {
+    counterRef.current += 1;
+    return `${productId}-${counterRef.current}`;
+  };
 
   // 1. RECUPERAR ID DEL PEDIDO (Solo en el cliente)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-        const savedOrderId = localStorage.getItem('snappy_active_order');
-        if (savedOrderId) setActiveOrderIdState(savedOrderId);
+      const savedOrderId = localStorage.getItem('snappy_active_order');
+      if (savedOrderId) setActiveOrderIdState(savedOrderId);
     }
   }, []);
 
   // 2. GUARDAR ID EN LOCALSTORAGE
   const setActiveOrderId = (id: string | null) => {
-      setActiveOrderIdState(id);
-      if (typeof window !== 'undefined') {
-          if (id) localStorage.setItem('snappy_active_order', id);
-          else localStorage.removeItem('snappy_active_order');
-      }
+    setActiveOrderIdState(id);
+    if (typeof window !== 'undefined') {
+      if (id) localStorage.setItem('snappy_active_order', id);
+      else localStorage.removeItem('snappy_active_order');
+    }
   };
 
   const cartRestaurantId = cart.length > 0 ? cart[0].restaurant_id : null;
 
   const addToCart = (product: any) => {
     setCart((prev) => {
-      // CASO 1: ES UN EXTRA (Mantenemos tu lógica para los adicionales)
+      // CASO 1: ES UN EXTRA
       if (product.extraId) {
         const newCart = [...prev];
-        // Buscamos el último item que coincida con el ID padre
         const parentIndex = [...newCart].reverse().findIndex((item) => item.id === product.id);
-        
+
         if (parentIndex !== -1) {
-            const actualIndex = newCart.length - 1 - parentIndex;
-            const parentItem = { ...newCart[actualIndex] };
-            
-            const currentExtras = parentItem.extrasList || [];
-            const existingExtraIndex = currentExtras.findIndex((ex: any) => ex.id === product.extraId);
-            const updatedExtras = [...currentExtras];
+          const actualIndex = newCart.length - 1 - parentIndex;
+          const parentItem = { ...newCart[actualIndex] };
 
-            if (existingExtraIndex >= 0) {
-                updatedExtras[existingExtraIndex].quantity += 1;
-            } else {
-                updatedExtras.push({
-                    id: product.extraId,
-                    name: product.name,
-                    price: product.price,
-                    quantity: 1
-                });
-            }
+          const currentExtras = parentItem.extrasList || [];
+          const existingExtraIndex = currentExtras.findIndex((ex: any) => ex.id === product.extraId);
+          const updatedExtras = [...currentExtras];
 
-            parentItem.extrasList = updatedExtras;
-            newCart[actualIndex] = parentItem;
-            return newCart;
+          if (existingExtraIndex >= 0) {
+            updatedExtras[existingExtraIndex].quantity += 1;
+          } else {
+            updatedExtras.push({
+              id: product.extraId,
+              name: product.name,
+              price: product.price,
+              quantity: 1
+            });
+          }
+
+          parentItem.extrasList = updatedExtras;
+          newCart[actualIndex] = parentItem;
+          return newCart;
         }
         return prev;
       }
 
-      // --- CASO 2: PRODUCTO PRINCIPAL (CORREGIDO PARA UNIFICAR) ---
-      // Buscamos si ya existe el producto base en el carrito (sin contar los que ya tienen extras)
-      const existingItemIndex = prev.findIndex((item) => 
+      // CASO 2: PRODUCTO PRINCIPAL
+      const existingItemIndex = prev.findIndex((item) =>
         item.id === product.id && (!item.extrasList || item.extrasList.length === 0)
       );
 
       if (existingItemIndex !== -1) {
-        // Si existe, mapeamos el carrito y sumamos 1 a la cantidad del producto encontrado
         return prev.map((item, index) =>
           index === existingItemIndex
             ? { ...item, quantity: (item.quantity || 1) + 1 }
@@ -89,13 +93,12 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         );
       }
 
-      // Si es un producto nuevo, lo agregamos con cantidad 1
-      // Usamos el ID del producto como uniqueId para que sea estable
-      const newItem = { 
-        ...product, 
-        uniqueId: `${product.id}-${Date.now()}`, 
-        quantity: 1, 
-        extrasList: [] 
+      // Producto nuevo — uniqueId con contador incremental, nunca duplicado
+      const newItem = {
+        ...product,
+        uniqueId: generateUniqueId(product.id),
+        quantity: 1,
+        extrasList: []
       };
       return [...prev, newItem];
     });
@@ -113,15 +116,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateExtraQuantity = (itemUniqueId: string, extraId: string, quantity: number) => {
-    setCart((prev) => 
+    setCart((prev) =>
       prev.map((item) => {
         if (item.uniqueId !== itemUniqueId) return item;
         const currentExtras = item.extrasList || [];
-        
-        const extrasList = quantity <= 0 
-            ? currentExtras.filter((ex: any) => ex.id !== extraId)
-            : currentExtras.map((ex: any) => ex.id === extraId ? { ...ex, quantity } : ex);
-            
+
+        const extrasList = quantity <= 0
+          ? currentExtras.filter((ex: any) => ex.id !== extraId)
+          : currentExtras.map((ex: any) => ex.id === extraId ? { ...ex, quantity } : ex);
+
         return { ...item, extrasList };
       })
     );
@@ -137,9 +140,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   }, 0);
 
   return (
-    <CartContext.Provider value={{ 
-        cart, addToCart, removeFromCart, updateQuantity, updateExtraQuantity, clearCart, total, cartRestaurantId,
-        activeOrderId, setActiveOrderId 
+    <CartContext.Provider value={{
+      cart, addToCart, removeFromCart, updateQuantity, updateExtraQuantity, clearCart, total, cartRestaurantId,
+      activeOrderId, setActiveOrderId
     }}>
       {children}
     </CartContext.Provider>

@@ -420,7 +420,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-[100] bg-[#f5f2e8]/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Snappy" width={32} height={32} />
+            <Image src="/logo-snappy.svg" alt="Snappy" width={32} height={32} />
             <span className="font-bold text-2xl tracking-tight">Snappy.</span>
           </Link>
 
