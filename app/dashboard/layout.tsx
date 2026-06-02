@@ -199,6 +199,17 @@ const menuItems = [
             <Link href="/dashboard/plan" className="bg-white text-indigo-600 px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-indigo-50 transition shadow-sm">Configurar Pago 💳</Link>
           </div>
         )}
+
+        {/* 3. BANNER DE PAGO FALLIDO */}
+        {restaurant.status === 'paused' && !isAdmin && (
+          <div className="bg-red-600 text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16}/>
+              <span>Tu pago falló y la suscripción está pausada. Actualizá tu tarjeta para continuar.</span>
+            </div>
+            <Link href="/dashboard/plan" className="bg-white text-red-600 px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-red-50 transition shadow-sm">Actualizar Tarjeta</Link>
+          </div>
+        )}
       </div>
     );
   };
