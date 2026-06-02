@@ -15,6 +15,7 @@ import {
   HelpCircle,
   FileText,
 } from "lucide-react";
+import PaymentForm from "@/components/PaymentForm";
 
 type Restaurant = {
   id: string | null;
@@ -60,6 +61,8 @@ function PlanContent() {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentPlan, setPaymentPlan] = useState<string | null>(null);
 const searchParams = useSearchParams();
 useEffect(() => {
     const needPhone = searchParams.get('requirePhone');
@@ -217,39 +220,24 @@ const handleCancelPlan = async () => {
         setProcessingPlan(null);
     }
 };
-const handleRedirectToMP = async (planType: string) => {
-    if (!profile.email || !restaurant.id) {
-      toast.error("Faltan datos de perfil o restaurante.");
+const handleOpenPaymentModal = (planType: string) => {
+    if (!profile.email) {
+      toast.error("Falta el email de tu perfil.");
       return;
     }
+    setPaymentPlan(planType);
+    setShowPaymentModal(true);
+  };
 
-    setProcessingPlan(planType);
-    try {
-     const response = await fetch("/api/mercadopago/create-link", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    email: profile.email,
-    plan: planType,
-    userId: userId
-  })
-});
-
-      const data = await response.json();
-if (response.ok && data.url) {
-  window.location.href = data.url;
-} else {
-  console.error("MP FULL ERROR:", data);
-  throw new Error(data.error || "Error en la API de pagos");
-}
-    } catch (error: any) {
-      console.error("Error MP:", error);
-      toast.error(error.message);
-      setProcessingPlan(null);
-    }
-};
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    setPaymentPlan(null);
+    setRestaurant(prev => ({
+      ...prev,
+      subscription_status: 'active',
+    }));
+    window.dispatchEvent(new Event("profile-updated"));
+  };
 
 const renderPlanButton = (planId: string) => {
     const isThisPlanSelected = restaurant.subscription_plan === planId;
@@ -283,7 +271,7 @@ const renderPlanButton = (planId: string) => {
     if (isThisPlanSelected && (restaurant.subscription_status === 'trialing' || isCancelled)) {
         return (
             <button
-                onClick={() => handleRedirectToMP(planId)}
+                onClick={() => handleOpenPaymentModal(planId)}
                 disabled={processingPlan !== null}
                 className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2"
             >
@@ -307,6 +295,16 @@ const renderPlanButton = (planId: string) => {
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-gray-300" size={40} /></div>;
 
   return (
+    <>
+    {showPaymentModal && paymentPlan && (
+      <PaymentForm
+        plan={paymentPlan}
+        userId={userId!}
+        userEmail={profile.email}
+        onSuccess={handlePaymentSuccess}
+        onClose={() => setShowPaymentModal(false)}
+      />
+    )}
     <div className="max-w-7xl mx-auto space-y-6 pb-24 px-4 pt-24 md:pt-10 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div className="text-left">
@@ -408,7 +406,7 @@ const renderPlanButton = (planId: string) => {
           )}
           {restaurant.subscription_status === 'cancelled' && (
             <button 
-                onClick={() => handleRedirectToMP(restaurant.subscription_plan!)}
+                onClick={() => handleOpenPaymentModal(restaurant.subscription_plan!)}
                 className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white"
             >
                 Re-activar Suscripción 💳
@@ -436,7 +434,7 @@ const renderPlanButton = (planId: string) => {
             <div className="flex justify-between items-start mb-4 text-left">
               <div>
                 <h3 className="font-bold text-gray-400 text-[9px] uppercase tracking-widest leading-none">Para empezar</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1">Light <span className="text-xs text-gray-400 font-bold">$10.000</span></p>
+                <p className="text-2xl font-black text-gray-900 mt-1">Light <span className="text-xs text-gray-400 font-bold">$15.000</span></p>
               </div>
               {restaurant.subscription_plan === "light" && restaurant.subscription_status === 'active' && (
                 <span className="bg-black text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>
@@ -464,7 +462,7 @@ const renderPlanButton = (planId: string) => {
             <div className="flex justify-between items-start mb-4 text-left">
               <div>
                 <h3 className="font-bold text-blue-500 text-[9px] uppercase tracking-widest leading-none">Más Potencia</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1">GO <span className="text-xs text-gray-400 font-bold">$16.900</span></p>
+                <p className="text-2xl font-black text-gray-900 mt-1">GO <span className="text-xs text-gray-400 font-bold">$22.000</span></p>
               </div>
               {restaurant.subscription_plan === "go" && restaurant.subscription_status === 'active' && (
                 <span className="bg-blue-600 text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>
@@ -493,7 +491,7 @@ const renderPlanButton = (planId: string) => {
             <div className="flex justify-between items-start mb-4 text-left">
               <div>
                 <h3 className="font-bold text-emerald-600 text-[9px] uppercase tracking-widest leading-none">Profesional ✨</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1">Plus <span className="text-xs text-gray-400 font-bold">$27.000</span></p>
+                <p className="text-2xl font-black text-gray-900 mt-1">Plus <span className="text-xs text-gray-400 font-bold">$35.000</span></p>
               </div>
               {restaurant.subscription_plan === "plus" && restaurant.subscription_status === 'active' && (
                 <span className="bg-emerald-600 text-white text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Activo</span>
@@ -544,6 +542,7 @@ const renderPlanButton = (planId: string) => {
         </div>
       </section>
     </div>
+    </>
   );
 }
 
