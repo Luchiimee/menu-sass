@@ -12,6 +12,12 @@ const mpHeaders = () => ({
   Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
 });
 
+const prices: Record<string, number> = {
+  light: 15000,
+  go: 22000,
+  plus: 35000,
+};
+
 export async function POST(req: Request) {
   try {
     const { token, userId, email, mpPreapprovalId } = await req.json();
@@ -20,60 +26,95 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
-    // 1. Buscar el cliente en MP por email
-    const search = await fetch(
-      `${MP_BASE}/v1/customers/search?email=${encodeURIComponent(email)}`,
-      { headers: mpHeaders() }
-    );
-    const searchData = await search.json();
+    // Obtener el plan actual del usuario
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('subscription_plan')
+      .eq('user_id', userId)
+      .maybeSingle();
 
+    const plan = restaurant?.subscription_plan;
+    if (!plan || !prices[plan]) {
+      return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
+    }
+
+    // Cancelar suscripción anterior si existe
+    if (mpPreapprovalId) {
+      await fetch(`${MP_BASE}/preapproval/${mpPreapprovalId}`, {
+        method: 'PUT',
+        headers: mpHeaders(),
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+    }
+
+    // Crear/obtener cliente en MP
+    const search = await fetch(`${MP_BASE}/v1/customers/search?email=${encodeURIComponent(email)}`, { headers: mpHeaders() });
+    const searchData = await search.json();
     let customerId: string;
     if (searchData.results?.length > 0) {
       customerId = searchData.results[0].id;
     } else {
       const create = await fetch(`${MP_BASE}/v1/customers`, {
-        method: 'POST',
-        headers: mpHeaders(),
-        body: JSON.stringify({ email }),
+        method: 'POST', headers: mpHeaders(), body: JSON.stringify({ email }),
       });
-      const customer = await create.json();
-      customerId = customer.id;
+      customerId = (await create.json()).id;
     }
 
-    // 2. Guardar la nueva tarjeta
+    // Borrar tarjetas existentes del cliente para evitar duplicados
+    const existingRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
+    const existingCards = await existingRes.json();
+    if (Array.isArray(existingCards)) {
+      await Promise.all(existingCards.map((c: any) =>
+        fetch(`${MP_BASE}/v1/customers/${customerId}/cards/${c.id}`, { method: 'DELETE', headers: mpHeaders() })
+      ));
+    }
+
+    // Guardar nueva tarjeta
     const cardRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, {
-      method: 'POST',
-      headers: mpHeaders(),
-      body: JSON.stringify({ token }),
+      method: 'POST', headers: mpHeaders(), body: JSON.stringify({ token }),
     });
     const card = await cardRes.json();
 
     if (!cardRes.ok) {
-      console.error('MP update-card ERROR:', card);
+      console.error('MP update-card (save card) ERROR:', card);
       return NextResponse.json({ error: card.message || 'Error al guardar tarjeta' }, { status: 500 });
     }
 
-    // 3. Actualizar el preapproval con la nueva tarjeta y reactivar si estaba pausado
-    if (mpPreapprovalId) {
-      const mpUpdate = await fetch(`${MP_BASE}/preapproval/${mpPreapprovalId}`, {
-        method: 'PUT',
-        headers: mpHeaders(),
-        body: JSON.stringify({
-          card_id: card.id,
-          status: 'authorized',
-        }),
-      });
+    // Crear nueva suscripción con la nueva tarjeta
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1);
+    const isoStartDate = startDate.toISOString().split('.')[0] + 'Z';
 
-      if (!mpUpdate.ok) {
-        const err = await mpUpdate.json();
-        console.error('MP reactivate error:', err);
-      }
+    const preapprovalRes = await fetch(`${MP_BASE}/preapproval`, {
+      method: 'POST',
+      headers: mpHeaders(),
+      body: JSON.stringify({
+        reason: `Plan ${plan.toUpperCase()} - Snappy`,
+        payer_email: email,
+        external_reference: userId,
+        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/plan`,
+        card_id: card.id,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: prices[plan],
+          currency_id: 'ARS',
+        },
+        auto_start_date: isoStartDate,
+      }),
+    });
+
+    const preapproval = await preapprovalRes.json();
+
+    if (!preapprovalRes.ok) {
+      console.error('MP update-card (preapproval) ERROR:', preapproval);
+      return NextResponse.json({ error: preapproval.message || 'Error al crear suscripción' }, { status: 500 });
     }
 
-    // 4. Actualizar Supabase
+    // Actualizar Supabase
     await supabase
       .from('restaurants')
-      .update({ subscription_status: 'active' })
+      .update({ subscription_status: 'active', mp_preapproval_id: preapproval.id })
       .eq('user_id', userId);
 
     return NextResponse.json({ success: true });
