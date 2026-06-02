@@ -72,21 +72,21 @@ export async function POST(request: Request) {
 
         const newStatus = statusMap[mpStatus] ?? mpStatus;
 
-        // --- Determinar el plan desde el preapproval_plan_id ---
+        // --- Determinar el plan desde el preapproval_plan_id o mantener el actual ---
         const planMap: Record<string, string> = {
             '3aa6c7cc41fb4bfab3e9967e1bcbaeb5': 'light',
             '979bc6ba5ebe4d5fa4d5b1c823586772': 'go',
             '65dd4645b714425c814a482978375c74': 'plus',
         };
-        const planType = planMap[subscription.preapproval_plan_id] ?? 'light';
 
-        // --- Calcular fecha de fin de trial ---
-        // Buscamos el restaurante para saber cuándo se registró
+        // Traemos el plan actual para no pisarlo si no podemos determinarlo
         const { data: restaurant } = await supabase
             .from('restaurants')
-            .select('created_at')
+            .select('created_at, subscription_plan')
             .eq('user_id', userId)
             .maybeSingle();
+
+        const planType = planMap[subscription.preapproval_plan_id] ?? restaurant?.subscription_plan ?? 'light';
 
         let trialEndsAt = null;
         if (restaurant?.created_at) {

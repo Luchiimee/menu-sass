@@ -387,6 +387,12 @@ const renderPlanButton = (planId: string) => {
             Suscripción cancelada. Vuelva a suscribirse antes del <span className="text-amber-900 underline">{getChargeDate()}</span> para evitar el bloqueo del servicio.
         </p>
      </div>
+) : restaurant.subscription_status === 'paused' ? (
+     <div className="mt-2 p-3 bg-red-50 rounded-2xl border border-red-100">
+        <p className="text-[10px] text-red-700 font-black uppercase leading-tight">
+            Pago fallido. Tu suscripción está pausada. Actualizá tu tarjeta para reactivarla.
+        </p>
+     </div>
 ) : (
      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">
         Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span>
@@ -404,8 +410,8 @@ const renderPlanButton = (planId: string) => {
                 Cancelar Plan
             </button>
           )}
-          {restaurant.subscription_status === 'cancelled' && (
-            <button 
+          {(restaurant.subscription_status === 'cancelled' || restaurant.subscription_status === 'paused') && (
+            <button
                 onClick={() => handleOpenPaymentModal(restaurant.subscription_plan!)}
                 className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white"
             >
