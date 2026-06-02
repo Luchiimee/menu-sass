@@ -366,11 +366,11 @@ function PlanContent() {
           </section>
         </div>
 
-        {/* PLANES — DISEÑO OSCURO */}
-        <section className="bg-gray-950 rounded-[2rem] p-6 md:p-8">
-          <div className="mb-6">
-            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Cambiar Plan</p>
-            <h2 className="text-xl font-black text-white uppercase italic tracking-tighter mt-1">Planes Disponibles</h2>
+        {/* PLANES */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 md:p-8">
+          <div className="mb-6 border-b border-gray-100 pb-6">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cambiar Plan</p>
+            <h2 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter mt-1">Planes Disponibles</h2>
             <p className="text-[11px] text-gray-400 font-bold mt-1">Podés subir o bajar de plan en cualquier momento. El cambio aplica desde el próximo ciclo.</p>
           </div>
 
@@ -379,10 +379,14 @@ function PlanContent() {
               const isCurrent = restaurant.subscription_plan === plan.id;
               const needsPayment = isCurrent && (isTrialing || isCancelled);
 
+              const borderColor = isCurrent
+                ? plan.id === 'light' ? 'border-gray-900' : plan.id === 'go' ? 'border-blue-500' : 'border-emerald-500'
+                : 'border-gray-100';
+
               return (
-                <div key={plan.id} className={`bg-gray-900 rounded-2xl p-6 border-2 flex flex-col relative ${isCurrent ? plan.accent : 'border-gray-800'}`}>
+                <div key={plan.id} className={`rounded-[1.5rem] p-6 border-2 flex flex-col relative bg-white ${borderColor}`}>
                   {isCurrent && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-gray-900 text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
                       Plan Actual
                     </span>
                   )}
@@ -393,20 +397,20 @@ function PlanContent() {
                   )}
 
                   <div className="mb-4">
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{plan.tagline}</p>
-                    <h3 className="text-2xl font-black text-white mt-0.5">{plan.name}</h3>
-                    <p className="text-3xl font-black text-white mt-3">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{plan.tagline}</p>
+                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tighter mt-0.5">{plan.name}</h3>
+                    <p className="text-3xl font-black text-gray-900 mt-3">
                       ${plan.price.toLocaleString('es-AR')}
-                      <span className="text-sm text-gray-400 font-bold">/mes</span>
+                      <span className="text-sm text-gray-400 font-bold"> /mes</span>
                     </p>
                   </div>
 
                   <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map((f, i) => (
-                      <li key={i} className={`flex items-center gap-2 text-[11px] font-bold ${f.included ? 'text-gray-200' : 'text-gray-600'}`}>
+                      <li key={i} className={`flex items-center gap-2 text-[11px] font-bold ${f.included ? 'text-gray-700' : 'text-gray-300'}`}>
                         {f.included
-                          ? <Check size={12} className="text-emerald-400 shrink-0" />
-                          : <X size={12} className="text-gray-700 shrink-0" />
+                          ? <Check size={12} className="text-emerald-500 shrink-0" />
+                          : <X size={12} className="text-gray-300 shrink-0" />
                         }
                         {f.text}
                       </li>
@@ -414,31 +418,24 @@ function PlanContent() {
                   </ul>
 
                   {isCurrent && isActive && (
-                    <div className="w-full py-3 bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center">
+                    <div className="w-full py-3 bg-gray-50 text-gray-500 rounded-xl text-[10px] font-black uppercase tracking-widest text-center border border-gray-100">
                       Plan Activo ✓
                     </div>
                   )}
                   {isCurrent && needsPayment && (
-                    <button
-                      onClick={() => handleOpenPaymentModal(plan.id)}
-                      className="w-full py-3 bg-white text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-colors"
-                    >
+                    <button onClick={() => handleOpenPaymentModal(plan.id)} className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 transition-colors">
                       Configurar Pago 💳
                     </button>
                   )}
                   {!isCurrent && (
                     <button
                       onClick={() => {
-                        if (!restaurant.subscription_plan) {
-                          handleOpenPaymentModal(plan.id);
-                        } else if (isActive || isTrialing) {
-                          handleChangePlan(plan.id);
-                        } else {
-                          handleOpenPaymentModal(plan.id);
-                        }
+                        if (!restaurant.subscription_plan) { handleOpenPaymentModal(plan.id); }
+                        else if (isActive || isTrialing) { handleChangePlan(plan.id); }
+                        else { handleOpenPaymentModal(plan.id); }
                       }}
                       disabled={processingPlan !== null}
-                      className="w-full py-3 border border-gray-700 text-gray-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-3 border border-gray-200 text-gray-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 hover:border-gray-900 hover:text-gray-900 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {processingPlan === plan.id
                         ? <Loader2 size={13} className="animate-spin" />
@@ -452,17 +449,17 @@ function PlanContent() {
           </div>
 
           {/* MAX — Coming soon */}
-          <div className="mt-4 bg-gray-900/50 border border-gray-800 border-dashed rounded-2xl p-6 flex items-center justify-between">
+          <div className="mt-4 border-2 border-dashed border-gray-100 bg-gray-50/50 rounded-[1.5rem] p-6 flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Próximamente</p>
-              <h3 className="text-xl font-black text-gray-500 mt-0.5">Max <span className="text-sm text-gray-700 font-bold blur-sm">$XX.XXX</span></h3>
-              <p className="text-[10px] text-gray-600 font-bold mt-1">4 sucursales · Billeteras virtuales · Escalabilidad total</p>
+              <p className="text-[9px] font-black text-purple-500 uppercase tracking-widest">Próximamente</p>
+              <h3 className="text-xl font-black text-gray-400 italic tracking-tighter mt-0.5">Max <span className="text-sm text-gray-300 font-bold blur-sm">$XX.XXX</span></h3>
+              <p className="text-[10px] text-gray-400 font-bold mt-1">4 sucursales · Billeteras virtuales · Escalabilidad total</p>
             </div>
-            <span className="text-[9px] font-black text-gray-700 uppercase border border-gray-800 px-3 py-1.5 rounded-full">En desarrollo</span>
+            <span className="text-[9px] font-black text-gray-400 uppercase border border-gray-200 px-3 py-1.5 rounded-full">En desarrollo</span>
           </div>
 
-          <p className="text-center text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-6">
-            ✓ 14 días gratis · Sin permanencia · Facturación en ARS
+          <p className="text-center text-[9px] text-gray-300 font-bold uppercase tracking-widest mt-6">
+            ✓ 14 días gratis en todos los planes · Sin permanencia · Facturación en ARS
           </p>
         </section>
 
