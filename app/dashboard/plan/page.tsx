@@ -76,6 +76,8 @@ const PLANS = [
   },
 ];
 
+const prices: Record<string, number> = { light: 15000, go: 22000, plus: 35000 };
+
 function PlanContent() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -177,16 +179,27 @@ function PlanContent() {
         const res = await fetch('/api/subscriptions/change', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, plan: planId }),
+          body: JSON.stringify({ userId, plan: planId, email: profile.email }),
         });
         if (!res.ok) throw new Error('Error al cambiar plan');
+
+        const data = await res.json();
+        const isUpgrade = prices[planId] > prices[restaurant.subscription_plan as string];
+
+        if (isUpgrade && data.proratedAmount > 0) {
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes del ciclo actual.`, { duration: 6000 });
+        } else if (!isUpgrade) {
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. El nuevo precio aplica desde tu próximo ciclo.`);
+        } else {
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}.`);
+        }
       } else {
         await supabase.from('restaurants').update({ subscription_plan: planId }).eq('user_id', userId);
+        toast.success(`Plan ${planId.toUpperCase()} seleccionado.`);
       }
 
       setRestaurant(prev => ({ ...prev, subscription_plan: planId }));
       window.dispatchEvent(new Event("profile-updated"));
-      toast.success(`Plan cambiado a ${planId.toUpperCase()}`);
     } catch {
       toast.error("No se pudo cambiar el plan");
     } finally {
