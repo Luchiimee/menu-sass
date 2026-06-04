@@ -16,6 +16,7 @@ interface PaymentFormProps {
   userEmail: string;
   mode?: 'subscribe' | 'update-card';
   mpPreapprovalId?: string;
+  inline?: boolean;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -30,6 +31,7 @@ export default function PaymentForm({
   userEmail,
   mode = 'subscribe',
   mpPreapprovalId,
+  inline = false,
   onSuccess,
   onClose,
 }: PaymentFormProps) {
@@ -113,9 +115,8 @@ export default function PaymentForm({
   const inputClass = "w-full px-4 py-3 bg-gray-50 rounded-xl text-sm font-semibold border border-transparent focus:border-black focus:bg-white outline-none transition-all";
   const labelClass = "text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1.5";
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+  const inner = (
+      <div className={`bg-white ${inline ? 'rounded-[2rem] border border-gray-100 shadow-sm w-full' : 'rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200'}`}>
 
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
@@ -177,6 +178,13 @@ export default function PaymentForm({
         </div>
 
       </div>
+  );
+
+  if (inline) return inner;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      {inner}
     </div>
   );
 }

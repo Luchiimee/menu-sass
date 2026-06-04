@@ -67,6 +67,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
     }
 
+    // Cancelar suscripción anterior si existe (evita suscripciones huérfanas)
+    const { data: existing } = await supabase
+      .from('restaurants')
+      .select('mp_preapproval_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existing?.mp_preapproval_id) {
+      await fetch(`${MP_BASE}/preapproval/${existing.mp_preapproval_id}`, {
+        method: 'PUT',
+        headers: mpHeaders(),
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+    }
+
     // 1. Obtener o crear cliente en MP
     const customerId = await getOrCreateCustomer(email);
 

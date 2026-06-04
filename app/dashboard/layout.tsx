@@ -106,9 +106,12 @@ setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
   const daysLeft = getTrialDaysLeft();
   const hasActivePayment = restaurant.status === 'authorized' || restaurant.status === 'active';
   const isTrialExpired = daysLeft <= 0 && restaurant.status === 'trialing' && !hasActivePayment;
-  // Bloquea solo si venció Y NO estamos en la página de plan
-const trialExpired = isTrialExpired && pathname !== '/dashboard/plan' && !isAdmin;
-const showTrialWarning = daysLeft <= 4 && daysLeft > 0 && restaurant.status === 'trialing' && !hasActivePayment && pathname !== '/dashboard/plan' && !isAdmin;
+  const onPlanPage = pathname === '/dashboard/plan';
+  const trialExpired = isTrialExpired && !onPlanPage && !isAdmin;
+  const showTrialWarning = daysLeft <= 4 && daysLeft > 0 && restaurant.status === 'trialing' && !hasActivePayment && !onPlanPage && !isAdmin;
+  const isPausedBlocked = restaurant.status === 'paused' && !onPlanPage && !isAdmin;
+  const isCancelledBlocked = restaurant.status === 'cancelled' && !onPlanPage && !isAdmin;
+  const isBlocked = trialExpired || isPausedBlocked || isCancelledBlocked;
   const missingPhone = !profileData?.phone;
   const noPlan = !restaurant.plan;
 
@@ -307,23 +310,31 @@ const menuItems = [
         {renderBanners()}
         
         {/* BLOQUEO GLOBAL SI EL TRIAL EXPIRÓ */}
-        <div className={`p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 relative transition-all duration-700 ${trialExpired ? 'blur-xl pointer-events-none opacity-40 select-none grayscale' : ''}`}>
+        <div className={`p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 relative transition-all duration-700 ${isBlocked ? 'blur-xl pointer-events-none opacity-40 select-none grayscale' : ''}`}>
           <Suspense fallback={<div>Cargando...</div>}>
             {children}
           </Suspense>
         </div>
 
-        {/* MODAL DE TRIAL VENCIDO */}
-        {trialExpired && (
+        {/* BLOQUEO GLOBAL */}
+        {isBlocked && (
           <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 bg-black/20 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border-2 border-red-100 max-w-sm w-full text-center animate-in zoom-in-95">
-                <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"><AlertTriangle size={40} /></div>
-                <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">
-  {isTrialExpired ? "Prueba Vencida" : "Sección Pro"}
-</h2>
-                <p className="text-gray-500 text-xs leading-relaxed mb-8 font-bold uppercase tracking-tight">Tu periodo de 14 días terminó. Para seguir gestionando tu local y recibir pedidos, debés configurar un medio de pago.</p>
-                <Link href="/dashboard/plan" className="block w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">CONFIGURAR PAGO AHORA 💳</Link>
-             </div>
+            <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border-2 border-red-100 max-w-sm w-full text-center animate-in zoom-in-95">
+              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <AlertTriangle size={40} />
+              </div>
+              <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">
+                {trialExpired ? "Prueba Vencida" : isPausedBlocked ? "Pago Fallido" : "Plan Cancelado"}
+              </h2>
+              <p className="text-gray-500 text-xs leading-relaxed mb-8 font-bold uppercase tracking-tight">
+                {trialExpired && "Tu periodo de 14 días terminó. Para seguir gestionando tu local y recibir pedidos, debés configurar un medio de pago."}
+                {isPausedBlocked && "Tu suscripción está pausada por falta de pago. Reintentá el cobro o actualizá tu tarjeta para continuar."}
+                {isCancelledBlocked && "Tu plan está cancelado. Resuscribite para volver a usar Snappy."}
+              </p>
+              <Link href="/dashboard/plan" className="block w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">
+                {trialExpired ? "CONFIGURAR PAGO AHORA 💳" : isPausedBlocked ? "RESOLVER PAGO 💳" : "RESUSCRIBIRME 💳"}
+              </Link>
+            </div>
           </div>
         )}
       </main>

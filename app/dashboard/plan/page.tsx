@@ -92,9 +92,13 @@ function PlanContent() {
     subscription_plan: null, subscription_status: "trialing",
   });
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<string | null>(null);
   const [paymentMode, setPaymentMode] = useState<'subscribe' | 'update-card'>('subscribe');
+  const [showProrateConfirm, setShowProrateConfirm] = useState(false);
+  const [pendingPlanChange, setPendingPlanChange] = useState<string | null>(null);
+  const [estimatedProrate, setEstimatedProrate] = useState<{ amount: number; days: number }>({ amount: 0, days: 0 });
+  const [retrying, setRetrying] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -153,10 +157,21 @@ function PlanContent() {
   const trialDay = getTrialStatus();
 
   const getChargeDate = () => {
-    const base = restaurant.created_at ? new Date(restaurant.created_at) : new Date();
-    const chargeDate = new Date(base);
-    chargeDate.setDate(base.getDate() + 14);
-    return chargeDate.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+    if (!restaurant.created_at) return '—';
+    const created = new Date(restaurant.created_at);
+    const today = new Date();
+    // El primer cobro real es 14 días después del registro (fin del trial)
+    const firstBilling = new Date(created);
+    firstBilling.setDate(created.getDate() + 14);
+    // Si el primer cobro aún no ocurrió, mostrarlo directamente
+    if (firstBilling > today) {
+      return firstBilling.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+    }
+    // Si ya ocurrió, calcular el próximo aniversario mensual
+    const billingDay = firstBilling.getDate();
+    const next = new Date(today.getFullYear(), today.getMonth(), billingDay);
+    if (next <= today) next.setMonth(next.getMonth() + 1);
+    return next.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
   };
 
   const updateProfile = (field: string, value: string) => {
@@ -168,8 +183,23 @@ function PlanContent() {
     }, 1000);
   };
 
-  const handleChangePlan = async (planId: 'light' | 'go' | 'plus') => {
-    if (planId === restaurant.subscription_plan) return;
+  const calculateProrate = (targetPlan: string): { amount: number; days: number } => {
+    if (!restaurant.created_at || !restaurant.subscription_plan) return { amount: 0, days: 0 };
+    const currentPrice = prices[restaurant.subscription_plan] ?? 0;
+    const newPrice = prices[targetPlan] ?? 0;
+    if (newPrice <= currentPrice) return { amount: 0, days: 0 };
+    const created = new Date(restaurant.created_at);
+    const today = new Date();
+    const firstBilling = new Date(created);
+    firstBilling.setDate(created.getDate() + 14);
+    const billingDay = firstBilling.getDate();
+    const nextRenewal = new Date(today.getFullYear(), today.getMonth(), billingDay);
+    if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+    const days = Math.max(1, Math.ceil((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    return { amount: Math.round((days / 30) * (newPrice - currentPrice)), days };
+  };
+
+  const executePlanChange = async (planId: string) => {
     setProcessingPlan(planId);
     try {
       const hasActiveSub = restaurant.mp_preapproval_id &&
@@ -182,22 +212,17 @@ function PlanContent() {
           body: JSON.stringify({ userId, plan: planId, email: profile.email }),
         });
         if (!res.ok) throw new Error('Error al cambiar plan');
-
         const data = await res.json();
         const isUpgrade = prices[planId] > prices[restaurant.subscription_plan as string];
-
         if (isUpgrade && data.proratedAmount > 0) {
-          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes del ciclo actual.`, { duration: 6000 });
-        } else if (!isUpgrade) {
-          toast.success(`Plan cambiado a ${planId.toUpperCase()}. El nuevo precio aplica desde tu próximo ciclo.`);
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.`, { duration: 6000 });
         } else {
-          toast.success(`Plan cambiado a ${planId.toUpperCase()}.`);
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. El nuevo precio aplica desde tu próximo ciclo.`);
         }
       } else {
         await supabase.from('restaurants').update({ subscription_plan: planId }).eq('user_id', userId);
         toast.success(`Plan ${planId.toUpperCase()} seleccionado.`);
       }
-
       setRestaurant(prev => ({ ...prev, subscription_plan: planId }));
       window.dispatchEvent(new Event("profile-updated"));
     } catch {
@@ -207,27 +232,63 @@ function PlanContent() {
     }
   };
 
-  const handleOpenPaymentModal = (planId: string) => {
+  const handleChangePlan = (planId: 'light' | 'go' | 'plus') => {
+    if (planId === restaurant.subscription_plan) return;
+    const hasActiveSub = restaurant.mp_preapproval_id &&
+      (restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized');
+
+    if (hasActiveSub) {
+      const proRate = calculateProrate(planId);
+      if (proRate.amount > 0) {
+        setEstimatedProrate(proRate);
+        setPendingPlanChange(planId);
+        setShowProrateConfirm(true);
+        return;
+      }
+    }
+    executePlanChange(planId);
+  };
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      const res = await fetch('/api/subscriptions/retry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
+        toast.success('¡Cobro exitoso! Suscripción reactivada.');
+        window.dispatchEvent(new Event("profile-updated"));
+      } else {
+        toast.error('No pudimos cobrar con esta tarjeta. Verificá tu saldo o cambiá la tarjeta.');
+      }
+    } catch {
+      toast.error('Error al reintentar el cobro.');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleOpenPaymentForm = (planId: string) => {
     if (!profile.email) { toast.error("Falta el email de tu perfil."); return; }
     setPaymentPlan(planId);
     setPaymentMode('subscribe');
-    setShowPaymentModal(true);
+    setShowPaymentForm(true);
   };
 
   const handleOpenUpdateCard = () => {
     setPaymentPlan(restaurant.subscription_plan || 'light');
     setPaymentMode('update-card');
-    setShowPaymentModal(true);
+    setShowPaymentForm(true);
   };
 
   const handlePaymentSuccess = () => {
-    setShowPaymentModal(false);
+    setShowPaymentForm(false);
     setPaymentPlan(null);
-    if (paymentMode === 'subscribe') {
-      setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
-    } else {
-      setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
-    }
+    setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
     window.dispatchEvent(new Event("profile-updated"));
   };
 
@@ -257,16 +318,38 @@ function PlanContent() {
 
   return (
     <>
-      {showPaymentModal && paymentPlan && (
-        <PaymentForm
-          plan={paymentPlan}
-          userId={userId!}
-          userEmail={profile.email}
-          mode={paymentMode}
-          mpPreapprovalId={restaurant.mp_preapproval_id ?? undefined}
-          onSuccess={handlePaymentSuccess}
-          onClose={() => setShowPaymentModal(false)}
-        />
+      {/* Modal de confirmación de prorrateo */}
+      {showProrateConfirm && pendingPlanChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="font-black text-lg uppercase italic tracking-tighter text-gray-900 mb-2">
+              Cambiar a Plan {pendingPlanChange.toUpperCase()}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Por los <span className="font-black text-gray-900">{estimatedProrate.days} días</span> restantes del ciclo actual, se te cobrará ahora:
+            </p>
+            <p className="text-3xl font-black text-gray-900 mb-6">
+              ${estimatedProrate.amount.toLocaleString('es-AR')}
+            </p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-6">
+              A partir del próximo ciclo se cobra ${prices[pendingPlanChange].toLocaleString('es-AR')}/mes completo.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowProrateConfirm(false); setPendingPlanChange(null); }}
+                className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setShowProrateConfirm(false); executePlanChange(pendingPlanChange); }}
+                className="flex-1 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900"
+              >
+                Confirmar y cambiar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="max-w-7xl mx-auto space-y-6 pb-24 px-4 pt-24 md:pt-10 animate-in fade-in duration-500">
@@ -354,12 +437,22 @@ function PlanContent() {
                       </button>
                     )}
                     {isPaused && (
-                      <button onClick={handleOpenUpdateCard} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white flex items-center justify-center gap-1.5">
-                        <CreditCard size={11} /> Actualizar Tarjeta
+                      <button
+                        onClick={handleRetry}
+                        disabled={retrying}
+                        className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-gray-900 text-white flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        {retrying ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                        Reintentar cobro
+                      </button>
+                    )}
+                    {isPaused && (
+                      <button onClick={handleOpenUpdateCard} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-1.5">
+                        <CreditCard size={11} /> Cambiar Tarjeta
                       </button>
                     )}
                     {(isCancelled || isPaused) && (
-                      <button onClick={() => handleOpenPaymentModal(restaurant.subscription_plan!)} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white">
+                      <button onClick={() => handleOpenPaymentForm(restaurant.subscription_plan!)} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white">
                         Re-activar Suscripción 💳
                       </button>
                     )}
@@ -378,6 +471,20 @@ function PlanContent() {
             </div>
           </section>
         </div>
+
+        {/* FORMULARIO DE PAGO INLINE */}
+        {showPaymentForm && paymentPlan && (
+          <PaymentForm
+            plan={paymentPlan}
+            userId={userId!}
+            userEmail={profile.email}
+            mode={paymentMode}
+            mpPreapprovalId={restaurant.mp_preapproval_id ?? undefined}
+            inline={true}
+            onSuccess={handlePaymentSuccess}
+            onClose={() => setShowPaymentForm(false)}
+          />
+        )}
 
         {/* PLANES */}
         <section className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 md:p-8">
@@ -436,16 +543,16 @@ function PlanContent() {
                     </div>
                   )}
                   {isCurrent && needsPayment && (
-                    <button onClick={() => handleOpenPaymentModal(plan.id)} className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 transition-colors">
+                    <button onClick={() => handleOpenPaymentForm(plan.id)} className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 transition-colors">
                       Configurar Pago 💳
                     </button>
                   )}
                   {!isCurrent && (
                     <button
                       onClick={() => {
-                        if (!restaurant.subscription_plan) { handleOpenPaymentModal(plan.id); }
+                        if (!restaurant.subscription_plan) { handleOpenPaymentForm(plan.id); }
                         else if (isActive || isTrialing) { handleChangePlan(plan.id); }
-                        else { handleOpenPaymentModal(plan.id); }
+                        else { handleOpenPaymentForm(plan.id); }
                       }}
                       disabled={processingPlan !== null}
                       className="w-full py-3 border border-gray-200 text-gray-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 hover:border-gray-900 hover:text-gray-900 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
