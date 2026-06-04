@@ -192,7 +192,7 @@ function PlanContent() {
   const savePhone = async () => {
     if (pendingPhone === null || !userId) return;
     setSavingPhone(true);
-    const { error } = await supabase.from("profiles").update({ phone: pendingPhone }).eq("id", userId);
+    const { error } = await supabase.from("profiles").upsert({ id: userId, phone: pendingPhone }, { onConflict: 'id' });
     if (error) {
       toast.error("Error al guardar");
     } else {
@@ -204,21 +204,6 @@ function PlanContent() {
     setSavingPhone(false);
   };
 
-  const calculateProrate = (targetPlan: string): { amount: number; days: number } => {
-    if (!restaurant.created_at || !restaurant.subscription_plan) return { amount: 0, days: 0 };
-    const currentPrice = prices[restaurant.subscription_plan] ?? 0;
-    const newPrice = prices[targetPlan] ?? 0;
-    if (newPrice <= currentPrice) return { amount: 0, days: 0 };
-    const created = new Date(restaurant.created_at);
-    const today = new Date();
-    const firstBilling = new Date(created);
-    firstBilling.setDate(created.getDate() + 14);
-    const billingDay = firstBilling.getDate();
-    const nextRenewal = new Date(today.getFullYear(), today.getMonth(), billingDay);
-    if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
-    const days = Math.max(1, Math.ceil((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-    return { amount: Math.round((days / 30) * (newPrice - currentPrice)), days };
-  };
 
   const executePlanChange = async (planId: string) => {
     setProcessingPlan(planId);
