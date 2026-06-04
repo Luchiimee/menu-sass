@@ -18,6 +18,48 @@ const mpHeaders = () => ({
   Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
 });
 
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    const plan = searchParams.get('plan');
+
+    if (!userId || !plan || !prices[plan]) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
+    }
+
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('mp_preapproval_id, subscription_plan')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const currentPlan = restaurant?.subscription_plan as string;
+    if (!restaurant?.mp_preapproval_id || !currentPlan || !prices[currentPlan]) {
+      return NextResponse.json({ proratedAmount: 0, daysRemaining: 0 });
+    }
+
+    const preapprovalRes = await fetch(
+      `https://api.mercadopago.com/preapproval/${restaurant.mp_preapproval_id}`,
+      { headers: mpHeaders() }
+    );
+    const preapprovalData = await preapprovalRes.json();
+
+    const dateCreated = new Date(preapprovalData.date_created || new Date());
+    const today = new Date();
+    const renewalDay = dateCreated.getDate();
+    const nextRenewal = new Date(today.getFullYear(), today.getMonth(), renewalDay);
+    if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+
+    const daysRemaining = Math.max(1, Math.ceil((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    const proratedAmount = Math.round((daysRemaining / 30) * (prices[plan] - prices[currentPlan]));
+
+    return NextResponse.json({ proratedAmount: Math.max(0, proratedAmount), daysRemaining });
+  } catch {
+    return NextResponse.json({ proratedAmount: 0, daysRemaining: 0 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { userId, plan, email } = await req.json();

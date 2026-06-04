@@ -232,18 +232,24 @@ function PlanContent() {
     }
   };
 
-  const handleChangePlan = (planId: 'light' | 'go' | 'plus') => {
+  const handleChangePlan = async (planId: 'light' | 'go' | 'plus') => {
     if (planId === restaurant.subscription_plan) return;
     const hasActiveSub = restaurant.mp_preapproval_id &&
       (restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized');
 
-    if (hasActiveSub) {
-      const proRate = calculateProrate(planId);
-      if (proRate.amount > 0) {
-        setEstimatedProrate(proRate);
-        setPendingPlanChange(planId);
-        setShowProrateConfirm(true);
-        return;
+    if (hasActiveSub && prices[planId] > prices[restaurant.subscription_plan ?? '']) {
+      setProcessingPlan(planId);
+      try {
+        const res = await fetch(`/api/subscriptions/change?userId=${userId}&plan=${planId}`);
+        const preview = await res.json();
+        if (preview.proratedAmount > 0) {
+          setEstimatedProrate({ amount: preview.proratedAmount, days: preview.daysRemaining });
+          setPendingPlanChange(planId);
+          setShowProrateConfirm(true);
+          return;
+        }
+      } finally {
+        setProcessingPlan(null);
       }
     }
     executePlanChange(planId);
@@ -285,10 +291,16 @@ function PlanContent() {
     setShowPaymentForm(true);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     setShowPaymentForm(false);
     setPaymentPlan(null);
-    setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
+    // Recargar desde Supabase para obtener mp_preapproval_id actualizado
+    const { data: restData } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (restData) setRestaurant(prev => ({ ...prev, ...restData }));
     window.dispatchEvent(new Event("profile-updated"));
   };
 

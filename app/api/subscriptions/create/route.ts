@@ -85,7 +85,16 @@ export async function POST(req: Request) {
     // 1. Obtener o crear cliente en MP
     const customerId = await getOrCreateCustomer(email);
 
-    // 2. Guardar tarjeta en el cliente
+    // 2. Borrar tarjetas existentes para evitar duplicados (especialmente en sandbox)
+    const existingCardsRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
+    const existingCards = await existingCardsRes.json();
+    if (Array.isArray(existingCards)) {
+      await Promise.all(existingCards.map((c: any) =>
+        fetch(`${MP_BASE}/v1/customers/${customerId}/cards/${c.id}`, { method: 'DELETE', headers: mpHeaders() })
+      ));
+    }
+
+    // 3. Guardar nueva tarjeta
     const cardId = await saveCard(customerId, token);
 
     // 3. Crear suscripción con card_id
