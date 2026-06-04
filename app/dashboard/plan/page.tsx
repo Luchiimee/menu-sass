@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
@@ -99,6 +99,10 @@ function PlanContent() {
   const [pendingPlanChange, setPendingPlanChange] = useState<string | null>(null);
   const [estimatedProrate, setEstimatedProrate] = useState<{ amount: number; days: number }>({ amount: 0, days: 0 });
   const [retrying, setRetrying] = useState(false);
+  const [pendingPhone, setPendingPhone] = useState<string | null>(null);
+  const [savingPhone, setSavingPhone] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const paymentFormRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -175,12 +179,29 @@ function PlanContent() {
   };
 
   const updateProfile = (field: string, value: string) => {
-    setTimeout(async () => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(async () => {
       if (!userId) return;
       const { error } = await supabase.from("profiles").update({ [field]: value }).eq("id", userId);
       if (error) toast.error("Error al guardar");
       else { toast.success("Dato actualizado"); window.dispatchEvent(new Event("profile-updated")); }
     }, 1000);
+  };
+
+  const savePhone = async () => {
+    if (pendingPhone === null || !userId) return;
+    setSavingPhone(true);
+    const { error } = await supabase.from("profiles").update({ phone: pendingPhone }).eq("id", userId);
+    if (error) {
+      toast.error("Error al guardar");
+    } else {
+      setProfile(prev => ({ ...prev, phone: pendingPhone }));
+      setPendingPhone(null);
+      toast.success("WhatsApp guardado");
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    setSavingPhone(false);
   };
 
   const calculateProrate = (targetPlan: string): { amount: number; days: number } => {
@@ -255,6 +276,30 @@ function PlanContent() {
     executePlanChange(planId);
   };
 
+  const handleActivatePlan = async (planId: 'light' | 'go' | 'plus') => {
+    setProcessingPlan(planId);
+    try {
+      const tempSlug = `local-${userId?.substring(0, 5)}`;
+      const { error } = await supabase
+        .from('restaurants')
+        .upsert({
+          user_id: userId,
+          subscription_plan: planId,
+          name: restaurant.name || 'Mi Local',
+          slug: restaurant.slug || tempSlug,
+          subscription_status: 'trialing',
+        }, { onConflict: 'user_id' });
+      if (error) throw error;
+      setRestaurant(prev => ({ ...prev, subscription_plan: planId, subscription_status: 'trialing' }));
+      window.dispatchEvent(new Event("profile-updated"));
+      toast.success(`Plan ${planId.toUpperCase()} activado. Tenés 14 días gratis para probarlo.`);
+    } catch {
+      toast.error("No se pudo activar el plan");
+    } finally {
+      setProcessingPlan(null);
+    }
+  };
+
   const handleRetry = async () => {
     setRetrying(true);
     try {
@@ -283,6 +328,7 @@ function PlanContent() {
     setPaymentPlan(planId);
     setPaymentMode('subscribe');
     setShowPaymentForm(true);
+    setTimeout(() => paymentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
   const handleOpenUpdateCard = () => {
@@ -399,12 +445,23 @@ function PlanContent() {
               </div>
               <div>
                 <label className="text-[9px] font-black text-gray-400 mb-1 block uppercase tracking-widest">WhatsApp de Aviso</label>
-                <input
-                  value={profile.phone}
-                  onChange={(e) => updateProfile("phone", e.target.value)}
-                  placeholder="Ej: +54911..."
-                  className={`w-full p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none transition-all duration-500 ${searchParams.get('requirePhone') === 'true' && !profile.phone ? 'ring-2 ring-amber-500 animate-pulse bg-amber-50' : 'focus:ring-2 ring-black/5'}`}
-                />
+                <div className="flex gap-2">
+                  <input
+                    value={pendingPhone ?? profile.phone}
+                    onChange={(e) => setPendingPhone(e.target.value)}
+                    placeholder="Ej: +54911..."
+                    className={`flex-1 p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none transition-all duration-500 ${searchParams.get('requirePhone') === 'true' && !profile.phone ? 'ring-2 ring-amber-500 animate-pulse bg-amber-50' : 'focus:ring-2 ring-black/5'}`}
+                  />
+                  {pendingPhone !== null && pendingPhone !== profile.phone && (
+                    <button
+                      onClick={savePhone}
+                      disabled={savingPhone}
+                      className="px-3 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-900 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {savingPhone ? '...' : 'Guardar'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -484,20 +541,6 @@ function PlanContent() {
           </section>
         </div>
 
-        {/* FORMULARIO DE PAGO INLINE */}
-        {showPaymentForm && paymentPlan && (
-          <PaymentForm
-            plan={paymentPlan}
-            userId={userId!}
-            userEmail={profile.email}
-            mode={paymentMode}
-            mpPreapprovalId={restaurant.mp_preapproval_id ?? undefined}
-            inline={true}
-            onSuccess={handlePaymentSuccess}
-            onClose={() => setShowPaymentForm(false)}
-          />
-        )}
-
         {/* PLANES */}
         <section className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 md:p-8">
           <div className="mb-6 border-b border-gray-100 pb-6">
@@ -562,7 +605,7 @@ function PlanContent() {
                   {!isCurrent && (
                     <button
                       onClick={() => {
-                        if (!restaurant.subscription_plan) { handleOpenPaymentForm(plan.id); }
+                        if (!restaurant.subscription_plan) { handleActivatePlan(plan.id); }
                         else if (isActive || isTrialing) { handleChangePlan(plan.id); }
                         else { handleOpenPaymentForm(plan.id); }
                       }}
@@ -571,7 +614,7 @@ function PlanContent() {
                     >
                       {processingPlan === plan.id
                         ? <Loader2 size={13} className="animate-spin" />
-                        : `Cambiar a ${plan.name}`
+                        : restaurant.subscription_plan ? `Cambiar a ${plan.name}` : `Activar ${plan.name}`
                       }
                     </button>
                   )}
@@ -594,6 +637,22 @@ function PlanContent() {
             ✓ 14 días gratis en todos los planes · Sin permanencia · Facturación en ARS
           </p>
         </section>
+
+        {/* FORMULARIO DE PAGO INLINE */}
+        {showPaymentForm && paymentPlan && (
+          <div ref={paymentFormRef}>
+            <PaymentForm
+              plan={paymentPlan}
+              userId={userId!}
+              userEmail={profile.email}
+              mode={paymentMode}
+              mpPreapprovalId={restaurant.mp_preapproval_id ?? undefined}
+              inline={true}
+              onSuccess={handlePaymentSuccess}
+              onClose={() => setShowPaymentForm(false)}
+            />
+          </div>
+        )}
 
         {/* HISTORIAL */}
         <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">

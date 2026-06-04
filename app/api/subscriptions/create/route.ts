@@ -67,6 +67,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
     }
 
+    // Calcular si el usuario está dentro del trial para programar el primer cobro
+    const { data: restData } = await supabase
+      .from('restaurants')
+      .select('created_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const now = new Date();
+    let autoStartDate: string | undefined;
+    if (restData?.created_at) {
+      const trialEnd = new Date(restData.created_at);
+      trialEnd.setDate(trialEnd.getDate() + 14);
+      if (trialEnd > now) {
+        autoStartDate = trialEnd.toISOString().split('.')[0] + 'Z';
+      }
+    }
+
     // Cancelar suscripción anterior si existe (evita suscripciones huérfanas)
     const { data: existing } = await supabase
       .from('restaurants')
@@ -98,7 +115,7 @@ export async function POST(req: Request) {
     const cardId = await saveCard(customerId, token);
 
     // 3. Crear suscripción con card_id
-    const body = {
+    const body: any = {
       reason: `Plan ${plan.toUpperCase()} - Snappy`,
       payer_email: email,
       external_reference: userId,
@@ -111,6 +128,11 @@ export async function POST(req: Request) {
         currency_id: 'ARS',
       },
     };
+
+    // Si está en trial, programar el primer cobro para el día 14
+    if (autoStartDate) {
+      body.auto_start_date = autoStartDate;
+    }
 
     const mpResponse = await fetch(`${MP_BASE}/preapproval`, {
       method: 'POST',
