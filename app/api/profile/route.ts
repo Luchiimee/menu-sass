@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSessionUser } from '@/lib/auth-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,11 +8,11 @@ const supabase = createClient(
 );
 
 // Leer el perfil (bypasea RLS con service role)
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-    if (!userId) return NextResponse.json({ error: 'Falta userId' }, { status: 400 });
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    const userId = sessionUser.id;
 
     const { data, error } = await supabase
       .from('profiles')
@@ -29,9 +30,11 @@ export async function GET(req: Request) {
 // Actualizar campos del perfil (bypasea RLS con service role)
 export async function POST(req: Request) {
   try {
-    const { userId, ...fields } = await req.json();
-    if (!userId) return NextResponse.json({ error: 'Falta userId' }, { status: 400 });
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    const userId = sessionUser.id;
 
+    const fields = await req.json();
     const allowed = ['first_name', 'last_name', 'phone'];
     const updates: Record<string, any> = {};
     for (const k of allowed) {

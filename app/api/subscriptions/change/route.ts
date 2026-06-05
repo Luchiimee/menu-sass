@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSessionUser } from '@/lib/auth-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,11 +21,16 @@ const mpHeaders = () => ({
 
 export async function GET(req: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+    const userId = sessionUser.id;
+
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
     const plan = searchParams.get('plan');
 
-    if (!userId || !plan || !prices[plan]) {
+    if (!plan || !prices[plan]) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
@@ -62,9 +68,15 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId, plan, email } = await req.json();
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+    const userId = sessionUser.id;
 
-    if (!userId || !plan || !prices[plan]) {
+    const { plan, email } = await req.json();
+
+    if (!plan || !prices[plan]) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 

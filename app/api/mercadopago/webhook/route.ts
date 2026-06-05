@@ -7,19 +7,68 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/**
+ * Valida la firma del webhook de Mercado Pago (header x-signature).
+ * Manifest: id:{data.id};request-id:{x-request-id};ts:{ts};
+ * Se firma con HMAC-SHA256 usando MP_WEBHOOK_SECRET y se compara con v1.
+ * Devuelve true si es válida (o si no hay secret configurado, con warning).
+ */
+function isValidSignature(request: Request, dataId: string | null): boolean {
+    const secret = process.env.MP_WEBHOOK_SECRET;
+    if (!secret) {
+        console.warn('⚠️ MP_WEBHOOK_SECRET no configurado — webhook SIN validar firma. Configuralo antes de producción.');
+        return true;
+    }
+
+    const xSignature = request.headers.get('x-signature');
+    const xRequestId = request.headers.get('x-request-id');
+    if (!xSignature || !dataId) return false;
+
+    // x-signature: "ts=1700000000,v1=abcdef..."
+    const parts = Object.fromEntries(
+        xSignature.split(',').map((p) => {
+            const [k, v] = p.split('=');
+            return [k?.trim(), v?.trim()];
+        })
+    );
+    const ts = parts['ts'];
+    const v1 = parts['v1'];
+    if (!ts || !v1) return false;
+
+    // data.id alfanumérico debe ir en minúsculas según MP
+    const id = /[a-zA-Z]/.test(dataId) ? dataId.toLowerCase() : dataId;
+    const manifest = `id:${id};request-id:${xRequestId};ts:${ts};`;
+    const computed = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+
+    try {
+        return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(v1));
+    } catch {
+        return false;
+    }
+}
+
 export async function POST(request: Request) {
     try {
+        const { searchParams } = new URL(request.url);
         const body = await request.json();
         console.log('📬 Webhook MP recibido:', JSON.stringify(body, null, 2));
 
         // MP manda el tipo de evento y el ID del recurso afectado
         const { type, data } = body;
+
+        // --- Validar firma de MP antes de procesar ---
+        const dataId = searchParams.get('data.id') ?? data?.id ?? null;
+        if (!isValidSignature(request, dataId ? String(dataId) : null)) {
+            console.error('🚫 Webhook con firma inválida — rechazado');
+            return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
+        }
 
         // Solo procesamos eventos de suscripciones
         if (type !== 'subscription_preapproval') {
