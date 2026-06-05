@@ -183,25 +183,41 @@ function PlanContent() {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
       if (!userId) return;
-      const { error } = await supabase.from("profiles").update({ [field]: value }).eq("id", userId);
-      if (error) toast.error("Error al guardar");
-      else { toast.success("Dato actualizado"); window.dispatchEvent(new Event("profile-updated")); }
+      try {
+        const res = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, [field]: value }),
+        });
+        if (!res.ok) throw new Error();
+        toast.success("Dato actualizado");
+        window.dispatchEvent(new Event("profile-updated"));
+      } catch {
+        toast.error("Error al guardar");
+      }
     }, 1000);
   };
 
   const savePhone = async () => {
     if (pendingPhone === null || !userId) return;
     setSavingPhone(true);
-    const { error } = await supabase.from("profiles").upsert({ id: userId, phone: pendingPhone }, { onConflict: 'id' });
-    if (error) {
-      toast.error("Error al guardar");
-    } else {
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, phone: pendingPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar');
       setProfile(prev => ({ ...prev, phone: pendingPhone }));
       setPendingPhone(null);
       toast.success("WhatsApp guardado");
       window.dispatchEvent(new Event("profile-updated"));
+    } catch (err: any) {
+      toast.error(err.message || "Error al guardar");
+    } finally {
+      setSavingPhone(false);
     }
-    setSavingPhone(false);
   };
 
 
