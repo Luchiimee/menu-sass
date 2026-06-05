@@ -238,8 +238,10 @@ function PlanContent() {
         if (!res.ok) throw new Error('Error al cambiar plan');
         const data = await res.json();
         const isUpgrade = prices[planId] > prices[restaurant.subscription_plan as string];
-        if (isUpgrade && data.proratedAmount > 0) {
+        if (isUpgrade && data.proratedAmount > 0 && data.prorateCharged) {
           toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.`, { duration: 6000 });
+        } else if (isUpgrade && data.proratedAmount > 0 && !data.prorateCharged) {
+          toast.warning(`Plan cambiado a ${planId.toUpperCase()}, pero no se pudo cobrar el prorrateo. Revisá tu tarjeta — se intentará en el próximo ciclo.`, { duration: 7000 });
         } else {
           toast.success(`Plan cambiado a ${planId.toUpperCase()}. El nuevo precio aplica desde tu próximo ciclo.`);
         }
@@ -282,17 +284,21 @@ function PlanContent() {
   const handleActivatePlan = async (planId: 'light' | 'go' | 'plus') => {
     setProcessingPlan(planId);
     try {
-      const tempSlug = `local-${userId?.substring(0, 5)}`;
-      const { error } = await supabase
-        .from('restaurants')
-        .upsert({
-          user_id: userId,
-          subscription_plan: planId,
-          name: restaurant.name || 'Mi Local',
-          slug: restaurant.slug || tempSlug,
-          subscription_status: 'trialing',
-        }, { onConflict: 'user_id' });
-      if (error) throw error;
+      const res = await fetch('/api/subscriptions/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // Trial vencido → ofrecer configurar pago
+        if (data.error === 'trial_expired') {
+          toast.error(data.message);
+          handleOpenPaymentForm(planId);
+          return;
+        }
+        throw new Error(data.error || 'Error');
+      }
       setRestaurant(prev => ({ ...prev, subscription_plan: planId, subscription_status: 'trialing' }));
       window.dispatchEvent(new Event("profile-updated"));
       toast.success(`Plan ${planId.toUpperCase()} activado. Tenés 14 días gratis para probarlo.`);
@@ -314,10 +320,10 @@ function PlanContent() {
       const data = await res.json();
       if (data.success) {
         setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
-        toast.success('¡Cobro exitoso! Suscripción reactivada.');
+        toast.success('Suscripción reactivada. El cobro se reanudará automáticamente.');
         window.dispatchEvent(new Event("profile-updated"));
       } else {
-        toast.error('No pudimos cobrar con esta tarjeta. Verificá tu saldo o cambiá la tarjeta.');
+        toast.error('No pudimos reactivar con esta tarjeta. Verificá tu saldo o cambiá la tarjeta.');
       }
     } catch {
       toast.error('Error al reintentar el cobro.');

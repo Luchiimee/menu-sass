@@ -128,12 +128,26 @@ export async function POST(request: Request) {
             '65dd4645b714425c814a482978375c74': 'plus',
         };
 
-        // Traemos el plan actual para no pisarlo si no podemos determinarlo
+        // Traemos el plan actual y el preapproval vigente
         const { data: restaurant } = await supabase
             .from('restaurants')
-            .select('created_at, subscription_plan')
+            .select('created_at, subscription_plan, mp_preapproval_id')
             .eq('user_id', userId)
             .maybeSingle();
+
+        // --- Anti-pisado de webhooks viejos ---
+        // Si llega un evento cancelled/paused de un preapproval que YA NO es el
+        // vigente (p.ej. el usuario canceló y creó una sub nueva), lo ignoramos
+        // para no borrar la suscripción actual.
+        const isNegativeEvent = newStatus === 'cancelled' || newStatus === 'paused';
+        if (
+            isNegativeEvent &&
+            restaurant?.mp_preapproval_id &&
+            restaurant.mp_preapproval_id !== preapprovalId
+        ) {
+            console.log(`↩️ Webhook de preapproval viejo (${preapprovalId}) ignorado; vigente: ${restaurant.mp_preapproval_id}`);
+            return NextResponse.json({ received: true });
+        }
 
         const planType = planMap[subscription.preapproval_plan_id] ?? restaurant?.subscription_plan ?? 'light';
 
@@ -146,9 +160,10 @@ export async function POST(request: Request) {
 
         // --- Actualizar Supabase ---
         const updatePayload: any = {
-            mp_preapproval_id: preapprovalId,
             subscription_status: newStatus,
             subscription_plan: planType,
+            // Si se canceló, dejamos el id en null (no lo resucitamos)
+            mp_preapproval_id: newStatus === 'cancelled' ? null : preapprovalId,
         };
 
         // Solo guardamos trial_ends_at si la columna existe

@@ -34,10 +34,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
-    // Obtener el plan actual del usuario
+    // Obtener el plan actual y la fecha de registro del usuario
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('subscription_plan')
+      .select('subscription_plan, created_at')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -97,10 +97,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: card.message || 'Error al guardar tarjeta' }, { status: 500 });
     }
 
-    // Crear nueva suscripción con la nueva tarjeta
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + 1);
-    const isoStartDate = startDate.toISOString().split('.')[0] + 'Z';
+    // Definir cuándo arranca el cobro:
+    // - Si el usuario sigue en el trial de 14 días → primer cobro al terminar el trial
+    // - Si ya pasó el trial → mañana
+    const now = new Date();
+    let firstCharge = new Date();
+    firstCharge.setDate(firstCharge.getDate() + 1);
+    if (restaurant?.created_at) {
+      const trialEnd = new Date(restaurant.created_at);
+      trialEnd.setDate(trialEnd.getDate() + 14);
+      if (trialEnd > now) firstCharge = trialEnd;
+    }
+    const isoStartDate = firstCharge.toISOString().split('.')[0] + 'Z';
 
     const preapprovalRes = await fetch(`${MP_BASE}/preapproval`, {
       method: 'POST',

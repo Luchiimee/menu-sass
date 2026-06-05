@@ -38,19 +38,28 @@ export async function POST() {
       }
     );
 
-    const data = await mpResponse.json();
+    await mpResponse.json();
 
-    if (!mpResponse.ok || data.status === 'paused') {
+    // Re-consultar el estado real de la suscripción (el PUT puede devolver
+    // un estado intermedio; confirmamos contra MP).
+    const verifyRes = await fetch(
+      `https://api.mercadopago.com/preapproval/${restaurant.mp_preapproval_id}`,
+      { headers: { Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}` } }
+    );
+    const verifyData = await verifyRes.json();
+
+    // Si no quedó autorizada, sigue pausada: la tarjeta no pudo cobrarse
+    if (!mpResponse.ok || verifyData.status !== 'authorized') {
       return NextResponse.json({ success: false, retry: true });
     }
 
-    // Cobro exitoso — actualizar Supabase
+    // Suscripción reactivada (MP reanudará el cobro). No afirmamos que ya se cobró.
     await supabase
       .from('restaurants')
       .update({ subscription_status: 'active' })
       .eq('user_id', userId);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, reactivated: true });
   } catch (err: any) {
     console.error('SERVER ERROR (retry):', err);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

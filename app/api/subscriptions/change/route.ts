@@ -93,6 +93,7 @@ export async function POST(req: Request) {
 
     let proratedAmount = 0;
     let daysRemaining = 0;
+    let prorateCharged = false;
 
     if (hasActiveSub && currentPlan && prices[currentPlan]) {
       const currentPrice = prices[currentPlan];
@@ -154,9 +155,12 @@ export async function POST(req: Request) {
                   }),
                 });
 
-                if (!paymentRes.ok) {
-                  const paymentErr = await paymentRes.json();
-                  console.error('MP proration payment error:', paymentErr);
+                const paymentData = await paymentRes.json();
+                // Solo consideramos cobrado si MP lo aprobó
+                if (paymentRes.ok && paymentData.status === 'approved') {
+                  prorateCharged = true;
+                } else {
+                  console.error('MP proration payment error:', paymentData);
                   // No bloqueamos el cambio de plan si falla el prorrateo
                 }
               }
@@ -176,7 +180,7 @@ export async function POST(req: Request) {
     // Actualizar Supabase
     await supabase.from('restaurants').update({ subscription_plan: plan }).eq('user_id', userId);
 
-    return NextResponse.json({ success: true, proratedAmount, daysRemaining });
+    return NextResponse.json({ success: true, proratedAmount, daysRemaining, prorateCharged });
   } catch (err: any) {
     console.error('SERVER ERROR (change):', err);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
