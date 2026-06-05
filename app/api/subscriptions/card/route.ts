@@ -9,52 +9,59 @@ const supabase = createClient(
 
 const MP_BASE = 'https://api.mercadopago.com';
 const mpHeaders = () => ({
-  'Content-Type': 'application/json',
   Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
 });
 
-// Devuelve los datos de la tarjeta vinculada (marca, ultimos 4, vencimiento)
 export async function GET() {
   try {
     const sessionUser = await getSessionUser();
-    if (!sessionUser) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-    const userId = sessionUser.id;
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
 
-    // Emails candidatos para buscar el cliente en MP
+    // Obtener el email del usuario desde su perfil
     const { data: profile } = await supabase
       .from('profiles')
       .select('email')
-      .eq('id', userId)
+      .eq('id', sessionUser.id)
       .maybeSingle();
 
-    const candidates = [profile?.email, sessionUser.email].filter(Boolean) as string[];
-    const emails = Array.from(new Set(candidates));
-
-    let customerId: string | null = null;
-    for (const email of emails) {
-      const res = await fetch(`${MP_BASE}/v1/customers/search?email=${encodeURIComponent(email)}`, { headers: mpHeaders() });
-      const data = await res.json();
-      if (data.results?.length > 0) {
-        customerId = data.results[0].id;
-        break;
-      }
+    const email = profile?.email || sessionUser.email;
+    if (!email) {
+      return NextResponse.json({ card: null });
     }
 
+    // Buscar el customer en MP por email
+    const searchRes = await fetch(
+      `${MP_BASE}/v1/customers/search?email=${encodeURIComponent(email)}`,
+      { headers: mpHeaders() }
+    );
+    if (!searchRes.ok) return NextResponse.json({ card: null });
+
+    const searchData = await searchRes.json();
+    const customerId = searchData.results?.[0]?.id;
     if (!customerId) return NextResponse.json({ card: null });
 
-    const cardsRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
+    // Obtener tarjetas del customer
+    const cardsRes = await fetch(
+      `${MP_BASE}/v1/customers/${customerId}/cards`,
+      { headers: mpHeaders() }
+    );
+    if (!cardsRes.ok) return NextResponse.json({ card: null });
+
     const cards = await cardsRes.json();
     if (!Array.isArray(cards) || cards.length === 0) {
       return NextResponse.json({ card: null });
     }
 
+    // Tomamos la primera tarjeta (la más reciente)
     const c = cards[0];
     return NextResponse.json({
       card: {
-        brand: c.payment_method?.name || c.payment_method?.id || 'tarjeta',
-        last4: c.last_four_digits,
-        expMonth: c.expiration_month,
-        expYear: c.expiration_year,
+        brand: c.payment_method_id ?? 'card',
+        last4: c.last_four_digits ?? '????',
+        expMonth: c.expiration_month ?? 0,
+        expYear: c.expiration_year ?? 0,
       },
     });
   } catch (err: any) {
