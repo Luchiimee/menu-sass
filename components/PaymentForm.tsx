@@ -17,6 +17,7 @@ interface PaymentFormProps {
   mode?: 'subscribe' | 'update-card';
   mpPreapprovalId?: string;
   inline?: boolean;
+  currentCard?: { brand: string; last4: string; expMonth: number; expYear: number } | null;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -32,6 +33,7 @@ export default function PaymentForm({
   mode = 'subscribe',
   mpPreapprovalId,
   inline = false,
+  currentCard = null,
   onSuccess,
   onClose,
 }: PaymentFormProps) {
@@ -121,7 +123,7 @@ export default function PaymentForm({
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
             <h2 className="font-black text-lg uppercase italic tracking-tighter text-gray-900">
-              {isUpdateCard ? 'Cambiar Tarjeta' : `Activar Plan ${plan.toUpperCase()}`}
+              {isUpdateCard ? 'Nueva Tarjeta' : `Activar Plan ${plan.toUpperCase()}`}
             </h2>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
               {isUpdateCard
@@ -133,6 +135,28 @@ export default function PaymentForm({
             <X size={16} />
           </button>
         </div>
+
+        {isUpdateCard && currentCard && (
+          <div className="px-6 pt-5">
+            <p className={labelClass}>Tarjeta actual</p>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                <CreditCard size={16} className="text-white" />
+              </div>
+              <div className="leading-tight">
+                <p className="text-xs font-black text-gray-900 uppercase tracking-tight">
+                  {currentCard.brand} ···· {currentCard.last4}
+                </p>
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                  Vence {String(currentCard.expMonth).padStart(2, '0')}/{String(currentCard.expYear).slice(-2)}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-400 font-semibold mt-2 px-1">
+              Esta tarjeta será reemplazada al guardar una nueva.
+            </p>
+          </div>
+        )}
 
         <div className="relative">
           {loading && (

@@ -686,6 +686,7 @@ function PlanContent() {
               mode={paymentMode}
               mpPreapprovalId={restaurant.mp_preapproval_id ?? undefined}
               inline={true}
+              currentCard={paymentMode === 'update-card' ? linkedCard : null}
               onSuccess={handlePaymentSuccess}
               onClose={() => setShowPaymentForm(false)}
             />
