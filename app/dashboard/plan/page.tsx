@@ -101,6 +101,7 @@ function PlanContent() {
   const [retrying, setRetrying] = useState(false);
   const [pendingPhone, setPendingPhone] = useState<string | null>(null);
   const [savingPhone, setSavingPhone] = useState(false);
+  const [linkedCard, setLinkedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const paymentFormRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
@@ -142,6 +143,7 @@ function PlanContent() {
             subscription_plan: restData.subscription_plan || null,
             subscription_status: restData.subscription_status || 'trialing',
           });
+          if (restData.mp_preapproval_id) fetchLinkedCard();
         }
       } catch (error) {
         console.error("Error cargando datos:", error);
@@ -336,6 +338,17 @@ function PlanContent() {
     setPaymentPlan(restaurant.subscription_plan || 'light');
     setPaymentMode('update-card');
     setShowPaymentForm(true);
+    setTimeout(() => paymentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+
+  const fetchLinkedCard = async () => {
+    try {
+      const res = await fetch('/api/subscriptions/card');
+      const data = await res.json();
+      setLinkedCard(data.card ?? null);
+    } catch {
+      setLinkedCard(null);
+    }
   };
 
   const handlePaymentSuccess = async () => {
@@ -348,6 +361,7 @@ function PlanContent() {
       .eq('user_id', userId)
       .maybeSingle();
     if (restData) setRestaurant(prev => ({ ...prev, ...restData }));
+    fetchLinkedCard();
     window.dispatchEvent(new Event("profile-updated"));
   };
 
@@ -361,6 +375,7 @@ function PlanContent() {
       });
       if (response.ok) {
         setRestaurant(prev => ({ ...prev, subscription_status: 'cancelled', mp_preapproval_id: null }));
+        setLinkedCard(null);
         toast.success("Suscripción cancelada.");
         window.dispatchEvent(new Event("profile-updated"));
       } else throw new Error();
@@ -499,6 +514,22 @@ function PlanContent() {
                     )}
                     {isActive && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}
                   </div>
+
+                  {linkedCard && (isActive || isPaused) && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                        <CreditCard size={16} className="text-white" />
+                      </div>
+                      <div className="leading-tight">
+                        <p className="text-xs font-black text-gray-900 uppercase tracking-tight">
+                          {linkedCard.brand} ···· {linkedCard.last4}
+                        </p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                          Vence {String(linkedCard.expMonth).padStart(2, '0')}/{String(linkedCard.expYear).slice(-2)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-2">
                     {isActive && (
