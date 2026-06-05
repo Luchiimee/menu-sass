@@ -2679,8 +2679,14 @@ export default function MenuPage({
   );
   const trialExpired = restaurant.subscription_status === 'trialing' && diffDays >= 14;
 
-  // Si el restaurante es de un admin → NUNCA se bloquea para nadie
-  const isSuspended = !isAdminRestaurant && (
+  // Ventana de gracia: si existe y es futura, el menú público nunca se bloquea
+  const inGracePeriod = !!(
+    restaurant.grace_period_until &&
+    new Date(restaurant.grace_period_until) > new Date()
+  );
+
+  // Si el restaurante es de un admin O está en gracia → NUNCA se bloquea
+  const isSuspended = !isAdminRestaurant && !inGracePeriod && (
     restaurant.subscription_status === 'cancelled' ||
     restaurant.subscription_status === 'paused' ||
     trialExpired

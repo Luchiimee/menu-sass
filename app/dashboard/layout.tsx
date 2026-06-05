@@ -66,10 +66,11 @@ setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
       const displayName = profile?.first_name || metadata.full_name?.split(' ')[0] || rest?.name || "Mi Local";
 
       setRestaurant({
-          ...(rest || {}), 
+          ...(rest || {}),
           name: displayName,
           plan: rest?.subscription_plan || null,
-          status: rest?.subscription_status || 'trialing'
+          status: rest?.subscription_status || 'trialing',
+          grace_period_until: rest?.grace_period_until || null,
       });
       
       setIsLoading(false);
@@ -107,10 +108,17 @@ setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
   const hasActivePayment = restaurant.status === 'authorized' || restaurant.status === 'active';
   const isTrialExpired = daysLeft <= 0 && restaurant.status === 'trialing' && !hasActivePayment;
   const onPlanPage = pathname === '/dashboard/plan';
-  const trialExpired = isTrialExpired && !onPlanPage && !isAdmin;
+
+  // Ventana de gracia: si existe y es futura, nunca bloqueamos
+  const inGracePeriod = !!(
+    restaurant.grace_period_until &&
+    new Date(restaurant.grace_period_until) > new Date()
+  );
+
+  const trialExpired = isTrialExpired && !onPlanPage && !isAdmin && !inGracePeriod;
   const showTrialWarning = daysLeft <= 4 && daysLeft > 0 && restaurant.status === 'trialing' && !hasActivePayment && !onPlanPage && !isAdmin;
-  const isPausedBlocked = restaurant.status === 'paused' && !onPlanPage && !isAdmin;
-  const isCancelledBlocked = restaurant.status === 'cancelled' && !onPlanPage && !isAdmin;
+  const isPausedBlocked = restaurant.status === 'paused' && !onPlanPage && !isAdmin && !inGracePeriod;
+  const isCancelledBlocked = restaurant.status === 'cancelled' && !onPlanPage && !isAdmin && !inGracePeriod;
   const isBlocked = trialExpired || isPausedBlocked || isCancelledBlocked;
   const missingPhone = !profileData?.phone;
   const noPlan = !restaurant.plan;

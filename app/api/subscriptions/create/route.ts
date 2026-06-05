@@ -75,16 +75,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
     }
 
-    // Calcular si el usuario está dentro del trial para programar el primer cobro
+    // Calcular cuándo debe arrancar el primer cobro
     const { data: restData } = await supabase
       .from('restaurants')
-      .select('created_at')
+      .select('created_at, grace_period_until, mp_preapproval_id')
       .eq('user_id', userId)
       .maybeSingle();
 
     const now = new Date();
     let autoStartDate: string | undefined;
-    if (restData?.created_at) {
+
+    if (restData?.grace_period_until) {
+      // Prioridad 1: ventana de gracia — primer cobro al vencer la gracia
+      const graceEnd = new Date(restData.grace_period_until);
+      if (graceEnd > now) {
+        autoStartDate = graceEnd.toISOString().split('.')[0] + 'Z';
+      }
+    } else if (restData?.created_at) {
+      // Prioridad 2: trial de 14 días desde el registro
       const trialEnd = new Date(restData.created_at);
       trialEnd.setDate(trialEnd.getDate() + 14);
       if (trialEnd > now) {
@@ -93,11 +101,8 @@ export async function POST(req: Request) {
     }
 
     // Cancelar suscripción anterior si existe (evita suscripciones huérfanas)
-    const { data: existing } = await supabase
-      .from('restaurants')
-      .select('mp_preapproval_id')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // (restData ya tiene mp_preapproval_id — reutilizamos la misma query)
+    const existing = restData;
 
     if (existing?.mp_preapproval_id) {
       const cancelRes = await fetch(`${MP_BASE}/preapproval/${existing.mp_preapproval_id}`, {
