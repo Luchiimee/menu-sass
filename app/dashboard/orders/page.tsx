@@ -84,7 +84,6 @@ const [productSearch, setProductSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreatingTable, setIsCreatingTable] = useState(false);
   const [showTables, setShowTables] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [availableTables, setAvailableTables] = useState<Table[]>([]);
  const [selectedDate, setSelectedDate] = useState(getArgentinaDate());
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -574,7 +573,7 @@ useEffect(() => {
   const hasSalon = currentPlan === 'plus' || currentPlan === 'max';
 
  return (
-<div className="max-w-6xl mx-auto min-h-screen p-2 pt-2 md:pt-2 lg:pt-8 relative font-sans">
+<div className="max-w-full min-h-screen px-4 lg:px-6 pt-2 md:pt-2 lg:pt-8 relative font-sans">
       <style dangerouslySetInnerHTML={{ __html: CUSTOM_STYLES }} />
       {/* --- LÓGICA DE BLOQUEO --- */}
       {isLocked && (
@@ -711,12 +710,12 @@ useEffect(() => {
             </div>
         </div>
 
-        {/* ── CONTENEDOR SIDE-BY-SIDE: MESAS + COMANDAS ── */}
-        <div className={`flex flex-col ${hasSalon ? 'lg:flex-row lg:items-start lg:gap-4' : ''} px-2 gap-6`}>
+        {/* ── CONTENEDOR PRINCIPAL: MESAS + COMANDAS ── */}
+        <div className={`flex gap-4 px-2 flex-col ${hasSalon ? 'lg:flex-row lg:items-start' : ''}`}>
 
         {/* ── COLUMNA MESAS (solo plus / max) ── */}
         {hasSalon && (
-          <div className={`shrink-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:w-[190px]' : 'lg:w-[360px]'}`}>
+          <div className="shrink-0 lg:w-[360px]">
             <div className="bg-white border border-gray-100 rounded-[1.5rem] shadow-sm overflow-hidden">
 
               {/* Header */}
@@ -729,69 +728,28 @@ useEffect(() => {
                   <div className="p-1.5 rounded-xl bg-blue-600 text-white shadow-sm">
                     <Store size={15} />
                   </div>
-                  {!sidebarCollapsed && (
-                    <div className="flex flex-col items-start text-left">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-700">Gestión de Salón</span>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase">{availableTables.length} mesas</span>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-700">Gestión de Salón</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase">{availableTables.length} mesas</span>
+                  </div>
                   <ChevronDown size={15} strokeWidth={3} className={`text-gray-400 transition-transform lg:hidden ${showTables ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Acciones lado derecho */}
                 <div className="flex items-center gap-1.5">
-                  {/* Colapsar/expandir solo en desktop */}
                   <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="hidden lg:flex p-1.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
-                    title={sidebarCollapsed ? 'Expandir salón' : 'Colapsar salón'}
+                    onClick={() => setIsModalOpen(true)}
+                    className="p-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all"
+                    title="Nueva mesa"
                   >
-                    {sidebarCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}
+                    <Plus size={14} />
                   </button>
-                  {/* Crear mesa (oculto en modo colapsado) */}
-                  {!sidebarCollapsed && (
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="p-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all"
-                      title="Nueva mesa"
-                    >
-                      <Plus size={14} />
-                    </button>
-                  )}
                 </div>
               </div>
 
               {/* Tarjetas: en desktop siempre visibles, en mobile controlado por showTables */}
               <div className={`${showTables ? 'block' : 'hidden'} lg:block`}>
-                {sidebarCollapsed ? (
-                  /* ── MODO COLAPSADO: filas mínimas ── */
-                  <div className="p-2 space-y-1">
-                    {availableTables.map((mesa: any) => {
-                      const activeOrder = getActiveOrderForTable(mesa.name);
-                      const isOccupied = !!activeOrder;
-                      const isCalling = Boolean(mesa.needs_attention);
-                      return (
-                        <div
-                          key={mesa.id}
-                          onClick={() => isOccupied && setSelectedTableForDetail({ ...mesa, activeOrder })}
-                          className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all ${
-                            isCalling ? 'animate-table-call' :
-                            isOccupied ? 'border-orange-300 bg-orange-50/30 cursor-pointer' :
-                            'border-gray-100 bg-white'
-                          }`}
-                        >
-                          <span className="text-base leading-none">{isCalling ? '🚨' : isOccupied ? '🔥' : '🍽️'}</span>
-                          <span className="text-[10px] font-black uppercase text-gray-700 truncate flex-1">{mesa.name}</span>
-                          {isOccupied && <span className="text-[10px] font-black text-gray-900 shrink-0">${activeOrder.total}</span>}
-                        </div>
-                      );
-                    })}
-                    {availableTables.length === 0 && (
-                      <p className="text-center text-[9px] text-gray-300 font-black uppercase p-3">Sin mesas</p>
-                    )}
-                  </div>
-                ) : (
-                  /* ── MODO EXPANDIDO: grid 2 columnas, tarjetas compactas ── */
+                  {/* Grid 2 columnas, tarjetas compactas */}
                   <div className="p-3">
                     <div className="grid grid-cols-2 gap-2">
                       {availableTables.map((mesa: any) => {
@@ -897,7 +855,6 @@ useEffect(() => {
                       )}
                     </div>
                   </div>
-                )}
               </div>
 
             </div>

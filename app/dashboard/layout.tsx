@@ -23,7 +23,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null); 
-  const [isCollapsed, setIsCollapsed] = useState(false); 
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Leer preferencia guardada (sin SSR flash)
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebar-collapsed');
+    if (stored !== null) setIsCollapsed(stored === 'true');
+  }, []);
+
+  const toggleSidebar = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorage.setItem('sidebar-collapsed', String(next));
+  };
   const [isAdmin, setIsAdmin] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState("");
@@ -238,18 +250,25 @@ const menuItems = [
       />
 
       <aside className={`hidden lg:flex ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r flex-col h-full z-100 transition-all duration-300 relative`}>
-        <div className={`p-6 border-b flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+        <div className={`p-4 border-b flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
             {restaurant.logo_url ? <img src={restaurant.logo_url} alt="logo" className="w-full h-full object-cover" /> : <Store size={20} />}
           </div>
           {!isCollapsed && (
-            <div className="flex flex-col overflow-hidden">
-                <h2 className="font-bold text-sm leading-tight truncate w-32 capitalize text-gray-900">{restaurant.name}</h2>
+            <div className="flex flex-col overflow-hidden flex-1 min-w-0">
+                <h2 className="font-bold text-sm leading-tight truncate capitalize text-gray-900">{restaurant.name}</h2>
                 <p className={`text-[9px] font-black uppercase tracking-tighter mt-0.5 ${restaurant.plan === 'plus' ? 'text-emerald-600' : 'text-blue-600'}`}>
                     {restaurant.plan ? `Plan ${restaurant.plan}` : 'Sin Activar'}
                 </p>
             </div>
           )}
+          <button
+            onClick={toggleSidebar}
+            title={isCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+            className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+          >
+            {isCollapsed ? <ChevronRight size={14} strokeWidth={2.5} /> : <ChevronLeft size={14} strokeWidth={2.5} />}
+          </button>
         </div>
   <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {menuItems
@@ -266,10 +285,11 @@ const menuItems = [
             const shouldShowLock = (item.locked && !isAdmin) || isLockedByPlan;
 
             return (
-              <Link 
+              <Link
                 key={item.name}
                 href={(shouldShowLock && !isAdmin) ? '#' : item.href}
-                onClick={(e) => { 
+                title={isCollapsed ? item.name : undefined}
+                onClick={(e) => {
                   // Si está bloqueado (ya sea por Plan o por Trial para mortales), mostramos el modal.
                   if (shouldShowLock) {
                     // El Admin puede entrar igual si quiere forzar la vista, pero le mostramos el aviso.
@@ -302,14 +322,19 @@ const menuItems = [
           })}
         </nav>
 
-        <a href="https://wa.me/5492324313123" target="_blank" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-green-600 transition-all group border-t border-gray-50 mt-4">
+        <a
+          href="https://wa.me/5492324313123"
+          target="_blank"
+          title={isCollapsed ? 'Soporte' : undefined}
+          className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-4'} py-3 text-gray-400 hover:text-green-600 transition-all group border-t border-gray-50 mt-4`}
+        >
           <HelpCircle size={18} />
-          <span className="text-[10px] font-black uppercase italic tracking-tighter">Soporte</span>
+          {!isCollapsed && <span className="text-[10px] font-black uppercase italic tracking-tighter">Soporte</span>}
         </a>
 
         <div className="p-4 border-t mt-auto">
           <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 w-full text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold">
-              <LogOut size={18} /> {!isCollapsed && <span>Cerrar Sesión</span>}
+            <LogOut size={18} /> {!isCollapsed && <span>Cerrar Sesión</span>}
           </button>
         </div>
       </aside>
@@ -318,7 +343,7 @@ const menuItems = [
         {renderBanners()}
         
         {/* BLOQUEO GLOBAL SI EL TRIAL EXPIRÓ */}
-        <div className={`p-4 lg:p-10 max-w-7xl mx-auto w-full flex-1 relative transition-all duration-700 ${isBlocked ? 'blur-xl pointer-events-none opacity-40 select-none grayscale' : ''}`}>
+        <div className={`${pathname === '/dashboard/orders' ? 'p-2 lg:p-4' : 'p-4 lg:p-10 max-w-7xl mx-auto'} w-full flex-1 relative transition-all duration-700 ${isBlocked ? 'blur-xl pointer-events-none opacity-40 select-none grayscale' : ''}`}>
           <Suspense fallback={<div>Cargando...</div>}>
             {children}
           </Suspense>
