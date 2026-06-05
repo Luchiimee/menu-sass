@@ -45,11 +45,11 @@ const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginorobla
 setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
       const [restRes, profileRes] = await Promise.all([
         supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
-        supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
+        fetch(`/api/profile?userId=${session.user.id}`).then(r => r.json()).catch(() => ({ profile: null }))
       ]);
 
       const metadata = session.user.user_metadata;
-      const profile = profileRes.data;
+      const profile = profileRes.profile;
       const rest = restRes.data;
 
       // 🚀 MEJORA: Buscamos el teléfono en la tabla O en los metadatos de Google/Registro

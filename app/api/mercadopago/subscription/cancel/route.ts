@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSessionUser } from '@/lib/auth-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    const { userId } = await req.json();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Falta userId' }, { status: 400 });
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
+    const userId = sessionUser.id;
 
     // Buscar el preapproval_id del usuario
     const { data: restaurant } = await supabase

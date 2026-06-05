@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSessionUser } from '@/lib/auth-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,9 +58,16 @@ async function saveCard(customerId: string, token: string): Promise<string> {
 
 export async function POST(req: Request) {
   try {
-    const { token, plan, userId, email } = await req.json();
+    // Validar sesión: el userId real es el de la sesión, NO el del body
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+    const userId = sessionUser.id;
 
-    if (!token || !plan || !userId || !email) {
+    const { token, plan, email } = await req.json();
+
+    if (!token || !plan || !email) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
@@ -92,11 +100,20 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (existing?.mp_preapproval_id) {
-      await fetch(`${MP_BASE}/preapproval/${existing.mp_preapproval_id}`, {
+      const cancelRes = await fetch(`${MP_BASE}/preapproval/${existing.mp_preapproval_id}`, {
         method: 'PUT',
         headers: mpHeaders(),
         body: JSON.stringify({ status: 'cancelled' }),
       });
+      // Si no se pudo cancelar la anterior, abortamos para evitar doble cobro
+      if (!cancelRes.ok) {
+        const cancelErr = await cancelRes.json().catch(() => ({}));
+        console.error('MP cancel previa ERROR:', cancelErr);
+        return NextResponse.json(
+          { error: 'No se pudo cancelar la suscripción anterior. Intentá de nuevo.' },
+          { status: 502 }
+        );
+      }
     }
 
     // 1. Obtener o crear cliente en MP
