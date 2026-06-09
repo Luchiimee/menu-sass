@@ -25,6 +25,7 @@ const PLANS = [
     name: 'Light',
     tagline: 'Para empezar',
     price: 15000,
+    originalPrice: 19500,
     accent: 'border-gray-500',
     badge: null,
     features: [
@@ -43,6 +44,7 @@ const PLANS = [
     name: 'GO',
     tagline: 'Más potencia',
     price: 22000,
+    originalPrice: 28600,
     accent: 'border-blue-500',
     badge: 'POPULAR',
     features: [
@@ -61,6 +63,7 @@ const PLANS = [
     name: 'Plus',
     tagline: 'Profesional ✨',
     price: 35000,
+    originalPrice: 45500,
     accent: 'border-emerald-500',
     badge: null,
     features: [
@@ -612,10 +615,13 @@ function PlanContent() {
                   <div className="mb-4">
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{plan.tagline}</p>
                     <h3 className="text-2xl font-black text-gray-900 italic tracking-tighter mt-0.5">{plan.name}</h3>
-                    <p className="text-3xl font-black text-gray-900 mt-3">
-                      ${plan.price.toLocaleString('es-AR')}
-                      <span className="text-sm text-gray-400 font-bold"> /mes</span>
-                    </p>
+                    <div className="mt-3">
+                      <span className="line-through text-gray-400 text-sm font-medium">${plan.originalPrice.toLocaleString('es-AR')}</span>
+                      <p className="text-3xl font-black text-gray-900">
+                        ${plan.price.toLocaleString('es-AR')}
+                        <span className="text-sm text-gray-400 font-bold"> /mes</span>
+                      </p>
+                    </div>
                   </div>
 
                   <ul className="space-y-2 mb-6 flex-1">

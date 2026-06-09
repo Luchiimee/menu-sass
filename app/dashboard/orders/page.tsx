@@ -436,7 +436,8 @@ const loadOrders = async () => {
     if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
         setShowTables(true);
     }
-    setIsLocked(rest.subscription_plan === "light" && user.email !== 'luchiimee2@gmail.com');
+    const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginoroblabelleggia@gmail.com'];
+    setIsLocked(rest.subscription_plan === "light" && !adminEmails.includes(user.email?.toLowerCase() ?? ''));
 }
 
       // --- AGREGADO: Cargar la vista guardada (Grilla o Lista) ---
@@ -589,7 +590,7 @@ useEffect(() => {
               <Zap size={32} fill="currentColor" />
             </div>
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic">Gestor de Pedidos</h2>
-           <p className="text-gray-500 mb-8 text-sm">Panel de control exclusivo del <b>Plan GO</b>.</p>
+           <p className="text-gray-500 mb-8 text-sm">El panel de pedidos en tiempo real está disponible desde el <b>Plan GO</b>.</p>
 <div className="flex flex-col gap-3">
    <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg uppercase text-xs tracking-widest text-center no-underline">
       Actualizar a GO <Zap size={18} fill="currentColor" className="inline ml-1" />

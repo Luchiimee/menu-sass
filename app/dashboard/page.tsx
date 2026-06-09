@@ -81,8 +81,10 @@ useEffect(() => {
 
     if (mounted && rest) {
         // A. Verificamos suspensión
+        const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com'];
+        const isAdminUser = adminEmails.includes(session.user.email?.toLowerCase() ?? '');
         const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
-        setIsLocked(isSubscriptionInactive);
+        setIsLocked(isSubscriptionInactive && !isAdminUser);
 
         setRestaurantId(rest.id);
         const currentSlug = rest.slug || `local-${rest.id.substring(0, 5)}`;
@@ -346,7 +348,8 @@ const PhoneWarningBanner = () => {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Para Empezar</h3>
                 <p className="text-2xl font-black text-gray-900">Light</p>
                 <div className="my-3 py-2 border-y border-gray-50">
-                    <p className="text-xl font-black text-gray-800">$10.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <span className="line-through text-gray-400 text-xs font-medium block">$19.500</span>
+                    <p className="text-xl font-black text-gray-800">$15.000 <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Emprendimientos pequeños. <br/> 
@@ -364,7 +367,8 @@ const PhoneWarningBanner = () => {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1">Profesional</h3>
                 <p className="text-2xl font-black text-gray-900">Plan GO</p>
                 <div className="my-3 py-2 border-y border-blue-100">
-                    <p className="text-xl font-black text-blue-600">$16.900 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <span className="line-through text-gray-400 text-xs font-medium block">$28.600</span>
+                    <p className="text-xl font-black text-blue-600">$22.000 <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-blue-900 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Negocios que crecen. <br/> 
@@ -381,7 +385,8 @@ const PhoneWarningBanner = () => {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-1">Locales Físicos</h3>
                 <p className="text-2xl font-black text-gray-900">Plus</p>
                 <div className="my-3 py-2 border-y border-gray-50">
-                    <p className="text-xl font-black text-gray-800">$27.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <span className="line-through text-gray-400 text-xs font-medium block">$45.500</span>
+                    <p className="text-xl font-black text-gray-800">$35.000 <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Salones y locales. <br/> 
@@ -694,14 +699,14 @@ const PhoneWarningBanner = () => {
             </div>
             <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Panel Suspendido</h3>
             <p className="text-[10px] text-gray-400 font-bold mt-4 uppercase tracking-widest leading-relaxed">
-              Tu suscripción está vencida. Podés navegar el menú lateral, pero para gestionar tu local debés regularizar el pago.
+              Tu suscripción está cancelada. Cargá una tarjeta para reactivar tu plan y seguir usando Snappy.
             </p>
-            <button 
-              onClick={() => window.open('https://www.mercadopago.com.ar/subscriptions', '_blank')}
-              className="mt-8 w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-red-200 active:scale-95 transition-all"
+            <Link
+              href="/dashboard/plan"
+              className="mt-8 block w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-red-200 active:scale-95 transition-all text-center"
             >
-              Pagar con Mercado Pago
-            </button>
+              Ir a mi Plan
+            </Link>
           </div>
         </div>
       )}

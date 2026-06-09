@@ -1077,8 +1077,11 @@ export default function LandingPage() {
         <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
         <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
         <div className="mb-6">
-          <span className="text-3xl font-black text-gray-900">$10.000</span>
-          <span className="text-gray-400 text-sm">/mes</span>
+          <span className="line-through text-gray-400 text-sm font-medium">$19.500</span>
+          <div>
+            <span className="text-3xl font-black text-gray-900">$15.000</span>
+            <span className="text-gray-400 text-sm">/mes</span>
+          </div>
         </div>
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
           <li className="flex items-start gap-3 text-left">
@@ -1127,8 +1130,11 @@ export default function LandingPage() {
         <h3 className="text-lg font-bold text-blue-600 mb-1">GO</h3>
         <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
         <div className="mb-6">
-          <span className="text-3xl font-black text-gray-900">$16.900</span>
-          <span className="text-gray-400 text-sm">/mes</span>
+          <span className="line-through text-gray-400 text-sm font-medium">$28.600</span>
+          <div>
+            <span className="text-3xl font-black text-gray-900">$22.000</span>
+            <span className="text-gray-400 text-sm">/mes</span>
+          </div>
         </div>
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
           <li className="flex items-start gap-3 text-left">
@@ -1193,8 +1199,11 @@ export default function LandingPage() {
   <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Profesional</p>
   
   <div className="mb-6">
-    <span className="text-4xl font-black text-white">$27.000</span>
-    <span className="text-gray-400 text-sm">/mes</span>
+    <span className="line-through text-gray-500 text-sm font-medium">$45.500</span>
+    <div>
+      <span className="text-4xl font-black text-white">$35.000</span>
+      <span className="text-gray-400 text-sm">/mes</span>
+    </div>
   </div>
 
   <ul className="space-y-4 text-sm text-gray-300 flex-1 mb-8">

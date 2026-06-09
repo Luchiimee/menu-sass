@@ -360,12 +360,12 @@ const menuItems = [
                 {trialExpired ? "Prueba Vencida" : isPausedBlocked ? "Pago Fallido" : "Plan Cancelado"}
               </h2>
               <p className="text-gray-500 text-xs leading-relaxed mb-8 font-bold uppercase tracking-tight">
-                {trialExpired && "Tu periodo de 14 días terminó. Para seguir gestionando tu local y recibir pedidos, debés configurar un medio de pago."}
-                {isPausedBlocked && "Tu suscripción está pausada por falta de pago. Reintentá el cobro o actualizá tu tarjeta para continuar."}
-                {isCancelledBlocked && "Tu plan está cancelado. Resuscribite para volver a usar Snappy."}
+                {trialExpired && "Tu período de prueba terminó. Elegí un plan para seguir gestionando tu local."}
+                {isPausedBlocked && "No pudimos procesar tu pago. Reintentá el cobro o actualizá tu tarjeta para continuar."}
+                {isCancelledBlocked && "Tu plan está cancelado. Suscribite nuevamente para volver a usar Snappy."}
               </p>
               <Link href="/dashboard/plan" className="block w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">
-                {trialExpired ? "CONFIGURAR PAGO AHORA 💳" : isPausedBlocked ? "RESOLVER PAGO 💳" : "RESUSCRIBIRME 💳"}
+                {trialExpired ? "CONFIGURAR PAGO AHORA 💳" : isPausedBlocked ? "RESOLVER PAGO 💳" : "ACTIVAR PLAN 💳"}
               </Link>
             </div>
           </div>
