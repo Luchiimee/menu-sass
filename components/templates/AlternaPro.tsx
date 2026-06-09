@@ -5,11 +5,12 @@ import { Utensils, ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check, C
 export default function AlternaPro({ 
   restaurant = {}, 
   products = [], 
-  setSelectedProduct, 
-  onAddToCart, 
-  isOpen, 
-  isMockup = false, 
-  setShowInfo // 🚀 FIX 1: Agregado a los props para que no de error
+  setSelectedProduct,
+  onAddToCart,
+  isOpen,
+  isMockup = false,
+  setShowInfo,
+  mesaLabel = null,
 }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -109,12 +110,17 @@ export default function AlternaPro({
       {/* HEADER */}
       <header className="pt-8 px-6 pb-4 relative">
       <div className="absolute top-6 right-6 flex flex-col items-end gap-3 z-20">
-  {/* Estado Abierto/Cerrado */}
-  <div className="px-2.5 py-1 rounded-full border flex items-center gap-1.5"
-       style={{ backgroundColor: isOpen ? '#f0fdf4' : '#fef2f2', borderColor: isOpen ? '#bbf7d0' : '#fecaca' }}>
-    <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-    <span className={`text-[8px] font-black uppercase ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>{isOpen ? 'Abierto' : 'Cerrado'}</span>
-  </div>
+  {mesaLabel ? (
+    <div className="px-2.5 py-1 rounded-full border flex items-center gap-1.5" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
+      <span className="text-[8px] font-black uppercase text-amber-700">📍 {mesaLabel}</span>
+    </div>
+  ) : (
+    <div className="px-2.5 py-1 rounded-full border flex items-center gap-1.5"
+         style={{ backgroundColor: isOpen ? '#f0fdf4' : '#fef2f2', borderColor: isOpen ? '#bbf7d0' : '#fecaca' }}>
+      <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+      <span className={`text-[8px] font-black uppercase ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>{isOpen ? 'Abierto' : 'Cerrado'}</span>
+    </div>
+  )}
   {/* Botón de Info */}
   <button onClick={() => setShowInfo(true)} className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform bg-white/80 backdrop-blur-sm" 
           style={{ borderColor: 'rgba(0,0,0,0.05)', color: NAME_COLOR }}>

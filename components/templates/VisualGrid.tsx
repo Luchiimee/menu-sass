@@ -5,7 +5,7 @@ import { X, Store, Search, Plus, Layers, Minus, Utensils, Clock } from 'lucide-r
 import AddToCartBtn from "@/components/AddToCartBtn";
 import { useCart } from "@/context/CartContext";
 
-export default function VisualGrid({ restaurant, products, categories, fetchedExtras, isOpen, setShowInfo, onAddToCart, isMockup }: any) {
+export default function VisualGrid({ restaurant, products, categories, fetchedExtras, isOpen, setShowInfo, onAddToCart, isMockup, mesaLabel = null }: any) {
   const [activeId, setActiveId] = useState<any>(null);
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,8 +86,8 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-          <div style={{ fontSize: '9px', fontWeight: '900', background: isOpen ? ACENTO : '#333', color: 'white', padding: '6px 12px', borderRadius: '8px', textTransform: 'uppercase' }}>
-            {isOpen ? "Abierto" : "Cerrado"}
+          <div style={{ fontSize: '9px', fontWeight: '900', background: mesaLabel ? '#d97706' : isOpen ? ACENTO : '#333', color: 'white', padding: '6px 12px', borderRadius: '8px', textTransform: 'uppercase' }}>
+            {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "Abierto" : "Cerrado"}
           </div>
           <button onClick={() => setShowInfo(true)} style={{ background: '#1a1a1a', color: ACENTO, border: `1px solid ${ACENTO}40`, width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <Store size={22} />

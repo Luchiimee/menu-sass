@@ -16,8 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  LayoutList, Pencil, X, Search,Lock,Wallet
+  LayoutList, Pencil, X, Search, Lock, Wallet, Copy, QrCode,
 } from "lucide-react";
+import QRCode from 'qrcode';
 import Link from "next/link";
 const CUSTOM_STYLES = `
   @keyframes blink-alert {
@@ -92,6 +93,8 @@ const [productSearch, setProductSearch] = useState("");
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeModalInfo, setUpgradeModalInfo] = useState({ title: '', desc: '', plan: '' });
+  const [restaurantSlug, setRestaurantSlug] = useState<string | null>(null);
+  const [copiedMesaId, setCopiedMesaId] = useState<string | null>(null);
 
   // --- FUNCIONES DE APOYO UI (Se mantienen igual) ---
 const getStatusBadge = (status: string, orderType?: string) => {
@@ -419,6 +422,25 @@ const loadOrders = async () => {
     localStorage.setItem("ordersView", newView);
   };
 
+  const copyMesaLink = (mesa: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!restaurantSlug) return;
+    navigator.clipboard.writeText(`https://snappy.uno/${restaurantSlug}?mesa=${mesa.id}`);
+    setCopiedMesaId(mesa.id);
+    setTimeout(() => setCopiedMesaId(null), 2000);
+  };
+
+  const downloadQR = async (mesa: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!restaurantSlug) return;
+    const url = `https://snappy.uno/${restaurantSlug}?mesa=${mesa.id}`;
+    const dataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `QR-${mesa.name}.png`;
+    a.click();
+  };
+
   // --- 4. EFECTOS (AUTH, CARGA Y TIEMPO REAL) ---
   useEffect(() => {
     const initApp = async () => {
@@ -427,12 +449,13 @@ const loadOrders = async () => {
       const { data: rest } = await supabase.from("restaurants").select("*").eq("user_id", user.id).single();
       
    if (rest) {
-    setRestaurantName(rest.name); 
-    setRestaurantId(rest.id); 
+    setRestaurantName(rest.name);
+    setRestaurantId(rest.id);
     setRestaurantPhone(rest.phone);
     setReceiveWhatsapp(rest.receive_whatsapp ?? true);
     setBusinessType(rest.business_type);
-    setCurrentPlan(rest.subscription_plan); // <--- AGREGÁ ESTA LÍNEA
+    setCurrentPlan(rest.subscription_plan);
+    setRestaurantSlug(rest.slug || null);
     if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
         setShowTables(true);
     }
@@ -759,92 +782,76 @@ useEffect(() => {
                         const isCalling = Boolean(mesa.needs_attention);
                         const isWaitingPayment = activeOrder?.payment_status === 'esperando_confirmacion';
                         const paymentMethod = activeOrder?.payment_method;
+                        const mesaLink = restaurantSlug ? `snappy.uno/${restaurantSlug}?mesa=${mesa.id}` : null;
+                        const isCopied = copiedMesaId === mesa.id;
+
                         return (
                           <div
                             key={mesa.id}
-                            onClick={() => isOccupied && setSelectedTableForDetail({ ...mesa, activeOrder })}
-                            className={`relative p-3 rounded-2xl border-2 flex flex-col gap-2 shadow-sm group active:scale-[0.98] transition-all ${
+                            onClick={() => setSelectedTableForDetail({ ...mesa, activeOrder })}
+                            className={`relative rounded-2xl border-2 flex flex-col shadow-sm group cursor-pointer active:scale-[0.98] transition-all overflow-hidden ${
                               isCalling ? 'animate-table-call ring-4 ring-red-500/50' :
-                              isWaitingPayment ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-100' :
-                              isOccupied ? 'border-orange-400 bg-orange-50/20 cursor-pointer' :
+                              isWaitingPayment ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100' :
+                              isOccupied ? 'border-orange-300 bg-white' :
                               'border-gray-100 bg-white'
                             }`}
                           >
                             {/* Editar / borrar */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1 bg-white shadow-md rounded-full text-blue-600 hover:bg-blue-50"><Pencil size={10} /></button>
-                              <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1 bg-white shadow-md rounded-full text-red-500 hover:bg-red-50"><Trash2 size={10} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1 bg-white shadow-md rounded-full text-blue-500 hover:bg-blue-50"><Pencil size={9} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1 bg-white shadow-md rounded-full text-red-400 hover:bg-red-50"><Trash2 size={9} /></button>
                             </div>
 
-                            {/* Apagar llamado */}
+                            {/* Botón apagar llamado */}
                             {isCalling && (
                               <button onClick={(e) => { e.stopPropagation(); resetAttention(mesa.id); }} className="absolute -top-3 -left-1.5 bg-black text-white p-2 rounded-full z-[120] border-2 border-white shadow-2xl animate-bounce">
-                                <Check size={14} strokeWidth={4} className="text-green-500" />
+                                <Check size={14} strokeWidth={4} className="text-green-400" />
                               </button>
                             )}
 
-                            {/* Badge pago */}
+                            {/* Badge pago pendiente */}
                             {isWaitingPayment && !isCalling && (
                               <div className="absolute -top-2.5 left-2 bg-purple-600 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-pulse z-20">
                                 {paymentMethod === 'transferencia' ? 'Transf.' : 'Cobrar'}
                               </div>
                             )}
 
-                            {/* Cabecera */}
-                            <div className="flex justify-between items-center">
-                              <span className={`font-black text-[10px] uppercase px-2 py-0.5 rounded-lg ${
-                                isCalling ? 'bg-white text-red-600' :
-                                isWaitingPayment ? 'bg-purple-100 text-purple-700' :
-                                'bg-gray-100 text-gray-600'
-                              }`}>{mesa.name}</span>
-                              <span className="text-lg leading-none">{isCalling ? '🚨' : isWaitingPayment ? '💳' : isOccupied ? '🔥' : '🍽️'}</span>
-                            </div>
-
-                            {isOccupied ? (
-                              <div className="flex flex-col gap-1.5">
-                                <p className={`text-[9px] font-black uppercase truncate leading-none ${isCalling ? 'text-white' : isWaitingPayment ? 'text-purple-600' : 'text-orange-600'}`}>
-                                  {isCalling ? '¡LLAMA!' : isWaitingPayment ? 'Pago Solicitado' : activeOrder.customer_name}
+                            {/* Card body */}
+                            <div className="px-3 pt-3 pb-3 flex flex-col gap-2">
+                              <div className="flex items-center justify-between">
+                                <span className={`font-black text-[11px] uppercase tracking-tight ${
+                                  isCalling ? 'text-white' :
+                                  isWaitingPayment ? 'text-purple-700' :
+                                  isOccupied ? 'text-orange-600' :
+                                  'text-gray-700'
+                                }`}>{mesa.name}</span>
+                                <span className="text-base leading-none">{isCalling ? '🚨' : isWaitingPayment ? '💳' : isOccupied ? '🔥' : '🍽️'}</span>
+                              </div>
+                              <p className={`text-[8px] font-black uppercase tracking-widest ${
+                                isCalling ? 'text-white/80' :
+                                isWaitingPayment ? 'text-purple-500' :
+                                isOccupied ? 'text-orange-400' :
+                                'text-gray-300'
+                              }`}>
+                                {isCalling ? '¡Llama!' : isWaitingPayment ? 'Pago Pendiente' : isOccupied ? 'Ocupada' : 'Disponible'}
+                              </p>
+                              {isOccupied && (
+                                <p className={`text-sm font-black leading-tight ${isCalling ? 'text-white' : 'text-gray-900'}`}>
+                                  ${activeOrder.total}
                                 </p>
-                                <div className={`flex justify-between items-center px-2 py-1 rounded-lg border ${
-                                  isCalling ? 'bg-black/10 border-white/20' :
-                                  isWaitingPayment ? 'bg-white border-purple-200' :
-                                  'bg-white/50 border-orange-100'
-                                }`}>
-                                  <span className={`text-[8px] font-black uppercase ${isCalling ? 'text-white/70' : 'text-gray-400'}`}>Total</span>
-                                  <span className={`text-xs font-black ${isCalling ? 'text-white' : 'text-gray-900'}`}>${activeOrder.total}</span>
-                                </div>
-                                <div>
-                                  {isWaitingPayment ? (
-                                    <button onClick={(e) => { e.stopPropagation(); setSelectedTableForDetail({ ...mesa, activeOrder }); }} className="w-full py-1.5 bg-purple-600 text-white rounded-xl text-[8px] font-black uppercase flex items-center justify-center gap-1 animate-pulse">
-                                      <Wallet size={10} /> Cobrar
-                                    </button>
-                                  ) : (
-                                    <>
-                                      {activeOrder.status === 'pendiente' && <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'recibido'); }} className="w-full py-1.5 bg-indigo-600 text-white rounded-xl text-[8px] font-black uppercase active:scale-95 transition-all">Tomar</button>}
-                                      {activeOrder.status === 'recibido' && <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'en_proceso'); }} className="w-full py-1.5 bg-orange-500 text-white rounded-xl text-[8px] font-black uppercase active:scale-95 transition-all">A Cocina</button>}
-                                      {activeOrder.status === 'en_proceso' && <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'listo'); }} className="w-full py-1.5 bg-blue-500 text-white rounded-xl text-[8px] font-black uppercase active:scale-95 transition-all">Listo</button>}
-                                      {activeOrder.status === 'listo' && <button onClick={(e) => { e.stopPropagation(); updateStatus(activeOrder.id, 'entregado'); }} className="w-full py-1.5 bg-green-600 text-white rounded-xl text-[8px] font-black uppercase active:scale-95 transition-all">Entregar</button>}
-                                      {activeOrder.status === 'entregado' && (
-                                        <button onClick={(e) => { e.stopPropagation(); if(confirm('¿Confirmar pago y liberar mesa?')) updateStatus(activeOrder.id, 'completado'); }} className="w-full py-1.5 bg-green-600 text-white rounded-xl text-[8px] font-black uppercase flex items-center justify-center gap-1 active:scale-95 transition-all">
-                                          <Banknote size={10} /> Cobrar
-                                        </button>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                                <p className="text-center text-[8px] font-black text-gray-300 group-hover:text-blue-500 transition-colors leading-none">+ Ver detalle</p>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-1.5">
-                                <p className="text-[9px] text-gray-300 font-black uppercase tracking-widest">Disponible</p>
-                                <button onClick={(e) => { e.stopPropagation(); occupyTableManual(mesa); }} className="w-full py-1.5 bg-slate-900 text-white rounded-xl text-[8px] font-black uppercase flex items-center justify-center gap-1 active:scale-95 transition-all"><User size={10} /> Ocupar</button>
-                                {mesa.status === 'reservada' ? (
-                                  <button onClick={(e) => { e.stopPropagation(); setResTable(mesa); setResData({ name: mesa.reservation_info?.name || '', guests: mesa.reservation_info?.guests || '', date: mesa.reservation_info?.datetime?.split('T')[0] || '', time: mesa.reservation_info?.datetime?.split('T')[1] || '', description: mesa.reservation_info?.description || '' }); setIsResModalOpen(true); }} className="w-full py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-xl text-[8px] font-black uppercase flex items-center justify-center gap-1 transition-all"><List size={10} /> Reserva</button>
-                                ) : (
-                                  <button onClick={(e) => { e.stopPropagation(); setResTable(mesa); setIsResModalOpen(true); }} className="w-full py-1.5 bg-white border border-blue-600 text-blue-600 rounded-xl text-[8px] font-black uppercase flex items-center justify-center gap-1 transition-all"><CalendarIcon size={10} /> Reservar</button>
-                                )}
-                              </div>
-                            )}
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedTableForDetail({ ...mesa, activeOrder }); }}
+                                className={`w-full py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-95 transition-all ${
+                                  isCalling ? 'bg-white text-gray-900' :
+                                  isWaitingPayment ? 'bg-purple-600 text-white' :
+                                  isOccupied ? 'bg-gray-900 text-white' :
+                                  'bg-gray-100 text-gray-600'
+                                }`}
+                              >
+                                Abrir Mesa
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -1141,19 +1148,45 @@ useEffect(() => {
     <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
         {selectedTableForDetail.name}
     </span>
-    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 mt-2">
-        {selectedTableForDetail.activeOrder.customer_name}
-    </h3>
-    {/* AGREGAMOS EL WHATSAPP ACÁ TAMBIÉN */}
-    <p className="text-blue-600 font-bold text-xs flex items-center gap-1 mt-1">
-        <Phone size={12} strokeWidth={3}/> {selectedTableForDetail.activeOrder.customer_phone}
-    </p>
+    {selectedTableForDetail.activeOrder ? (
+      <>
+        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 mt-2">
+            {selectedTableForDetail.activeOrder.customer_name}
+        </h3>
+        <p className="text-blue-600 font-bold text-xs flex items-center gap-1 mt-1">
+            <Phone size={12} strokeWidth={3}/> {selectedTableForDetail.activeOrder.customer_phone}
+        </p>
+      </>
+    ) : (
+      <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-400 mt-2">Mesa Libre</h3>
+    )}
 </div>
                 <button onClick={() => setSelectedTableForDetail(null)} className="p-3 bg-white rounded-full shadow-lg text-gray-400 hover:text-gray-900 transition-all active:scale-90"><X size={24} strokeWidth={3}/></button>
             </div>
 
             {/* Cuerpo con scroll */}
             <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                {/* Libre state: Ocupar + Reservar */}
+                {!selectedTableForDetail.activeOrder && (
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => { occupyTableManual(selectedTableForDetail); setSelectedTableForDetail(null); }}
+                            className="flex-1 py-3 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                            <User size={14} /> Ocupar Mesa
+                        </button>
+                        <button
+                            onClick={() => { setResTable(selectedTableForDetail); setResData({ name: selectedTableForDetail.reservation_info?.name || '', guests: selectedTableForDetail.reservation_info?.guests || '', date: selectedTableForDetail.reservation_info?.datetime?.split('T')[0] || '', time: selectedTableForDetail.reservation_info?.datetime?.split('T')[1] || '', description: selectedTableForDetail.reservation_info?.description || '' }); setIsResModalOpen(true); setSelectedTableForDetail(null); }}
+                            className="flex-1 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                            <CalendarIcon size={14} /> Reservar
+                        </button>
+                    </div>
+                )}
+
+                {/* Occupied content */}
+                {selectedTableForDetail.activeOrder && (
+                  <>
                 {selectedTableForDetail.activeOrder.payment_status === 'esperando_confirmacion' && (
                     <div className="bg-purple-600 text-white p-5 rounded-3xl shadow-xl animate-in zoom-in mb-6">
                         <div className="flex items-center gap-3 mb-2">
@@ -1163,7 +1196,7 @@ useEffect(() => {
                         <p className="text-[11px] font-bold opacity-90 leading-tight">
                             El cliente indica que desea pagar por: <span className="bg-white text-purple-600 px-2 py-0.5 rounded ml-1">{selectedTableForDetail.activeOrder.payment_method?.toUpperCase()}</span>
                         </p>
-                        
+
                         {selectedTableForDetail.activeOrder.payment_method === 'transferencia' && (
                             <div className="mt-3 p-3 bg-white/10 rounded-2xl border border-white/20">
                                 <p className="text-[9px] font-black text-purple-100 uppercase mb-1">Nombre informado en transferencia:</p>
@@ -1271,11 +1304,37 @@ useEffect(() => {
                         </div>
                     )}
                 </div>
+                  </>
+                )}
+
+                {/* Link de mesa + QR — siempre visible */}
+                {restaurantSlug && (
+                    <div className="pt-6 border-t border-dashed border-gray-100">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Link de mesa</p>
+                        <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                            <span className="text-[10px] font-bold text-gray-500 flex-1 truncate">
+                                snappy.uno/{restaurantSlug}?mesa={selectedTableForDetail.id}
+                            </span>
+                            <button
+                                onClick={(e) => copyMesaLink(selectedTableForDetail, e)}
+                                className={`p-2 rounded-xl transition-all shrink-0 ${copiedMesaId === selectedTableForDetail.id ? 'bg-green-500 text-white' : 'bg-white border border-gray-200 text-gray-400 hover:bg-gray-100'}`}
+                            >
+                                {copiedMesaId === selectedTableForDetail.id ? <Check size={12} strokeWidth={3} /> : <Copy size={12} />}
+                            </button>
+                            <button
+                                onClick={(e) => downloadQR(selectedTableForDetail, e)}
+                                className="p-2 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-1 hover:bg-gray-700 transition-all shrink-0"
+                            >
+                                <QrCode size={12} /> QR
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            
+
             {/* 💰 FOOTER COMPACTO (Se esconde al agregar productos) */}
-            {!showAddTools && (
+            {selectedTableForDetail.activeOrder && !showAddTools && (
                 <div className="p-6 bg-gray-900 text-white rounded-t-[2.5rem] animate-in slide-in-from-bottom-5 duration-300">
                     <div className="flex justify-between items-end mb-4 px-2">
                         <div className="flex flex-col">

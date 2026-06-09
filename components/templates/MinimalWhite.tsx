@@ -13,10 +13,11 @@ interface Props {
   onAddToCart: any;
   isMockup?: boolean;
   setShowInfo: (val: boolean) => void;
+  mesaLabel?: string | null;
 }
 
 const MinimalWhite: React.FC<Props> = ({
-  restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false, setShowInfo
+  restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false, setShowInfo, mesaLabel = null,
 }) => {
   const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -89,7 +90,7 @@ const MinimalWhite: React.FC<Props> = ({
       <style>{styles}</style>
 
       <div className="minimal-header">
-        <div className="minimal-status">{isOpen ? "Abierto" : "Cerrado"}</div>
+        <div className="minimal-status">{mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "Abierto" : "Cerrado"}</div>
         <button onClick={() => setShowInfo(true)} className="minimal-info-btn" style={{ color: restaurant.theme_color || '#111111' }}>
           <Store size={24} />
         </button>

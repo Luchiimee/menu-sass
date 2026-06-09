@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, X, Minus, Store, Clock, Check, Utensils } from 'lucide-react';
 
-export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
+export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -79,8 +79,8 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
           </div>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <div className="urbano-status" style={{ backgroundColor: isOpenNow ? '#22c55e' : '#ef4444', color: isOpenNow ? '#000' : '#fff' }}>
-            {isOpenNow ? 'ABIERTO' : 'CERRADO'}
+          <div className="urbano-status" style={{ backgroundColor: mesaLabel ? '#d97706' : isOpenNow ? '#22c55e' : '#ef4444', color: mesaLabel ? '#fff' : isOpenNow ? '#000' : '#fff' }}>
+            {mesaLabel ? `📍 ${mesaLabel}` : isOpenNow ? 'ABIERTO' : 'CERRADO'}
           </div>
           <button onClick={() => setShowInfo(true)} className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform" style={{ borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.05)', color: localNameColor }}>
             <Store size={22} />

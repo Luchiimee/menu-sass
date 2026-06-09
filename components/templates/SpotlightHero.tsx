@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Store, Plus, Minus, Layers, X, Check, Search, Utensils, Clock } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
 
-export default function SpotlightHero({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
+export default function SpotlightHero({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
   const [showHeroModal, setShowHeroModal] = useState(false);
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -124,8 +124,8 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
           </div>
         </div>
         <div className="spot-header-right">
-          <div className="spot-status" style={{ backgroundColor: isOpen ? '#22c55e' : '#ef4444' }}>
-            {isOpen ? 'ABIERTO' : 'CERRADO'}
+          <div className="spot-status" style={{ backgroundColor: mesaLabel ? '#d97706' : isOpen ? '#22c55e' : '#ef4444' }}>
+            {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? 'ABIERTO' : 'CERRADO'}
           </div>
           <button onClick={() => setShowInfo(true)} className="spot-info-btn shadow-sm active:scale-90 transition-transform">
             <Store size={isMockup ? 18 : 26} strokeWidth={2.5} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -637,6 +638,24 @@ function MenuContent({
   restaurant: any;
   isOpen: boolean;
 }) {
+  const searchParams = useSearchParams();
+  const [mesaId, setMesaId] = useState<string | null>(null);
+  const [mesaLabel, setMesaLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const mesaParam = searchParams.get('mesa');
+    if (!mesaParam) return;
+    setMesaId(mesaParam);
+    supabase
+      .from('tables')
+      .select('name')
+      .eq('id', mesaParam)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.name) setMesaLabel(data.name);
+      });
+  }, [searchParams]);
+
   const [activeCardId, setActiveCardId] = useState<any>(null);
   const [showClosedAlert, setShowClosedAlert] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -1016,6 +1035,7 @@ const handleSendReservation = async () => {
             categories={displayCats}
             fetchedExtras={restaurant.fetched_extras}
             isOpen={isOpen}
+            mesaLabel={mesaLabel}
             onAddToCart={(product: any, qty: number) => {
               for (let i = 0; i < qty; i++) {
                 addToCart(product);
@@ -1023,7 +1043,7 @@ const handleSendReservation = async () => {
               mostrarAviso("✅ Producto agregado");
             }}
             isMockup={false}
-            setShowInfo={setShowInfo} // 🚀 AGREGÁ ESTA LÍNEA AQUÍ
+            setShowInfo={setShowInfo}
           />
         );
       case "classic":
@@ -1052,6 +1072,7 @@ const handleSendReservation = async () => {
             categories={displayCats}
             fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
+            mesaLabel={mesaLabel}
             onAddToCart={(product: any, qty: number = 1) => {
               for (let i = 0; i < qty; i++) {
                 addToCart(product);
@@ -1071,7 +1092,8 @@ const handleSendReservation = async () => {
             categories={displayCats}
             fetchedExtras={restaurant.fetched_extras}
             isOpen={isOpen}
-            setShowInfo={setShowInfo} // 🚀 ESTA TIENE QUE ESTAR SÍ O SÍ
+            mesaLabel={mesaLabel}
+            setShowInfo={setShowInfo}
             isMockup={false}
             onAddToCart={(product: any) => {
               const exists = cart.find(
@@ -1117,7 +1139,7 @@ const handleSendReservation = async () => {
                   color: "black",
                 }}
               >
-                {isOpen ? "OPEN" : "CLOSED"}
+                {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "OPEN" : "CLOSED"}
               </div>
               <div
                 className="w-16 h-16 rounded-full border-4 overflow-hidden flex-shrink-0 bg-white shadow-inner"
@@ -1305,7 +1327,7 @@ case "spotlight":
       restaurant={restaurant}
       products={allProducts}
       categories={displayCats}
-      fetchedExtras={restaurant.fetched_extras} // 🚀 ESTO ES LO QUE FALTABA
+      fetchedExtras={restaurant.fetched_extras}
       onAddToCart={(product: any, qty: number) => {
         for (let i = 0; i < qty; i++) {
           addToCart(product);
@@ -1313,6 +1335,7 @@ case "spotlight":
         mostrarAviso("✅ Producto agregado");
       }}
       isOpen={isOpen}
+      mesaLabel={mesaLabel}
       setShowInfo={setShowInfo}
     />
   );;
@@ -1647,6 +1670,7 @@ case "spotlight":
       products={allProducts}
       setSelectedProduct={setSelectedProduct}
       isOpen={isOpen}
+      mesaLabel={mesaLabel}
       onAddToCart={(product: any, qty: number) => {
         for (let i = 0; i < qty; i++) {
           addToCart(product);
@@ -1654,7 +1678,7 @@ case "spotlight":
         mostrarAviso("✅ Producto agregado");
       }}
       isMockup={false}
-      setShowInfo={setShowInfo} // 🚀 ESTO ARREGLA EL ERROR EN EL CELULAR DEL CLIENTE
+      setShowInfo={setShowInfo}
     />
   );
       default:
@@ -1717,11 +1741,12 @@ case "spotlight":
             receiveWhatsapp={restaurant.receive_whatsapp}
             businessType={restaurant.business_type}
             restaurantName={restaurant.name}
-            // 🚀 LÓGICA DE PROGRAMACIÓN ACTIVADA:
             scheduled_delivery_enabled={restaurant.scheduled_delivery_enabled}
             scheduled_delivery_slots={restaurant.scheduled_delivery_slots}
             scheduled_delivery_config={restaurant.scheduled_delivery_config}
             isAdmin={false}
+            tableIdFromQR={mesaId}
+            mesaLabel={mesaLabel}
           />
         </div>
         {showReservationModal && (

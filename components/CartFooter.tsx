@@ -16,14 +16,15 @@ interface Table {
     restaurant_id: string;
 }
 
-export default function CartFooter({ 
-    phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp, 
+export default function CartFooter({
+    phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp,
     businessType, restaurantName,
-    // 🚀 ASEGURATE QUE ESTÉN ESTAS TRES AQUÍ:
-    scheduled_delivery_enabled, 
+    scheduled_delivery_enabled,
     scheduled_delivery_slots,
     scheduled_delivery_config,
-    isAdmin 
+    isAdmin,
+    tableIdFromQR = null,
+    mesaLabel = null,
 }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     
@@ -101,8 +102,8 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [metodoPago, setMetodoPago] = useState('efectivo');
 
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
-   const [metodoEnvio, setMetodoEnvio] = useState('delivery'); 
-const [nroMesa, setNroMesa] = useState('')
+    const [metodoEnvio, setMetodoEnvio] = useState(tableIdFromQR ? 'mesa' : 'delivery');
+    const [nroMesa, setNroMesa] = useState(mesaLabel || '')
     const [availableTables, setAvailableTables] = useState<Table[]>([]);
 
     // --- 5. LÓGICA DE CUPONES ---
@@ -787,6 +788,7 @@ return (
         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Teléfono / WhatsApp</label>
         <input type="tel" placeholder="Ej: 1123456789" value={telCliente} onChange={(e)=>setTelCliente(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
     </div>
+                    {!tableIdFromQR && (
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
                         <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
@@ -795,12 +797,12 @@ return (
                                     if (m === 'mesa') {
                                         return planType === 'plus' || planType === 'max';
                                     }
-                                    return true; 
+                                    return true;
                                 })
                                 .map((m) => (
-                                    <button 
-                                        key={m} 
-                                        onClick={() => setMetodoEnvio(m)} 
+                                    <button
+                                        key={m}
+                                        onClick={() => setMetodoEnvio(m)}
                                         className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
                                             metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'
                                         }`}
@@ -811,6 +813,7 @@ return (
                             }
                         </div>
                     </div>
+                    )}
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
                             <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100"><span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span><span className="font-black text-green-700">{formatPrice(envio)}</span></div>
@@ -982,9 +985,15 @@ return (
                         <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
                         <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
-                    <button 
-                        onClick={handleSendOrder} 
-                        disabled={isSending} 
+                    {tableIdFromQR && mesaLabel && (
+                        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
+                            <span className="text-sm">🍽️</span>
+                            <span className="text-xs font-black text-amber-800 uppercase tracking-tight">Pedido para {mesaLabel}</span>
+                        </div>
+                    )}
+                    <button
+                        onClick={handleSendOrder}
+                        disabled={isSending}
                         className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
                     >
                         {isSending ? (
