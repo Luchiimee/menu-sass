@@ -4,20 +4,21 @@ import React, { useState } from 'react';
 import { Clock, Search, Layers, Plus, Minus, Check,MapPin,X,Store,Zap } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
 
-interface Props { 
-  restaurant: any; 
-  products: any[]; 
+interface Props {
+  restaurant: any;
+  products: any[];
   categories: any[];
   fetchedExtras: any[];
-  isOpen: boolean; 
-  onAddToCart: any; 
+  isOpen: boolean;
+  onAddToCart: any;
   isMockup?: boolean;
   setShowInfo: (val: boolean) => void;
+  mesaLabel?: string | null;
 }
 
-const ClassicDelivery: React.FC<Props> = ({ 
+const ClassicDelivery: React.FC<Props> = ({
   restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false,
-  setShowInfo 
+  setShowInfo, mesaLabel = null
 }) => {
   const { cart, updateQuantity, updateExtraQuantity, removeFromCart, addToCart } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -25,22 +26,22 @@ const ClassicDelivery: React.FC<Props> = ({
   const [selectedCategory, setSelectedCategory] = useState("todos");
 ; 
   // --- VARIABLES DE DISEÑO ---
-const headerBg = restaurant.theme_color || '#a12929'; // El rojo premium
-  const headerDesc = restaurant.description_color || '#e5e7eb'; // El gris claro
+const headerBg = restaurant.theme_color || '#1a1a2e';
+  const headerDesc = restaurant.description_color || '#94a3b8';
   const headerText = restaurant.text_color || '#ffffff';
-  
-  const webBg = restaurant.bg_color || '#ffffff';
-  const prodName = restaurant.card_name_color || '#000000';
-  const prodDesc = restaurant.card_desc_color || '#666666';
-  const prodPrice = restaurant.card_price_color || '#d32f2f';
+
+  const webBg = restaurant.bg_color || '#f8f9fa';
+  const prodName = restaurant.card_name_color || '#111827';
+  const prodDesc = restaurant.card_desc_color || '#6b7280';
+  const prodPrice = restaurant.card_price_color || '#1a1a2e';
   const cardBg = restaurant.card_color || '#ffffff';
-  const btnBg = restaurant.card_btn_bg || '#ffffff';
-  const btnText = restaurant.card_btn_text || '#000000';
-  const promoBg = restaurant.promo_bg_color || '#ffebee';
-  const promoText = restaurant.promo_text_color || '#d32f2f';
-  const catBg = restaurant.cat_bg_color || '#f3f4f6';
-  const catText = restaurant.cat_text_color || '#666666';
-  const catActiveBg = restaurant.cat_active_bg_color || headerBg; // Por defecto sigue al banner si no se elige otro
+  const btnBg = restaurant.card_btn_bg || '#1a1a2e';
+  const btnText = restaurant.card_btn_text || '#ffffff';
+  const promoBg = restaurant.promo_bg_color || '#fff8e7';
+  const promoText = restaurant.promo_text_color || '#92620a';
+  const catBg = restaurant.cat_bg_color || '#ffffff';
+  const catText = restaurant.cat_text_color || '#1a1a2e';
+  const catActiveBg = restaurant.cat_active_bg_color || '#1a1a2e';
   const catActiveText = restaurant.cat_active_text_color || '#ffffff';
 
   const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
@@ -182,7 +183,7 @@ const handleMainStep = (p: any, delta: number) => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}
         >
-          {isOpen ? "ABIERTO" : "CERRADO"}
+          {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "ABIERTO" : "CERRADO"}
         </div>
 
         {/* 🚀 BOTÓN INFO A LA DERECHA (Más grande) */}

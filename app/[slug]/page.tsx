@@ -1054,6 +1054,7 @@ const handleSendReservation = async () => {
             categories={displayCats}
             fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
+            mesaLabel={mesaLabel}
             onAddToCart={(product: any, qty: number = 1) => {
               for (let i = 0; i < qty; i++) {
                 addToCart(product);
@@ -1061,7 +1062,7 @@ const handleSendReservation = async () => {
               mostrarAviso("✅ Agregado");
             }}
             isMockup={false}
-            setShowInfo={setShowInfo} // 🚀 ESTA LÍNEA ES LA QUE HACE LA MAGIA
+            setShowInfo={setShowInfo}
           />
         );
       case "minimal":
@@ -1356,14 +1357,14 @@ case "spotlight":
                   textTransform: "uppercase",
                   padding: "5px 10px",
                   borderRadius: "6px",
-                  border: `1px solid ${isOpen ? THEME : "#cc0000"}`,
-                  color: isOpen ? THEME : "#cc0000",
+                  border: `1px solid ${mesaLabel ? "#d97706" : isOpen ? THEME : "#cc0000"}`,
+                  color: mesaLabel ? "#d97706" : isOpen ? THEME : "#cc0000",
                   backgroundColor: "transparent",
                   zIndex: 10,
-                  fontFamily: "Inter, sans-serif", // Fuente neutra para el estado
+                  fontFamily: "Inter, sans-serif",
                 }}
               >
-                {isOpen ? "Abierto" : "Cerrado"}
+                {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "Abierto" : "Cerrado"}
               </div>
 
               {LOGO && <img src={LOGO} className="elegant-logo" alt="logo" />}
@@ -1486,12 +1487,12 @@ case "spotlight":
                   className={`px-3 py-1 border-2 border-dashed rounded-lg text-[10px] font-black uppercase tracking-widest`}
                   style={{
                     backgroundColor: BG,
-                    color: isOpen ? "#2ecc71" : "#e74c3c", // Verde abierto, Rojo cerrado
-                    borderColor: isOpen ? "#2ecc71" : "#e74c3c",
+                    color: mesaLabel ? "#d97706" : isOpen ? "#2ecc71" : "#e74c3c",
+                    borderColor: mesaLabel ? "#d97706" : isOpen ? "#2ecc71" : "#e74c3c",
                     fontFamily: restaurant.title_font || "Patrick Hand",
                   }}
                 >
-                  {isOpen ? "Abierto" : "Cerrado"}
+                  {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "Abierto" : "Cerrado"}
                 </div>
               </div>
 
@@ -1639,7 +1640,8 @@ case "spotlight":
             categories={restaurant.categories || []}
             fetchedExtras={restaurant.fetched_extras}
             isOpen={isOpen}
-            setShowInfo={setShowInfo} // 👈 AGREGÁ ESTA LÍNEA QUE FALTA
+            mesaLabel={mesaLabel}
+            setShowInfo={setShowInfo}
             onAddToCart={(product: any, qty: number) => {
               for (let i = 0; i < qty; i++) {
                 addToCart(product);
@@ -1654,7 +1656,8 @@ case "spotlight":
           <HeladeriaSoft
             restaurant={restaurant}
             products={iceCreamProducts}
-            isOpen={isOpen} // <--- AGREGÁ ESTA LÍNEA
+            isOpen={isOpen}
+            mesaLabel={mesaLabel}
             onAddToCart={(product: any) => {
               addToCart(product);
               mostrarAviso("✅ Producto agregado");

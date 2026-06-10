@@ -4,7 +4,7 @@ import CartFooter from "../CartFooter";
 import { useState } from "react";
 import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone,Check } from "lucide-react";
 
-export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo }: any) {
+export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -88,8 +88,8 @@ const isOpenNow = isOpen;
         </button>
 
         <div className="flex justify-center mb-3">
-          <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-            {isOpenNow ? '● Abierto ahora' : '○ Cerrado momentáneamente'}
+          <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${mesaLabel ? 'bg-amber-100 text-amber-700' : isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+            {mesaLabel ? `📍 ${mesaLabel}` : isOpenNow ? '● Abierto ahora' : '○ Cerrado momentáneamente'}
           </span>
         </div>
 

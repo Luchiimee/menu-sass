@@ -35,24 +35,24 @@ const ColorBubble = ({ label, value, onChange }: { label: string, value: string,
 );
 
 const TEMPLATE_DEFAULTS: any = {
-classic: { 
-    theme: '#a12929', // Un rojo más elegante y profundo
-    bg: '#ffffff', 
-    text: '#ffffff', 
-    desc: '#e5e7eb', // Gris muy claro para la descripción en el fondo rojo
-    card_name: '#111827', // Negro azulado profesional
-    card_desc: '#6b7280', // Gris suave para descripciones
-    card_price: '#a12929', // Precio a juego con el tema
-    btn_bg: '#ffffff', 
-    btn_text: '#a12929', 
-    promo_bg_color: '#fef2f2', // Fondo rosado/rojo muy tenue
-    promo_text_color: '#991b1b', // Texto rojo oscuro
+classic: {
+    theme: '#1a1a2e',
+    bg: '#f8f9fa',
+    text: '#ffffff',
+    desc: '#94a3b8',
+    card_name: '#111827',
+    card_desc: '#6b7280',
+    card_price: '#1a1a2e',
+    btn_bg: '#1a1a2e',
+    btn_text: '#ffffff',
+    promo_bg_color: '#fff8e7',
+    promo_text_color: '#92620a',
     banner: false,
-    search_bg_color: '#f3f4f6', 
-    search_icon_color: '#9ca3af',
-    cat_bg_color: '#f3f4f6',
-    cat_text_color: '#6b7280',
-    cat_active_bg_color: '#a12929',
+    search_bg_color: '#ffffff',
+    search_icon_color: '#1a1a2e',
+    cat_bg_color: '#ffffff',
+    cat_text_color: '#1a1a2e',
+    cat_active_bg_color: '#1a1a2e',
     cat_active_text_color: '#ffffff'
   },
 

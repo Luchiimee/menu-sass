@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { X, Check, Clock } from 'lucide-react';
 import CartFooter from "../CartFooter";
 
-export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpen, isMockup = false }: any) {
+export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpen, isMockup = false, mesaLabel = null }: any) {
   const [selections, setSelections] = useState<{ [key: string]: number }>({});
   const [showClosedModal, setShowClosedModal] = useState(false);
   const THEME = restaurant?.theme_color || '#6366f1';
@@ -18,14 +18,13 @@ export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpe
         {/* BOTÓN ESTADO DINÁMICO (CORREGIDO) */}
         <div 
           className="absolute top-4 right-4 px-4 py-1.5 rounded-full font-black uppercase italic tracking-widest text-[9px] shadow-sm flex items-center gap-1.5 transition-colors duration-500"
-          style={{ 
-            backgroundColor: isOpen ? '#10b981' : '#ef4444', // Verde si abre, Rojo si cierra
-            color: 'white' 
+          style={{
+            backgroundColor: mesaLabel ? '#d97706' : isOpen ? '#10b981' : '#ef4444',
+            color: 'white'
           }}
         >
-          {/* El puntito solo late si está abierto */}
-          <div className={`w-1.5 h-1.5 rounded-full bg-white ${isOpen ? 'animate-pulse' : ''}`} />
-          {isOpen ? 'Abierto' : 'Cerrado'}
+          <div className={`w-1.5 h-1.5 rounded-full bg-white ${isOpen && !mesaLabel ? 'animate-pulse' : ''}`} />
+          {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? 'Abierto' : 'Cerrado'}
         </div>
 
         <div className="flex items-center gap-5">
