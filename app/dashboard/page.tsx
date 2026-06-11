@@ -69,7 +69,8 @@ useEffect(() => {
       .maybeSingle();
 
     if (mounted) {
-      setPhone(profileData?.phone || null);
+      const metadata = session.user.user_metadata;
+      setPhone(profileData?.phone || metadata?.phone || metadata?.whatsapp || null);
     }
 
     // 2. Traer Restaurante
@@ -289,7 +290,7 @@ const PhoneWarningBanner = () => {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase text-amber-800 tracking-tight">Falta información de contacto</p>
-              <p className="text-[9px] text-amber-600 font-bold uppercase tracking-widest">Necesitamos tu WhatsApp para enviarte avisos de ventas.</p>
+              <p className="text-[9px] text-amber-600 font-bold uppercase tracking-widest">Completá tu número de WhatsApp para terminar tu registro y recibir novedades.</p>
             </div>
           </div>
           <Link 

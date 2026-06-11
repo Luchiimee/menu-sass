@@ -72,23 +72,6 @@ export default function LoginPage() {
 
         if (authError) throw authError
 
-        if (authData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: authData.user.id,
-              first_name: firstName,
-              last_name: lastName,
-              phone: phone,
-              email: email,
-              updated_at: new Date().toISOString(),
-            })
-          
-          if (profileError) {
-            console.error("Error en tabla profiles:", profileError.message)
-          }
-        }
-
         setMessage('¡Cuenta creada! Revisa tu email para confirmar.')
 
       } else {
