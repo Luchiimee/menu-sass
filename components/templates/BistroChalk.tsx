@@ -1,5 +1,7 @@
 // components/templates/BistroChalk.tsx
 import React from 'react';
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function BistroChalk({ restaurant, products }: any) {
   const titleFont = restaurant.title_font || 'Patrick Hand';
@@ -78,7 +80,7 @@ export default function BistroChalk({ restaurant, products }: any) {
       <div className="bistro-border">
         <div className="bistro-header">
           <div className="bistro-status">{isOpen ? 'Abierto' : 'Cerrado'}</div>
-          <div className="bistro-logo" style={{ backgroundImage: `url('${restaurant.logo_url || ''}')` }}>{!restaurant.logo_url && 'EB'}</div>
+          <div className="bistro-logo" style={{ backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ''}')` }}>{!restaurant.logo_url && 'EB'}</div>
           
           <div className="bistro-title" style={{ color: textColor }}>{restaurant.name || 'El Bodegón'}</div>
           
@@ -97,7 +99,7 @@ export default function BistroChalk({ restaurant, products }: any) {
               <div className="bistro-row">
                 <div className="bistro-name">{p.name}</div>
                 <div className="bistro-dots"></div>
-                <div className="bistro-price">${p.price}</div>
+                <div className="bistro-price">{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde $${amount}` : `$${amount}`; })()}</div>
                 
                 {/* --- BOTÓN MÁS RECONECTADO --- */}
                 <div 

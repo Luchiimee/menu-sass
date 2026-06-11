@@ -42,6 +42,7 @@ import VisualGrid from "@/components/templates/VisualGrid";
 import BioModern from "@/components/templates/bio/BioModern";
 import ClassicDelivery from "@/components/templates/ClassicDelivery";
 import MinimalWhite from "@/components/templates/MinimalWhite";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -1147,7 +1148,7 @@ const handleSendReservation = async () => {
                 style={{ borderColor: shadow }}
               >
                 <img
-                  src={LOGO || ""}
+                  src={getOptimizedImageUrl(LOGO, 150, 75) || ""}
                   className="w-full h-full object-cover"
                   alt="logo"
                 />
@@ -1367,7 +1368,7 @@ case "spotlight":
                 {mesaLabel ? `📍 ${mesaLabel}` : isOpen ? "Abierto" : "Cerrado"}
               </div>
 
-              {LOGO && <img src={LOGO} className="elegant-logo" alt="logo" />}
+              {LOGO && <img src={getOptimizedImageUrl(LOGO, 150, 75)} className="elegant-logo" alt="logo" />}
 
               {/* TÍTULO CON FUENTE DINÁMICA */}
               <h1
@@ -1497,7 +1498,7 @@ case "spotlight":
               </div>
 
               <div className="bistro-header">
-                {LOGO && <img src={LOGO} className="bistro-logo" alt="logo" />}
+                {LOGO && <img src={getOptimizedImageUrl(LOGO, 150, 75)} className="bistro-logo" alt="logo" />}
                 <h1 className="bistro-title">{restaurant.name}</h1>
                 <p className="bistro-desc">{restaurant.description}</p>
               </div>
@@ -2043,7 +2044,7 @@ case "spotlight":
             {/* Imagen del plato en el modal */}
             <div
               className="h-56 bg-cover bg-center relative"
-              style={{ backgroundImage: `url('${BANNER || LOGO}')` }}
+              style={{ backgroundImage: `url('${getOptimizedImageUrl(BANNER || LOGO, 800, 75)}')` }}
             >
               <button
                 onClick={() => setShowHeroModal(false)}
@@ -2599,9 +2600,11 @@ function BioContent({ restaurant }: { restaurant: any }) {
         >
           <img
             src={
-              restaurant.snappylink_logo_url ||
-              restaurant.logo_url ||
-              "/placeholder.png"
+              getOptimizedImageUrl(
+                restaurant.snappylink_logo_url || restaurant.logo_url || "/placeholder.png",
+                150,
+                75
+              ) as string
             }
             className="w-full h-full object-cover"
             alt="logo"

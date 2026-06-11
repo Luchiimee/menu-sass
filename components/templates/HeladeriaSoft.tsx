@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { X, Check, Clock } from 'lucide-react';
 import CartFooter from "../CartFooter";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpen, isMockup = false, mesaLabel = null }: any) {
   const [selections, setSelections] = useState<{ [key: string]: number }>({});
@@ -30,7 +31,7 @@ export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpe
         <div className="flex items-center gap-5">
           {/* LOGO */}
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-4xl shadow-md overflow-hidden bg-gray-50 flex-shrink-0 border-2 border-white" style={{ backgroundColor: THEME }}>
-            {restaurant?.logo_url ? <img src={restaurant.logo_url} className="w-full h-full object-cover" alt="Logo" /> : "✨"}
+            {restaurant?.logo_url ? <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} className="w-full h-full object-cover" alt="Logo" /> : "✨"}
           </div>
           
           <div className="text-left leading-tight flex-1 pr-10">
@@ -58,7 +59,8 @@ export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpe
         {/* LISTADO DE PRODUCTOS (GENÉRICO) */}
         {products?.length > 0 ? (
           products.filter((p: any) => p && p.id).map((p: any) => {
-            const variations = p.variations || [];
+            const isPeso = p.sale_type === 'peso';
+            const variations = isPeso ? (p.variations || []) : [];
             const selectedIdx = selections[p.id] ?? 0;
             const displayPrice = variations[selectedIdx]?.price || p.price || 0;
 

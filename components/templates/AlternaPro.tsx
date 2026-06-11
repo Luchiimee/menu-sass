@@ -1,6 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { Utensils, ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check, Clock, Search } from 'lucide-react';
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function AlternaPro({ 
   restaurant = {}, 
@@ -74,11 +76,7 @@ export default function AlternaPro({
     const isEven = globalItemIdx % 2 === 0;
     globalItemIdx++;
 
-    let displayPrice = p.price;
-    if (p.variations && p.variations.length > 0) {
-      const featured = p.variations.find((v: any) => v.is_featured);
-      displayPrice = featured ? featured.price : Math.min(...p.variations.map((v: any) => Number(v.price)));
-    }
+    const { amount: displayPrice, isFrom } = getProductDisplayPrice(p);
 
     return (
      <button key={p.id} onClick={() => { if (!isOpen && !isMockup) return setShowClosedModal(true); setSelectedProduct(p); }} className={`w-full flex items-center gap-4 active:scale-95 transition-transform ${isEven ? 'flex-row' : 'flex-row-reverse'}`}>
@@ -87,7 +85,7 @@ export default function AlternaPro({
             {p.video_url ? (
               <video src={p.video_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
             ) : p.image_url ? (
-              <img src={p.image_url} className="w-full h-full object-cover" alt={p.name} />
+              <img src={getOptimizedImageUrl(p.image_url, 300, 70)} loading="lazy" className="w-full h-full object-cover" alt={p.name} />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-50">
                 <Utensils size={isMockup ? 24 : 32} strokeWidth={1.5} style={{ color: `${THEME}40` }} />
@@ -98,7 +96,7 @@ export default function AlternaPro({
         <div className={`flex-1 min-w-0 flex flex-col ${isEven ? 'items-start text-left' : 'items-end text-right'} space-y-1`}>
           <span className="inline-block px-3 py-2 rounded-xl border border-gray-100 shadow-sm text-[9px] font-black uppercase" style={{ color: PROD_NAME_COLOR, backgroundColor: PROD_NAME_BG }}>{p.name}</span>
           <div className="inline-block px-4 py-1.5 rounded-full font-black text-[10px] shadow-md border border-white/20" style={{ backgroundColor: PRICE_BG, color: PRICE_TEXT }}>
-            ${displayPrice}
+            {isFrom ? `Desde $${displayPrice}` : `$${displayPrice}`}
           </div>
         </div>
       </button>
@@ -131,7 +129,7 @@ export default function AlternaPro({
 <div className="text-center px-4">
   {restaurant?.logo_url && (
     <div className="w-16 h-16 mx-auto rounded-full border-2 border-white shadow-md overflow-hidden mb-3 bg-white flex items-center justify-center">
-      <img src={restaurant.logo_url} className="w-full h-full object-cover" alt="Logo" />
+      <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} className="w-full h-full object-cover" alt="Logo" />
     </div>
   )}
   <h1 className="text-xl font-black uppercase tracking-tighter leading-none" style={{ color: NAME_COLOR }}>{restaurant?.name || 'Tu Negocio'}</h1>
@@ -227,7 +225,7 @@ export default function AlternaPro({
                 {restaurant.selectedProduct.video_url ? (
                   <video src={restaurant.selectedProduct.video_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                 ) : restaurant.selectedProduct.image_url ? (
-                  <img src={restaurant.selectedProduct.image_url} className="w-full h-full object-cover" alt={restaurant.selectedProduct.name} />
+                  <img src={getOptimizedImageUrl(restaurant.selectedProduct.image_url, 600, 75)} className="w-full h-full object-cover" alt={restaurant.selectedProduct.name} />
                 ) : (
                   <div className="flex flex-col items-center opacity-20">
                     <Utensils size={64} strokeWidth={1} style={{ color: THEME }} />

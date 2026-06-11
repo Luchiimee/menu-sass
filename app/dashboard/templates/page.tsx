@@ -2,9 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X,RotateCcw, Heart, Sparkles,ArrowRight } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles,ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
@@ -446,20 +446,10 @@ function GalleryContent() {
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
   const isNewlyActivated = searchParams.get('activated')
-  const [isOnboardingMandatory, setIsOnboardingMandatory] = useState(true);
-const router = useRouter();
   const [showUpcomingModal, setShowUpcomingModal] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState('classic');
   const [userPlan, setUserPlan] = useState('free');
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState('todas');
-  const [saleType, setSaleType] = useState<string | null>(null); 
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  
-  const [step, setStep] = useState(1); 
-  const [tempType, setTempType] = useState<string | null>(null); 
-  const [isUpdatingType, setIsUpdatingType] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -468,11 +458,11 @@ const router = useRouter();
 useEffect(() => {
    const loadAllData = async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if(session) {
             const { data: restaurantData } = await supabase
                 .from('restaurants')
-                .select('template_id, subscription_plan, sale_type, is_open, onboarding_completed')
+                .select('template_id, subscription_plan, is_open')
                 .eq('user_id', session.user.id)
                 .maybeSingle();
 
@@ -480,64 +470,11 @@ useEffect(() => {
                 setCurrentTemplate(restaurantData.template_id || 'classic');
                 setUserPlan(restaurantData.subscription_plan ? 'paid' : 'free');
                 setIsOpen(restaurantData.is_open ?? true);
-                setSaleType(restaurantData.sale_type);
-
-                // --- LÓGICA REFORZADA ---
-                if (restaurantData.onboarding_completed && restaurantData.sale_type) {
-                    setShowOnboarding(false);
-                    setIsOnboardingMandatory(false);
-                    setStep(3); 
-                } else {
-                    // Si no completó o no tiene sale_type, FORZAMOS paso 1
-                    setStep(1);
-                    setShowOnboarding(true);
-                    setIsOnboardingMandatory(true);
-                }
             }
         }
-        setIsInitialLoading(false); 
     };
     loadAllData();
 }, [supabase]);
-
-
-const handleSaveBusinessInfo = async (subType: string) => {
-    setIsUpdatingType(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user && tempType) {
-        // 1. Guardamos en la base de datos
-        const { error } = await supabase.from('restaurants').update({ 
-            business_type: tempType === 'unidad' ? 'gastronomico' : 'fraccionado',
-            business_subtype: subType,
-            sale_type: tempType, 
-            onboarding_completed: true 
-        }).eq('user_id', user.id);
-
-        if (error) {
-            console.error("Error DB:", error);
-            setIsUpdatingType(false);
-            return;
-        }
-        
-        // 2. ACTUALIZACIÓN DE ESTADOS LOCALES
-        setSaleType(tempType);
-        setShowOnboarding(false);
-        setIsOnboardingMandatory(false); // <--- IMPORTANTE: Rompe el bloqueo
-        setStep(3); 
-        
-        // 3. EL "GRITO" PARA EL LAYOUT
-        // Esto le avisa al DashboardLayout que ya puede quitar el desenfoque y el modal
-        window.dispatchEvent(new Event('profile-updated'));
-
-        // 4. FEEDBACK VISUAL
-        toast.success("¡Rubro configurado! Ya puedes elegir tu diseño.");
-
-        // 5. REFRESH DE RUTA (Para limpiar estados de servidor)
-        router.refresh(); 
-    }
-    setIsUpdatingType(false);
-};
   // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
  const handleSelect = async (id: string, premium: boolean) => {
     if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
@@ -885,143 +822,14 @@ case 'alterna-pro':
       default: return null;
     }
   };
-const filteredTemplates = TEMPLATES.filter(t => {
-  if (!saleType) return false;
+// --- LÓGICA DE RENDERIZADO ---
 
-  // 1. Verificamos Rubro (Soporta si es texto simple o array)
-  const typeMatch = Array.isArray(t.sale_type) 
-    ? t.sale_type.includes(saleType) 
-    : t.sale_type === saleType;
-
-  if (!typeMatch) return false;
-
-  // 2. Verificamos Filtro de Pestaña (Soporta si es texto simple o array)
-  if (activeFilter === 'todas') return true;
-  if (activeFilter === 'premium') return t.premium;
-
-  return Array.isArray(t.category)
-    ? t.category.includes(activeFilter)
-    : t.category === activeFilter;
-});
-// --- LÓGICA DE RENDERIZADO DIVIDIDA (PARA PANTALLA LIMPIA) ---
-
-  if (!isInitialLoading && userPlan !== 'free' && showOnboarding) {
-  return (
-    <div className="fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center p-6 overflow-y-auto">
-      
-      {/* BOTÓN X: Solo aparece si NO es obligatorio (o sea, si ya lo eligió antes) */}
-      {!isOnboardingMandatory && (
-        <button 
-          onClick={() => setShowOnboarding(false)}
-          className="absolute top-10 right-10 p-3 text-gray-400 hover:text-black transition-all cursor-pointer z-[200]"
-        >
-          <X size={30} strokeWidth={3} />
-        </button>
-      )}
-        <style>{GALLERY_STYLES}</style>
-        <div className="max-w-2xl w-full space-y-12 py-10 text-center">
-          
-        {/* PASO 1: DISEÑO PREMIUM MEJORADO */}
-{step === 1 && (
-  <div className="space-y-10 animate-in zoom-in-95 duration-300">
-    <div className="text-center space-y-2">
-      <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full mb-2">
-        <span className="text-indigo-600 font-black text-[9px] uppercase tracking-[0.3em]">Paso 01</span>
-      </div>
-      <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Cómo vendés?</h2>
-      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Seleccioná el formato de tu catálogo</p>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* BOTÓN UNIDAD */}
-      <button 
-        onClick={() => { setTempType('unidad'); setStep(2); }} 
-        className="group bg-white border-2 border-slate-100 p-8 rounded-[3rem] hover:border-indigo-600 transition-all text-left shadow-lg hover:shadow-indigo-100 relative overflow-hidden"
-      >
-        <div className="absolute -right-4 -top-4 text-8xl opacity-5 group-hover:scale-110 transition-transform">🍔</div>
-        <div className="text-5xl mb-6 relative z-10">🍔</div>
-        <h3 className="text-2xl font-black uppercase italic leading-none relative z-10 text-slate-900">Venta por Unidad</h3>
-        <p className="text-slate-400 text-[10px] mt-3 font-bold uppercase tracking-widest relative z-10">Burgers, Pizzas, Kioscos y más</p>
-      </button>
-
-      {/* BOTÓN PESO */}
-      <button 
-        onClick={() => { setTempType('peso'); setStep(2); }} 
-        className="group bg-white border-2 border-slate-100 p-8 rounded-[3rem] hover:border-cyan-500 transition-all text-left shadow-lg hover:shadow-cyan-100 relative overflow-hidden"
-      >
-        <div className="absolute -right-4 -top-4 text-8xl opacity-5 group-hover:scale-110 transition-transform">⚖️</div>
-        <div className="text-5xl mb-6 relative z-10">⚖️</div>
-        <h3 className="text-2xl font-black uppercase italic leading-none relative z-10 text-cyan-600">Venta por Peso</h3>
-        <p className="text-slate-400 text-[10px] mt-3 font-bold uppercase tracking-widest relative z-10">Dietéticas, Heladerías y Fraccionados</p>
-      </button>
-    </div>
-  </div>
-)}
-
-     {/* PASO 2: SELECCIÓN DE RUBRO ESPECÍFICO */}
-{step === 2 && (
-  <div className="space-y-10 animate-in slide-in-from-right-8 duration-500">
-    <div className="text-center space-y-3">
-      <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
-        <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
-        <span className="text-indigo-600 font-black text-[9px] uppercase tracking-[0.2em]">Configuración Final</span>
-      </div>
-      <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">¿Cuál es tu rubro?</h2>
-      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Ayudanos a optimizar tu experiencia</p>
-    </div>
-
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {(tempType === 'unidad' 
-        ? ['Hamburguesería', 'Pizzería', 'Restaurante', 'Sushi', 'Cafetería', 'Otros']
-        : ['Dietética', 'Heladería', 'Fiambrería', 'Carnicería', 'Verdulería', 'Otros']
-      ).map(item => (
-        <button 
-          key={item} 
-          onClick={() => handleSaveBusinessInfo(item.toLowerCase())} 
-          className="group p-5 rounded-[2rem] border-2 border-slate-100 hover:border-slate-900 font-black text-[10px] uppercase tracking-widest transition-all bg-white hover:shadow-xl active:scale-95 flex flex-col items-center gap-2 text-slate-900"
-        >
-          <span className="text-xl group-hover:scale-125 transition-transform">
-            {item === 'Heladería' ? '🍦' : item === 'Cafetería' ? '☕' : item === 'Sushi' ? '🍣' : '✨'}
-          </span>
-          {item}
-        </button>
-      ))}
-    </div>
-    
-    <button 
-      onClick={() => setStep(1)} 
-      className="text-[10px] font-black uppercase text-slate-300 hover:text-slate-900 mt-8 flex items-center justify-center gap-2 mx-auto transition-colors"
-    >
-      <RotateCcw size={12}/> Volver atrás
-    </button>
-  </div>
-)}
-
-          {isUpdatingType && (
-            <div className="flex flex-col items-center gap-2 mt-8 animate-in fade-in">
-              <Loader2 className="animate-spin text-indigo-600"/>
-              <span className="text-[10px] font-black uppercase text-slate-400 animate-pulse">Configurando tu panel...</span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // 2. SI YA COMPLETÓ EL ONBOARDING: Mostramos la Galería normal (Imagen 2)
-// Lógica: Si mainCategory es 'todas', no filtra por tipo.
 const finalTemplates = TEMPLATES.filter(t => {
-    // 1. Filtrar por Rubro (Unidad o Peso)
-    const typeMatch = Array.isArray(t.sale_type) 
-      ? t.sale_type.includes(saleType || '') 
-      : t.sale_type === saleType;
-    if (!typeMatch) return false;
-
-    // 2. Filtrar por Categoría Principal (Rápidas o Completas)
+    // 1. Filtrar por Categoría Principal (Rápidas o Completas)
     const matchesMain = mainCategory === 'todas' || t.category === mainCategory;
-    
-    // 3. Filtrar por Estilo Visual (Con o Sin Fotos)
-    const matchesPhoto = photoFilter === 'todas' || 
+
+    // 2. Filtrar por Estilo Visual (Con o Sin Fotos)
+    const matchesPhoto = photoFilter === 'todas' ||
       (photoFilter === 'con-foto' ? t.hasPhotos === true : t.hasPhotos === false);
 
     return matchesMain && matchesPhoto;
@@ -1030,22 +838,8 @@ const finalTemplates = TEMPLATES.filter(t => {
     <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20">
       <style>{GALLERY_STYLES}</style>
       
-      {/* 1. HEADER CON TÍTULO Y BOTÓN DE RUBRO (A LA IZQUIERDA) */}
-     {/* 1. HEADER CON TÍTULO Y MENSAJE DE ÉXITO DINÁMICO */}
+      {/* 1. HEADER CON TÍTULO */}
       <header className="mb-10 pt-20 lg:pt-0 text-left relative z-10">
-        
-        {/* --- AGREGAMOS ESTE BLOQUE: Cartel de éxito post-onboarding --- */}
-        {saleType && (
-          <div className="mb-6 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-2xl animate-in slide-in-from-top-4 duration-500">
-            <div className="bg-emerald-500 text-white p-1 rounded-full">
-              <Check size={12} strokeWidth={4} />
-            </div>
-            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-              ¡Rubro configurado! Ahora personalizá tu diseño
-            </span>
-          </div>
-        )}
-
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl sm:text-4xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">
             Galería de Diseños
@@ -1054,14 +848,6 @@ const finalTemplates = TEMPLATES.filter(t => {
             Elige el diseño perfecto para el link digital de tu negocio
           </p>
         </div>
-        
-        {/* TU BOTÓN DE RUBRO (CONSERVADO AL 100%) */}
-        <button 
-          onClick={() => { setStep(1); setTempType(null); setShowOnboarding(true); }}
-          className="mt-5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white transition-all flex items-center gap-2 shadow-sm w-fit"
-        >
-          <ShoppingBag size={14}/> RUBRO: {saleType === 'unidad' ? 'UNIDAD / GASTRONOMÍA' : 'VENTA POR PESO'} (CAMBIAR)
-        </button>
       </header>
 
       {/* 2. MASTER CARDS (RÁPIDAS VS COMPLETAS) */}

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, X, Minus, Store, Clock, Check, Utensils } from 'lucide-react';
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -72,7 +74,7 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
 
       <div className="urbano-top">
         <div className="urbano-brand">
-          <div className="urbano-logo" style={restaurant.logo_url ? { backgroundImage: `url("${restaurant.logo_url}")` } : {}}></div>
+          <div className="urbano-logo" style={restaurant.logo_url ? { backgroundImage: `url("${getOptimizedImageUrl(restaurant.logo_url, 150, 75)}")` } : {}}></div>
           <div className="urbano-names">
             <h4>{restaurant.name || 'Tu Negocio'}</h4>
             <span>{restaurant.description || 'Descripción del local'}</span>
@@ -108,14 +110,14 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
           <div className="space-y-3">
             {(isMockup ? products?.slice(0, 5) : products)?.filter((p: any) => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map((p: any, i: number) => (
               <div key={i} className="urbano-item" onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedProduct(p); setQuantity(1); setSelectedExtras([]); setVariationsQuantities({}); }}>
-                <div className="urbano-img flex items-center justify-center" style={{ backgroundImage: p.image_url && !p.video_url ? `url("${p.image_url}")` : 'none', backgroundColor: '#1E1E1E', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="urbano-img flex items-center justify-center" style={{ backgroundImage: p.image_url && !p.video_url ? `url("${getOptimizedImageUrl(p.image_url, 300, 70)}")` : 'none', backgroundColor: '#1E1E1E', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
                   {p.video_url && (<video autoPlay={!isMockup} loop={!isMockup} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}><source src={p.video_url} /></video>)}
                   {!p.image_url && !p.video_url && (<Utensils size={28} strokeWidth={1.2} className="text-zinc-700" />)}
                 </div>
                 <div className="urbano-info">
                   <div className="urbano-tit">{p.name}</div>
                   <div className="urbano-desc">{p.description}</div>
-                  <div className="urbano-price">{formatPrice(p.price)}</div>
+                  <div className="urbano-price">{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde ${formatPrice(amount)}` : formatPrice(amount); })()}</div>
                 </div>
                 <button className="urbano-add-btn" style={{ pointerEvents: 'none' }}>+</button>
               </div>
@@ -129,13 +131,13 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
                 <h2 className="cat-tit-urbano">{cat.name}</h2>
                 {catProducts.map((p: any, i: number) => (
                   <div key={i} className="urbano-item" onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedProduct(p); setQuantity(1); setSelectedExtras([]); setVariationsQuantities({}); }}>
-                    <div className="urbano-img" style={{ backgroundImage: p.image_url && !p.video_url ? `url("${p.image_url}")` : 'none', backgroundColor: '#333', position: 'relative', overflow: 'hidden' }}>
+                    <div className="urbano-img" style={{ backgroundImage: p.image_url && !p.video_url ? `url("${getOptimizedImageUrl(p.image_url, 300, 70)}")` : 'none', backgroundColor: '#333', position: 'relative', overflow: 'hidden' }}>
                       {p.video_url && (<video autoPlay={!isMockup} loop={!isMockup} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}><source src={p.video_url} /></video>)}
                     </div>
                     <div className="urbano-info">
                       <div className="urbano-tit">{p.name}</div>
                       <div className="urbano-desc">{p.description}</div>
-                      <div className="urbano-price">{formatPrice(p.price)}</div>
+                      <div className="urbano-price">{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde ${formatPrice(amount)}` : formatPrice(amount); })()}</div>
                     </div>
                     <button className="urbano-add-btn" style={{ pointerEvents: 'none' }}>+</button>
                   </div>
@@ -158,7 +160,7 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
                 {selectedProduct.video_url ? (
                   <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover"><source src={selectedProduct.video_url} /></video>
                 ) : selectedProduct.image_url ? (
-                  <img src={selectedProduct.image_url} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                  <img src={getOptimizedImageUrl(selectedProduct.image_url, 600, 75)} className="w-full h-full object-cover" alt={selectedProduct.name} />
                 ) : (
                   <div className="flex flex-col items-center gap-3 opacity-20">
                     <Utensils size={80} strokeWidth={1} className="text-gray-400" />
@@ -169,13 +171,13 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
               <div className="p-6 text-black">
                 <div className="flex justify-between items-start mb-2">
                   <h2 className="text-xl font-black uppercase italic tracking-tighter leading-none text-gray-900 pr-4">{selectedProduct.name}</h2>
-                  {(!selectedProduct.variations || selectedProduct.variations.length === 0) && (
+                  {!(selectedProduct.sale_type === 'peso' && selectedProduct.variations?.length > 0) && (
                     <span className="text-xl font-black text-gray-900 shrink-0">{formatPrice(selectedProduct.price)}</span>
                   )}
                 </div>
                 <p className="text-[11px] leading-relaxed italic mb-6 text-gray-500">{selectedProduct.description || "Sin descripción disponible."}</p>
 
-                {selectedProduct.variations && selectedProduct.variations.length > 0 ? (
+                {selectedProduct.sale_type === 'peso' && selectedProduct.variations?.length > 0 ? (
                   <div className="space-y-3 mb-8">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Elegí las cantidades</p>
                     {selectedProduct.variations.map((v: any, idx: number) => {
@@ -234,7 +236,7 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
             <div className="p-6 pt-2 border-t border-gray-50 bg-white">
               <button onClick={() => {
                 if (!isOpenNow && !isMockup) return setShowClosedModal(true);
-                if (selectedProduct.variations?.length > 0) {
+                if (selectedProduct.sale_type === 'peso' && selectedProduct.variations?.length > 0) {
                   Object.entries(variationsQuantities).forEach(([idx, qty]) => {
                     if (qty > 0) {
                       const variation = selectedProduct.variations[Number(idx)];

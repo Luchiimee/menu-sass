@@ -3,6 +3,8 @@
 import CartFooter from "../CartFooter";
 import { useState } from "react";
 import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone,Check } from "lucide-react";
+import { getProductDisplayPrice } from "@/lib/productPricing";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -25,7 +27,8 @@ const isOpenNow = isOpen;
 
   // --- COMPONENTE DE TARJETA ---
   const ProductCard = ({ product }: { product: any }) => {
-    const showBg = restaurant.card_show_bg !== false; 
+    const showBg = restaurant.card_show_bg !== false;
+    const { amount: displayPrice, isFrom } = getProductDisplayPrice(product);
 
     const handleProductClick = () => {
       if (!isOpenNow && !isMockup) {
@@ -56,10 +59,11 @@ const isOpenNow = isOpen;
       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
     />
   ) : (
-    <img 
-      src={product.image_url || '/placeholder.png'} 
-      alt={product.name} 
-      className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+    <img
+      src={getOptimizedImageUrl(product.image_url, 300, 70) || '/placeholder.png'}
+      alt={product.name}
+      loading="lazy"
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
     />
   )}
 </div>
@@ -68,7 +72,7 @@ const isOpenNow = isOpen;
               {product.short_name || product.name}
             </h3>
             <span className="text-[10px] font-black mt-0.5" style={{ color: restaurant.card_price_color || '#059669' }}>
-              ${product.price}
+              {isFrom ? `Desde $${displayPrice}` : `$${displayPrice}`}
             </span>
           </div>
         </div>
@@ -95,7 +99,7 @@ const isOpenNow = isOpen;
 
         {restaurant.logo_url && (
           <div className="w-16 h-16 mx-auto mb-2 relative rounded-full overflow-hidden border-2 shadow-sm" style={{ borderColor: restaurant.theme_color }}>
-            <img src={restaurant.logo_url} alt={restaurant.name} className="object-cover w-full h-full" />
+            <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} alt={restaurant.name} className="object-cover w-full h-full" />
           </div>
         )}
         <h1 className="text-xl font-black tracking-tighter uppercase italic leading-none" style={{ color: restaurant.text_color || '#000000', fontFamily: titleFont }}>{restaurant.name}</h1>
@@ -131,7 +135,7 @@ const isOpenNow = isOpen;
       {restaurant.show_banner && restaurant.banner_url && (
         <div className="px-5 mb-6">
           <div className="relative w-full aspect-[16/8] rounded-2xl overflow-hidden shadow-sm">
-            <img src={restaurant.banner_url} alt="Portada" className="object-cover w-full h-full" />
+            <img src={getOptimizedImageUrl(restaurant.banner_url, 800, 75)} alt="Portada" className="object-cover w-full h-full" />
           </div>
         </div>
       )}
@@ -213,7 +217,9 @@ const isOpenNow = isOpen;
       })}
 
       {/* MODAL DE PRODUCTO */}
-      {selectedProduct && (
+      {selectedProduct && (() => {
+        const { amount: selectedDisplayPrice, isFrom: selectedIsFrom } = getProductDisplayPrice(selectedProduct);
+        return (
         <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative w-full max-w-sm rounded-[2.5rem] bg-white overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
             <button onClick={() => { setSelectedProduct(null); setQuantity(1); setNotes(""); }} className="absolute top-4 right-8 z-[210] bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-gray-100">
@@ -231,17 +237,17 @@ const isOpenNow = isOpen;
       className="w-full h-full object-cover"
     />
   ) : (
-    <img 
-      src={selectedProduct.image_url || '/placeholder.png'} 
-      alt={selectedProduct.name} 
-      className="w-full h-full object-cover" 
+    <img
+      src={getOptimizedImageUrl(selectedProduct.image_url, 600, 75) || '/placeholder.png'}
+      alt={selectedProduct.name}
+      className="w-full h-full object-cover"
     />
   )}
 </div>
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h2 className="text-xl font-black uppercase italic tracking-tighter leading-none text-gray-900" style={{ fontFamily: titleFont }}>{selectedProduct.name}</h2>
-                  <span className="text-xl font-black text-gray-900">${selectedProduct.price}</span>
+                  <span className="text-xl font-black text-gray-900">{selectedIsFrom ? `Desde $${selectedDisplayPrice}` : `$${selectedDisplayPrice}`}</span>
                 </div>
                 <p className="text-[11px] leading-relaxed italic mb-6 text-gray-500" style={{ fontFamily: descFont }}>{selectedProduct.description || "Sin descripción disponible."}</p>
                 
@@ -315,7 +321,7 @@ const isOpenNow = isOpen;
                   if (!isOpenNow && !isMockup) return setShowClosedModal(true);
                   
                   // Agregamos el producto
-                  onAddToCart(selectedProduct, quantity); 
+                  onAddToCart({ ...selectedProduct, price: selectedDisplayPrice }, quantity);
 
                   // Agregamos los extras
                   selectedExtras.forEach(extra => {
@@ -335,12 +341,13 @@ const isOpenNow = isOpen;
                 className="w-full py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all" 
                 style={{ backgroundColor: restaurant.theme_color || '#000000', color: '#ffffff' }}
               >
-                Confirmar — ${ (selectedProduct.price * quantity) + (selectedExtras.reduce((acc, e) => acc + Number(e.price), 0) * quantity) }
+                Confirmar — ${ (selectedDisplayPrice * quantity) + (selectedExtras.reduce((acc, e) => acc + Number(e.price), 0) * quantity) }
               </button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
     
 

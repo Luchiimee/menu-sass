@@ -24,6 +24,7 @@ import BistroChalk from '../../../components/templates/BistroChalk';
 import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 import AlternaPro from '../../../components/templates/AlternaPro';
 import HeladeriaSoft from '../../../components/templates/HeladeriaSoft';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
   <div className="flex flex-col items-center gap-2">
@@ -197,7 +198,7 @@ if (activeTab === 'snappylinks') {
         {/* LOGO */}
         <div className="w-20 h-20 rounded-full border-2 shadow-xl overflow-hidden shrink-0" 
              style={{ borderColor: data.snappylink_btn_color || data.theme_color }}>
-          <img src={data.snappylink_logo_url || data.logo_url || '/placeholder.png'} className="w-full h-full object-cover" alt="logo" />
+          <img src={getOptimizedImageUrl(data.snappylink_logo_url || data.logo_url || '/placeholder.png', 150, 75) as string} className="w-full h-full object-cover" alt="logo" />
         </div>
 
         {/* TEXTOS */}
@@ -648,8 +649,15 @@ const confirmReset = () => {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.length) return;
-    setUploading(true);
     const file = e.target.files[0];
+
+    // --- VALIDAR PESO DE IMAGEN (Máx 5MB) ---
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("❌ La imagen es muy pesada. Máximo 5MB.");
+      return;
+    }
+
+    setUploading(true);
     const fileName = `${Math.random()}.${file.name.split('.').pop()}`;
     try {
       await supabase.storage.from('images').upload(fileName, file);
@@ -661,8 +669,15 @@ const confirmReset = () => {
 
   const handleNewProdImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
-    setUploading(true);
     const file = e.target.files[0];
+
+    // --- VALIDAR PESO DE IMAGEN (Máx 5MB) ---
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("❌ La imagen es muy pesada. Máximo 5MB.");
+      return;
+    }
+
+    setUploading(true);
     const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
     try {
       await supabase.storage.from('images').upload(fileName, file);
@@ -948,7 +963,7 @@ const confirmReset = () => {
                       <div className="w-20 flex-shrink-0">
                         <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white">
                           <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'logo_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                          {data.logo_url ? <img src={data.logo_url} className="w-full h-full object-cover" /> : <Store size={20} className="text-gray-300" />}
+                          {data.logo_url ? <img src={getOptimizedImageUrl(data.logo_url, 150, 70)} className="w-full h-full object-cover" /> : <Store size={20} className="text-gray-300" />}
                           <div className="absolute inset-0 bg-black/50 text-white text-[8px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition">LOGO</div>
                         </div>
                       </div>
@@ -956,7 +971,7 @@ const confirmReset = () => {
                         <div className="flex-1 flex gap-2">
                           <div className="flex-1 relative h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white">
                             <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'banner_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                            {data.banner_url ? (<><img src={data.banner_url} className="w-full h-full object-cover opacity-60" /><div className="absolute inset-0 flex items-center justify-center"><span className="bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold">Cambiar Portada</span></div></>) : (<div className="flex items-center gap-2 text-gray-400"><ImageIcon size={16} /><span className="text-xs">Subir Portada</span></div>)}
+                            {data.banner_url ? (<><img src={getOptimizedImageUrl(data.banner_url, 200, 70)} className="w-full h-full object-cover opacity-60" /><div className="absolute inset-0 flex items-center justify-center"><span className="bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold">Cambiar Portada</span></div></>) : (<div className="flex items-center gap-2 text-gray-400"><ImageIcon size={16} /><span className="text-xs">Subir Portada</span></div>)}
                           </div>
                           <div className="w-20 border rounded-xl flex flex-col items-center justify-center gap-1 bg-gray-50">
                             <span className="text-[8px] font-bold text-gray-500 uppercase">Banner</span>
@@ -1415,7 +1430,7 @@ const confirmReset = () => {
                           {!templatesSinFoto.some(t => data.template_id?.toLowerCase().includes(t)) ? (
                             <div className="w-12 h-12 bg-white border border-dashed border-gray-200 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0 group">
                               <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
-                              {newProd.image_url ? <img src={newProd.image_url} className="w-full h-full object-cover rounded-lg" /> : <Plus size={16} className="text-gray-400 group-hover:text-violet-500 transition-colors" />}
+                              {newProd.image_url ? <img src={getOptimizedImageUrl(newProd.image_url, 150, 70)} className="w-full h-full object-cover rounded-lg" /> : <Plus size={16} className="text-gray-400 group-hover:text-violet-500 transition-colors" />}
                             </div>
                           ) : (
                             <button type="button" onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" no usa imágenes de productos.`)} className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-amber-100 transition-colors shadow-sm" title="¿Por qué no puedo subir fotos?">
@@ -1440,7 +1455,7 @@ const confirmReset = () => {
       {products.slice(0, 3).map((p: any) => (
         <div key={p.id} className="flex items-center gap-3 p-2 border rounded-lg bg-white">
           <div className="w-8 h-8 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-            {p.image_url && <img src={p.image_url} className="w-full h-full object-cover" alt={p.name} />}
+            {p.image_url && <img src={getOptimizedImageUrl(p.image_url, 100, 70)} className="w-full h-full object-cover" alt={p.name} />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold truncate text-left">{p.name}</div>
@@ -1600,9 +1615,9 @@ const confirmReset = () => {
             <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6">
                 <div className="relative group">
                     <div className="w-20 h-20 rounded-full border-4 border-indigo-50 shadow-xl overflow-hidden bg-gray-50 flex items-center justify-center">
-                        <img 
-                            src={data.snappylink_logo_url || data.logo_url || '/placeholder.png'} 
-                            className="w-full h-full object-cover" 
+                        <img
+                            src={getOptimizedImageUrl(data.snappylink_logo_url || data.logo_url || '/placeholder.png', 150, 75) as string}
+                            className="w-full h-full object-cover"
                         />
                     </div>
                     <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
@@ -1759,7 +1774,7 @@ const confirmReset = () => {
                         </>
                     ) : (
                         <div className="relative w-full h-full">
-                            <img src={data.snappylink_bg_img} className="w-full h-full object-cover opacity-60" />
+                            <img src={getOptimizedImageUrl(data.snappylink_bg_img, 400, 70)} className="w-full h-full object-cover opacity-60" />
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();

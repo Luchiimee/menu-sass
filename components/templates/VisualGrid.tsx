@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Store, Search, Plus, Layers, Minus, Utensils, Clock } from 'lucide-react';
 import AddToCartBtn from "@/components/AddToCartBtn";
 import { useCart } from "@/context/CartContext";
+import { getProductDisplayPrice } from "@/lib/productPricing";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 export default function VisualGrid({ restaurant, products, categories, fetchedExtras, isOpen, setShowInfo, onAddToCart, isMockup, mesaLabel = null }: any) {
   const [activeId, setActiveId] = useState<any>(null);
@@ -66,7 +68,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
       setShowClosedModal(true);
       return;
     }
-    onAddToCart(p);
+    onAddToCart({ ...p, price: getProductDisplayPrice(p).amount });
   };
 
   return (
@@ -75,7 +77,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
       {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMockup ? '10px 4px' : '20px 4px 30px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMockup ? 10 : 15, textAlign: 'left' }}>
-          <div style={{ width: isMockup ? '55px' : '75px', height: isMockup ? '55px' : '75px', borderRadius: '14px', backgroundImage: `url('${restaurant.logo_url || ""}')`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid rgba(255,255,255,0.1)`, backgroundColor: '#222', flexShrink: 0 }}></div>
+          <div style={{ width: isMockup ? '55px' : '75px', height: isMockup ? '55px' : '75px', borderRadius: '14px', backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ""}')`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid rgba(255,255,255,0.1)`, backgroundColor: '#222', flexShrink: 0 }}></div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h1 style={{ fontSize: isMockup ? '18px' : '26px', fontWeight: '900', margin: 0, color: L_NAME, textTransform: 'uppercase', lineHeight: 1, letterSpacing: '-1px', fontStyle: 'italic' }}>
               {restaurant.name}
@@ -136,7 +138,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                   {p.video_url ? (
                     <video src={p.video_url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : p.image_url ? (
-                    <div style={{ width: '100%', height: '100%', backgroundImage: `url('${p.image_url}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                    <div style={{ width: '100%', height: '100%', backgroundImage: `url('${getOptimizedImageUrl(p.image_url, 300, 70)}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                   ) : (
                     <Utensils size={48} strokeWidth={1} style={{ color: 'rgba(255,255,255,0.1)' }} />
                   )}
@@ -149,7 +151,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                     </div>
                     <div style={{ fontWeight: '900', fontSize: '18px', color: 'white', marginBottom: '4px', textTransform: 'uppercase', fontStyle: 'italic', textAlign: 'left' }}>{p.name}</div>
                     <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '15px', textAlign: 'left', lineHeight: 1.4 }}>{p.description}</div>
-                    <div style={{ color: P_PRICE, fontSize: '20px', fontWeight: '900', marginBottom: '15px', textAlign: 'left' }}>${p.price}</div>
+                    <div style={{ color: P_PRICE, fontSize: '20px', fontWeight: '900', marginBottom: '15px', textAlign: 'left' }}>{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde $${amount}` : `$${amount}`; })()}</div>
 
                     <div style={{ width: '100%', marginBottom: '15px' }} onClick={(e) => e.stopPropagation()}>
                       {(() => {
@@ -170,7 +172,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                         return (
                           <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%', marginBottom: '15px' }} onPointerDown={(e) => { e.stopPropagation(); handleAddToCart(p); }}>
                             <div style={{ backgroundColor: restaurant.card_btn_bg || ACENTO, color: restaurant.card_btn_text || '#ffffff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
-                              <AddToCartBtn product={p} variant="icon" style={{ backgroundColor: restaurant.card_btn_bg || '#ffffff', color: restaurant.card_btn_text || '#000000' }} />
+                              <AddToCartBtn product={{ ...p, price: getProductDisplayPrice(p).amount }} variant="icon" style={{ backgroundColor: restaurant.card_btn_bg || '#ffffff', color: restaurant.card_btn_text || '#000000' }} />
                             </div>
                           </div>
                         );
@@ -202,9 +204,10 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                                 <button onClick={(e) => {
                                   e.stopPropagation();
                                   if (!isOpen && !isMockup) return setShowClosedModal(true);
-                                  if (!parentItem) { onAddToCart(p); }
+                                  const productWithPrice = { ...p, price: getProductDisplayPrice(p).amount };
+                                  if (!parentItem) { onAddToCart(productWithPrice); }
                                   addToCart({ id: p.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
-                                  onAddToCart(p);
+                                  onAddToCart(productWithPrice);
                                 }} style={{ width: '30px', height: '30px', background: 'white', color: 'black', border: 'none', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   <Plus size={16} strokeWidth={3} />
                                 </button>
@@ -218,7 +221,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                 ) : (
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 60%)', padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                     <div style={{ fontWeight: '800', fontSize: '12px', color: P_NAME, textTransform: 'uppercase' }}>{p.name}</div>
-                    <div style={{ color: P_PRICE, fontSize: '12px', fontWeight: '900', marginTop: '2px' }}>${p.price}</div>
+                    <div style={{ color: P_PRICE, fontSize: '12px', fontWeight: '900', marginTop: '2px' }}>{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde $${amount}` : `$${amount}`; })()}</div>
                   </div>
                 )}
               </div>

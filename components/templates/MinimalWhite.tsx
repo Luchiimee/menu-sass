@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Coffee, Search, Layers, Plus, Minus, Store, Clock } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface Props {
   restaurant: any;
@@ -55,7 +57,7 @@ const MinimalWhite: React.FC<Props> = ({
   const handleMainStep = (p: any, delta: number) => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
     const item = getCartItem(p.id);
-    if (!item) { if (delta > 0) onAddToCart(p); }
+    if (!item) { if (delta > 0) onAddToCart({ ...p, price: getProductDisplayPrice(p).amount }); }
     else { updateQuantity(item.uniqueId, item.quantity + delta); }
   };
 
@@ -94,7 +96,7 @@ const MinimalWhite: React.FC<Props> = ({
         <button onClick={() => setShowInfo(true)} className="minimal-info-btn" style={{ color: restaurant.theme_color || '#111111' }}>
           <Store size={24} />
         </button>
-        <div className="minimal-logo" style={restaurant.logo_url ? { backgroundImage: `url('${restaurant.logo_url}')`, color: 'transparent' } : {}}>
+        <div className="minimal-logo" style={restaurant.logo_url ? { backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75)}')`, color: 'transparent' } : {}}>
           {!restaurant.logo_url && <Coffee size={32} />}
         </div>
         <h1 style={{ color: text, fontWeight: 900, fontSize: '26px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
@@ -136,7 +138,7 @@ const MinimalWhite: React.FC<Props> = ({
                       <div className="flex-1 pr-4 text-left">
                         <div style={{ fontWeight: 800, fontSize: '14px', color: prodName }}>{p.name}</div>
                         <div style={{ fontSize: '12px', color: prodDesc, marginTop: '4px', opacity: 0.9, lineHeight: 1.4, fontWeight: 500 }}>{p.description}</div>
-                        <div style={{ fontWeight: 900, fontSize: '12px', color: priceColor, marginTop: '6px' }}>{formatPrice(p.price)}</div>
+                        <div style={{ fontWeight: 900, fontSize: '12px', color: priceColor, marginTop: '6px' }}>{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde ${formatPrice(amount)}` : formatPrice(amount); })()}</div>
                       </div>
                       {cartItem ? (
                         <div className="minimal-stepper">

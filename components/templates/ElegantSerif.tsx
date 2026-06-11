@@ -1,6 +1,8 @@
 // components/templates/ElegantSerif.tsx
 import React from 'react';
 import { Utensils } from 'lucide-react';
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function ElegantSerif({ restaurant, products }: any) {
   // --- VARIABLES DINÁMICAS ---
@@ -100,7 +102,7 @@ export default function ElegantSerif({ restaurant, products }: any) {
           {isOpen ? 'Abierto' : 'Cerrado'}
         </div>
 
-        <div className="elegant-logo" style={{ backgroundImage: `url('${restaurant.logo_url || ''}')` }}>
+        <div className="elegant-logo" style={{ backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ''}')` }}>
           {!restaurant.logo_url && <Utensils size={14} color={theme} />}
         </div>
         <div className="elegant-title">{restaurant.name || 'LA BOURGOGNE'}</div>
@@ -117,7 +119,7 @@ export default function ElegantSerif({ restaurant, products }: any) {
               <div className="elegant-desc">{p.description}</div>
             </div>
             <div style={{textAlign:'right', display: 'flex', alignItems: 'center', gap: '10px'}}>
-               <div className="elegant-price">${p.price}</div>
+               <div className="elegant-price">{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde $${amount}` : `$${amount}`; })()}</div>
                <button className="elegant-btn">+</button>
             </div>
           </div>

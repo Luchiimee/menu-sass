@@ -3,6 +3,8 @@
 import React, { useState } from 'react'; 
 import { Clock, Search, Layers, Plus, Minus, Check,MapPin,X,Store,Zap } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
+import { getProductDisplayPrice } from "@/lib/productPricing";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface Props {
   restaurant: any;
@@ -70,7 +72,7 @@ const handleMainStep = (p: any, delta: number) => {
     const item = getCartItem(p.id);
     
     if (!item) {
-      if (delta > 0) onAddToCart(p);
+      if (delta > 0) onAddToCart({ ...p, price: getProductDisplayPrice(p).amount });
     } else {
       // 🚀 Cambiamos item.id por item.uniqueId para que el Contexto lo encuentre
       updateQuantity(item.uniqueId, item.quantity + delta);
@@ -213,7 +215,7 @@ const handleMainStep = (p: any, delta: number) => {
         </button>
 
         {/* LOGO, TÍTULO Y DESCRIPCIÓN */}
-        <div className="classic-logo" style={restaurant.logo_url ? {backgroundImage: `url(${restaurant.logo_url})`, color:'transparent'} : {}}>
+        <div className="classic-logo" style={restaurant.logo_url ? {backgroundImage: `url(${getOptimizedImageUrl(restaurant.logo_url, 150, 75)})`, color:'transparent'} : {}}>
           {!restaurant.logo_url && 'LT'}
         </div>
 
@@ -276,7 +278,7 @@ const handleMainStep = (p: any, delta: number) => {
                       <div className="flex-1 pr-4 text-left">
                         <div style={{fontWeight:800, fontSize:'14px', color:prodName}}>{p.name}</div>
                         <div style={{fontSize:'11px', color:prodDesc, lineHeight:1.3, opacity:0.7}}>{p.description}</div>
-                        <div style={{fontWeight:900, fontSize:'14px', color:prodPrice, marginTop:'5px'}}>{formatPrice(p.price)}</div>
+                        <div style={{fontWeight:900, fontSize:'14px', color:prodPrice, marginTop:'5px'}}>{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde ${formatPrice(amount)}` : formatPrice(amount); })()}</div>
                       </div>
                       
                       {cartItem ? (

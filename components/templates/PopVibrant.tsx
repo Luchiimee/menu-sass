@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function PopVibrant({ restaurant, products }: any) {
   const [activeId, setActiveId] = useState<any>(null);
@@ -33,7 +35,7 @@ export default function PopVibrant({ restaurant, products }: any) {
         background: CARD_BG, border: `2px solid ${SHADOW_COLOR}`, padding: '8px', borderRadius: '10px', 
         boxShadow: `3px 3px 0 ${SHADOW_COLOR}`, position: 'relative', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'
       }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2px solid ${SHADOW_COLOR}`, backgroundImage: `url('${restaurant.logo_url || ""}')`, backgroundSize: 'cover', backgroundColor: THEME_ACENTO, flexShrink: 0 }}></div>
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2px solid ${SHADOW_COLOR}`, backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ""}')`, backgroundSize: 'cover', backgroundColor: THEME_ACENTO, flexShrink: 0 }}></div>
         <div>
           <div style={{ fontSize: '12px', fontWeight: 900, color: L_NAME, textTransform: 'uppercase', lineHeight: 1.1 }}>{restaurant.name || 'POP STORE'}</div>
           <div style={{ fontSize: '8px', fontWeight: 600, color: L_DESC }}>{restaurant.description}</div>
@@ -51,6 +53,8 @@ export default function PopVibrant({ restaurant, products }: any) {
       <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }} className="no-scrollbar">
         {products.map((p: any, i: number) => {
           const isExpanded = activeId === i;
+          const { amount: displayPrice, isFrom } = getProductDisplayPrice(p);
+          const priceLabel = isFrom ? `Desde $${displayPrice}` : `$${displayPrice}`;
           return (
             <div key={i} onClick={() => setActiveId(isExpanded ? null : i)} style={{ 
               background: CARD_BG, 
@@ -67,14 +71,14 @@ export default function PopVibrant({ restaurant, products }: any) {
                 <div style={{ animation: 'popIn 0.2s ease', textAlign: 'center' }}>
                    <div style={{ fontWeight: 900, fontSize: '13px', color: P_NAME, textTransform: 'uppercase', marginBottom: '5px' }}>{p.name}</div>
                    <div style={{ fontSize: '9px', color: P_DESC, marginBottom: '10px' }}>{p.description}</div>
-                   <div style={{ background: P_PRICE_BG, color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, width: 'fit-content', margin: '0 auto 10px', transform: 'rotate(2deg)' }}>${p.price}</div>
+                   <div style={{ background: P_PRICE_BG, color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, width: 'fit-content', margin: '0 auto 10px', transform: 'rotate(2deg)' }}>{priceLabel}</div>
                    <button style={{ width: '100%', background: BTN_BG, border: `2px solid ${BTN_TXT}`, color: BTN_TXT, padding: '6px', borderRadius: '20px', fontWeight: 900, fontSize: '9px' }}>SUMAR AL PEDIDO</button>
                 </div>
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', gap: '8px' }}>
                     <div style={{ fontWeight: 900, fontSize: '12px', color: P_NAME, textTransform: 'uppercase', flex: 1 }}>{p.name}</div>
-                    <div style={{ background: P_PRICE_BG, color: '#fff', padding: '2px 6px', fontSize: '10px', fontWeight: 700, borderRadius: '4px', transform: 'rotate(2deg)', flexShrink: 0 }}>${p.price}</div>
+                    <div style={{ background: P_PRICE_BG, color: '#fff', padding: '2px 6px', fontSize: '10px', fontWeight: 700, borderRadius: '4px', transform: 'rotate(2deg)', flexShrink: 0 }}>{priceLabel}</div>
                   </div>
                   <div style={{ fontSize: '9px', color: P_DESC }}>{p.description}</div>
                 </>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Store, Plus, Minus, Layers, X, Check, Search, Utensils, Clock } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
+import { getProductDisplayPrice } from '@/lib/productPricing';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function SpotlightHero({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
@@ -33,7 +35,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
   const hasProducts = products && products.length > 0;
   const heroProduct = hasProducts ? products[0] : null;
   const heroTitle = restaurant.hero_title || (heroProduct ? heroProduct.name : 'Plato del día');
-  const heroPrice = restaurant.hero_price || (heroProduct ? heroProduct.price : 0);
+  const heroPrice = restaurant.hero_price || (heroProduct ? getProductDisplayPrice(heroProduct).amount : 0);
   const heroBadge = restaurant.hero_badge_text || 'DESTACADO';
   const bannerImage = restaurant.banner_url || (heroProduct ? heroProduct.image_url : '');
   const bannerVideo = restaurant.hero_video_url || (heroProduct ? heroProduct.video_url : '');
@@ -57,7 +59,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
   const handleMainStep = (p: any, delta: number) => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
     const item = getCartItem(p.id);
-    if (!item) { if (delta > 0) addToCart(p); }
+    if (!item) { if (delta > 0) addToCart({ ...p, price: getProductDisplayPrice(p).amount }); }
     else { updateQuantity(item.uniqueId, item.quantity + delta); }
   };
 
@@ -113,7 +115,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="spot-logo">
             {restaurant.logo_url ? (
-              <img src={restaurant.logo_url} className="w-full h-full object-cover" alt="logo" />
+              <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} className="w-full h-full object-cover" alt="logo" />
             ) : (
               <Store size={isMockup ? 20 : 28} className="text-gray-400" />
             )}
@@ -134,7 +136,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
       </div>
 
       {showBanner && (
-        <div className="spot-banner" style={{ backgroundImage: bannerVideo ? 'none' : `url('${bannerImage}')` }}>
+        <div className="spot-banner" style={{ backgroundImage: bannerVideo ? 'none' : `url('${getOptimizedImageUrl(bannerImage, 800, 75)}')` }}>
           {bannerVideo && <video autoPlay loop muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}><source src={bannerVideo} /></video>}
           <div className="spot-overlay"></div>
           <div className="spot-info relative z-10">
@@ -178,14 +180,14 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
           return (
             <div key={i} className="spot-item-container">
               <div className="spot-item">
-                <div className="spot-thumb flex items-center justify-center" style={{ backgroundImage: (p.image_url && !p.video_url) ? `url('${p.image_url}')` : 'none', backgroundColor: '#f3f4f6' }}>
+                <div className="spot-thumb flex items-center justify-center" style={{ backgroundImage: (p.image_url && !p.video_url) ? `url('${getOptimizedImageUrl(p.image_url, 300, 70)}')` : 'none', backgroundColor: '#f3f4f6' }}>
                   {p.video_url && <video autoPlay loop muted playsInline preload="metadata"><source src={p.video_url} /></video>}
                   {!p.image_url && !p.video_url && (<Utensils size={20} strokeWidth={1.5} className="text-gray-300" />)}
                 </div>
                 <div className="flex-1 text-left">
                   <div style={{ color: restaurant.card_name_color }} className="font-bold text-[13px]">{p.name}</div>
                   <div style={{ color: prodDescColor }} className="text-[11px] mt-1 leading-relaxed font-medium">{p.description}</div>
-                  <div style={{ color: restaurant.card_price_color }} className="font-black text-[12px] mt-1">{formatPrice(p.price)}</div>
+                  <div style={{ color: restaurant.card_price_color }} className="font-black text-[12px] mt-1">{(() => { const { amount, isFrom } = getProductDisplayPrice(p); return isFrom ? `Desde ${formatPrice(amount)}` : formatPrice(amount); })()}</div>
                 </div>
                 {cartItem ? (
                   <div className="flex items-center gap-3 bg-gray-100 p-1 rounded-lg border border-gray-200">
@@ -231,7 +233,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowHeroModal(false)}></div>
           <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl relative z-[10000] animate-in zoom-in-95 duration-300 flex flex-col max-h-[92vh]">
-            <div className="h-44 bg-cover bg-center relative shrink-0 flex items-center justify-center bg-gray-100" style={{ backgroundImage: (bannerImage && !bannerVideo) ? `url('${bannerImage}')` : 'none' }}>
+            <div className="h-44 bg-cover bg-center relative shrink-0 flex items-center justify-center bg-gray-100" style={{ backgroundImage: (bannerImage && !bannerVideo) ? `url('${getOptimizedImageUrl(bannerImage, 800, 75)}')` : 'none' }}>
               {bannerVideo && <video autoPlay loop muted playsInline className="w-full h-full object-cover"><source src={bannerVideo} /></video>}
               {!bannerImage && !bannerVideo && (<Utensils size={40} strokeWidth={1} className="text-gray-300" />)}
               <button onClick={() => setShowHeroModal(false)} className="absolute top-5 right-5 bg-black/50 text-white p-2 rounded-full z-10"><X size={18} /></button>

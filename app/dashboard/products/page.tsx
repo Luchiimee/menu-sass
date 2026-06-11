@@ -7,6 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -45,6 +46,7 @@ const [formData, setFormData] = useState({
   image_url: '', 
   video_url: '', // <--- AGREGAMOS ESTO
   category_id: '',
+  sale_type: 'unidad' as 'unidad' | 'peso',
   variations: [] as { label: string, price: string, is_featured?: boolean }[]
 });
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
@@ -147,9 +149,10 @@ const openCreateModal = () => {
     }
     
     setEditingId(null);
-    setFormData({ 
+    setFormData({
       name: '', description: '', price: '', image_url: '', video_url: '', category_id: '',
-      variations: [] 
+      sale_type: 'unidad',
+      variations: []
     });
     setSelectedExtras([]); 
     setShowModal(true);
@@ -164,7 +167,8 @@ const openEditModal = async (product: any) => {
         image_url: product.image_url || '',
         video_url: product.video_url || '',
         category_id: product.category_id || '',
-        variations: product.variations || [] 
+        sale_type: product.sale_type || 'unidad',
+        variations: product.variations || []
     });
     setSelectedExtras([]); 
     const { data: rels } = await supabase.from('product_extras').select('extra_id').eq('product_id', product.id);
@@ -238,6 +242,14 @@ const openEditModal = async (product: any) => {
               }
 
           } else {
+              // --- VALIDAR PESO DE IMAGEN (Máx 5MB) ---
+              if (file.size > 5 * 1024 * 1024) {
+                  setToast("❌ La imagen es muy pesada. Máximo 5MB.");
+                  setTimeout(() => setToast(null), 4000);
+                  setUploading(false);
+                  return;
+              }
+
               // --- LÓGICA SUPABASE PARA IMÁGENES (La que ya tenías) ---
               const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
               await supabase.storage.from('images').upload(fileName, file);
@@ -253,12 +265,17 @@ const openEditModal = async (product: any) => {
   };
 
  const handleSaveProduct = async () => {
-    // 1. VALIDACIÓN INTELIGENTE
+    // 1. VALIDACIÓN INTELIGENTE (según el tipo de venta del producto)
     const hasVariations = formData.variations && formData.variations.length > 0;
-    
-    // Si no hay nombre, o si no hay precio único NI variaciones, tira error
-    if (!formData.name || (!formData.price && !hasVariations)) {
-        return alert("Faltan datos: Nombre y Precio (o al menos una Opción de Venta) son obligatorios.");
+
+    if (!formData.name) {
+        return alert("Falta el nombre del producto.");
+    }
+    if (formData.sale_type === 'peso' && !hasVariations) {
+        return alert("Faltan datos: agregá al menos una Opción de Venta (ej: 100g, 1kg).");
+    }
+    if (formData.sale_type === 'unidad' && !formData.price) {
+        return alert("Faltan datos: el Precio es obligatorio.");
     }
 
     if (!restaurantId) return;
@@ -276,6 +293,7 @@ const openEditModal = async (product: any) => {
             image_url: formData.image_url,
             video_url: formData.video_url || null, // <--- GUARDAMOS EL VIDEO
             category_id: formData.category_id || null,
+      sale_type: formData.sale_type,
             variations: formData.variations 
         };
 
@@ -591,7 +609,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                         <div className="flex items-center gap-3 text-left">
                                       <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100 relative group">
     {p.image_url ? (
-        <img src={p.image_url} className="w-full h-full object-cover" alt={p.name}/>
+        <img src={getOptimizedImageUrl(p.image_url, 150, 70)} className="w-full h-full object-cover" alt={p.name}/>
     ) : p.video_url ? (
         <>
             <img src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} className={`w-full h-full object-cover ${isVideoDisabled ? 'blur-[2px] opacity-40' : 'opacity-80'}`} alt={p.name}/>
@@ -664,9 +682,9 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
   {/* 🚀 CASO 1: TIENE IMAGEN */}
   {p.image_url ? (
     <>
-      <img 
-        src={p.image_url} 
-        className={`w-full h-full object-cover transition-all duration-500 ${isNoPhotoTemplate ? 'blur-[4px] opacity-50 grayscale' : ''}`} 
+      <img
+        src={getOptimizedImageUrl(p.image_url, 200, 70)}
+        className={`w-full h-full object-cover transition-all duration-500 ${isNoPhotoTemplate ? 'blur-[4px] opacity-50 grayscale' : ''}`}
         alt={p.name}
       />
       {isNoPhotoTemplate && (
@@ -872,7 +890,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     </>
             ) : formData.image_url ? (
                 <>
-                    <img src={formData.image_url} alt="Producto" className="w-full h-full object-cover"/>
+                    <img src={getOptimizedImageUrl(formData.image_url, 200, 70)} alt="Producto" className="w-full h-full object-cover"/>
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <p className="text-white font-bold text-sm flex items-center gap-2"><UploadCloud size={18}/> Cambiar Archivo</p>
                     </div>
@@ -922,8 +940,29 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
 
   
 
+{/* TOGGLE: TIPO DE VENTA POR PRODUCTO */}
+<div>
+  <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Tipo de venta</label>
+  <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+    <button
+      type="button"
+      onClick={() => setFormData({ ...formData, sale_type: 'unidad' })}
+      className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${formData.sale_type === 'unidad' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-400'}`}
+    >
+      Por Unidad
+    </button>
+    <button
+      type="button"
+      onClick={() => setFormData({ ...formData, sale_type: 'peso' })}
+      className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${formData.sale_type === 'peso' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-400'}`}
+    >
+      Por Peso
+    </button>
+  </div>
+</div>
+
 {/* LÓGICA DE PRECIO DINÁMICA (PESO/UNIDAD) */}
-{businessType === 'fraccionado' ? (
+{formData.sale_type === 'peso' ? (
   <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-500 text-left">
     <div className="flex items-center justify-between mb-2">
       <div>
