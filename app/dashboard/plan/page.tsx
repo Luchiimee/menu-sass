@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
 import { Loader2, User, Check, CreditCard, Clock, FileText, X, RefreshCw } from "lucide-react";
@@ -108,6 +108,7 @@ function PlanContent() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const paymentFormRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     const needPhone = searchParams.get('requirePhone');
@@ -305,6 +306,7 @@ function PlanContent() {
       setRestaurant(prev => ({ ...prev, subscription_plan: planId, subscription_status: 'trialing' }));
       window.dispatchEvent(new Event("profile-updated"));
       toast.success(`Plan ${planId.toUpperCase()} activado. Tenés 14 días gratis para probarlo.`);
+      router.push('/dashboard/templates');
     } catch {
       toast.error("No se pudo activar el plan");
     } finally {
