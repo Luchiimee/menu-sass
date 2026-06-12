@@ -35,7 +35,7 @@ export default function PopVibrant({ restaurant, products }: any) {
         background: CARD_BG, border: `2px solid ${SHADOW_COLOR}`, padding: '8px', borderRadius: '10px', 
         boxShadow: `3px 3px 0 ${SHADOW_COLOR}`, position: 'relative', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'
       }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2px solid ${SHADOW_COLOR}`, backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ""}')`, backgroundSize: 'cover', backgroundColor: THEME_ACENTO, flexShrink: 0 }}></div>
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: `2px solid ${SHADOW_COLOR}`, backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover') || ""}')`, backgroundSize: 'cover', backgroundColor: THEME_ACENTO, flexShrink: 0 }}></div>
         <div>
           <div style={{ fontSize: '12px', fontWeight: 900, color: L_NAME, textTransform: 'uppercase', lineHeight: 1.1 }}>{restaurant.name || 'POP STORE'}</div>
           <div style={{ fontSize: '8px', fontWeight: 600, color: L_DESC }}>{restaurant.description}</div>

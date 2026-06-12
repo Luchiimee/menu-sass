@@ -129,7 +129,7 @@ export default function AlternaPro({
 <div className="text-center px-4">
   {restaurant?.logo_url && (
     <div className="w-16 h-16 mx-auto rounded-full border-2 border-white shadow-md overflow-hidden mb-3 bg-white flex items-center justify-center">
-      <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} className="w-full h-full object-cover" alt="Logo" />
+      <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')} className="w-full h-full object-cover" alt="Logo" />
     </div>
   )}
   <h1 className="text-xl font-black uppercase tracking-tighter leading-none" style={{ color: NAME_COLOR }}>{restaurant?.name || 'Tu Negocio'}</h1>

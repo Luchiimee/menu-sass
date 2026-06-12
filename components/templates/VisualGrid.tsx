@@ -6,6 +6,7 @@ import AddToCartBtn from "@/components/AddToCartBtn";
 import { useCart } from "@/context/CartContext";
 import { getProductDisplayPrice } from "@/lib/productPricing";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getContrastColor, pickReadableColor } from "@/lib/colorUtils";
 
 export default function VisualGrid({ restaurant, products, categories, fetchedExtras, isOpen, setShowInfo, onAddToCart, isMockup, mesaLabel = null }: any) {
   const [activeId, setActiveId] = useState<any>(null);
@@ -17,7 +18,9 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
   if (!restaurant) return null;
 
   const ACENTO = restaurant.theme_color || '#ea580c';
-  const L_NAME = restaurant.text_color || '#ffffff';
+  const BG = restaurant.bg_color || '#1a1a1a';
+  // Si el text_color guardado no contrasta lo suficiente con el fondo, usamos negro/blanco según corresponda
+  const L_NAME = pickReadableColor(restaurant.text_color, BG);
   const L_DESC = restaurant.description_color || '#bbbbbb';
   const CARD_BG = restaurant.card_color || '#2a2a2a';
   const P_NAME = restaurant.card_name_color || '#ffffff';
@@ -39,15 +42,6 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
     return fetchedExtras?.filter((ex: any) =>
       ex.product_extras?.some((re: any) => String(re.product_id) === String(productId))
     ) || [];
-  };
-
-  const getContrastColor = (hexcolor: string) => {
-    if (!hexcolor) return '#ffffff';
-    const r = parseInt(hexcolor.slice(1, 3), 16);
-    const g = parseInt(hexcolor.slice(3, 5), 16);
-    const b = parseInt(hexcolor.slice(5, 7), 16);
-    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return (yiq >= 128) ? '#000000' : '#ffffff';
   };
 
   const searchBg = restaurant.search_bg_color || '#111111';
@@ -72,12 +66,12 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
   };
 
   return (
-    <div style={{ background: restaurant.bg_color || '#1a1a1a', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: isMockup ? '8px' : '12px', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ background: BG, minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: isMockup ? '8px' : '12px', fontFamily: 'Inter, sans-serif' }}>
 
       {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMockup ? '10px 4px' : '20px 4px 30px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMockup ? 10 : 15, textAlign: 'left' }}>
-          <div style={{ width: isMockup ? '55px' : '75px', height: isMockup ? '55px' : '75px', borderRadius: '14px', backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ""}')`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid rgba(255,255,255,0.1)`, backgroundColor: '#222', flexShrink: 0 }}></div>
+          <div style={{ width: isMockup ? '55px' : '75px', height: isMockup ? '55px' : '75px', borderRadius: '14px', backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover') || ""}')`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid rgba(255,255,255,0.1)`, backgroundColor: '#222', flexShrink: 0 }}></div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h1 style={{ fontSize: isMockup ? '18px' : '26px', fontWeight: '900', margin: 0, color: L_NAME, textTransform: 'uppercase', lineHeight: 1, letterSpacing: '-1px', fontStyle: 'italic' }}>
               {restaurant.name}

@@ -80,7 +80,7 @@ export default function BistroChalk({ restaurant, products }: any) {
       <div className="bistro-border">
         <div className="bistro-header">
           <div className="bistro-status">{isOpen ? 'Abierto' : 'Cerrado'}</div>
-          <div className="bistro-logo" style={{ backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ''}')` }}>{!restaurant.logo_url && 'EB'}</div>
+          <div className="bistro-logo" style={{ backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover') || ''}')` }}>{!restaurant.logo_url && 'EB'}</div>
           
           <div className="bistro-title" style={{ color: textColor }}>{restaurant.name || 'El Bodegón'}</div>
           

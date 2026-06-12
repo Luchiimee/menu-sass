@@ -102,7 +102,7 @@ export default function ElegantSerif({ restaurant, products }: any) {
           {isOpen ? 'Abierto' : 'Cerrado'}
         </div>
 
-        <div className="elegant-logo" style={{ backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75) || ''}')` }}>
+        <div className="elegant-logo" style={{ backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover') || ''}')` }}>
           {!restaurant.logo_url && <Utensils size={14} color={theme} />}
         </div>
         <div className="elegant-title">{restaurant.name || 'LA BOURGOGNE'}</div>

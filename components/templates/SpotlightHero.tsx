@@ -115,7 +115,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="spot-logo">
             {restaurant.logo_url ? (
-              <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} className="w-full h-full object-cover" alt="logo" />
+              <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')} className="w-full h-full object-cover" alt="logo" />
             ) : (
               <Store size={isMockup ? 20 : 28} className="text-gray-400" />
             )}

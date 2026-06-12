@@ -74,7 +74,7 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
 
       <div className="urbano-top">
         <div className="urbano-brand">
-          <div className="urbano-logo" style={restaurant.logo_url ? { backgroundImage: `url("${getOptimizedImageUrl(restaurant.logo_url, 150, 75)}")` } : {}}></div>
+          <div className="urbano-logo" style={restaurant.logo_url ? { backgroundImage: `url("${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')}")` } : {}}></div>
           <div className="urbano-names">
             <h4>{restaurant.name || 'Tu Negocio'}</h4>
             <span>{restaurant.description || 'Descripción del local'}</span>

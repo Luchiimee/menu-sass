@@ -96,7 +96,7 @@ const MinimalWhite: React.FC<Props> = ({
         <button onClick={() => setShowInfo(true)} className="minimal-info-btn" style={{ color: restaurant.theme_color || '#111111' }}>
           <Store size={24} />
         </button>
-        <div className="minimal-logo" style={restaurant.logo_url ? { backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75)}')`, color: 'transparent' } : {}}>
+        <div className="minimal-logo" style={restaurant.logo_url ? { backgroundImage: `url('${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')}')`, color: 'transparent' } : {}}>
           {!restaurant.logo_url && <Coffee size={32} />}
         </div>
         <h1 style={{ color: text, fontWeight: 900, fontSize: '26px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>

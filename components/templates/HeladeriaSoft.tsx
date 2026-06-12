@@ -31,7 +31,7 @@ export default function HeladeriaSoft({ restaurant, products, onAddToCart, isOpe
         <div className="flex items-center gap-5">
           {/* LOGO */}
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-4xl shadow-md overflow-hidden bg-gray-50 flex-shrink-0 border-2 border-white" style={{ backgroundColor: THEME }}>
-            {restaurant?.logo_url ? <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} className="w-full h-full object-cover" alt="Logo" /> : "✨"}
+            {restaurant?.logo_url ? <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')} className="w-full h-full object-cover" alt="Logo" /> : "✨"}
           </div>
           
           <div className="text-left leading-tight flex-1 pr-10">

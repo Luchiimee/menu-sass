@@ -215,7 +215,7 @@ const handleMainStep = (p: any, delta: number) => {
         </button>
 
         {/* LOGO, TÍTULO Y DESCRIPCIÓN */}
-        <div className="classic-logo" style={restaurant.logo_url ? {backgroundImage: `url(${getOptimizedImageUrl(restaurant.logo_url, 150, 75)})`, color:'transparent'} : {}}>
+        <div className="classic-logo" style={restaurant.logo_url ? {backgroundImage: `url(${getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')})`, color:'transparent'} : {}}>
           {!restaurant.logo_url && 'LT'}
         </div>
 

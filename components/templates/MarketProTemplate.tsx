@@ -99,7 +99,7 @@ const isOpenNow = isOpen;
 
         {restaurant.logo_url && (
           <div className="w-16 h-16 mx-auto mb-2 relative rounded-full overflow-hidden border-2 shadow-sm" style={{ borderColor: restaurant.theme_color }}>
-            <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75)} alt={restaurant.name} className="object-cover w-full h-full" />
+            <img src={getOptimizedImageUrl(restaurant.logo_url, 150, 75, 150, 'cover')} alt={restaurant.name} className="object-cover w-full h-full" />
           </div>
         )}
         <h1 className="text-xl font-black tracking-tighter uppercase italic leading-none" style={{ color: restaurant.text_color || '#000000', fontFamily: titleFont }}>{restaurant.name}</h1>
