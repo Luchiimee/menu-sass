@@ -14,11 +14,15 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   
   const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
+  // Plantillas cuya UI soporta imagen de banner por categoría
+  const CATEGORY_IMAGE_TEMPLATES = ['carta'];
   const [products, setProducts] = useState<any[]>([]);
   const [availableExtras, setAvailableExtras] = useState<any[]>([]); 
   const [categories, setCategories] = useState<any[]>([]); 
 const [showCategoryModal, setShowCategoryModal] = useState(false);
-const [categoryFormData, setCategoryFormData] = useState({ name: '' });
+const [categoryFormData, setCategoryFormData] = useState({ name: '', image_url: '' });
+const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
+const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]); 
 
   const [activeTab, setActiveTab] = useState<'products' | 'extras' | 'categories'>('products');
@@ -366,22 +370,73 @@ const openEditModal = async (product: any) => {
       } catch (error: any) { alert("Error: " + error.message); } finally { setSaving(false); }
   };
 
+const openNewCategoryModal = () => {
+    setEditingCategoryId(null);
+    setCategoryFormData({ name: '', image_url: '' });
+    setShowCategoryModal(true);
+};
+
+const openEditCategoryModal = (c: any) => {
+    setEditingCategoryId(c.id);
+    setCategoryFormData({ name: c.name, image_url: c.image_url || '' });
+    setShowCategoryModal(true);
+};
+
 const handleSaveCategory = async () => {
     if (!categoryFormData.name) return;
     setSaving(true);
     try {
-        const { data, error } = await supabase.from('categories').insert({ 
-            restaurant_id: restaurantId, 
-            name: categoryFormData.name,
-            sort_order: categories.length + 1 
-        }).select().single();
-        
-        if (data) {
-            setCategories([...categories, data]);
-            setShowCategoryModal(false);
-            setCategoryFormData({ name: '' });
+        if (editingCategoryId) {
+            const { data } = await supabase.from('categories').update({
+                name: categoryFormData.name,
+                image_url: categoryFormData.image_url || null,
+            }).eq('id', editingCategoryId).select().single();
+
+            if (data) {
+                setCategories(categories.map(c => c.id === editingCategoryId ? data : c));
+                setShowCategoryModal(false);
+                setCategoryFormData({ name: '', image_url: '' });
+                setEditingCategoryId(null);
+            }
+        } else {
+            const { data } = await supabase.from('categories').insert({
+                restaurant_id: restaurantId,
+                name: categoryFormData.name,
+                image_url: categoryFormData.image_url || null,
+                sort_order: categories.length + 1
+            }).select().single();
+
+            if (data) {
+                setCategories([...categories, data]);
+                setShowCategoryModal(false);
+                setCategoryFormData({ name: '', image_url: '' });
+            }
         }
-    } catch (e) { alert("Error al crear categoría"); } finally { setSaving(false); }
+    } catch (e) { alert("Error al guardar categoría"); } finally { setSaving(false); }
+};
+
+const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+
+    if (file.size > 5 * 1024 * 1024) {
+        setToast("❌ La imagen es muy pesada. Máximo 5MB.");
+        setTimeout(() => setToast(null), 4000);
+        return;
+    }
+
+    setUploadingCategoryImage(true);
+    try {
+        const fileName = `cat_${Math.random()}.${file.name.split('.').pop()}`;
+        await supabase.storage.from('images').upload(fileName, file);
+        const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+        setCategoryFormData({ ...categoryFormData, image_url: publicUrl });
+    } catch (e) {
+        setToast("❌ Error al subir la imagen.");
+        setTimeout(() => setToast(null), 4000);
+    } finally {
+        setUploadingCategoryImage(false);
+    }
 };
 
 const handleDeleteCategory = async (id: string) => {
@@ -465,8 +520,10 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
   </button>
   
 
-{/* Habilitamos categorías para Urban también */}
-{['marketpro', 'alterna-pro', 'spotlight', 'urban', 'classic', 'minimal', 'visualgrid'].includes(selectedTemplate || '') && (
+{/* Categorías: disponibles para todas las plantillas por defecto.
+    TODO: HeladeriaSoft (icecream-v1) no tiene render de categorías todavía —
+    excluida temporalmente hasta implementar. NO es decisión de diseño, es deuda pendiente. */}
+{selectedTemplate !== 'icecream-v1' && (
   <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
       <List size={16} className="inline mr-2"/> Categorías
   </button>
@@ -572,14 +629,6 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
           </div>
         )}
 
-        {/* --- BOTÓN PARA CATEGORÍAS (Mantenido) --- */}
-        {activeTab === 'categories' && (
-          <div className="flex justify-end w-full animate-in fade-in duration-300">
-            <button onClick={() => setShowCategoryModal(true)} className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg">
-              <Plus size={16} className="inline mr-1"/> Nueva Categoría
-            </button>
-          </div>
-        )}
       </div>
 
 {/* --- LISTADO DE PRODUCTOS CORREGIDO --- */}
@@ -795,7 +844,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                     <h3 className="font-bold text-gray-900">Mis Categorías</h3>
                     <p className="text-xs text-gray-400">Organiza tu menú por secciones (Burgers, Bebidas, etc.)</p>
                 </div>
-                <button onClick={() => setShowCategoryModal(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition shadow-lg">
+                <button onClick={openNewCategoryModal} className="bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition shadow-lg">
                     <Plus size={16} className="inline mr-1"/> Nueva Categoría
                 </button>
             </div>
@@ -804,7 +853,8 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                     {categories.filter(c => c.name.toLowerCase() !== 'general').map((c) => (
                         <tr key={c.id} className="hover:bg-gray-50 transition">
                             <td className="px-6 py-4 font-bold text-gray-700 uppercase tracking-tighter italic">{c.name}</td>
-                            <td className="px-6 py-4 text-right">
+                            <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                <button onClick={() => openEditCategoryModal(c)} className="p-2 text-gray-400 hover:text-blue-500"><Edit2 size={14}/></button>
                                 <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
                             </td>
                         </tr>
@@ -1075,7 +1125,10 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     </div>
 
 
-{selectedTemplate && (!templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) || ['classic', 'minimal', 'visualgrid'].includes(selectedTemplate)) && (
+{/* Categoría: disponible para todas las plantillas por defecto.
+    TODO: HeladeriaSoft (icecream-v1) no tiene render de categorías todavía —
+    excluida temporalmente hasta implementar. NO es decisión de diseño, es deuda pendiente. */}
+{selectedTemplate !== 'icecream-v1' && (
     <div className="pt-2">
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
         <div className="relative">
@@ -1182,20 +1235,37 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
             <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-                <h2 className="font-bold text-gray-900">Nueva Categoría</h2>
-                <button onClick={() => setShowCategoryModal(false)}><X size={20} className="text-gray-400"/></button>
+                <h2 className="font-bold text-gray-900">{editingCategoryId ? 'Editar Categoría' : 'Nueva Categoría'}</h2>
+                <button onClick={() => { setShowCategoryModal(false); setEditingCategoryId(null); }}><X size={20} className="text-gray-400"/></button>
             </div>
             <div className="p-6 space-y-4">
-                <input 
-                    value={categoryFormData.name} 
-                    onChange={(e) => setCategoryFormData({name: e.target.value})} 
-                    className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition" 
+                <input
+                    value={categoryFormData.name}
+                    onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition"
                     placeholder="Ej: Hamburguesas, Bebidas..."
                 />
+                {CATEGORY_IMAGE_TEMPLATES.includes(selectedTemplate || '') && (
+                    <div>
+                        <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider">Imagen de la categoría (opcional)</label>
+                        {categoryFormData.image_url ? (
+                            <div className="relative w-full h-28 rounded-xl overflow-hidden border">
+                                <img src={categoryFormData.image_url} alt="Banner categoría" className="w-full h-full object-cover" />
+                                <button onClick={() => setCategoryFormData({...categoryFormData, image_url: ''})} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5"><X size={14}/></button>
+                            </div>
+                        ) : (
+                            <label className="w-full h-28 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 cursor-pointer hover:border-violet-400 transition">
+                                {uploadingCategoryImage ? <Loader2 className="animate-spin" size={20}/> : <ImageIcon size={20}/>}
+                                <span className="text-xs font-bold">{uploadingCategoryImage ? 'Subiendo...' : 'Subir imagen'}</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleCategoryImageUpload} disabled={uploadingCategoryImage} />
+                            </label>
+                        )}
+                    </div>
+                )}
             </div>
             <div className="p-6 border-t bg-gray-50">
                 <button onClick={handleSaveCategory} disabled={saving} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-violet-700 shadow-lg">
-                    {saving ? <Loader2 className="animate-spin" size={20}/> : <Save size={18}/>} Guardar Categoría
+                    {saving ? <Loader2 className="animate-spin" size={20}/> : <Save size={18}/>} {editingCategoryId ? 'Guardar Cambios' : 'Guardar Categoría'}
                 </button>
             </div>
         </div>

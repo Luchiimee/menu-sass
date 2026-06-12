@@ -172,15 +172,36 @@ pop: {
     promo_text: '#4f46e5',   
     banner: false
   },
- 'alterna-pro': { 
-    theme: '#ea580c', 
+ 'alterna-pro': {
+    theme: '#ea580c',
     bg: '#fafaf9',  // <--- CAMBIADO DE NEGRO A CREMA
-    card: '#ffffff', 
-    text: '#111827', 
-    desc: '#94a3b8', 
-    promo: '#ffffff', 
-    banner: false 
-}
+    card: '#ffffff',
+    text: '#111827',
+    desc: '#94a3b8',
+    promo: '#ffffff',
+    banner: false
+},
+  carta: {
+    theme: '#B5863A',
+    bg: '#F7F3EE',
+    text: '#ffffff',
+    desc: '#94a3b8',
+    card: '#ffffff',
+    card_name: '#1C1A18',
+    card_desc: '#8A877F',
+    card_price: '#B5863A',
+    btn_bg: '#1C1A18',
+    btn_text: '#ffffff',
+    promo: '#F0E6D3',
+    promo_text: '#92620a',
+    banner: false,
+    cat_bg_color: '#ffffff',
+    cat_text_color: '#1C1A18',
+    cat_active_bg_color: '#B5863A',
+    cat_active_text_color: '#ffffff',
+    search_bg_color: '#ffffff',
+    search_icon_color: '#B5863A',
+  }
 };
 
 // --- CSS IDÉNTICO A TU HTML DE REFERENCIA ---
@@ -438,6 +459,7 @@ const TEMPLATES = [
   { id: 'icecream-v1', name: 'Soft Premium', type: 'icecream', category: 'basicas', sale_type: 'peso', hasPhotos: false, premium: true },
   { id: 'marketpro', name: 'Market Pro', type: 'marketpro', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
   { id: 'alterna-pro', name: 'Alterna Pro', type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true, premium: true },
+  { id: 'carta', name: 'Carta', type: 'carta', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
 ];
 
 function GalleryContent() {
@@ -819,6 +841,65 @@ case 'alterna-pro':
       </div>
     </div>
   );
+      case 'carta': return (
+        <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: '#F7F3EE', fontFamily: 'Georgia, serif', color: '#1C1A18' }}>
+          {/* HEADER */}
+          <div className="pt-4 px-3 pb-2 text-center relative flex-shrink-0">
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-tighter">Abierto</span>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-white border-2 mx-auto mb-1 flex items-center justify-center" style={{ borderColor: '#B5863A' }}>
+              <span className="text-[10px] font-bold" style={{ color: '#B5863A' }}>LB</span>
+            </div>
+            <div className="text-sm font-bold" style={{ letterSpacing: '0.04em' }}>La Bourgogne</div>
+            <div className="text-[8px] mt-0.5" style={{ color: '#8a8278' }}>Restaurante de Autor</div>
+            <div className="text-[10px] mt-1" style={{ color: '#B5863A', letterSpacing: '0.4em' }}>✦ ✦ ✦</div>
+          </div>
+
+          {/* CATEGORÍAS */}
+          <div className="flex gap-1.5 px-3 py-1.5 justify-center flex-shrink-0">
+            {['Entradas', 'Principales', 'Postres'].map((cat, i) => (
+              <div key={i} className="px-2 py-1 rounded-full text-[8px] font-bold uppercase border" style={{
+                backgroundColor: i === 0 ? '#1C1A18' : '#F7F3EE',
+                color: i === 0 ? '#F7F3EE' : '#9a948c',
+                borderColor: '#B5863A55'
+              }}>
+                {cat}
+              </div>
+            ))}
+          </div>
+
+          {/* PRODUCTO FEATURED */}
+          <div className="px-3 pt-2">
+            <div className="relative w-full h-20 rounded-xl overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=300" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 flex flex-col justify-end p-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}>
+                <div className="text-white text-[11px] font-bold">Boeuf Bourguignon</div>
+                <div className="text-white text-[9px] font-bold mt-0.5">$22.000</div>
+              </div>
+            </div>
+          </div>
+
+          {/* GRILLA 2 COLUMNAS */}
+          <div className="flex-1 px-3 py-2 grid grid-cols-2 gap-2 overflow-hidden">
+            <div className="rounded-lg overflow-hidden bg-white border border-black/5">
+              <img src="https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=150" className="w-full h-12 object-cover" />
+              <div className="p-1.5">
+                <div className="text-[9px] font-bold leading-tight">Tarte Tatin</div>
+                <div className="text-[9px] font-bold mt-1" style={{ color: '#B5863A' }}>$8.200</div>
+              </div>
+            </div>
+            <div className="rounded-lg overflow-hidden bg-white border border-black/5">
+              <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=150" className="w-full h-12 object-cover" />
+              <div className="p-1.5">
+                <div className="text-[9px] font-bold leading-tight">Coq au Vin</div>
+                <div className="text-[9px] font-bold mt-1" style={{ color: '#B5863A' }}>$19.500</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
       default: return null;
     }
   };

@@ -42,6 +42,7 @@ import VisualGrid from "@/components/templates/VisualGrid";
 import BioModern from "@/components/templates/bio/BioModern";
 import ClassicDelivery from "@/components/templates/ClassicDelivery";
 import MinimalWhite from "@/components/templates/MinimalWhite";
+import Carta from "@/components/templates/Carta";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -57,7 +58,7 @@ async function getRestaurant(slug: string) {
   // 🚀 A. PRIORIDAD 1: Buscamos en la tabla de MENÚS (RESTAURANTS)
   const { data: menuData } = await supabase
     .from("restaurants")
-    .select(`*, categories (id, name)`)
+    .select(`*, categories (id, name, image_url)`)
     .ilike("slug", cleanSlug)
     .maybeSingle();
 
@@ -449,6 +450,7 @@ height: 26px !important;
             .pop-status { position: absolute; top: -12px; right: 10px; background: #00CED1; border: 2px solid ${TEXT}; padding: 3px 10px; font-size: 9px; font-weight: 900; transform: rotate(3deg); color: black; z-index: 10; }
             .pop-promo { background: ${PROMO_BG}; color: ${PROMO_TEXT}; border: 3px solid ${TEXT}; margin-bottom: 25px; padding: 12px; text-align: center; font-weight: 900; font-size: 13px; box-shadow: 4px 4px 0 rgba(0,0,0,0.1); transform: rotate(-1deg); }
             
+            .pop-cat-title { font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: ${TEXT}; margin: 25px 0 12px; padding-bottom: 6px; border-bottom: 3px solid ${TEXT}; }
             .pop-card { background: ${CARD_BG}; border: 3px solid ${TEXT}; border-radius: 18px; padding: 18px; margin-bottom: 20px; box-shadow: 6px 6px 0 ${THEME}; transition: all 0.2s; position: relative; overflow: hidden; }
             .pop-prod-title { font-weight: 900; font-size: 18px; text-transform: uppercase; color: ${PROD_NAME}; line-height: 1.1; }
             .pop-price-tag { background: ${PROD_PRICE}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 900; transform: rotate(3deg); font-size: 14px; }
@@ -1187,6 +1189,9 @@ const handleSendReservation = async () => {
             {/* 3. Grilla de Productos */}
             {restaurant.categories?.map((cat: any) => (
               <div key={cat.id} style={{ display: "contents" }}>
+                {cat.name.toLowerCase() !== "general" && cat.products?.length > 0 && (
+                  <div className="pop-cat-title">{cat.name}</div>
+                )}
                 {cat.products?.map((prod: any) => {
                   const extras = getExtrasForProduct(prod.id);
                   const principalEnCarrito = cart.some(
@@ -1685,6 +1690,25 @@ case "spotlight":
       setShowInfo={setShowInfo}
     />
   );
+      case "carta":
+        return (
+          <Carta
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras || []}
+            isOpen={isOpen}
+            mesaLabel={mesaLabel}
+            onAddToCart={(product: any, qty: number = 1) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Agregado");
+            }}
+            isMockup={false}
+            setShowInfo={setShowInfo}
+          />
+        );
       default:
         return <div className="p-10 text-center">Menú no encontrado</div>;
     }

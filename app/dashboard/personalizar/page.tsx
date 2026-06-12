@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { 
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
   Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
-  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle, CalendarIcon 
+  CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle, CalendarIcon, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
@@ -24,6 +24,7 @@ import BistroChalk from '../../../components/templates/BistroChalk';
 import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 import AlternaPro from '../../../components/templates/AlternaPro';
 import HeladeriaSoft from '../../../components/templates/HeladeriaSoft';
+import Carta from '../../../components/templates/Carta';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
@@ -122,6 +123,15 @@ visualgrid: {
   marketpro: { theme: '#000000', bg: '#ffffff', text: '#000000', desc: '#999999', card_name: '#000000', card_desc: '#999999', card_price: '#059669', btn_bg: '#000000', btn_text: '#ffffff', promo_bg: '#f3f4f6', promo_text: '#000000', banner: true, cat_bg_color: '#f3f4f6', cat_text_color: '#999999', cat_title_color: '#000000', cat_active_bg_color: '#000000', cat_active_text_color: '#ffffff', search_bg_color: '#f3f4f6', search_icon_color: '#9ca3af', card_show_bg: true, card_color: '#ffffff' },
   'icecream-v1': { theme: '#6366f1', bg: '#f8fafc', text: '#0f172a', desc: '#64748b', card_name: '#0f172a', card_desc: '#64748b', card_price: '#6366f1', btn_bg: '#6366f1', btn_text: '#ffffff', promo_bg: '#eef2ff', promo_text: '#4f46e5', banner: false },
   'alterna-pro': { theme: '#ea580c', bg: '#fafaf9', text: '#111827', desc: '#94a3b8', card_name: '#111827', card_desc: '#94a3b8', card_price: '#ea580c', btn_bg: '#ea580c', btn_text: '#ffffff', promo_bg: '#ffffff', promo_text: '#ea580c', banner: false, cat_bg_color: '#ffffff', cat_text_color: '#64748b', cat_active_bg_color: '#000000', cat_active_text_color: '#ffffff' },
+  carta: {
+    theme: '#B5863A', bg: '#F7F3EE', text: '#1C1A18', desc: '#8a8278',
+    card_name: '#1C1A18', card_desc: '#9a948c', card_price: '#B5863A',
+    card: '#ffffff', btn_bg: '#B5863A', btn_text: '#ffffff',
+    promo_bg_color: '#EFE7DB', promo_text_color: '#B5863A', banner: false,
+    cat_bg_color: '#F7F3EE', cat_text_color: '#9a948c',
+    cat_active_bg_color: '#1C1A18', cat_active_text_color: '#F7F3EE',
+    search_bg_color: '#ffffff', search_icon_color: '#B5863A'
+  },
 };
 
 const CUSTOM_STYLES = `
@@ -240,10 +250,12 @@ if (activeTab === 'snappylinks') {
     search_icon_color: defaults.search_icon_color
   } : data;
 
-const props = { 
-  restaurant: { ...finalRenderData, categories, reservations_enabled: data.reservations_enabled }, 
-  products: displayProds || [], 
-  categories: categories || [], 
+// Carta tiene su propio set de placeholders (estilo brasserie) y los activa con products.length === 0,
+// así que le pasamos los datos reales (sin el fallback genérico "Mix Frutos Secos") para no pisar esa lógica.
+const props = {
+  restaurant: { ...finalRenderData, categories, reservations_enabled: data.reservations_enabled },
+  products: activeId === 'carta' ? (products || []) : (displayProds || []),
+  categories: categories || [],
   
   fetchedExtras: [], 
   isOpen: true, 
@@ -282,6 +294,7 @@ isMockup: isMockup,
     />
   );
               case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
+              case 'carta': return <Carta {...props} />;
               default: return <ClassicDelivery {...props} />;
             }
           })()}
@@ -373,6 +386,7 @@ export default function EditorPage() {
   const [isLocked, setIsLocked] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showBioContent, setShowBioContent] = useState(true);
@@ -550,6 +564,9 @@ const getLinksLimit = () => {
 hero_drink_size: rest.hero_drink_size || '500cc',
       });
 
+      // Modal de bienvenida (primera vez en Personalizar)
+      if (!rest.personalizar_intro_seen) setShowWelcomeModal(true);
+
       // Carga de productos y categorías (lo que ya tenías abajo)
       setIsLocked(!rest.subscription_plan && !isSuperAdmin);
       const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: true });
@@ -563,16 +580,23 @@ hero_drink_size: rest.hero_drink_size || '500cc',
     return () => { mounted = false; };
   }, []);
 
+  const handleCloseWelcomeModal = async () => {
+    setShowWelcomeModal(false);
+    if (!restaurantId) return;
+    await supabase.from('restaurants').update({ personalizar_intro_seen: true }).eq('id', restaurantId);
+  };
+
 const getTemplateConfig = () => {
     const id = data.template_id || 'classic';
     return {
       editable: true, group: id,
-      showClassicBanner: id === 'classic', 
-      showBannerImg: ['spotlight', 'marketpro'].includes(id),
-      
+      showClassicBanner: id === 'classic',
+      showBannerImg: ['spotlight', 'marketpro', 'carta'].includes(id),
+      promoMessageDisabled: id === 'carta',
+
       showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant', 'classic', 'minimal'].includes(id),
-      showCard: true, 
-      showHeroEditor: id === 'spotlight', 
+      showCard: true,
+      showHeroEditor: ['spotlight', 'carta'].includes(id),
       
       showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
@@ -798,6 +822,25 @@ const confirmReset = () => {
       <style>{CUSTOM_STYLES}</style>
       <div className="relative pt-16 xl:pt-6 min-h-screen bg-gray-50/50 px-2 sm:px-6">
 
+        {showWelcomeModal && (
+          <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-3">
+                <Sparkles size={22} className="text-indigo-600" />
+              </div>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">¡Bienvenido a Personalizar!</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Acá podés personalizar tu menú: cambiar el banner, el logo, los textos de tu local.
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                En la pestaña <span className="font-bold text-indigo-600">ESTILOS</span> podés cambiar todos los colores de tu menú (fondo, textos, botones, etc.)
+              </p>
+              <button onClick={handleCloseWelcomeModal} className="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                Entendido
+              </button>
+            </div>
+          </div>
+        )}
         {showRestoreModal && (
           <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
@@ -943,15 +986,19 @@ const confirmReset = () => {
                         <label className="text-xs font-bold text-gray-700">Descripción Corta</label>
                         <textarea value={data.description || ''} onChange={(e) => { setData({ ...data, description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-black resize-none" rows={2} placeholder="La mejor comida de la ciudad..." />
                       </div>
-                      <div className="space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100">
+                      <div className={`space-y-1 border p-3 rounded-xl bg-yellow-50/50 border-yellow-100 ${tConfig.promoMessageDisabled ? 'opacity-50' : ''}`}>
                         <div className="flex justify-between items-center mb-2">
                           <label className="text-xs font-bold text-gray-700 flex items-center gap-1"><Megaphone size={12} /> Mensaje Promo (Header)</label>
                           <div className="flex items-center gap-2">
-                            <label className="text-[10px] text-gray-500 font-bold uppercase cursor-pointer" htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label>
-                            <button onClick={() => { setData({ ...data, show_promo: !data.show_promo }); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`} /></button>
+                            <label className={`text-[10px] text-gray-500 font-bold uppercase ${tConfig.promoMessageDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} htmlFor="promo-switch">{data.show_promo ? 'Visible' : 'Oculto'}</label>
+                            <button disabled={tConfig.promoMessageDisabled} onClick={() => { setData({ ...data, show_promo: !data.show_promo }); setUnsavedChanges(true); }} id="promo-switch" className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${data.show_promo ? 'bg-black' : 'bg-gray-300'} ${tConfig.promoMessageDisabled ? 'cursor-not-allowed' : ''}`}><div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${data.show_promo ? 'translate-x-4' : 'translate-x-0'}`} /></button>
                           </div>
                         </div>
-                        {data.show_promo && <input value={data.promo_message || ''} onChange={(e) => { setData({ ...data, promo_message: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" placeholder="Ej: Envío GRATIS en tu primera compra" />}
+                        {tConfig.promoMessageDisabled ? (
+                          <p className="text-[10px] text-gray-400 italic">No disponible para este diseño</p>
+                        ) : (
+                          data.show_promo && <input value={data.promo_message || ''} onChange={(e) => { setData({ ...data, promo_message: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none bg-white" placeholder="Ej: Envío GRATIS en tu primera compra" />
+                        )}
                       </div>
                     </div>
                   </section>
@@ -961,9 +1008,9 @@ const confirmReset = () => {
                     <label className="text-xs font-bold text-gray-700 block">Imágenes</label>
                     <div className="flex gap-4">
                       <div className="w-20 flex-shrink-0">
-                        <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-white">
+                        <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:bg-gray-50 transition group overflow-hidden bg-gray-100">
                           <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'logo_url')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                          {data.logo_url ? <img src={getOptimizedImageUrl(data.logo_url, 150, 70)} className="w-full h-full object-cover" /> : <Store size={20} className="text-gray-300" />}
+                          {data.logo_url ? <img src={getOptimizedImageUrl(data.logo_url, 150, 70, 150, 'cover')} className="w-full h-full object-contain" /> : <Store size={20} className="text-gray-300" />}
                           <div className="absolute inset-0 bg-black/50 text-white text-[8px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition">LOGO</div>
                         </div>
                       </div>
