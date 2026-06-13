@@ -6,6 +6,7 @@ import { useEffect, useState, useRef, Suspense } from "react"; // Agregamos Susp
 import { createBrowserClient } from "@supabase/ssr";
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { displayTableLabel } from "@/lib/tableUtils";
 import {
   Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
   CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
@@ -328,7 +329,7 @@ const loadOrders = async () => {
 
     const direccionExhibida = order.order_type === 'delivery' 
       ? (order.address || 'Sin dirección') 
-      : order.order_type === 'mesa' ? `Mesa: ${order.table_number || 'S/N'}` : 'Retiro';
+      : order.order_type === 'mesa' ? displayTableLabel(order.table_number || 'S/N') : 'Retiro';
 
     // --- CÁLCULOS PARA EL DESGLOSE ---
     // Sumamos solo los productos
@@ -353,7 +354,7 @@ const loadOrders = async () => {
               <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
     <h2 style="margin:0; font-size: 18px;">${restaurantName.toUpperCase()}</h2>
   
-    ${order.order_type === 'mesa' ? `<h1 style="margin: 5px 0; font-size: 24px;">MESA ${order.table_number}</h1>` : ''}
+    ${order.order_type === 'mesa' ? `<h1 style="margin: 5px 0; font-size: 24px;">${displayTableLabel(order.table_number, true)}</h1>` : ''}
     <p style="margin: 5px 0; font-size: 12px;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
     <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
 </div>
@@ -926,7 +927,7 @@ useEffect(() => {
                                 <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest mt-2">
                                     <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${order.order_type === 'mesa' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
                                         {order.order_type === "delivery" ? <Bike size={12} /> : order.order_type === "retiro" ? <Store size={12} /> : <MapPin size={12} />}
-                                        {order.order_type === 'mesa' ? `MESA ${order.table_number || ''}` : order.order_type}
+                                        {order.order_type === 'mesa' ? displayTableLabel(order.table_number, true) : order.order_type}
                                     </span>
                                     <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg text-gray-500 italic border border-gray-200">
                                         {order.payment_method === "transferencia" ? <CreditCard size={12} /> : <Banknote size={12} />} {order.payment_method}

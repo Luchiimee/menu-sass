@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User,CreditCard,Clock } from 'lucide-react';
 import OrderTracker from './OrderTracker';
+import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -353,7 +354,7 @@ const handleCallWaiter = async () => {
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
                         {isMesa && (
                             <div className="bg-indigo-600 text-white rounded-3xl p-5 mb-6 text-left shadow-lg animate-in zoom-in">
-                                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">Mesa {nroMesa}</p>
+                                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">{displayTableLabel(nroMesa)}</p>
                                 <h4 className="text-base font-black leading-tight">{tableStatusText[orderStatus] || 'Procesando...'}</h4>
                             </div>
                         )}
@@ -608,7 +609,7 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
     }
 
         if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
-        if (metodoEnvio === 'mesa') mensaje += `🍽️ *Mesa:* ${nroMesa}\n`;
+        if (metodoEnvio === 'mesa') mensaje += `🍽️ *${displayTableLabel(nroMesa)}*\n`;
         mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
         
         cart.forEach((item: any) => { 
