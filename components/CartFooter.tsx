@@ -106,6 +106,20 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [nroMesa, setNroMesa] = useState(mesaLabel || '')
     const [availableTables, setAvailableTables] = useState<Table[]>([]);
 
+    // 🔄 Si el parámetro ?mesa= llega después del primer render, forzamos metodoEnvio a 'mesa'
+    useEffect(() => {
+        if (tableIdFromQR) {
+            setMetodoEnvio('mesa');
+        }
+    }, [tableIdFromQR]);
+
+    // 🔄 mesaLabel llega async (query a Supabase); sincronizamos nroMesa cuando resuelve
+    useEffect(() => {
+        if (mesaLabel) {
+            setNroMesa(mesaLabel);
+        }
+    }, [mesaLabel]);
+
     // --- 5. LÓGICA DE CUPONES ---
     const [couponCode, setCouponCode] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -134,15 +148,19 @@ const handleNotificarPagoMesa = async (metodo: string) => {
         if (cart.length === 0) setIsVisible(false);
     }, [cart.length]);
 // 🧠 Recuperar datos de mesa/envio al refrescar si hay un pedido activo
+    // El QR (tableIdFromQR) manda siempre: si existe, este efecto no toca nada (lo maneja el efecto de arriba)
     useEffect(() => {
+        if (tableIdFromQR) return;
         if (activeOrderId) {
             const savedEnvio = localStorage.getItem('metodoEnvio');
             const savedMesa = localStorage.getItem('nroMesa');
-            
-            if (savedEnvio) setMetodoEnvio(savedEnvio);
+
+            if (savedEnvio) {
+                setMetodoEnvio(savedEnvio === 'mesa' ? 'delivery' : savedEnvio);
+            }
             if (savedMesa) setNroMesa(savedMesa);
         }
-    }, [activeOrderId]);
+    }, [activeOrderId, tableIdFromQR]);
    useEffect(() => {
        if (activeOrderId && !isVisible) {
            const isMesa = metodoEnvio === 'mesa';
