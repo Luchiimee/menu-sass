@@ -188,7 +188,10 @@ const getStatusBadge = (status: string, orderType?: string) => {
 
   const resetAttention = async (id: string) => {
     await supabase.from('tables').update({ needs_attention: false }).eq('id', id);
-    if (restaurantId) fetchTables(restaurantId); 
+    if (restaurantId) fetchTables(restaurantId);
+    setSelectedTableForDetail((prev: any) =>
+        prev && prev.id === id ? { ...prev, needs_attention: false } : prev
+    );
   };
 
   const toggleTableStatus = async (id: string, currentStatus: string) => {
@@ -821,7 +824,7 @@ useEffect(() => {
 
                             {/* Botón apagar llamado */}
                             {isCalling && (
-                              <button onClick={(e) => { e.stopPropagation(); resetAttention(mesa.id); }} className="absolute -top-3 -left-1.5 bg-black text-white p-2 rounded-full z-[120] border-2 border-white shadow-2xl animate-bounce">
+                              <button onClick={(e) => { e.stopPropagation(); resetAttention(mesa.id); }} className="absolute top-2 left-2 bg-black text-white p-1.5 rounded-full z-[120] border-2 border-white shadow-2xl animate-bounce">
                                 <Check size={14} strokeWidth={4} className="text-green-400" />
                               </button>
                             )}
@@ -1186,6 +1189,14 @@ useEffect(() => {
       </>
     ) : (
       <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-400 mt-2">Mesa Libre</h3>
+    )}
+    {selectedTableForDetail.needs_attention && (
+        <button
+            onClick={() => resetAttention(selectedTableForDetail.id)}
+            className="mt-2 w-full py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+            <Check size={14} strokeWidth={3} /> Atendido — Apagar Llamado
+        </button>
     )}
 </div>
                 <button onClick={() => setSelectedTableForDetail(null)} className="p-3 bg-white rounded-full shadow-lg text-gray-400 hover:text-gray-900 transition-all active:scale-90"><X size={24} strokeWidth={3}/></button>
