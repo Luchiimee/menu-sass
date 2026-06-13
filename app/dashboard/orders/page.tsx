@@ -275,6 +275,13 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
     await supabase.from("orders").update({ status: newStatus }).eq("id", id);
   };
 
+  const acceptOrder = async (order: any) => {
+    await updateStatus(order.id, 'recibido');
+    setSelectedTableForDetail((prev: any) =>
+        prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'recibido' } } : prev
+    );
+  };
+
   const deleteOrder = async (id: string) => {
     if (!confirm("¿Eliminar este pedido?")) return;
     setOrders(prev => prev.filter((o) => o.id !== id));
@@ -781,6 +788,7 @@ useEffect(() => {
                         const activeOrder = getActiveOrderForTable(mesa.name);
                         const isOccupied = !!activeOrder;
                         const isCalling = Boolean(mesa.needs_attention);
+                        const isPendingAcceptance = activeOrder?.status === 'pendiente';
                         const isWaitingPayment = activeOrder?.payment_status === 'esperando_confirmacion';
                         const paymentMethod = activeOrder?.payment_method;
                         const mesaLink = restaurantSlug ? `snappy.uno/${restaurantSlug}?mesa=${mesa.id}` : null;
@@ -792,6 +800,7 @@ useEffect(() => {
                             onClick={() => setSelectedTableForDetail({ ...mesa, activeOrder })}
                             className={`relative rounded-2xl border-2 flex flex-col shadow-sm group cursor-pointer active:scale-[0.98] transition-all overflow-hidden ${
                               isCalling ? 'animate-table-call ring-4 ring-red-500/50' :
+                              isPendingAcceptance ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-300 animate-pulse' :
                               isWaitingPayment ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100' :
                               isOccupied ? 'border-orange-300 bg-white' :
                               'border-gray-100 bg-white'
@@ -817,24 +826,33 @@ useEffect(() => {
                               </div>
                             )}
 
+                            {/* Badge nuevo pedido sin aceptar */}
+                            {isPendingAcceptance && !isCalling && (
+                              <div className="absolute -top-2.5 left-2 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-bounce z-20">
+                                🆕 Nuevo Pedido
+                              </div>
+                            )}
+
                             {/* Card body */}
                             <div className="px-3 pt-3 pb-3 flex flex-col gap-2">
                               <div className="flex items-center justify-between">
                                 <span className={`font-black text-[11px] uppercase tracking-tight ${
                                   isCalling ? 'text-white' :
+                                  isPendingAcceptance ? 'text-amber-700' :
                                   isWaitingPayment ? 'text-purple-700' :
                                   isOccupied ? 'text-orange-600' :
                                   'text-gray-700'
                                 }`}>{mesa.name}</span>
-                                <span className="text-base leading-none">{isCalling ? '🚨' : isWaitingPayment ? '💳' : isOccupied ? '🔥' : '🍽️'}</span>
+                                <span className="text-base leading-none">{isCalling ? '🚨' : isPendingAcceptance ? '🆕' : isWaitingPayment ? '💳' : isOccupied ? '🔥' : '🍽️'}</span>
                               </div>
                               <p className={`text-[8px] font-black uppercase tracking-widest ${
                                 isCalling ? 'text-white/80' :
+                                isPendingAcceptance ? 'text-amber-600' :
                                 isWaitingPayment ? 'text-purple-500' :
                                 isOccupied ? 'text-orange-400' :
                                 'text-gray-300'
                               }`}>
-                                {isCalling ? '¡Llama!' : isWaitingPayment ? 'Pago Pendiente' : isOccupied ? 'Ocupada' : 'Disponible'}
+                                {isCalling ? '¡Llama!' : isPendingAcceptance ? '¡Nuevo Pedido!' : isWaitingPayment ? 'Pago Pendiente' : isOccupied ? 'Ocupada' : 'Disponible'}
                               </p>
                               {isOccupied && (
                                 <p className={`text-sm font-black leading-tight ${isCalling ? 'text-white' : 'text-gray-900'}`}>
@@ -845,6 +863,7 @@ useEffect(() => {
                                 onClick={(e) => { e.stopPropagation(); setSelectedTableForDetail({ ...mesa, activeOrder }); }}
                                 className={`w-full py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-95 transition-all ${
                                   isCalling ? 'bg-white text-gray-900' :
+                                  isPendingAcceptance ? 'bg-amber-500 text-white' :
                                   isWaitingPayment ? 'bg-purple-600 text-white' :
                                   isOccupied ? 'bg-gray-900 text-white' :
                                   'bg-gray-100 text-gray-600'
@@ -1347,9 +1366,18 @@ useEffect(() => {
                         <Zap size={22} className="text-yellow-400 fill-yellow-400 opacity-50" />
                     </div>
 
+                    {selectedTableForDetail.activeOrder.status === 'pendiente' ? (
+                        /* Pedido sin aceptar: único CTA */
+                        <button
+                            onClick={() => acceptOrder(selectedTableForDetail.activeOrder)}
+                            className="w-full py-4 bg-green-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all"
+                        >
+                            <CheckCircle size={18} /> Aceptar Pedido
+                        </button>
+                    ) : (
                     <div className="flex flex-col gap-2">
                         {/* Botón Imprimir más chico */}
-                  <button 
+                  <button
         onClick={() => {
             if (currentPlan === 'light') {
                 setShowUpgradeModal(true);
@@ -1366,14 +1394,15 @@ useEffect(() => {
         {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
     </button>
 
-                        
-<button  
+
+<button
     onClick={() => setShowConfirmPaymentModal(selectedTableForDetail.activeOrder)}
     className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
 >
     <CheckCircle size={16} /> Confirmar Pago y Cerrar
 </button>
                     </div>
+                    )}
                 </div>
             )}
             
