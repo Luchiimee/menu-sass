@@ -294,12 +294,10 @@ if (activeOrderId && !isVisible) {
         const isMesa = metodoEnvio === 'mesa';
         
         const tableStatusText: any = {
-            'pendiente': 'El local está revisando tu pedido...',
-            'recibido': '¡Pedido Tomado! ✅',
-            'en_proceso': 'Tu pedido ya está en la cocina 🔥',
-            'listo': 'Tu plato está listo, enseguida te lo alcanzan 🍽️',
-            'entregado': '¡Que lo disfrutes! ✨',
-            'completado': '¡Que lo disfrutes! ✨',
+            'pendiente': 'El local está revisando tu pedido',
+            'en_proceso': 'Tu pedido está siendo preparado',
+            'entregado': 'Tu pedido fue entregado en tu mesa',
+            'completado': 'Gracias por tu visita',
         };
 
 const handleCallWaiter = async () => {

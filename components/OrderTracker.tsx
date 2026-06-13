@@ -77,11 +77,10 @@ useEffect(() => {
             { id: 'completado', label: '¡Disfrutalo! 🎉', subLabel: 'Pedido entregado con éxito', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ],
         mesa: [
-            { id: 'pendiente', label: 'Enviado 📩', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
-            { id: 'recibido', label: '¡Pedido Tomado! ✅', subLabel: 'Enseguida lo mandamos a cocina', icon: Check, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
-            { id: 'en_proceso', label: 'En Cocina 🔥', subLabel: 'Tu pedido se está preparando', icon: ChefHat, color: 'bg-orange-500', textColor: 'text-orange-600' },
-            { id: 'listo', label: '¡Plato Listo! 🍽️', subLabel: 'El mozo te lo alcanza enseguida', icon: Zap, color: 'bg-blue-500', textColor: 'text-blue-600' },
-            { id: 'completado', label: '¡Provecho! ✨', subLabel: 'Esperamos que lo disfrutes', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
+            { id: 'pendiente', label: 'Enviado', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
+            { id: 'en_proceso', label: 'En cocina', subLabel: 'Tu pedido está siendo preparado', icon: ChefHat, color: 'bg-orange-500', textColor: 'text-orange-600' },
+            { id: 'entregado', label: 'Entregado', subLabel: 'Tu pedido fue entregado en tu mesa', icon: Zap, color: 'bg-blue-500', textColor: 'text-blue-600' },
+            { id: 'completado', label: 'Gracias por tu visita', subLabel: 'Gracias por tu visita', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ],
       retiro: [
             { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
@@ -95,7 +94,8 @@ useEffect(() => {
 
     const mappedType = orderType === 'delivery' ? 'gastronomico' : orderType;
     const steps = stepsConfig[mappedType] || stepsConfig.gastronomico;
-    const normalizedStatus = status === 'entregado' ? 'completado' : status;
+    // Para delivery/retiro 'entregado' es estado final (=completado). Para mesa son estados distintos: entregado=plato en la mesa, completado=pago cerrado. Por eso solo normalizamos cuando NO es mesa.
+    const normalizedStatus = (status === 'entregado' && mappedType !== 'mesa') ? 'completado' : status;
     const currentIndex = steps.findIndex((s: any) => s.id === normalizedStatus);
     const currentStep = steps[currentIndex] || steps[0];
 

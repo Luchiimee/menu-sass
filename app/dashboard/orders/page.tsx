@@ -276,9 +276,16 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
   };
 
   const acceptOrder = async (order: any) => {
-    await updateStatus(order.id, 'recibido');
+    await updateStatus(order.id, 'en_proceso');
     setSelectedTableForDetail((prev: any) =>
-        prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'recibido' } } : prev
+        prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'en_proceso' } } : prev
+    );
+  };
+
+  const markOrderDelivered = async (order: any) => {
+    await updateStatus(order.id, 'entregado');
+    setSelectedTableForDetail((prev: any) =>
+        prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'entregado' } } : prev
     );
   };
 
@@ -1374,7 +1381,15 @@ useEffect(() => {
                         >
                             <CheckCircle size={18} /> Aceptar Pedido
                         </button>
-                    ) : (
+                    ) : selectedTableForDetail.activeOrder.status === 'en_proceso' ? (
+                        /* En cocina: marcar como entregado al cliente */
+                        <button
+                            onClick={() => markOrderDelivered(selectedTableForDetail.activeOrder)}
+                            className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-amber-500/30 hover:bg-amber-600 active:scale-95 transition-all"
+                        >
+                            <Zap size={18} /> Marcar Entregado
+                        </button>
+                    ) : selectedTableForDetail.activeOrder.status === 'entregado' ? (
                     <div className="flex flex-col gap-2">
                         {/* Botón Imprimir más chico */}
                   <button
@@ -1402,6 +1417,10 @@ useEffect(() => {
     <CheckCircle size={16} /> Confirmar Pago y Cerrar
 </button>
                     </div>
+                    ) : (
+                        <div className="text-center py-2">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mesa cerrada</p>
+                        </div>
                     )}
                 </div>
             )}
