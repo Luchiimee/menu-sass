@@ -808,7 +808,7 @@ useEffect(() => {
                           <div
                             key={mesa.id}
                             onClick={() => setSelectedTableForDetail({ ...mesa, activeOrder })}
-                            className={`relative rounded-2xl border-2 flex flex-col shadow-sm group cursor-pointer active:scale-[0.98] transition-all overflow-hidden ${
+                            className={`relative rounded-2xl border-2 flex flex-col shadow-sm group cursor-pointer active:scale-[0.98] transition-all ${
                               isCalling ? 'animate-table-call ring-4 ring-red-500/50' :
                               isPendingAcceptance ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-300 animate-pulse' :
                               isWaitingPayment ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100' :
