@@ -647,7 +647,7 @@ export default function LandingPage() {
         Desde el menú digital hasta la reserva de mesa — todo en un solo lugar.
       </p>
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
       <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mb-6">
           <Smartphone size={28} className="text-orange-500" />
@@ -673,6 +673,15 @@ export default function LandingPage() {
         <h3 className="text-xl font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
         <p className="text-gray-500 text-sm leading-relaxed">
           Tus clientes reservan su mesa desde el menú. Vos confirmás o rechazás desde el panel, y ellos reciben la confirmación al instante.
+        </p>
+      </div>
+      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center mb-6">
+          <Percent size={28} className="text-purple-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">Descuentos y cupones</h3>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Creá códigos de descuento para fidelizar a tus clientes. Porcentaje o monto fijo, con fecha de vencimiento y límite de usos. Disponible en plan Go en adelante.
         </p>
       </div>
     </div>
