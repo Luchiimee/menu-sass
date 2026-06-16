@@ -707,10 +707,10 @@ export default function LandingPage() {
 
         <ul className="space-y-5 mb-10">
           {[
-            { icon: Zap,          text: 'Actualizaciones en tiempo real, sin recargar' },
-            { icon: Bell,         text: 'Alerta cuando un cliente llama al mozo' },
-            { icon: CheckCircle2, text: 'Aceptá, entregá y cerrá la cuenta desde el panel' },
-            { icon: QrCode,       text: 'Cada mesa tiene su propio QR para pedir' },
+            { icon: Zap,          text: 'Pedidos y mesas actualizados en tiempo real' },
+            { icon: Bell,         text: 'Alerta inmediata cuando un cliente llama al mozo' },
+            { icon: CheckCircle2, text: 'Aceptá pedidos y gestioná comandas desde el panel' },
+            { icon: QrCode,       text: 'Cada mesa tiene su propio QR para pedir sin esperar' },
           ].map((item, i) => (
             <li key={i} className="flex items-center gap-4">
               <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
@@ -726,83 +726,127 @@ export default function LandingPage() {
         </Link>
       </div>
 
-      {/* MOCKUP PANEL DE MESAS */}
-      <div className="relative flex justify-center items-center">
+      {/* MOCKUP PANEL — MESAS + COMANDAS */}
+      <div className="relative flex justify-center items-start lg:items-center">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[340px] h-[300px] bg-white/5 rounded-full blur-[80px]" />
+          <div className="w-[400px] h-[350px] bg-white/5 rounded-full blur-[80px]" />
         </div>
 
-        <div className="relative w-full max-w-[440px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-5">
-          {/* Header del panel */}
-          <div className="flex items-center justify-between mb-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-white">Gestión de Salón</p>
-            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-[9px] font-black text-green-400 uppercase tracking-widest">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> En vivo
-            </span>
+        <div className="relative w-full max-w-[700px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col md:flex-row gap-4">
+
+          {/* COLUMNA IZQUIERDA — Mesas */}
+          <div className="md:w-[38%] shrink-0 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[9px] font-black uppercase tracking-widest text-white">Gestión de Salón</p>
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
+                <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+
+              {/* Mesa 1 — LIBRE */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
+                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 1</p>
+                <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
+                <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
+              </div>
+
+              {/* Mesa 2 — NUEVO PEDIDO */}
+              <div className="bg-amber-500/5 border border-amber-400/50 rounded-xl p-2 flex flex-col gap-1">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 2</p>
+                <span className="text-[7px] font-black text-amber-400 uppercase animate-bounce">🆕 Nuevo</span>
+                <span className="text-[9px] font-black text-white">$25.000</span>
+                <button className="mt-1 w-full py-1 rounded-lg bg-amber-500/10 border border-amber-400/40 text-[7px] font-black text-amber-400 uppercase cursor-default">Abrir</button>
+              </div>
+
+              {/* Mesa 3 — OCUPADA */}
+              <div className="bg-white border border-orange-400/60 rounded-xl p-2 flex flex-col gap-1">
+                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 3</p>
+                <span className="text-[7px] font-black text-orange-500 uppercase">Ocupada</span>
+                <span className="text-[9px] font-black text-gray-800">$18.500</span>
+                <button className="mt-1 w-full py-1 rounded-lg bg-orange-50 border border-orange-300 text-[7px] font-black text-orange-500 uppercase cursor-default">Abrir</button>
+              </div>
+
+              {/* Mesa 4 — LLAMANDO AL MOZO */}
+              <div className="bg-red-500/5 border-2 border-red-500/60 rounded-xl p-2 flex flex-col gap-1 animate-pulse">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 4</p>
+                <span className="text-[7px] font-black text-red-400 uppercase">🚨 ¡Llama!</span>
+                <span className="text-[9px] font-black text-white">$31.000</span>
+                <button className="mt-1 w-full py-1 rounded-lg bg-red-500/10 border border-red-500/40 text-[7px] font-black text-red-400 uppercase cursor-default">Abrir</button>
+              </div>
+
+              {/* Mesa 5 — PAGO PENDIENTE */}
+              <div className="bg-purple-500/5 border border-purple-500/40 rounded-xl p-2 flex flex-col gap-1">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
+                <span className="text-[7px] font-black text-purple-400 uppercase">Pago Pend.</span>
+                <span className="text-[9px] font-black text-white">$14.200</span>
+                <button className="mt-1 w-full py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-[7px] font-black text-purple-400 uppercase cursor-default">Abrir</button>
+              </div>
+
+              {/* Mesa 6 — LIBRE */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
+                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
+                <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
+                <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
+              </div>
+
+            </div>
           </div>
 
-          {/* Grid de mesas */}
-          <div className="grid grid-cols-3 gap-3">
-
-            {/* Mesa 1 — LIBRE */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2">
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Mesa 1</p>
-              <span className="text-[8px] font-black text-gray-600 uppercase tracking-wide">Disponible</span>
-              <button className="mt-auto w-full py-1.5 rounded-xl bg-white/5 border border-white/10 text-[8px] font-black text-gray-600 uppercase tracking-wide cursor-default">
-                Abrir Mesa
-              </button>
+          {/* COLUMNA DERECHA — Comandas (oculta en mobile) */}
+          <div className="hidden md:flex flex-col flex-1 min-w-0 gap-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
+              <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">3 activos</span>
             </div>
 
-            {/* Mesa 2 — NUEVO PEDIDO */}
-            <div className="bg-amber-500/5 border border-amber-400/50 rounded-2xl p-3 flex flex-col gap-2">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mesa 2</p>
-              <span className="text-[8px] font-black text-amber-400 uppercase tracking-wide animate-bounce">🆕 Nuevo Pedido</span>
-              <span className="text-[10px] font-black text-white">$25.000</span>
-              <button className="mt-auto w-full py-1.5 rounded-xl bg-amber-500/10 border border-amber-400/40 text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">
-                Abrir Mesa
-              </button>
+            {/* Comanda 1 — Pendiente */}
+            <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                <span className="text-[11px] font-black text-white">$25.000</span>
+              </div>
+              <p className="text-[10px] font-black text-white uppercase tracking-wide">Luciano</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">Mesa 1</span>
+                <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
+              </div>
+              <p className="text-[8px] text-gray-500">x1 Milanesa a la napolitana · $25.000</p>
+              <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ Aceptar Pedido</button>
             </div>
 
-            {/* Mesa 3 — OCUPADA */}
-            <div className="bg-white border border-orange-400/60 rounded-2xl p-3 flex flex-col gap-2">
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Mesa 3</p>
-              <span className="text-[8px] font-black text-orange-500 uppercase tracking-wide">Ocupada</span>
-              <span className="text-[10px] font-black text-gray-800">$18.500</span>
-              <button className="mt-auto w-full py-1.5 rounded-xl bg-orange-50 border border-orange-300 text-[8px] font-black text-orange-500 uppercase tracking-wide cursor-default">
-                Abrir Mesa
-              </button>
+            {/* Comanda 2 — En cocina */}
+            <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">🍳 En cocina</span>
+                <span className="text-[11px] font-black text-white">$18.500</span>
+              </div>
+              <p className="text-[10px] font-black text-white uppercase tracking-wide">Martina</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">Mesa 3</span>
+                <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Transferencia</span>
+              </div>
+              <p className="text-[8px] text-gray-500">x2 Empanadas $12.000 · x1 Coca 500cc $6.500</p>
+              <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ Marcar Entregado</button>
             </div>
 
-            {/* Mesa 4 — LLAMANDO AL MOZO */}
-            <div className="bg-red-500/5 border-2 border-red-500/60 rounded-2xl p-3 flex flex-col gap-2 animate-pulse">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mesa 4</p>
-              <span className="text-[8px] font-black text-red-400 uppercase tracking-wide">🚨 ¡Llama!</span>
-              <span className="text-[10px] font-black text-white">$31.000</span>
-              <button className="mt-auto w-full py-1.5 rounded-xl bg-red-500/10 border border-red-500/40 text-[8px] font-black text-red-400 uppercase tracking-wide cursor-default">
-                Abrir Mesa
-              </button>
-            </div>
-
-            {/* Mesa 5 — PAGO PENDIENTE */}
-            <div className="bg-purple-500/5 border border-purple-500/40 rounded-2xl p-3 flex flex-col gap-2">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
-              <span className="text-[8px] font-black text-purple-400 uppercase tracking-wide">Pago Pendiente</span>
-              <span className="text-[10px] font-black text-white">$14.200</span>
-              <button className="mt-auto w-full py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-[8px] font-black text-purple-400 uppercase tracking-wide cursor-default">
-                Abrir Mesa
-              </button>
-            </div>
-
-            {/* Mesa 6 — LIBRE */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2">
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
-              <span className="text-[8px] font-black text-gray-600 uppercase tracking-wide">Disponible</span>
-              <button className="mt-auto w-full py-1.5 rounded-xl bg-white/5 border border-white/10 text-[8px] font-black text-gray-600 uppercase tracking-wide cursor-default">
-                Abrir Mesa
-              </button>
+            {/* Comanda 3 — Finalizado */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                <span className="text-[11px] font-black text-white">$31.000</span>
+              </div>
+              <p className="text-[10px] font-black text-white uppercase tracking-wide">Carlos</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">Mesa 4</span>
+                <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
+              </div>
+              <p className="text-[8px] text-gray-500">x1 Bife de chorizo · $31.000</p>
+              <button className="w-full py-1.5 bg-transparent border border-white/20 rounded-xl text-[8px] font-black text-gray-400 uppercase tracking-wide cursor-default">Chat Directo</button>
             </div>
 
           </div>
+
         </div>
       </div>
 
