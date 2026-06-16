@@ -370,6 +370,7 @@ export default function LandingPage() {
   const [showSoonToast, setShowSoonToast] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
 
   // 2. Agregá este useEffect al principio del componente
   useEffect(() => {
@@ -385,8 +386,12 @@ export default function LandingPage() {
     checkPWAFlow();
   }, [router, supabase]);
 
-
- 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep(prev => (prev + 1) % 4);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Función para manejar la apertura de tutoriales con validación de disponibilidad
   const openTutorial = (video: any) => {
@@ -768,10 +773,81 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* IMAGEN */}
+      {/* MOCKUP TELÉFONO ANIMADO */}
       <div className="relative flex justify-center items-center">
-        <div className="relative w-[280px] h-[560px]">
-          <Image src="/celular-cliente.png" alt="Seguimiento en tiempo real" fill className="object-contain drop-shadow-2xl" />
+        {/* Glow verde detrás del teléfono */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-[220px] h-[440px] bg-green-500/10 rounded-full blur-[60px]" />
+        </div>
+
+        {/* Marco del teléfono */}
+        <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
+          {/* Notch */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90px] h-[22px] bg-gray-950 rounded-b-2xl z-20" />
+
+          {/* Pantalla */}
+          <div className="pt-10 pb-4 px-4 flex flex-col min-h-[520px]">
+            {/* Header */}
+            <div className="flex items-center justify-between pt-2 mb-3">
+              <div>
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Pedido #4f2a</p>
+                <p className="text-white font-black text-sm uppercase tracking-tight">Mesa 1</p>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all duration-500 ${
+                activeStep === 0 ? 'bg-blue-500/20 text-blue-400' :
+                activeStep === 1 ? 'bg-yellow-500/20 text-yellow-400' :
+                activeStep === 2 ? 'bg-orange-500/20 text-orange-400' :
+                'bg-green-500/20 text-green-400'
+              }`}>
+                {['Enviado', 'Confirmado', 'En preparación', 'En camino'][activeStep]}
+              </span>
+            </div>
+
+            <div className="h-px bg-white/5 mb-4" />
+
+            {/* Stepper */}
+            <div className="flex flex-col flex-1">
+              {[
+                { icon: ShoppingBag, label: 'Enviado',         desc: 'Pedido recibido' },
+                { icon: CheckCircle2, label: 'Confirmado',     desc: 'El local aceptó' },
+                { icon: Utensils,     label: 'En preparación', desc: 'Cocina trabajando' },
+                { icon: Zap,          label: 'En camino',      desc: '¡Casi listo!' },
+              ].map((step, i, arr) => {
+                const isDone    = i < activeStep;
+                const isActive  = i === activeStep;
+                return (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
+                        isDone   ? 'bg-green-500' :
+                        isActive ? 'bg-green-500 ring-4 ring-green-500/20 animate-pulse' :
+                                   'bg-white/10'
+                      }`}>
+                        <step.icon size={14} className={isDone || isActive ? 'text-white' : 'text-gray-600'} />
+                      </div>
+                      {i < arr.length - 1 && (
+                        <div className={`w-0.5 h-7 mt-1 transition-all duration-700 ${isDone ? 'bg-green-500/60' : 'bg-white/10'}`} />
+                      )}
+                    </div>
+                    <div className="pt-1 pb-7">
+                      <p className={`text-[11px] font-black uppercase tracking-wide transition-colors duration-300 ${
+                        isActive ? 'text-green-400' : isDone ? 'text-white' : 'text-gray-600'
+                      }`}>
+                        {step.label}
+                      </p>
+                      <p className="text-gray-600 text-[9px] mt-0.5">{step.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Botón Llamar Mozo */}
+            <div className="h-px bg-white/5 mb-3" />
+            <button className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-default">
+              <Bell size={13} /> Llamar Mozo
+            </button>
+          </div>
         </div>
       </div>
     </div>
