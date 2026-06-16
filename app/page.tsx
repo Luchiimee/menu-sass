@@ -1317,7 +1317,7 @@ export default function LandingPage() {
             {/* TEXTO */}
             <div>
               <span className="inline-block px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-500/20 mb-6">
-                Incluido en todos los planes
+                SnappyLinks
               </span>
               <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
                 Todos tus links, en una sola página de Snappy
@@ -1342,7 +1342,7 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <p className="text-gray-600 text-sm mb-10">
+              <p className="text-green-400 font-semibold text-sm mb-10">
                 ¿Ya usás una herramienta externa para agrupar tus links? Con SnappyLinks lo tenés incluido — sin cuentas extras, sin pagar otro servicio.
               </p>
 
