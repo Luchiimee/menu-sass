@@ -371,6 +371,7 @@ export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
 
   // 2. Agregá este useEffect al principio del componente
   useEffect(() => {
@@ -387,11 +388,13 @@ export default function LandingPage() {
   }, [router, supabase]);
 
   useEffect(() => {
+    setActiveStep(0);
+    const stepCount = activeMode === 'mesa' ? 4 : 5;
     const interval = setInterval(() => {
-      setActiveStep(prev => (prev + 1) % 4);
+      setActiveStep(prev => (prev + 1) % stepCount);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeMode]);
 
   // Función para manejar la apertura de tutoriales con validación de disponibilidad
   const openTutorial = (video: any) => {
@@ -418,6 +421,69 @@ export default function LandingPage() {
     setAliasCopied(true);
     setTimeout(() => setAliasCopied(false), 2000);
   };
+
+  const seguimientoModes = {
+    delivery: {
+      headerSub: 'PEDIDO #4f2a',
+      headerMain: 'Delivery',
+      steps: [
+        { icon: ShoppingBag,  label: 'Enviado',         desc: 'Pedido recibido' },
+        { icon: CheckCircle2, label: 'Confirmado',       desc: 'El local aceptó' },
+        { icon: Utensils,     label: 'En preparación',   desc: 'Cocina trabajando' },
+        { icon: Zap,          label: 'En camino',        desc: 'El repartidor salió' },
+        { icon: CheckCircle2, label: 'Entregado',        desc: '¡Llegó tu pedido!' },
+      ],
+      leftSteps: [
+        { icon: ShoppingBag,  label: 'Enviado',         desc: 'El cliente hace el pedido desde el menú' },
+        { icon: CheckCircle2, label: 'Confirmado',       desc: 'Vos aceptás el pedido desde el panel' },
+        { icon: Utensils,     label: 'En preparación',   desc: 'La cocina está trabajando' },
+        { icon: Zap,          label: 'En camino',        desc: 'El repartidor salió' },
+        { icon: CheckCircle2, label: 'Entregado',        desc: '¡Llegó el pedido!' },
+      ],
+    },
+    takeaway: {
+      headerSub: 'RETIRO #4f2a',
+      headerMain: 'Takeaway',
+      steps: [
+        { icon: ShoppingBag,  label: 'Enviado',             desc: 'Pedido recibido' },
+        { icon: CheckCircle2, label: 'Confirmado',           desc: 'El local aceptó' },
+        { icon: Utensils,     label: 'En preparación',       desc: 'Cocina trabajando' },
+        { icon: Zap,          label: 'Listo para retirar',   desc: 'Pasá a buscarlo' },
+        { icon: CheckCircle2, label: 'Retirado',             desc: '¡Hasta la próxima!' },
+      ],
+      leftSteps: [
+        { icon: ShoppingBag,  label: 'Enviado',             desc: 'El cliente hace el pedido desde el menú' },
+        { icon: CheckCircle2, label: 'Confirmado',           desc: 'Vos aceptás el pedido desde el panel' },
+        { icon: Utensils,     label: 'En preparación',       desc: 'La cocina está trabajando' },
+        { icon: Zap,          label: 'Listo para retirar',   desc: 'El cliente pasa a buscarlo' },
+        { icon: CheckCircle2, label: 'Retirado',             desc: '¡Hasta la próxima!' },
+      ],
+    },
+    mesa: {
+      headerSub: 'MESA 1',
+      headerMain: 'Mesa 1',
+      steps: [
+        { icon: ShoppingBag,  label: 'Enviado',           desc: 'Pedido recibido' },
+        { icon: CheckCircle2, label: 'Confirmado',         desc: 'El local aceptó' },
+        { icon: Utensils,     label: 'En preparación',     desc: 'Cocina trabajando' },
+        { icon: Zap,          label: 'Entregado en mesa',  desc: '¡Buen provecho!' },
+      ],
+      leftSteps: [
+        { icon: ShoppingBag,  label: 'Enviado',           desc: 'El cliente pide desde la mesa' },
+        { icon: CheckCircle2, label: 'Confirmado',         desc: 'Vos aceptás el pedido desde el panel' },
+        { icon: Utensils,     label: 'En preparación',     desc: 'La cocina está trabajando' },
+        { icon: Zap,          label: 'Entregado en mesa',  desc: 'El mozo lleva el pedido a la mesa' },
+      ],
+    },
+  };
+  const currentMode = seguimientoModes[activeMode];
+  const badgeColors = [
+    'bg-blue-500/20 text-blue-400',
+    'bg-yellow-500/20 text-yellow-400',
+    'bg-orange-500/20 text-orange-400',
+    'bg-green-500/20 text-green-400',
+    'bg-green-500/20 text-green-400',
+  ];
 
   return (
     <div className="min-h-screen bg-[#f5f2e8] font-sans text-gray-900 selection:bg-green-100 overflow-x-hidden">
@@ -736,26 +802,43 @@ export default function LandingPage() {
   <div className="max-w-7xl mx-auto px-6">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-      {/* TEXTO + STEPPER */}
+      {/* TEXTO + PILLS + STEPPER */}
       <div>
         <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
           El cliente sabe exactamente<br /> dónde está su pedido
         </h2>
-        <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+        <p className="text-gray-400 text-lg leading-relaxed font-medium">
           Desde que confirma el pedido hasta que llega, ve el estado en tiempo real. Sin llamadas, sin mensajes de WhatsApp preguntando &quot;¿cuánto falta?&quot;.
         </p>
 
-        <div className="space-y-0 mb-10">
-          {[
-            { icon: ShoppingBag, label: "Enviado", desc: "El cliente hace el pedido desde el menú", done: true },
-            { icon: CheckCircle2, label: "Confirmado", desc: "Vos aceptás el pedido desde el panel", done: true },
-            { icon: Utensils, label: "En preparación", desc: "La cocina está trabajando", done: true },
-            { icon: Zap, label: "En camino / Listo en mesa", desc: "El pedido está por llegar", done: false },
-          ].map((step, i, arr) => (
+        {/* PILLS */}
+        <div className="flex gap-3 mt-8 mb-10">
+          {([
+            { id: 'delivery', label: '🛵 Delivery' },
+            { id: 'takeaway', label: '🏪 Takeaway' },
+            { id: 'mesa', label: '🪑 Mesa' },
+          ] as const).map(mode => (
+            <button
+              key={mode.id}
+              onClick={() => setActiveMode(mode.id)}
+              className={`px-5 py-2 rounded-full text-sm font-black uppercase tracking-wide transition-all ${
+                activeMode === mode.id
+                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                  : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        {/* STEPPER TEXTO */}
+        <div className="space-y-0">
+          {currentMode.leftSteps.map((step, i, arr) => (
             <div key={i} className="flex items-start gap-4">
               <div className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${step.done ? 'bg-green-500' : 'bg-white/10'}`}>
-                  <step.icon size={18} className={step.done ? 'text-white' : 'text-gray-500'} />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-green-500">
+                  <step.icon size={18} className="text-white" />
                 </div>
                 {i < arr.length - 1 && <div className="w-0.5 h-8 bg-white/10 mt-1" />}
               </div>
@@ -766,40 +849,26 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[11px] font-bold uppercase tracking-wider text-gray-400">Para delivery</span>
-          <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[11px] font-bold uppercase tracking-wider text-gray-400">Para pedidos de mesa</span>
-        </div>
       </div>
 
       {/* MOCKUP TELÉFONO ANIMADO */}
       <div className="relative flex justify-center items-center">
-        {/* Glow verde detrás del teléfono */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[220px] h-[440px] bg-green-500/10 rounded-full blur-[60px]" />
         </div>
 
-        {/* Marco del teléfono */}
         <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
-          {/* Notch */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90px] h-[22px] bg-gray-950 rounded-b-2xl z-20" />
 
-          {/* Pantalla */}
           <div className="pt-10 pb-4 px-4 flex flex-col min-h-[520px]">
             {/* Header */}
             <div className="flex items-center justify-between pt-2 mb-3">
               <div>
-                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Pedido #4f2a</p>
-                <p className="text-white font-black text-sm uppercase tracking-tight">Mesa 1</p>
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{currentMode.headerSub}</p>
+                <p className="text-white font-black text-sm uppercase tracking-tight">{currentMode.headerMain}</p>
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all duration-500 ${
-                activeStep === 0 ? 'bg-blue-500/20 text-blue-400' :
-                activeStep === 1 ? 'bg-yellow-500/20 text-yellow-400' :
-                activeStep === 2 ? 'bg-orange-500/20 text-orange-400' :
-                'bg-green-500/20 text-green-400'
-              }`}>
-                {['Enviado', 'Confirmado', 'En preparación', 'En camino'][activeStep]}
+              <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all duration-500 ${badgeColors[Math.min(activeStep, badgeColors.length - 1)]}`}>
+                {currentMode.steps[activeStep]?.label ?? currentMode.steps[currentMode.steps.length - 1].label}
               </span>
             </div>
 
@@ -807,14 +876,9 @@ export default function LandingPage() {
 
             {/* Stepper */}
             <div className="flex flex-col flex-1">
-              {[
-                { icon: ShoppingBag, label: 'Enviado',         desc: 'Pedido recibido' },
-                { icon: CheckCircle2, label: 'Confirmado',     desc: 'El local aceptó' },
-                { icon: Utensils,     label: 'En preparación', desc: 'Cocina trabajando' },
-                { icon: Zap,          label: 'En camino',      desc: '¡Casi listo!' },
-              ].map((step, i, arr) => {
-                const isDone    = i < activeStep;
-                const isActive  = i === activeStep;
+              {currentMode.steps.map((step, i, arr) => {
+                const isDone   = i < activeStep;
+                const isActive = i === activeStep;
                 return (
                   <div key={i} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
@@ -832,9 +896,7 @@ export default function LandingPage() {
                     <div className="pt-1 pb-7">
                       <p className={`text-[11px] font-black uppercase tracking-wide transition-colors duration-300 ${
                         isActive ? 'text-green-400' : isDone ? 'text-white' : 'text-gray-600'
-                      }`}>
-                        {step.label}
-                      </p>
+                      }`}>{step.label}</p>
                       <p className="text-gray-600 text-[9px] mt-0.5">{step.desc}</p>
                     </div>
                   </div>
@@ -842,11 +904,20 @@ export default function LandingPage() {
               })}
             </div>
 
-            {/* Botón Llamar Mozo */}
-            <div className="h-px bg-white/5 mb-3" />
-            <button className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-default">
-              <Bell size={13} /> Llamar Mozo
-            </button>
+            {/* Footer botones (solo Mesa) */}
+            {activeMode === 'mesa' && (
+              <>
+                <div className="h-px bg-white/5 mb-3" />
+                <div className="flex gap-2">
+                  <button className="flex-1 py-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-default">
+                    <Bell size={13} /> Llamar Mozo
+                  </button>
+                  <button className="flex-1 py-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-default">
+                    <CreditCard size={13} /> Pagar
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
