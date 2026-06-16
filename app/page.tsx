@@ -1316,7 +1316,7 @@ export default function LandingPage() {
 
             {/* TEXTO */}
             <div>
-              <span className="inline-block px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-500/20 mb-6">
+              <span className="inline-block px-3 py-1 bg-green-600/10 text-green-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-600/20 mb-6">
                 SnappyLinks
               </span>
               <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
@@ -1335,26 +1335,36 @@ export default function LandingPage() {
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                      <item.icon size={16} className="text-green-400" />
+                      <item.icon size={16} className="text-green-500" />
                     </div>
                     <span className="text-gray-300 font-medium">{item.text}</span>
                   </li>
                 ))}
               </ul>
 
-              <p className="text-green-400 font-semibold text-sm mb-10">
+              <p className="text-green-500 font-semibold text-sm mb-10">
                 ¿Ya usás una herramienta externa para agrupar tus links? Con SnappyLinks lo tenés incluido — sin cuentas extras, sin pagar otro servicio.
               </p>
 
-              <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
-                Crear mi SnappyLinks <ArrowRight size={16} />
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-green-700 text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-green-600 transition-colors shadow-lg shadow-green-900/40">
+                  Crear mi SnappyLinks <ArrowRight size={16} />
+                </Link>
+                <a
+                  href="https://wa.me/542324313123?text=Hola%2C%20quiero%20m%C3%A1s%20info%20sobre%20SnappyLinks"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-transparent text-gray-300 font-black text-sm uppercase tracking-wide rounded-2xl border border-white/20 hover:border-white/40 hover:text-white transition-colors"
+                >
+                  Quiero más info
+                </a>
+              </div>
             </div>
 
             {/* MOCKUP TELÉFONO - BIO PAGE */}
             <div className="relative flex justify-center items-center">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[220px] h-[440px] bg-green-500/10 rounded-full blur-[60px]" />
+                <div className="w-[220px] h-[440px] bg-green-700/10 rounded-full blur-[60px]" />
               </div>
 
               <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
@@ -1363,7 +1373,7 @@ export default function LandingPage() {
                 <div className="pt-10 pb-6 px-4 flex flex-col min-h-[520px] bg-[#0d1117]">
                   {/* Header: avatar + nombre */}
                   <div className="flex flex-col items-center pt-4 mb-6">
-                    <div className="w-16 h-16 rounded-full bg-gray-700 border-2 border-green-500/30 mb-3 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-700 border-2 border-green-600/30 mb-3 flex items-center justify-center">
                       <span className="text-2xl">🍔</span>
                     </div>
                     <p className="text-white font-black text-sm uppercase tracking-tight text-center leading-tight">
@@ -1385,7 +1395,7 @@ export default function LandingPage() {
                         key={i}
                         className={`w-full py-2.5 px-4 rounded-2xl text-[10px] font-black uppercase tracking-wide text-center cursor-default border ${
                           item.accent
-                            ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                            ? 'bg-green-700/20 border-green-600/40 text-green-500'
                             : 'bg-white/5 border-white/10 text-gray-300'
                         }`}
                       >
