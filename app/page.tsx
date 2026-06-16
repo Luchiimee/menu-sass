@@ -679,6 +679,128 @@ export default function LandingPage() {
   </div>
 </section>
 
+{/* --- SECCIÓN: GESTIÓN DE SALÓN EN TIEMPO REAL --- */}
+<section className="py-24 bg-black text-white overflow-hidden">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+      {/* TEXTO */}
+      <div>
+        <span className="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10 mb-6">
+          Gestión de salón en tiempo real
+        </span>
+        <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+          Sabés exactamente qué pasa en cada mesa
+        </h2>
+        <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+          Cada mesa tiene su estado en vivo. Pedido nuevo, en preparación, llamada al mozo — todo visible desde tu panel sin recargar la página.
+        </p>
+
+        <ul className="space-y-5 mb-10">
+          {[
+            { icon: Zap,          text: 'Actualizaciones en tiempo real, sin recargar' },
+            { icon: Bell,         text: 'Alerta cuando un cliente llama al mozo' },
+            { icon: CheckCircle2, text: 'Aceptá, entregá y cerrá la cuenta desde el panel' },
+            { icon: QrCode,       text: 'Cada mesa tiene su propio QR para pedir' },
+          ].map((item, i) => (
+            <li key={i} className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <item.icon size={16} className="text-gray-300" />
+              </div>
+              <span className="text-gray-300 font-medium">{item.text}</span>
+            </li>
+          ))}
+        </ul>
+
+        <Link href="/demo" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-gray-100 transition-colors">
+          Ver demo <ArrowRight size={16} />
+        </Link>
+      </div>
+
+      {/* MOCKUP PANEL DE MESAS */}
+      <div className="relative flex justify-center items-center">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-[340px] h-[300px] bg-white/5 rounded-full blur-[80px]" />
+        </div>
+
+        <div className="relative w-full max-w-[440px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-5">
+          {/* Header del panel */}
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-white">Gestión de Salón</p>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-[9px] font-black text-green-400 uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> En vivo
+            </span>
+          </div>
+
+          {/* Grid de mesas */}
+          <div className="grid grid-cols-3 gap-3">
+
+            {/* Mesa 1 — LIBRE */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2">
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Mesa 1</p>
+              <span className="text-[8px] font-black text-gray-600 uppercase tracking-wide">Disponible</span>
+              <button className="mt-auto w-full py-1.5 rounded-xl bg-white/5 border border-white/10 text-[8px] font-black text-gray-600 uppercase tracking-wide cursor-default">
+                Abrir Mesa
+              </button>
+            </div>
+
+            {/* Mesa 2 — NUEVO PEDIDO */}
+            <div className="bg-amber-500/5 border border-amber-400/50 rounded-2xl p-3 flex flex-col gap-2">
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mesa 2</p>
+              <span className="text-[8px] font-black text-amber-400 uppercase tracking-wide animate-bounce">🆕 Nuevo Pedido</span>
+              <span className="text-[10px] font-black text-white">$25.000</span>
+              <button className="mt-auto w-full py-1.5 rounded-xl bg-amber-500/10 border border-amber-400/40 text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">
+                Abrir Mesa
+              </button>
+            </div>
+
+            {/* Mesa 3 — OCUPADA */}
+            <div className="bg-white border border-orange-400/60 rounded-2xl p-3 flex flex-col gap-2">
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Mesa 3</p>
+              <span className="text-[8px] font-black text-orange-500 uppercase tracking-wide">Ocupada</span>
+              <span className="text-[10px] font-black text-gray-800">$18.500</span>
+              <button className="mt-auto w-full py-1.5 rounded-xl bg-orange-50 border border-orange-300 text-[8px] font-black text-orange-500 uppercase tracking-wide cursor-default">
+                Abrir Mesa
+              </button>
+            </div>
+
+            {/* Mesa 4 — LLAMANDO AL MOZO */}
+            <div className="bg-red-500/5 border-2 border-red-500/60 rounded-2xl p-3 flex flex-col gap-2 animate-pulse">
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mesa 4</p>
+              <span className="text-[8px] font-black text-red-400 uppercase tracking-wide">🚨 ¡Llama!</span>
+              <span className="text-[10px] font-black text-white">$31.000</span>
+              <button className="mt-auto w-full py-1.5 rounded-xl bg-red-500/10 border border-red-500/40 text-[8px] font-black text-red-400 uppercase tracking-wide cursor-default">
+                Abrir Mesa
+              </button>
+            </div>
+
+            {/* Mesa 5 — PAGO PENDIENTE */}
+            <div className="bg-purple-500/5 border border-purple-500/40 rounded-2xl p-3 flex flex-col gap-2">
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
+              <span className="text-[8px] font-black text-purple-400 uppercase tracking-wide">Pago Pendiente</span>
+              <span className="text-[10px] font-black text-white">$14.200</span>
+              <button className="mt-auto w-full py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-[8px] font-black text-purple-400 uppercase tracking-wide cursor-default">
+                Abrir Mesa
+              </button>
+            </div>
+
+            {/* Mesa 6 — LIBRE */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2">
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
+              <span className="text-[8px] font-black text-gray-600 uppercase tracking-wide">Disponible</span>
+              <button className="mt-auto w-full py-1.5 rounded-xl bg-white/5 border border-white/10 text-[8px] font-black text-gray-600 uppercase tracking-wide cursor-default">
+                Abrir Mesa
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
       {/* --- GESTIÓN TOTAL: RESTAURADA + QR/TICKETS --- */}
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
