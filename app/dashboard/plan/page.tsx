@@ -17,6 +17,7 @@ type Restaurant = {
   name?: string;
   slug?: string;
   created_at?: string;
+  grace_period_until?: string | null;
 };
 
 const PLANS = [
@@ -401,6 +402,15 @@ function PlanContent() {
   const isPaused = restaurant.subscription_status === 'paused';
   const isTrialing = restaurant.subscription_status === 'trialing';
 
+  // Ventana de gracia: si existe y es futura, no se puede cargar tarjeta todavía
+  const inGracePeriod = !!(
+    restaurant.grace_period_until &&
+    new Date(restaurant.grace_period_until) > new Date()
+  );
+  const graceUntilFormatted = restaurant.grace_period_until
+    ? new Date(restaurant.grace_period_until).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+
   return (
     <>
       {/* Modal de confirmación de prorrateo */}
@@ -512,21 +522,31 @@ function PlanContent() {
                       Plan {restaurant.subscription_plan}
                       {isActive && <Check size={16} className="text-emerald-500" />}
                     </p>
-                    {isTrialing && <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span></p>}
-                    {isCancelled && (
+                    {isTrialing && !inGracePeriod && <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span></p>}
+                    {isCancelled && !inGracePeriod && (
                       <div className="mt-2 p-3 bg-amber-50 rounded-2xl border border-amber-100">
                         <p className="text-[10px] text-amber-700 font-black uppercase">Cancelada. Re-suscribite antes del <span className="underline">{getChargeDate()}</span>.</p>
                       </div>
                     )}
-                    {isPaused && (
+                    {isPaused && !inGracePeriod && (
                       <div className="mt-2 p-3 bg-red-50 rounded-2xl border border-red-100">
                         <p className="text-[10px] text-red-700 font-black uppercase">Pago fallido. Actualizá tu tarjeta para reactivar.</p>
                       </div>
                     )}
-                    {isActive && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}
+                    {isActive && !inGracePeriod && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}
                   </div>
 
-                  {linkedCard && (isActive || isPaused) && (
+                  {inGracePeriod && (
+                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                      <p className="text-[10px] text-blue-700 font-black uppercase leading-relaxed">
+                        Tu período activo es hasta el <span className="underline">{graceUntilFormatted}</span>.
+                        A partir de esa fecha vas a poder cargar tu tarjeta para activar tu suscripción mensual.
+                        El primer cobro será inmediato y luego se renueva todos los meses.
+                      </p>
+                    </div>
+                  )}
+
+                  {linkedCard && (isActive || isPaused) && !inGracePeriod && (
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                       <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
                         <CreditCard size={16} className="text-white" />
@@ -543,7 +563,7 @@ function PlanContent() {
                   )}
 
                   <div className="flex flex-col gap-2">
-                    {isActive && (
+                    {isActive && !inGracePeriod && (
                       <button onClick={handleOpenUpdateCard} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors flex items-center justify-center gap-1.5">
                         <RefreshCw size={11} /> Cambiar Tarjeta
                       </button>
@@ -558,12 +578,12 @@ function PlanContent() {
                         Reintentar cobro
                       </button>
                     )}
-                    {isPaused && (
+                    {isPaused && !inGracePeriod && (
                       <button onClick={handleOpenUpdateCard} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-1.5">
                         <CreditCard size={11} /> Cambiar Tarjeta
                       </button>
                     )}
-                    {(isCancelled || isPaused) && (
+                    {(isCancelled || isPaused) && !inGracePeriod && (
                       <button onClick={() => handleOpenPaymentForm(restaurant.subscription_plan!)} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-black text-white">
                         Re-activar Suscripción 💳
                       </button>
@@ -643,12 +663,17 @@ function PlanContent() {
                       Plan Activo ✓
                     </div>
                   )}
-                  {isCurrent && needsPayment && (
+                  {isCurrent && needsPayment && !inGracePeriod && (
                     <button onClick={() => handleOpenPaymentForm(plan.id)} className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 transition-colors">
                       Configurar Pago 💳
                     </button>
                   )}
-                  {!isCurrent && (
+                  {isCurrent && needsPayment && inGracePeriod && (
+                    <div className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl text-[9px] font-black uppercase tracking-widest text-center border border-blue-100 px-2 leading-relaxed">
+                      Disponible desde el {graceUntilFormatted}
+                    </div>
+                  )}
+                  {!isCurrent && !inGracePeriod && (
                     <button
                       onClick={() => {
                         if (!restaurant.subscription_plan) { handleActivatePlan(plan.id); }
@@ -663,6 +688,11 @@ function PlanContent() {
                         : restaurant.subscription_plan ? `Cambiar a ${plan.name}` : `Activar ${plan.name}`
                       }
                     </button>
+                  )}
+                  {!isCurrent && inGracePeriod && (
+                    <div className="w-full py-3 bg-gray-50 text-gray-400 rounded-xl text-[9px] font-black uppercase tracking-widest text-center border border-gray-100">
+                      Disponible desde el {graceUntilFormatted}
+                    </div>
                   )}
                 </div>
               );
