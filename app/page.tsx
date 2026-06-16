@@ -505,78 +505,8 @@ export default function LandingPage() {
           </div>
 
       
-          {/* --- MOCKUP TRIPLE CELULAR: VERSIÓN MOBILE GRANDE Y ESTILIZADA --- */}
-          {/* Aumenté la altura base a h-[600px] para que sea más largo en mobile */}
-          <div className="relative flex justify-center lg:justify-end items-center h-[600px] md:h-[650px] mt-12 lg:mt-0"
-               style={{ perspective: '1500px' }}>
-
-            {/* Quitamos el scale reducido. Ahora está en scale-100 (tamaño real) en mobile */}
-            <div className="relative flex items-center justify-center scale-100 md:scale-100 transition-transform duration-500">
-
-              {/* CELULAR IZQUIERDA */}
-              <div
-            
-                className="w-[145px] md:w-[170px] aspect-[9/20] bg-gray-900 rounded-[1.8rem] md:rounded-[2rem] border-[3px] md:border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
-                style={{
-                  transform: 'translateX(60px) translateZ(-100px) rotateY(25deg)', // Ajusté la posición para el nuevo tamaño
-                  zIndex: 10
-                }}
-              >
-                <div className="relative w-full h-full bg-white">
-                  <Image
-                    src="/sushi3.svg"
-                    alt="Vista Izquierda"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* CELULAR CENTRO (El protagonista) */}
-              <div
-                // Aumenté el ancho base (w-[165px])
-                // Borde de 4px y esquinas de 2.2rem para mobile
-                className="w-[165px] md:w-[205px] aspect-[9/20] bg-black rounded-[2.2rem] md:rounded-[2.5rem] border-[4px] md:border-[6px] border-gray-950 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden transition-all duration-500 hover:scale-105"
-                style={{
-                  zIndex: 30,
-                  transform: 'translateZ(50px)'
-                }}
-              >
-                {/* Dynamic Island ajustada */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[80px] md:w-[80px] h-[15px] md:h-[20px] bg-black rounded-full z-40"></div>
-                <div className="relative w-full h-full bg-white">
-                  <Image
-                    src="/urbanthor1.png"
-                    alt="Panel Principal"
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                </div>
-              </div>
-
-               {/* CELULAR DERECHA */}
-              <div
-                // Mismos ajustes que el izquierdo
-                className="w-[145px] md:w-[170px] aspect-[9/20] bg-gray-900 rounded-[1.8rem] md:rounded-[2rem] border-[3px] md:border-[4px] border-gray-800 shadow-xl overflow-hidden transition-all duration-700 ease-out"
-                style={{
-                  transform: 'translateX(-60px) translateZ(-100px) rotateY(-25deg)',
-                  zIndex: 10
-                }}
-              >
-                <div className="relative w-full h-full bg-white">
-                  <Image
-                    src="/galeria/05.png"
-                    alt="Vista Derecha"
-                    fill
-                    className="object-full"
-                  />
-                </div>
-              </div>
-
-              {/* Sombra de piso más grande */}
-              <div className="absolute bottom-[-40px] left-1/2 -translate-x-1/2 w-[350px] md:w-[450px] h-[40px] bg-black/20 rounded-[100%] blur-[40px] -z-10"></div>
-            </div>
+          <div className="relative flex justify-center lg:justify-end items-center h-[600px] md:h-[650px] mt-12 lg:mt-0">
+            <Image src="/mockup-hero.svg" alt="Snappy en acción" fill className="object-contain" priority />
           </div>
         </div>
       </section>
@@ -631,6 +561,49 @@ export default function LandingPage() {
           </p>
         </div>
       ))}
+    </div>
+  </div>
+</section>
+
+{/* --- SECCIÓN: 3 PILARES --- */}
+<section className="py-24 bg-gray-50 border-b border-gray-100">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="text-center mb-16">
+      <h2 className="text-4xl font-extrabold tracking-tight mb-4">
+        Todo lo que necesita tu negocio
+      </h2>
+      <p className="text-gray-500 text-lg">
+        Desde el menú digital hasta la reserva de mesa — todo en un solo lugar.
+      </p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mb-6">
+          <Smartphone size={28} className="text-orange-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">Tu menú, siempre actualizado</h3>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Creá y editá tu carta desde el panel. Tus clientes la ven desde el celular, sin apps ni PDFs. Categorizá, agregá fotos y precios en minutos.
+        </p>
+      </div>
+      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
+          <QrCode size={28} className="text-blue-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">Escaneán el QR y piden desde la mesa</h3>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Cada mesa tiene su propio QR. El cliente escanea, elige sus platos y el pedido llega directo al panel. Sin esperar al mozo para pedir.
+        </p>
+      </div>
+      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-6">
+          <Bell size={28} className="text-green-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Tus clientes reservan su mesa desde el menú. Vos confirmás o rechazás desde el panel, y ellos reciben la confirmación al instante.
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -753,83 +726,52 @@ export default function LandingPage() {
         </div>
       </section>
 
-     {/* --- SECCIÓN WEBAPP PRO: PARA EL DUEÑO --- */}
-<section className="py-24 bg-black text-white overflow-hidden border-y border-gray-800">
-  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-    
-    {/* PARTE IZQUIERDA: ICONOS Y PRÓXIMAMENTE */}
-    <div className="flex flex-col items-center justify-center">
-      <div className="relative mb-12">
-        <Monitor size={200} className="text-gray-800 opacity-40" />
-        <Smartphone
-          size={100}
-          className="text-green-500 absolute -bottom-4 -right-4 drop-shadow-2xl"
-        />
-      </div>
+{/* --- SECCIÓN: SEGUIMIENTO DEL PEDIDO --- */}
+<section className="py-24 bg-gray-900 text-white overflow-hidden">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-      {/* DISTINTIVOS DE STORES (PRÓXIMAMENTE) */}
-      <div className="flex flex-col items-center gap-4">
-        <span className="text-[10px] font-black tracking-[0.3em] text-gray-500 uppercase italic">
-          Próximamente en
-        </span>
-        <div className="flex items-center gap-4 opacity-30 grayscale hover:opacity-50 transition-opacity">
-          {/* Badge Play Store */}
-          <div className="flex items-center gap-2 border border-gray-700 px-4 py-2 rounded-xl">
-            <div className="w-5 h-5 bg-white/10 rounded flex items-center justify-center">
-              <Zap size={12} className="text-white" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[7px] uppercase font-bold text-gray-400">Disponible en</span>
-              <span className="text-xs font-black">Google Play</span>
-            </div>
-          </div>
+      {/* TEXTO + STEPPER */}
+      <div>
+        <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+          El cliente sabe exactamente<br /> dónde está su pedido
+        </h2>
+        <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+          Desde que confirma el pedido hasta que llega, ve el estado en tiempo real. Sin llamadas, sin mensajes de WhatsApp preguntando &quot;¿cuánto falta?&quot;.
+        </p>
 
-          {/* Badge App Store */}
-          <div className="flex items-center gap-2 border border-gray-700 px-4 py-2 rounded-xl">
-            <Smartphone size={14} className="text-white" />
-            <div className="flex flex-col leading-none">
-              <span className="text-[7px] uppercase font-bold text-gray-400">Consíguelo en el</span>
-              <span className="text-xs font-black">App Store</span>
+        <div className="space-y-0 mb-10">
+          {[
+            { icon: ShoppingBag, label: "Enviado", desc: "El cliente hace el pedido desde el menú", done: true },
+            { icon: CheckCircle2, label: "Confirmado", desc: "Vos aceptás el pedido desde el panel", done: true },
+            { icon: Utensils, label: "En preparación", desc: "La cocina está trabajando", done: true },
+            { icon: Zap, label: "En camino / Listo en mesa", desc: "El pedido está por llegar", done: false },
+          ].map((step, i, arr) => (
+            <div key={i} className="flex items-start gap-4">
+              <div className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${step.done ? 'bg-green-500' : 'bg-white/10'}`}>
+                  <step.icon size={18} className={step.done ? 'text-white' : 'text-gray-500'} />
+                </div>
+                {i < arr.length - 1 && <div className="w-0.5 h-8 bg-white/10 mt-1" />}
+              </div>
+              <div className="pt-1.5 pb-8">
+                <p className="font-black text-sm uppercase tracking-wide text-white">{step.label}</p>
+                <p className="text-gray-500 text-xs mt-1">{step.desc}</p>
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[11px] font-bold uppercase tracking-wider text-gray-400">Para delivery</span>
+          <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[11px] font-bold uppercase tracking-wider text-gray-400">Para pedidos de mesa</span>
         </div>
       </div>
-    </div>
 
-    {/* PARTE DERECHA: TEXTOS E INSTRUCCIONES */}
-    <div>
-      <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-8">
-        <SmartphoneNfc size={32} className="text-green-500" />
-      </div>
-      <h2 className="text-4xl font-extrabold tracking-tight mb-6 uppercase">
-        WebApp Pro <br />{" "}
-        <span className="text-green-500">Tu panel siempre a mano</span>
-      </h2>
-      <p className="text-gray-400 text-lg mb-8 leading-relaxed italic font-medium">
-        No pierdas tiempo abriendo el navegador. Instala Snappy en tu
-        **PC, Tablet o Celular** y gestiona tu local como una App nativa.
-        Más rápido, más cómodo y sin descargas de ninguna Store.
-      </p>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
-          <div className="flex items-center gap-3 mb-4 text-green-500 font-black text-xs uppercase tracking-widest">
-            <Monitor size={18} /> EN TU PC
-          </div>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            Desde Chrome, haz clic en el icono de <b>"Instalar"</b> en la
-            barra de direcciones.
-          </p>
-        </div>
-        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
-          <div className="flex items-center gap-3 mb-4 text-green-500 font-black text-xs uppercase tracking-widest">
-            <Smartphone size={18} /> EN TU MÓVIL
-          </div>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            <b>Android Chrome:</b> 3 puntitos {`>`} "Agregar a inicio".
-            <br /> <b>iOS Chrome:</b> No compatible.
-            <br /> <b>iOS Safari:</b> 3 puntitos {`>`} Compartir {`>`} Mas {`>`} "Agregar a inicio".
-          </p>
+      {/* IMAGEN */}
+      <div className="relative flex justify-center items-center">
+        <div className="relative w-[280px] h-[560px]">
+          <Image src="/celular-cliente.png" alt="Seguimiento en tiempo real" fill className="object-contain drop-shadow-2xl" />
         </div>
       </div>
     </div>
@@ -844,7 +786,7 @@ export default function LandingPage() {
         DISEÑOS QUE ENAMORAN
       </h2>
       <p className="text-gray-500 text-lg font-medium">
-        Elegí un diseño y un rubro para ver la experiencia real.
+        Tu menú, tu estilo. Elegí un diseño y probalo con tu tipo de negocio — ves exactamente cómo lo ven tus clientes.
       </p>
     </div>
 
@@ -927,9 +869,9 @@ export default function LandingPage() {
         </div>
         
         <div className="space-y-4 border-l-4 border-gray-100 pl-6">
-          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Carga instantánea</div>
-          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Navegación táctil</div>
-          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Optimizado para móviles</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> El cliente pide desde el celular, sin descargas</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Actualizá la carta en tiempo real</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Pedidos y reservas integrados desde el menú</div>
         </div>
 
         <Link href="/login" className="inline-flex items-center gap-1 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
