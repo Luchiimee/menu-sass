@@ -506,7 +506,7 @@ export default function LandingPage() {
 
       
           <div className="relative flex justify-center lg:justify-end items-center h-[600px] md:h-[650px] mt-12 lg:mt-0">
-            <Image src="/mockup-hero.svg" alt="Snappy en acción" fill className="object-contain" priority />
+            <Image src="/galeria/mockup-hero.svg" alt="Snappy en acción" fill className="object-contain" priority />
           </div>
         </div>
       </section>
