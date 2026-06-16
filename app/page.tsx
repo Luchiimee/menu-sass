@@ -5,13 +5,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout, 
-  Smartphone, MousePointer2, HelpCircle, CreditCard, PlayCircle, 
-  BarChart3, PlusCircle, Globe, Copy, ExternalLink, Layers, 
-  Settings, ListChecks, Printer, Bell, ShieldCheck, ShoppingBag, 
-  Utensils, Carrot, Candy, Ticket, Percent, SmartphoneNfc, 
+  ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
+  Smartphone, MousePointer2, HelpCircle, CreditCard, PlayCircle,
+  BarChart3, PlusCircle, Globe, Copy, ExternalLink, Layers,
+  Settings, ListChecks, Printer, Bell, ShieldCheck, ShoppingBag,
+  Utensils, Carrot, Candy, Ticket, Percent, SmartphoneNfc,
   Store, Monitor, Wallet, Fish, Coffee, Pizza, CheckCircle2,
-  UtensilsCrossed, Search
+  UtensilsCrossed, Search, Link2, Palette, Share2
 } from "lucide-react";
 
 
@@ -1033,114 +1033,6 @@ export default function LandingPage() {
 </section>
       
 
-    {/* --- SECCIÓN TUTORIALES (CON SISTEMA DE AVISOS) --- */}
-<section className="py-24 bg-gray-50 relative">
-  {/* AVISO FLOTANTE (TOAST) - Aparece cuando algo no está listo */}
-  {showSoonToast && (
-    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[600] bg-black text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
-      <Zap size={18} className="text-yellow-400 fill-current" />
-      <span className="font-bold text-sm uppercase tracking-widest">Próximamente: Estamos grabando el contenido</span>
-    </div>
-  )}
-
-  <div className="max-w-7xl mx-auto px-6">
-    <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-      <div>
-        <h2 className="text-4xl font-extrabold tracking-tight uppercase italic leading-none">
-          Aprende en <span className="text-green-600">60 segundos</span>
-        </h2>
-        <p className="text-gray-500 font-medium mt-2">
-          Tutoriales rápidos para configurar tu Snappy hoy mismo.
-        </p>
-      </div>
-      {/* LINK DE YOUTUBE: Ahora llama a handleYoutubeClick */}
-      <a
-        href="#"
-        onClick={handleYoutubeClick}
-        className="text-gray-400 font-bold flex items-center gap-2 hover:text-black transition-colors"
-      >
-        Ver todos en YouTube <ArrowRight size={18} />
-      </a>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {TUTORIALS.map((v, i) => (
-        <div
-          key={i}
-          className={`group cursor-pointer relative ${!v.isAvailable ? 'opacity-70' : ''}`}
-          onClick={() => openTutorial(v)}
-        >
-          <div className="relative aspect-video bg-gray-900 rounded-[30px] overflow-hidden mb-4 border border-white shadow-lg transition-all duration-500 group-hover:shadow-2xl group-hover:border-green-200">
-            
-            <Image
-              src={v.thumbnail}
-              alt={`Portada del tutorial ${v.title}`}
-              fill
-              className={`object-cover transition-all duration-500 ${!v.isAvailable ? 'grayscale group-hover:grayscale-0' : 'opacity-80 group-hover:opacity-100'}`}
-            />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-
-            <div className="absolute inset-0 flex items-center justify-center">
-              {!v.isAvailable ? (
-                /* Icono para videos no disponibles */
-                <div className="bg-black/40 backdrop-blur-sm p-4 rounded-full text-white font-black text-[10px] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
-                  Grabando...
-                </div>
-              ) : (
-                /* Icono Play para video disponible */
-                <PlayCircle
-                  size={64}
-                  className="text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-110 group-hover:text-green-400"
-                  fill="rgba(255,255,255,0.2)"
-                />
-              )}
-            </div>
-
-            <span className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-md text-white text-[10px] px-3 py-1 rounded-full font-bold border border-white/10">
-              {v.isAvailable ? v.duration : 'PRÓX.'}
-            </span>
-          </div>
-
-          <h4 className="font-black uppercase italic transition-colors ml-2 text-gray-900 group-hover:text-green-600">
-            {v.title} {!v.isAvailable && <span className="text-[10px] text-gray-400 normal-case ml-2">(Próximamente)</span>}
-          </h4>
-        </div>
-      ))}
-    </div>
-  </div>
-
-  {/* REPRODUCTOR DE VIDEO (Mantenemos esta lógica para que el video 1 funcione) */}
-  {(videoStep === 'choosing' || videoStep === 'playing') && (
-    <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
-      <button onClick={() => setVideoStep('idle')} className="absolute top-6 right-6 text-white/50 hover:text-white">
-        <X size={32} />
-      </button>
-
-      <div className="w-full max-w-4xl text-center">
-        {videoStep === 'playing' && (
-          <div className="animate-in fade-in duration-500">
-            <p className="text-green-500 font-black uppercase italic text-xs mb-4 tracking-widest">
-              Tutorial: {activeTutorialData?.title}
-            </p>
-            <div className="relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
-              <video
-                src={videoSource}
-                controls
-                autoPlay
-                className="absolute inset-0 w-full h-full object-cover"
-              >
-                Tu navegador no soporta videos.
-              </video>
-            </div>
-            <p className="mt-4 text-[10px] text-white/30 uppercase tracking-widest">
-              Reproduciendo desde el servidor de Snappy
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  )}
-</section>
 
       {/* --- PLANES (INFO ORIGINAL + PRECIO BLUR) --- */}
 
@@ -1417,84 +1309,85 @@ export default function LandingPage() {
         </div>
       </section>
 
-{/* --- SECCIÓN GALERÍA: ANIMACIÓN AUTOMÁTICA ASIMÉTRICA --- */}
-      <section className="py-24 bg-white overflow-hidden border-b border-gray-50">
-        <style dangerouslySetInnerHTML={{ __html: `
-          .mordisco-screen-modern { clip-path: url(#mordisco-clip-modern); }
-          
-          /* Animación de desplazamiento infinito */
-          @keyframes infiniteScrollGallery {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
-          }
-          
-          .animate-gallery {
-            display: flex;
-            width: max-content;
-            animation: infiniteScrollGallery 40s linear infinite;
-          }
+{/* --- SECCIÓN: SNAPPYLINKS --- */}
+      <section className="py-24 bg-gray-950 text-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-          .animate-gallery:hover {
-            animation-play-state: paused;
-          }
-        `}} />
+            {/* TEXTO */}
+            <div>
+              <span className="inline-block px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-500/20 mb-6">
+                Incluido en todos los planes
+              </span>
+              <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+                Un solo link para todo tu negocio
+              </h2>
+              <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+                Compartí tu menú, tus redes, tu WhatsApp y tu dirección desde una sola página. Sin apps, sin técnicos. Personalizala con tus colores y tu logo.
+              </p>
 
-        {/* SVG del Notch */}
-        <svg width="0" height="0" className="absolute">
-          <defs>
-            <clipPath id="mordisco-clip-modern" clipPathUnits="objectBoundingBox">
-              <path d="M 0,0.06 C 0,0.02 0.04,0 0.08,0 L 0.25,0 C 0.28,0 0.3,0 0.3,0.01 L 0.3,0.02 C 0.3,0.035 0.35,0.04 0.5,0.04 C 0.65,0.04 0.7,0.035 0.7,0.02 L 0.7,0.01 C 0.7,0 0.72,0 0.75,0 L 0.92,0 C 0.96,0 1,0.02 1,0.06 L 1,0.94 C 1,0.98 0.96,1 0.92,1 L 0.08,1 C 0.04,1 0,0.98 0,0.94 Z" />
-            </clipPath>
-          </defs>
-        </svg>
-
-        <div className="relative w-full">
-          {/* Contenedor Animado */}
-          <div className="animate-gallery gap-12 py-10">
-  {/* Triplicamos el contenido para que el bucle sea perfecto */}
-  {[...galleries, ...galleries, ...galleries].map((item, i) => (
-    <div 
-      key={i} 
-      className={`flex-shrink-0 ${item.offset}`}
-    >
-                <div className="group flex flex-col items-center">
-                  {/* CELULAR COMPACTO: w-[180px] */}
-                  <div className="relative w-[180px] transition-all duration-500 hover:-translate-y-3">
-                    <div className="mordisco-screen-modern relative aspect-[9/18.5] bg-gray-900 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] overflow-hidden">
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none z-10" />
-                      <div className="mordisco-screen-modern absolute inset-0 border-[1.2px] border-white/5 pointer-events-none z-20" />
+              <ul className="space-y-5 mb-10">
+                {[
+                  { icon: Link2,      text: 'Tu propio link: snappy.uno/tu-negocio' },
+                  { icon: Palette,    text: 'Colores, logo y fondo personalizados' },
+                  { icon: Share2,     text: 'Menú, redes, WhatsApp y más en un solo lugar' },
+                  { icon: Smartphone, text: 'Se ve perfecto en cualquier celular' },
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-4">
+                    <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                      <item.icon size={16} className="text-green-400" />
                     </div>
-                    {/* Sombra de piso */}
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[80%] h-4 bg-gray-200 blur-xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <span className="text-gray-300 font-medium">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
+                Empezar gratis <ArrowRight size={16} />
+              </Link>
+            </div>
+
+            {/* MOCKUP TELÉFONO - BIO PAGE */}
+            <div className="relative flex justify-center items-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[220px] h-[440px] bg-green-500/10 rounded-full blur-[60px]" />
+              </div>
+
+              <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90px] h-[22px] bg-gray-950 rounded-b-2xl z-20" />
+
+                <div className="pt-10 pb-6 px-4 flex flex-col min-h-[520px] bg-[#0d1117]">
+                  {/* Header: avatar + nombre */}
+                  <div className="flex flex-col items-center pt-4 mb-6">
+                    <div className="w-16 h-16 rounded-full bg-gray-700 border-2 border-green-500/30 mb-3 flex items-center justify-center">
+                      <span className="text-2xl">🍔</span>
+                    </div>
+                    <p className="text-white font-black text-sm uppercase tracking-tight text-center leading-tight">
+                      La Hamburguesería
+                    </p>
+                    <p className="text-gray-500 text-[10px] mt-1">Mercedes, Buenos Aires</p>
                   </div>
-                  
-                  {/* Etiqueta de Rubro */}
-                  <div className="mt-6">
-                    <span className="px-4 py-1.5 bg-white border border-gray-100 rounded-full text-[9px] font-black tracking-[0.2em] text-gray-400 shadow-sm uppercase italic">
-                      {item.title}
-                    </span>
+
+                  {/* Links */}
+                  <div className="flex flex-col gap-3 flex-1">
+                    {['🍔  Ver Menú Digital', '💬  WhatsApp', '📸  Instagram', '📍  Cómo llegar'].map((label, i) => (
+                      <div
+                        key={i}
+                        className="w-full py-3 px-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-gray-300 uppercase tracking-wide text-center cursor-default"
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Footer URL */}
+                  <div className="mt-6 flex justify-center">
+                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">snappy.uno/la-hamburgueseria</span>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Gradientes a los costados para que no corte en seco (Efecto difuminado) */}
-          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white to-transparent z-20 pointer-events-none"></div>
-          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white to-transparent z-20 pointer-events-none"></div>
-        </div>
-
-        {/* Decoración de puntitos */}
-        <div className="flex flex-col items-center mt-4">
-          <div className="flex items-center gap-2 opacity-20">
-            {[1,2,3,4,5].map((i) => (
-              <div key={i} className="w-1 h-1 rounded-full bg-gray-400" />
-            ))}
           </div>
         </div>
       </section>
