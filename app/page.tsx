@@ -1320,17 +1320,17 @@ export default function LandingPage() {
                 Incluido en todos los planes
               </span>
               <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
-                Un solo link para todo tu negocio
+                ¿Tenés varios links para compartir? No necesitás Linktree.
               </h2>
               <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
-                Compartí tu menú, tus redes, tu WhatsApp y tu dirección desde una sola página. Sin apps, sin técnicos. Personalizala con tus colores y tu logo.
+                Tu menú ya vive en snappy.uno/tu-negocio. Ahora sumá tu WhatsApp, Rappi, Instagram y lo que quieras — todo desde Snappy, todo bajo tu mismo link. Sin apps de terceros, sin perder tu marca.
               </p>
 
-              <ul className="space-y-5 mb-10">
+              <ul className="space-y-5 mb-6">
                 {[
-                  { icon: Link2,      text: 'Tu propio link: snappy.uno/tu-negocio' },
-                  { icon: Palette,    text: 'Colores, logo y fondo personalizados' },
-                  { icon: Share2,     text: 'Menú, redes, WhatsApp y más en un solo lugar' },
+                  { icon: Link2,      text: 'Tu link siempre es snappy.uno/tu-negocio — nunca el de otra app' },
+                  { icon: Share2,     text: 'Agregá WhatsApp, Rappi, PedidosYa, Instagram y más' },
+                  { icon: Palette,    text: 'Personalizalo con tus colores y tu logo' },
                   { icon: Smartphone, text: 'Se ve perfecto en cualquier celular' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-4">
@@ -1342,8 +1342,12 @@ export default function LandingPage() {
                 ))}
               </ul>
 
+              <p className="text-gray-600 text-sm mb-10">
+                La mayoría de los negocios usan Linktree porque no saben que ya lo tienen incluido en Snappy.
+              </p>
+
               <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
-                Empezar gratis <ArrowRight size={16} />
+                Crear mi SnappyLinks <ArrowRight size={16} />
               </Link>
             </div>
 
