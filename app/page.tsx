@@ -1320,17 +1320,17 @@ export default function LandingPage() {
                 Incluido en todos los planes
               </span>
               <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
-                ¿Tenés varios links para compartir? No necesitás Linktree.
+                Todos tus links, en una sola página de Snappy
               </h2>
               <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
-                Tu menú ya vive en snappy.uno/tu-negocio. Ahora sumá tu WhatsApp, Rappi, Instagram y lo que quieras — todo desde Snappy, todo bajo tu mismo link. Sin apps de terceros, sin perder tu marca.
+                Además de tu menú digital, Snappy te da una página de links personalizada: snappy.uno/tu-negocio-bio. Agregá tu WhatsApp, tus redes, tus plataformas de delivery y lo que quieras — todo con tus colores y tu logo, sin salir de Snappy.
               </p>
 
               <ul className="space-y-5 mb-6">
                 {[
-                  { icon: Link2,      text: 'Tu link siempre es snappy.uno/tu-negocio — nunca el de otra app' },
-                  { icon: Share2,     text: 'Agregá WhatsApp, Rappi, PedidosYa, Instagram y más' },
-                  { icon: Palette,    text: 'Personalizalo con tus colores y tu logo' },
+                  { icon: Link2,      text: 'Dos links propios: tu menú y tu página de links' },
+                  { icon: Share2,     text: 'Agregá todos tus enlaces con un botón por link' },
+                  { icon: Palette,    text: 'Personalizala con tus colores, logo y fondo' },
                   { icon: Smartphone, text: 'Se ve perfecto en cualquier celular' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-4">
@@ -1343,7 +1343,7 @@ export default function LandingPage() {
               </ul>
 
               <p className="text-gray-600 text-sm mb-10">
-                La mayoría de los negocios usan Linktree porque no saben que ya lo tienen incluido en Snappy.
+                ¿Ya usás una herramienta externa para agrupar tus links? Con SnappyLinks lo tenés incluido — sin cuentas extras, sin pagar otro servicio.
               </p>
 
               <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
@@ -1374,19 +1374,29 @@ export default function LandingPage() {
 
                   {/* Links */}
                   <div className="flex flex-col gap-3 flex-1">
-                    {['🍔  Ver Menú Digital', '💬  WhatsApp', '📸  Instagram', '📍  Cómo llegar'].map((label, i) => (
+                    {[
+                      { label: '🍔  Ver Menú', accent: true },
+                      { label: '💬  WhatsApp', accent: false },
+                      { label: '🛵  Pedidos Ya', accent: false },
+                      { label: '📸  Instagram', accent: false },
+                      { label: '📍  Cómo llegar', accent: false },
+                    ].map((item, i) => (
                       <div
                         key={i}
-                        className="w-full py-3 px-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-gray-300 uppercase tracking-wide text-center cursor-default"
+                        className={`w-full py-2.5 px-4 rounded-2xl text-[10px] font-black uppercase tracking-wide text-center cursor-default border ${
+                          item.accent
+                            ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                            : 'bg-white/5 border-white/10 text-gray-300'
+                        }`}
                       >
-                        {label}
+                        {item.label}
                       </div>
                     ))}
                   </div>
 
                   {/* Footer URL */}
-                  <div className="mt-6 flex justify-center">
-                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">snappy.uno/la-hamburgueseria</span>
+                  <div className="mt-4 flex justify-center">
+                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">snappy.uno/la-hamburgueseria-bio</span>
                   </div>
                 </div>
               </div>
