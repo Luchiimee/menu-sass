@@ -11,7 +11,7 @@ import {
   Settings, ListChecks, Printer, Bell, ShieldCheck, ShoppingBag,
   Utensils, Carrot, Candy, Ticket, Percent, SmartphoneNfc,
   Store, Monitor, Wallet, Fish, Coffee, Pizza, CheckCircle2,
-  UtensilsCrossed, Search, Link2, Palette, Share2, CalendarDays, Scale
+  UtensilsCrossed, Search, Link2, Palette, Share2, CalendarDays, Scale, IceCream, Info
 } from "lucide-react";
 
 
@@ -169,45 +169,92 @@ const PREVIEW_STYLES = `
 const PREVIEW_CONTENT: any = {
   hamburgueseria: {
     title: "KRUSTY BURGER",
-    description: "Hamburguesería Premium", // <-- Agregado
+    description: "Hamburguesería Premium",
     accent: "#ea580c",
-    banner: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600", // <-- Foto de portada
+    banner: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600",
     products: [
       { id: 'u1', n: "Cheese Lover", p: "9000", v: "/videos/cheese-lover.mp4" },
       { id: 'u4', n: "Hambur Completa", p: "7500", v: "/videos/hambur-completa.mp4" },
-      { id: 'u2', n: "Papas King", p: "4200", i: "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=200" }
+      { id: 'u2', n: "Papas King", p: "4200", i: "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=200" },
+      { id: 'hb4', n: "Papas fritas", p: "4500", i: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=400&q=80" },
+      { id: 'hb5', n: "Onion rings", p: "3800", i: "https://images.unsplash.com/photo-1639024471283-03518883512d?w=400&q=80" }
     ]
   },
   sushi: {
     title: "SUSHI BAR",
     description: "El mejor sushi de la ciudad",
     accent: "#ea580c",
-    banner: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600", // <-- Foto de portada
+    banner: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600",
     products: [
       { id: 's1', n: "Dragon Roll", p: "12000", v: "/videos/dragon-sushi.mp4" },
       { id: 's2', n: "California Roll", p: "11500", i: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=400" },
-      { id: 's3', n: "Sashimi Mix", p: "9500", i: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400" }
+      { id: 's3', n: "Sashimi Mix", p: "9500", i: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400" },
+      { id: 's4', n: "Salmón roll x8", p: "9200", i: "https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=400&q=80" },
+      { id: 's5', n: "Edamame", p: "3400", i: "https://images.unsplash.com/photo-1564894809611-1742fc40ed80?w=400&q=80" }
     ]
   },
   cafeteria: {
     title: "CAFE CHICAGO",
     description: "Specialty Coffee & Bakery",
     accent: "#a855f7",
-    banner: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600", // <-- Foto de portada
+    banner: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600",
     products: [
       { id: 'm1', n: "Flat White", p: "3200", v: "/videos/cafeteria.mp4" },
       { id: 'm2', n: "Croissant", p: "2500", i: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=200" },
-      { id: 'm3', n: "Latte Art", p: "3500", i: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200" }
+      { id: 'm3', n: "Latte Art", p: "3500", i: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200" },
+      { id: 'c4', n: "Medialunas x3", p: "2800", i: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&q=80" },
+      { id: 'c5', n: "Tostado jamón y queso", p: "3600", i: "https://images.unsplash.com/photo-1528736235302-52922df5c122?w=400&q=80" }
     ]
   },
   pizeria: {
     title: "DON CORLEONE",
     description: "Auténtica Pizza Napolitana",
     accent: "#d32f2f",
-    banner: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600", // <-- Foto de portada
+    banner: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600",
     products: [
       { id: 'p1', n: "Muzza Familiar", p: "11000", i: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200" },
-      { id: 'p2', n: "Napolitana", p: "13500", v: "/videos/pizzeria.mp4" }
+      { id: 'p2', n: "Napolitana", p: "13500", v: "/videos/pizzeria.mp4" },
+      { id: 'p3', n: "Empanadas x6", p: "5400", i: "https://images.unsplash.com/photo-1604467794349-0b74285de7e7?w=400&q=80" },
+      { id: 'p4', n: "Fainá", p: "2200", i: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80" }
+    ]
+  },
+  kiosco: {
+    title: "Kiosco Don Carlos",
+    description: "Tu kiosco de siempre, ahora digital",
+    accent: "#F59E0B",
+    banner: "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800&q=80",
+    products: [
+      { id: 'k1', n: "Coca Cola 500cc", p: "1200", i: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&q=80" },
+      { id: 'k2', n: "Alfajor triple", p: "850", i: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80" },
+      { id: 'k3', n: "Cigarrillos", p: "2100", i: "https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&q=80" },
+      { id: 'k4', n: "Agua mineral 500cc", p: "700", i: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80" },
+      { id: 'k5', n: "Papas fritas", p: "1500", i: "https://images.unsplash.com/photo-1576777647209-e8733d7b851d?w=400&q=80" }
+    ]
+  },
+  dietetica: {
+    title: "Dietética Natural",
+    description: "Productos naturales y saludables",
+    accent: "#22C55E",
+    banner: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=800&q=80",
+    products: [
+      { id: 'd1', n: "Granola x500g", p: "4200", i: "https://images.unsplash.com/photo-1517093728432-a0440f8d45af?w=400&q=80" },
+      { id: 'd2', n: "Almendras x250g", p: "6800", i: "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80" },
+      { id: 'd3', n: "Proteína vegana x1kg", p: "13800", i: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&q=80" },
+      { id: 'd4', n: "Arroz integral x1kg", p: "3200", i: "https://images.unsplash.com/photo-1536304993881-ff86e6c3d56b?w=400&q=80" },
+      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "https://images.unsplash.com/photo-1514733670139-4d66f3d22b5a?w=400&q=80" }
+    ]
+  },
+  heladeria: {
+    title: "Heladería El Pinguino",
+    description: "Los mejores helados artesanales",
+    accent: "#EC4899",
+    banner: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&q=80",
+    products: [
+      { id: 'h1', n: "Helado vainilla 1L", p: "5200", i: "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=400&q=80" },
+      { id: 'h2', n: "Helado chocolate 500ml", p: "4400", i: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" },
+      { id: 'h3', n: "Sundae especial", p: "3800", i: "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80" },
+      { id: 'h4', n: "Banana split", p: "4100", i: "https://images.unsplash.com/photo-1488900128323-21503983a07e?w=400&q=80" },
+      { id: 'h5', n: "Granizado frutilla", p: "2800", i: "https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=400&q=80" }
     ]
   }
 };
@@ -222,10 +269,12 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
 {template === 'visualgrid' && (
         <div className="preview-viewport s-visual">
           <div className="s-header">
-            <div className="s-logo bg-[#ea580c] flex items-center justify-center text-[8px] font-black italic">SUSHI</div>
+            <div className="s-logo flex items-center justify-center text-[8px] font-black italic" style={{background: data.accent}}>
+              {data.title.slice(0, 2)}
+            </div>
             <div className="text-left leading-none">
-              <h4 className="font-black italic text-sm text-white">SUSHI BAR</h4>
-              <p className="text-[7px] opacity-40 uppercase">Premium Sushi</p>
+              <h4 className="font-black italic text-sm text-white">{data.title}</h4>
+              <p className="text-[7px] opacity-40 uppercase">{data.description}</p>
             </div>
           </div>
           <div className="s-promo-capsule">
@@ -1317,7 +1366,10 @@ export default function LandingPage() {
             { id: 'hamburgueseria', label: 'Hamburguesería', icon: UtensilsCrossed },
             { id: 'sushi', label: 'Sushi Bar', icon: Fish },
             { id: 'cafeteria', label: 'Cafetería', icon: Coffee },
-            { id: 'pizeria', label: 'Pizzería', icon: Pizza }
+            { id: 'pizeria', label: 'Pizzería', icon: Pizza },
+            { id: 'kiosco', label: 'Kiosco', icon: ShoppingBag },
+            { id: 'dietetica', label: 'Dietética', icon: Scale },
+            { id: 'heladeria', label: 'Heladería', icon: IceCream }
           ].map((r) => {
             const Icon = r.icon;
             return (
@@ -1345,11 +1397,14 @@ export default function LandingPage() {
         
         {/* Pantalla con el Video */}
         <div className="w-full h-full bg-white rounded-[2.6rem] overflow-hidden relative z-20">
-        <MenuPreview 
-    key={`${activeTab}-${activeRubro}`} 
-    template={activeTab} 
-    rubro={activeRubro} 
+        <MenuPreview
+    key={`${activeTab}-${activeRubro}`}
+    template={activeTab}
+    rubro={activeRubro}
   />
+          <div className="absolute top-10 right-2 z-30 w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+            <Info size={12} className="text-white/70" />
+          </div>
           {/* Overlay de brillo para que parezca cristal */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none" />
         </div>
