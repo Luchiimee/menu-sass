@@ -646,7 +646,7 @@ export default function LandingPage() {
         Todo lo que necesita tu negocio
       </h2>
       <p className="text-gray-500 text-lg">
-        Desde el menú digital hasta la reserva de mesa — todo en un solo lugar.
+        Desde el menú digital hasta la reserva de mesa — para restaurantes, kioscos, dietéticas, heladerías y cualquier negocio que venda por unidad o por peso.
       </p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
