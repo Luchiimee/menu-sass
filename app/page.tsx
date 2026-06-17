@@ -650,37 +650,37 @@ export default function LandingPage() {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center mb-4">
-          <Smartphone size={22} className="text-orange-500" />
+          <Smartphone size={20} className="text-orange-500" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Tu menú, siempre actualizado</h3>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-gray-500 text-xs leading-relaxed">
           Creá y editá tu carta desde el panel. Tus clientes la ven desde el celular, sin apps ni PDFs. Categorizá, agregá fotos y precios en minutos.
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-          <QrCode size={22} className="text-blue-500" />
+          <QrCode size={20} className="text-blue-500" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Escaneán el QR y piden desde la mesa</h3>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-gray-500 text-xs leading-relaxed">
           Cada mesa tiene su propio QR. El cliente escanea, elige sus platos y el pedido llega directo al panel. Sin esperar al mozo para pedir.
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-          <Bell size={22} className="text-green-500" />
+          <Bell size={20} className="text-green-500" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-gray-500 text-xs leading-relaxed">
           Tus clientes reservan su mesa desde el menú. Vos confirmás o rechazás desde el panel, y ellos reciben la confirmación al instante.
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center mb-4">
-          <Percent size={22} className="text-purple-500" />
+          <Percent size={20} className="text-purple-500" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Descuentos y cupones</h3>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-gray-500 text-xs leading-relaxed">
           Creá códigos de descuento para fidelizar a tus clientes. Porcentaje o monto fijo, con fecha de vencimiento y límite de usos. Disponible en plan Go en adelante.
         </p>
       </div>
@@ -721,9 +721,6 @@ export default function LandingPage() {
           ))}
         </ul>
 
-        <Link href="/demo" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-gray-100 transition-colors">
-          Ver demo <ArrowRight size={16} />
-        </Link>
       </div>
 
       {/* MOCKUP PANEL — MESAS + COMANDAS */}
