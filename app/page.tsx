@@ -559,7 +559,7 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-500 mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              Menú digital, pedidos por WhatsApp o panel propio, QR de mesa, reservas y SnappyLinks. Todo desde un solo lugar, para cualquier tipo de negocio.
+              Desde el menú digital de tu restaurante hasta el catálogo de tu kiosco, dietética o heladería — pedidos, reservas y SnappyLinks. Todo desde un solo lugar.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
