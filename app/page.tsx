@@ -11,7 +11,7 @@ import {
   Settings, ListChecks, Printer, Bell, ShieldCheck, ShoppingBag,
   Utensils, Carrot, Candy, Ticket, Percent, SmartphoneNfc,
   Store, Monitor, Wallet, Fish, Coffee, Pizza, CheckCircle2,
-  UtensilsCrossed, Search, Link2, Palette, Share2
+  UtensilsCrossed, Search, Link2, Palette, Share2, CalendarDays, Scale
 } from "lucide-react";
 
 
@@ -372,6 +372,7 @@ export default function LandingPage() {
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
+  const [activeBusinessType, setActiveBusinessType] = useState<'gastronomia' | 'kiosco' | 'dietetica'>('gastronomia');
 
   // 2. Agregá este useEffect al principio del componente
   useEffect(() => {
@@ -690,165 +691,342 @@ export default function LandingPage() {
   </div>
 </section>
 
-{/* --- SECCIÓN: GESTIÓN DE SALÓN EN TIEMPO REAL --- */}
+{/* --- SECCIÓN: SNAPPY SE ADAPTA A TU NEGOCIO --- */}
 <section className="py-24 bg-black text-white overflow-hidden">
   <div className="max-w-7xl mx-auto px-6">
+
+    {/* HEADER */}
+    <div className="text-center mb-12">
+      <h2 className="text-4xl font-extrabold tracking-tight mb-4">Snappy se adapta a tu negocio</h2>
+      <p className="text-gray-400 text-lg">Elegí tu tipo de negocio y mirá cómo funciona</p>
+    </div>
+
+    {/* PILLS SELECTOR */}
+    <div className="flex flex-col sm:flex-row justify-center gap-3 mb-14">
+      {([
+        { id: 'gastronomia', label: '🍔 Gastronomía' },
+        { id: 'kiosco',      label: '🏪 Kiosco' },
+        { id: 'dietetica',   label: '⚖️ Dietética / Heladería' },
+      ] as const).map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setActiveBusinessType(tab.id)}
+          className={`px-5 py-2.5 rounded-full text-sm font-black uppercase tracking-widest transition-all duration-200 ${
+            activeBusinessType === tab.id
+              ? 'bg-green-600 text-white'
+              : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+
+    {/* CONTENIDO POR TAB */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-      {/* TEXTO */}
-      <div>
-        <span className="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10 mb-6">
-          Panel de gestión en tiempo real
-        </span>
-        <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
-          Sabés exactamente qué pasa en tu negocio
-        </h2>
-        <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
-          Pedido nuevo, en preparación, listo para entregar — todo visible desde tu panel sin recargar la página.
-        </p>
+      {/* ---- TAB 1: GASTRONOMÍA ---- */}
+      {activeBusinessType === 'gastronomia' && (
+        <>
+          <div>
+            <span className="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10 mb-6">
+              RESTAURANTES · BARES · CAFETERÍAS
+            </span>
+            <h3 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+              Gestión completa de tu salón y delivery
+            </h3>
+            <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+              Menú digital, QR por mesa, pedidos al panel en tiempo real, reservas y seguimiento en vivo para tus clientes.
+            </p>
+            <ul className="space-y-5 mb-10">
+              {[
+                { icon: Zap,          text: 'Pedidos al panel en tiempo real' },
+                { icon: QrCode,       text: 'QR propio por mesa para pedir sin mozo' },
+                { icon: CalendarDays, text: 'Reservas online desde el menú' },
+                { icon: Smartphone,   text: 'Seguimiento del pedido en vivo para el cliente' },
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <item.icon size={16} className="text-gray-300" />
+                  </div>
+                  <span className="text-gray-300 font-medium">{item.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        <ul className="space-y-5 mb-10">
-          {[
-            { icon: Zap,          text: 'Pedidos actualizados en tiempo real, sin recargar' },
-            { icon: Bell,         text: 'Alerta inmediata cuando entra un pedido nuevo' },
-            { icon: CheckCircle2, text: 'Aceptá pedidos y gestioná el estado desde el panel' },
-            { icon: QrCode,       text: 'Cada punto de venta tiene su propio QR' },
-          ].map((item, i) => (
-            <li key={i} className="flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                <item.icon size={16} className="text-gray-300" />
-              </div>
-              <span className="text-gray-300 font-medium">{item.text}</span>
-            </li>
-          ))}
-        </ul>
-
-      </div>
-
-      {/* MOCKUP PANEL — MESAS + COMANDAS */}
-      <div className="relative flex justify-center items-start lg:items-center">
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[400px] h-[350px] bg-white/5 rounded-full blur-[80px]" />
-        </div>
-
-        <div className="relative w-full max-w-[700px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col md:flex-row gap-4">
-
-          {/* COLUMNA IZQUIERDA — Mesas */}
-          <div className="md:w-[38%] shrink-0 flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[9px] font-black uppercase tracking-widest text-white">Gestión de Salón</p>
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
-                <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
-              </span>
+          <div className="relative flex justify-center items-start lg:items-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[400px] h-[350px] bg-white/5 rounded-full blur-[80px]" />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="relative w-full max-w-[700px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col md:flex-row gap-4">
 
-              {/* Mesa 1 — LIBRE */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
-                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 1</p>
-                <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
-                <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
+              {/* COLUMNA IZQUIERDA — Mesas */}
+              <div className="md:w-[38%] shrink-0 flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white">Gestión de Salón</p>
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
+                    <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
+                    <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 1</p>
+                    <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
+                  </div>
+                  <div className="bg-amber-500/5 border border-amber-400/50 rounded-xl p-2 flex flex-col gap-1">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 2</p>
+                    <span className="text-[7px] font-black text-amber-400 uppercase animate-bounce">🆕 Nuevo</span>
+                    <span className="text-[9px] font-black text-white">$25.000</span>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-amber-500/10 border border-amber-400/40 text-[7px] font-black text-amber-400 uppercase cursor-default">Abrir</button>
+                  </div>
+                  <div className="bg-white border border-orange-400/60 rounded-xl p-2 flex flex-col gap-1">
+                    <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 3</p>
+                    <span className="text-[7px] font-black text-orange-500 uppercase">Ocupada</span>
+                    <span className="text-[9px] font-black text-gray-800">$18.500</span>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-orange-50 border border-orange-300 text-[7px] font-black text-orange-500 uppercase cursor-default">Abrir</button>
+                  </div>
+                  <div className="bg-red-500/5 border-2 border-red-500/60 rounded-xl p-2 flex flex-col gap-1 animate-pulse">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 4</p>
+                    <span className="text-[7px] font-black text-red-400 uppercase">🚨 ¡Llama!</span>
+                    <span className="text-[9px] font-black text-white">$31.000</span>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-red-500/10 border border-red-500/40 text-[7px] font-black text-red-400 uppercase cursor-default">Abrir</button>
+                  </div>
+                  <div className="bg-purple-500/5 border border-purple-500/40 rounded-xl p-2 flex flex-col gap-1">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
+                    <span className="text-[7px] font-black text-purple-400 uppercase">Pago Pend.</span>
+                    <span className="text-[9px] font-black text-white">$14.200</span>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-[7px] font-black text-purple-400 uppercase cursor-default">Abrir</button>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
+                    <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
+                    <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
+                  </div>
+                </div>
               </div>
 
-              {/* Mesa 2 — NUEVO PEDIDO */}
-              <div className="bg-amber-500/5 border border-amber-400/50 rounded-xl p-2 flex flex-col gap-1">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 2</p>
-                <span className="text-[7px] font-black text-amber-400 uppercase animate-bounce">🆕 Nuevo</span>
-                <span className="text-[9px] font-black text-white">$25.000</span>
-                <button className="mt-1 w-full py-1 rounded-lg bg-amber-500/10 border border-amber-400/40 text-[7px] font-black text-amber-400 uppercase cursor-default">Abrir</button>
-              </div>
-
-              {/* Mesa 3 — OCUPADA */}
-              <div className="bg-white border border-orange-400/60 rounded-xl p-2 flex flex-col gap-1">
-                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 3</p>
-                <span className="text-[7px] font-black text-orange-500 uppercase">Ocupada</span>
-                <span className="text-[9px] font-black text-gray-800">$18.500</span>
-                <button className="mt-1 w-full py-1 rounded-lg bg-orange-50 border border-orange-300 text-[7px] font-black text-orange-500 uppercase cursor-default">Abrir</button>
-              </div>
-
-              {/* Mesa 4 — LLAMANDO AL MOZO */}
-              <div className="bg-red-500/5 border-2 border-red-500/60 rounded-xl p-2 flex flex-col gap-1 animate-pulse">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 4</p>
-                <span className="text-[7px] font-black text-red-400 uppercase">🚨 ¡Llama!</span>
-                <span className="text-[9px] font-black text-white">$31.000</span>
-                <button className="mt-1 w-full py-1 rounded-lg bg-red-500/10 border border-red-500/40 text-[7px] font-black text-red-400 uppercase cursor-default">Abrir</button>
-              </div>
-
-              {/* Mesa 5 — PAGO PENDIENTE */}
-              <div className="bg-purple-500/5 border border-purple-500/40 rounded-xl p-2 flex flex-col gap-1">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
-                <span className="text-[7px] font-black text-purple-400 uppercase">Pago Pend.</span>
-                <span className="text-[9px] font-black text-white">$14.200</span>
-                <button className="mt-1 w-full py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-[7px] font-black text-purple-400 uppercase cursor-default">Abrir</button>
-              </div>
-
-              {/* Mesa 6 — LIBRE */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
-                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
-                <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
-                <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
+              {/* COLUMNA DERECHA — Comandas */}
+              <div className="hidden md:flex flex-col flex-1 min-w-0 gap-3">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
+                  <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">3 activos</span>
+                </div>
+                <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                    <span className="text-[11px] font-black text-white">$25.000</span>
+                  </div>
+                  <p className="text-[10px] font-black text-white uppercase tracking-wide">Luciano</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 Delivery</span>
+                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
+                  </div>
+                  <p className="text-[8px] text-gray-600">Av. San Martín 1234</p>
+                  <p className="text-[8px] text-gray-500">x1 Milanesa a la napolitana · $25.000</p>
+                  <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ Aceptar Pedido</button>
+                </div>
+                <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">🍳 En cocina</span>
+                    <span className="text-[11px] font-black text-white">$18.500</span>
+                  </div>
+                  <p className="text-[10px] font-black text-white uppercase tracking-wide">Martina</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/30 rounded text-[7px] font-black text-orange-400 uppercase">🏪 Retiro</span>
+                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Transferencia</span>
+                  </div>
+                  <p className="text-[8px] text-gray-500">x2 Empanadas $12.000 · x1 Coca 500cc $6.500</p>
+                  <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ Marcar Entregado</button>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                    <span className="text-[11px] font-black text-white">$31.000</span>
+                  </div>
+                  <p className="text-[10px] font-black text-white uppercase tracking-wide">Carlos</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">🪑 Mesa 4</span>
+                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
+                  </div>
+                  <p className="text-[8px] text-gray-500">x1 Bife de chorizo · $31.000</p>
+                  <button className="w-full py-1.5 bg-transparent border border-white/20 rounded-xl text-[8px] font-black text-gray-400 uppercase tracking-wide cursor-default">Chat Directo</button>
+                </div>
               </div>
 
             </div>
           </div>
+        </>
+      )}
 
-          {/* COLUMNA DERECHA — Comandas (oculta en mobile) */}
-          <div className="hidden md:flex flex-col flex-1 min-w-0 gap-3">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
-              <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">3 activos</span>
-            </div>
-
-            {/* Comanda 1 — Pendiente */}
-            <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
-                <span className="text-[11px] font-black text-white">$25.000</span>
-              </div>
-              <p className="text-[10px] font-black text-white uppercase tracking-wide">Luciano</p>
-              <div className="flex gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 Delivery</span>
-                <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
-              </div>
-              <p className="text-[8px] text-gray-600">Av. San Martín 1234</p>
-              <p className="text-[8px] text-gray-500">x1 Milanesa a la napolitana · $25.000</p>
-              <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ Aceptar Pedido</button>
-            </div>
-
-            {/* Comanda 2 — En cocina */}
-            <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">🍳 En cocina</span>
-                <span className="text-[11px] font-black text-white">$18.500</span>
-              </div>
-              <p className="text-[10px] font-black text-white uppercase tracking-wide">Martina</p>
-              <div className="flex gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/30 rounded text-[7px] font-black text-orange-400 uppercase">🏪 Retiro</span>
-                <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Transferencia</span>
-              </div>
-              <p className="text-[8px] text-gray-500">x2 Empanadas $12.000 · x1 Coca 500cc $6.500</p>
-              <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ Marcar Entregado</button>
-            </div>
-
-            {/* Comanda 3 — Finalizado */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
-                <span className="text-[11px] font-black text-white">$31.000</span>
-              </div>
-              <p className="text-[10px] font-black text-white uppercase tracking-wide">Carlos</p>
-              <div className="flex gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">🪑 Mesa 4</span>
-                <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
-              </div>
-              <p className="text-[8px] text-gray-500">x1 Bife de chorizo · $31.000</p>
-              <button className="w-full py-1.5 bg-transparent border border-white/20 rounded-xl text-[8px] font-black text-gray-400 uppercase tracking-wide cursor-default">Chat Directo</button>
-            </div>
-
+      {/* ---- TAB 2: KIOSCO ---- */}
+      {activeBusinessType === 'kiosco' && (
+        <>
+          <div>
+            <span className="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10 mb-6">
+              KIOSCOS · ALMACENES · DESPENSAS
+            </span>
+            <h3 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+              Tu catálogo digital siempre disponible
+            </h3>
+            <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+              Tus clientes eligen desde el celular y el pedido llega directo al panel. Sin llamadas, sin mensajes desordenados.
+            </p>
+            <ul className="space-y-5 mb-10">
+              {[
+                { icon: Smartphone,  text: 'Catálogo digital con fotos y precios' },
+                { icon: ShoppingBag, text: 'Pedidos por WhatsApp o panel propio' },
+                { icon: Link2,       text: 'SnappyLinks: todos tus links en un solo lugar' },
+                { icon: Zap,         text: 'Pedidos en tiempo real, sin recargar' },
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <item.icon size={16} className="text-gray-300" />
+                  </div>
+                  <span className="text-gray-300 font-medium">{item.text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-        </div>
-      </div>
+          <div className="relative flex justify-center items-start lg:items-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[400px] h-[350px] bg-white/5 rounded-full blur-[80px]" />
+            </div>
+            <div className="relative w-full max-w-[460px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
+                  <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+                </span>
+              </div>
+              <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                  <span className="text-[11px] font-black text-white">$8.400</span>
+                </div>
+                <p className="text-[10px] font-black text-white uppercase tracking-wide">JORGE</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">🏪 RETIRO</span>
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">EFECTIVO</span>
+                </div>
+                <p className="text-[8px] text-gray-500">x2 Coca Cola 500cc $3.200 · x1 Alfajor triple $1.000 · x3 Cigarrillos $4.200</p>
+                <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ ACEPTAR PEDIDO</button>
+              </div>
+              <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">📦 En proceso</span>
+                  <span className="text-[11px] font-black text-white">$12.600</span>
+                </div>
+                <p className="text-[10px] font-black text-white uppercase tracking-wide">MARÍA</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
+                </div>
+                <p className="text-[8px] text-gray-500">x1 Pack snacks $6.000 · x2 Agua mineral $2.800 · x1 Chocolate $3.800</p>
+                <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ LISTO PARA ENTREGAR</button>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                  <span className="text-[11px] font-black text-white">$5.200</span>
+                </div>
+                <p className="text-[10px] font-black text-white uppercase tracking-wide">LUCAS</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">🏪 RETIRO</span>
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">EFECTIVO</span>
+                </div>
+                <p className="text-[8px] text-gray-500">x4 Chicles $800 · x2 Jugo $2.400 · x1 Galletas $2.000</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ---- TAB 3: DIETÉTICA / HELADERÍA ---- */}
+      {activeBusinessType === 'dietetica' && (
+        <>
+          <div>
+            <span className="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10 mb-6">
+              DIETÉTICAS · HELADERÍAS · VENTA POR PESO
+            </span>
+            <h3 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+              Vendé por peso, por unidad o por combo
+            </h3>
+            <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+              Creá tu catálogo con productos por peso o por unidad. Tus clientes piden desde el celular y el pedido llega listo para preparar.
+            </p>
+            <ul className="space-y-5 mb-10">
+              {[
+                { icon: Scale,       text: 'Productos por peso o por unidad' },
+                { icon: Smartphone,  text: 'Catálogo digital con categorías y fotos' },
+                { icon: ShoppingBag, text: 'Pedidos al panel sin llamadas ni WhatsApp' },
+                { icon: Link2,       text: 'SnappyLinks: todos tus links en un solo lugar' },
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <item.icon size={16} className="text-gray-300" />
+                  </div>
+                  <span className="text-gray-300 font-medium">{item.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative flex justify-center items-start lg:items-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[400px] h-[350px] bg-white/5 rounded-full blur-[80px]" />
+            </div>
+            <div className="relative w-full max-w-[460px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
+                  <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+                </span>
+              </div>
+              <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                  <span className="text-[11px] font-black text-white">$15.800</span>
+                </div>
+                <p className="text-[10px] font-black text-white uppercase tracking-wide">CAROLINA</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
+                </div>
+                <p className="text-[8px] text-gray-500">x500g Granola $4.200 · x250g Almendras $6.800 · x1kg Arroz integral $4.800</p>
+                <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ ACEPTAR PEDIDO</button>
+              </div>
+              <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">📦 En proceso</span>
+                  <span className="text-[11px] font-black text-white">$9.600</span>
+                </div>
+                <p className="text-[10px] font-black text-white uppercase tracking-wide">ROBERTO</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">🏪 RETIRO</span>
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">EFECTIVO</span>
+                </div>
+                <p className="text-[8px] text-gray-500">x1L Helado vainilla $5.200 · x500ml Helado chocolate $4.400</p>
+                <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ LISTO PARA ENTREGAR</button>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                  <span className="text-[11px] font-black text-white">$22.400</span>
+                </div>
+                <p className="text-[10px] font-black text-white uppercase tracking-wide">VALENTINA</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
+                </div>
+                <p className="text-[8px] text-gray-500">x1kg Semillas mix $8.600 · x500g Proteína $13.800</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
     </div>
   </div>
