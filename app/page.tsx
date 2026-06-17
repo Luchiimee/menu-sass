@@ -648,38 +648,38 @@ export default function LandingPage() {
       </p>
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mb-6">
-          <Smartphone size={28} className="text-orange-500" />
+      <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center mb-4">
+          <Smartphone size={22} className="text-orange-500" />
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-3">Tu menú, siempre actualizado</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Tu menú, siempre actualizado</h3>
         <p className="text-gray-500 text-sm leading-relaxed">
           Creá y editá tu carta desde el panel. Tus clientes la ven desde el celular, sin apps ni PDFs. Categorizá, agregá fotos y precios en minutos.
         </p>
       </div>
-      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
-          <QrCode size={28} className="text-blue-500" />
+      <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+          <QrCode size={22} className="text-blue-500" />
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-3">Escaneán el QR y piden desde la mesa</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Escaneán el QR y piden desde la mesa</h3>
         <p className="text-gray-500 text-sm leading-relaxed">
           Cada mesa tiene su propio QR. El cliente escanea, elige sus platos y el pedido llega directo al panel. Sin esperar al mozo para pedir.
         </p>
       </div>
-      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-6">
-          <Bell size={28} className="text-green-500" />
+      <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-10 h-10 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
+          <Bell size={22} className="text-green-500" />
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
         <p className="text-gray-500 text-sm leading-relaxed">
           Tus clientes reservan su mesa desde el menú. Vos confirmás o rechazás desde el panel, y ellos reciben la confirmación al instante.
         </p>
       </div>
-      <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center mb-6">
-          <Percent size={28} className="text-purple-500" />
+      <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center mb-4">
+          <Percent size={22} className="text-purple-500" />
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-3">Descuentos y cupones</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Descuentos y cupones</h3>
         <p className="text-gray-500 text-sm leading-relaxed">
           Creá códigos de descuento para fidelizar a tus clientes. Porcentaje o monto fijo, con fecha de vencimiento y límite de usos. Disponible en plan Go en adelante.
         </p>
@@ -808,9 +808,10 @@ export default function LandingPage() {
               </div>
               <p className="text-[10px] font-black text-white uppercase tracking-wide">Luciano</p>
               <div className="flex gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">Mesa 1</span>
+                <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 Delivery</span>
                 <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
               </div>
+              <p className="text-[8px] text-gray-600">Av. San Martín 1234</p>
               <p className="text-[8px] text-gray-500">x1 Milanesa a la napolitana · $25.000</p>
               <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ Aceptar Pedido</button>
             </div>
@@ -823,7 +824,7 @@ export default function LandingPage() {
               </div>
               <p className="text-[10px] font-black text-white uppercase tracking-wide">Martina</p>
               <div className="flex gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">Mesa 3</span>
+                <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/30 rounded text-[7px] font-black text-orange-400 uppercase">🏪 Retiro</span>
                 <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Transferencia</span>
               </div>
               <p className="text-[8px] text-gray-500">x2 Empanadas $12.000 · x1 Coca 500cc $6.500</p>
@@ -838,7 +839,7 @@ export default function LandingPage() {
               </div>
               <p className="text-[10px] font-black text-white uppercase tracking-wide">Carlos</p>
               <div className="flex gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">Mesa 4</span>
+                <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">🪑 Mesa 4</span>
                 <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
               </div>
               <p className="text-[8px] text-gray-500">x1 Bife de chorizo · $31.000</p>
