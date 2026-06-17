@@ -647,7 +647,7 @@ export default function LandingPage() {
         Desde el menú digital hasta la reserva de mesa — todo en un solo lugar.
       </p>
     </div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center mb-4">
           <Smartphone size={20} className="text-orange-500" />
