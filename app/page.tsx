@@ -656,16 +656,16 @@ export default function LandingPage() {
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Tu menú, siempre actualizado</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
-          Creá y editá tu carta desde el panel. Tus clientes la ven desde el celular, sin apps ni PDFs. Categorizá, agregá fotos y precios en minutos.
+          Creá y editá tu catálogo desde el panel. Tus clientes la ven desde el celular, sin apps ni PDFs. Categorizá, agregá fotos y precios en minutos.
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
           <QrCode size={20} className="text-blue-500" />
         </div>
-        <h3 className="text-lg font-bold text-gray-900 mb-3">Escaneán el QR y piden desde la mesa</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Escaneán el QR y piden al instante</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
-          Cada mesa tiene su propio QR. El cliente escanea, elige sus platos y el pedido llega directo al panel. Sin esperar al mozo para pedir.
+          Cada punto de venta tiene su propio QR. El cliente escanea, elige lo que quiere y el pedido llega directo al panel. Sin esperar a nadie.
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
@@ -674,7 +674,7 @@ export default function LandingPage() {
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
-          Tus clientes reservan su mesa desde el menú. Vos confirmás o rechazás desde el panel, y ellos reciben la confirmación al instante.
+          Tus clientes reservan su turno o mesa desde el menú. Vos confirmás o rechazás desde el panel, y ellos reciben la confirmación al instante.
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
@@ -698,21 +698,21 @@ export default function LandingPage() {
       {/* TEXTO */}
       <div>
         <span className="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10 mb-6">
-          Gestión de salón en tiempo real
+          Panel de gestión en tiempo real
         </span>
         <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
-          Sabés exactamente qué pasa en cada mesa
+          Sabés exactamente qué pasa en tu negocio
         </h2>
         <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
-          Cada mesa tiene su estado en vivo. Pedido nuevo, en preparación, llamada al mozo — todo visible desde tu panel sin recargar la página.
+          Pedido nuevo, en preparación, listo para entregar — todo visible desde tu panel sin recargar la página.
         </p>
 
         <ul className="space-y-5 mb-10">
           {[
-            { icon: Zap,          text: 'Pedidos y mesas actualizados en tiempo real' },
-            { icon: Bell,         text: 'Alerta inmediata cuando un cliente llama al mozo' },
-            { icon: CheckCircle2, text: 'Aceptá pedidos y gestioná comandas desde el panel' },
-            { icon: QrCode,       text: 'Cada mesa tiene su propio QR para pedir sin esperar' },
+            { icon: Zap,          text: 'Pedidos actualizados en tiempo real, sin recargar' },
+            { icon: Bell,         text: 'Alerta inmediata cuando entra un pedido nuevo' },
+            { icon: CheckCircle2, text: 'Aceptá pedidos y gestioná el estado desde el panel' },
+            { icon: QrCode,       text: 'Cada punto de venta tiene su propio QR' },
           ].map((item, i) => (
             <li key={i} className="flex items-center gap-4">
               <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
@@ -1552,7 +1552,7 @@ export default function LandingPage() {
                       <span className="text-2xl">🍔</span>
                     </div>
                     <p className="text-white font-black text-sm uppercase tracking-tight text-center leading-tight">
-                      La Hamburguesería
+                      Mi Negocio
                     </p>
                     <p className="text-gray-500 text-[10px] mt-1">Mercedes, Buenos Aires</p>
                   </div>
@@ -1581,7 +1581,7 @@ export default function LandingPage() {
 
                   {/* Footer URL */}
                   <div className="mt-4 flex justify-center">
-                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">snappy.uno/la-hamburgueseria-bio</span>
+                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">snappy.uno/mi-negocio-bio</span>
                   </div>
                 </div>
               </div>
