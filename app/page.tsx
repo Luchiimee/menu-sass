@@ -189,7 +189,7 @@ const PREVIEW_CONTENT: any = {
       { id: 's1', n: "Dragon Roll", p: "12000", v: "/videos/dragon-sushi.mp4" },
       { id: 's2', n: "California Roll", p: "11500", i: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=400" },
       { id: 's3', n: "Sashimi Mix", p: "9500", i: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400" },
-      { id: 's4', n: "Salmón roll x8", p: "9200", i: "https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=400&q=80" },
+      { id: 's4', n: "Salmón roll x8", p: "9200", i: "https://images.unsplash.com/photo-1559410545-0bdcd187e0a6?w=400&q=80" },
       { id: 's5', n: "Edamame", p: "3400", i: "https://images.unsplash.com/photo-1564894809611-1742fc40ed80?w=400&q=80" }
     ]
   },
@@ -214,7 +214,7 @@ const PREVIEW_CONTENT: any = {
     products: [
       { id: 'p1', n: "Muzza Familiar", p: "11000", i: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200" },
       { id: 'p2', n: "Napolitana", p: "13500", v: "/videos/pizzeria.mp4" },
-      { id: 'p3', n: "Empanadas x6", p: "5400", i: "https://images.unsplash.com/photo-1604467794349-0b74285de7e7?w=400&q=80" },
+      { id: 'p3', n: "Empanadas x6", p: "5400", i: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" },
       { id: 'p4', n: "Fainá", p: "2200", i: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80" }
     ]
   },
@@ -240,8 +240,8 @@ const PREVIEW_CONTENT: any = {
       { id: 'd1', n: "Granola x500g", p: "4200", i: "https://images.unsplash.com/photo-1517093728432-a0440f8d45af?w=400&q=80" },
       { id: 'd2', n: "Almendras x250g", p: "6800", i: "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80" },
       { id: 'd3', n: "Proteína vegana x1kg", p: "13800", i: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&q=80" },
-      { id: 'd4', n: "Arroz integral x1kg", p: "3200", i: "https://images.unsplash.com/photo-1536304993881-ff86e6c3d56b?w=400&q=80" },
-      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "https://images.unsplash.com/photo-1514733670139-4d66f3d22b5a?w=400&q=80" }
+      { id: 'd4', n: "Arroz integral x1kg", p: "3200", i: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80" },
+      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&q=80" }
     ]
   },
   heladeria: {
