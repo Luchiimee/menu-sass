@@ -190,7 +190,7 @@ const PREVIEW_CONTENT: any = {
       { id: 's2', n: "California Roll", p: "11500", i: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=400" },
       { id: 's3', n: "Sashimi Mix", p: "9500", i: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400" },
       { id: 's4', n: "Salmón roll x8", p: "9200", i: "https://images.unsplash.com/photo-1559410545-0bdcd187e0a6?w=400&q=80" },
-      { id: 's5', n: "Edamame", p: "3400", i: "https://images.unsplash.com/photo-1564894809611-1742fc40ed80?w=400&q=80" }
+      { id: 's5', n: "Miso Soup", p: "2800", i: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&q=80" }
     ]
   },
   cafeteria: {
@@ -224,9 +224,9 @@ const PREVIEW_CONTENT: any = {
     accent: "#F59E0B",
     banner: "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800&q=80",
     products: [
-      { id: 'k1', n: "Coca Cola 500cc", p: "1200", i: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&q=80" },
+      { id: 'k1', n: "Pepsi 500cc", p: "1200", i: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&q=80" },
       { id: 'k2', n: "Alfajor triple", p: "850", i: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80" },
-      { id: 'k3', n: "Cigarrillos", p: "2100", i: "https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400&q=80" },
+      { id: 'k3', n: "Chicles Beldent", p: "650", i: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" },
       { id: 'k4', n: "Agua mineral 500cc", p: "700", i: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80" },
       { id: 'k5', n: "Papas fritas", p: "1500", i: "https://images.unsplash.com/photo-1576777647209-e8733d7b851d?w=400&q=80" }
     ]
@@ -241,7 +241,7 @@ const PREVIEW_CONTENT: any = {
       { id: 'd2', n: "Almendras x250g", p: "6800", i: "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80" },
       { id: 'd3', n: "Proteína vegana x1kg", p: "13800", i: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&q=80" },
       { id: 'd4', n: "Arroz integral x1kg", p: "3200", i: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80" },
-      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&q=80" }
+      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "https://images.unsplash.com/photo-1514733670139-4d66f3d22b5a?w=400&q=80" }
     ]
   },
   heladeria: {
@@ -264,7 +264,10 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
   return (
     <div className="w-full h-full relative">
       <style>{PREVIEW_STYLES}</style>
-      
+      <div className="absolute top-[48px] right-2 z-50 w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 pointer-events-none">
+        <Info size={12} className="text-white/70" />
+      </div>
+
       {/* 1. DISEÑO VISUAL GRID (SUSHI) */}
 {template === 'visualgrid' && (
         <div className="preview-viewport s-visual">
