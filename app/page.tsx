@@ -264,9 +264,18 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
   return (
     <div className="w-full h-full relative">
       <style>{PREVIEW_STYLES}</style>
+      {/* Ícono top-right: Store para Urban, Info para los demás */}
       <div className="absolute top-[48px] right-2 z-50 w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 pointer-events-none">
-        <Info size={12} className="text-white/70" />
+        {template === 'urban' ? <Store size={12} className="text-white/70" /> : <Info size={12} className="text-white/70" />}
       </div>
+
+      {/* Badge ABIERTO top-left: solo templates que no son Urban (Urban ya lo tiene en su header) */}
+      {template !== 'urban' && (
+        <div className="absolute top-[48px] left-2 z-50 flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full pointer-events-none">
+          <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+          <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+        </div>
+      )}
 
       {/* 1. DISEÑO VISUAL GRID (SUSHI) */}
 {template === 'visualgrid' && (
@@ -1405,9 +1414,6 @@ export default function LandingPage() {
     template={activeTab}
     rubro={activeRubro}
   />
-          <div className="absolute top-10 right-2 z-30 w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
-            <Info size={12} className="text-white/70" />
-          </div>
           {/* Overlay de brillo para que parezca cristal */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none" />
         </div>
