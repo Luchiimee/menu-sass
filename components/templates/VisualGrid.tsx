@@ -108,11 +108,11 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
 
       {/* CATEGORÍAS */}
       <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 4px 20px' }} className="no-scrollbar">
-        <button onClick={() => setSelectedCategory("todos")} style={{ background: selectedCategory === "todos" ? ACENTO : 'transparent', color: 'white', border: `1px solid ${selectedCategory === "todos" ? ACENTO : 'rgba(255,255,255,0.2)'}`, padding: '10px 20px', borderRadius: '15px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+        <button onClick={() => setSelectedCategory("todos")} style={{ background: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || ACENTO) : 'transparent', color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#ffffff'), border: `1px solid ${selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || ACENTO) : 'rgba(255,255,255,0.2)'}`, padding: '10px 20px', borderRadius: '15px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
           Todos
         </button>
         {categories?.filter((c: any) => c.name.toLowerCase() !== 'general').map((cat: any) => (
-          <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ background: selectedCategory === cat.id ? ACENTO : 'transparent', color: selectedCategory === cat.id ? 'white' : '#777', border: `1px solid ${selectedCategory === cat.id ? ACENTO : 'rgba(255,255,255,0.2)'}`, padding: '10px 20px', borderRadius: '15px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ background: selectedCategory === cat.id ? (restaurant?.cat_active_bg_color || ACENTO) : 'transparent', color: selectedCategory === cat.id ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#ffffff'), border: `1px solid ${selectedCategory === cat.id ? (restaurant?.cat_active_bg_color || ACENTO) : 'rgba(255,255,255,0.2)'}`, padding: '10px 20px', borderRadius: '15px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             {cat.name}
           </button>
         ))}
