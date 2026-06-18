@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Plus, X, Minus, Store, Clock, Check, Utensils } from 'lucide-react';
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { getContrastColor } from '@/lib/colorUtils';
 
 export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -28,6 +29,7 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
   const catText = restaurant.cat_text_color || '#ffffff';
   const catActiveBg = restaurant.cat_active_bg_color || '#ffffff';
   const catActiveText = restaurant.cat_active_text_color || '#000000';
+  const catInactiveBorder = getContrastColor(catBg) === '#000000' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.3)';
   const cardBg = restaurant.card_color || '#1E1E1E';
   const prodName = restaurant.card_name_color || '#ffffff';
   const prodDesc = restaurant.card_desc_color || '#888888';
@@ -98,9 +100,9 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
           <input type="text" placeholder="Buscar..." className="w-full border rounded-xl py-2 pl-9 pr-3 text-xs font-medium outline-none transition-all border-none" style={{ backgroundColor: searchBg, color: localNameColor }} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-          <button onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedCategory("todos"); }} className={`${isMockup ? 'px-3 py-1.5' : 'px-6 py-3'} rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border`} style={{ backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg, color: selectedCategory === "todos" ? catActiveText : catText, borderColor: selectedCategory === "todos" ? catActiveBg : 'rgba(255,255,255,0.1)' }}>Todos</button>
+          <button onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedCategory("todos"); }} className={`${isMockup ? 'px-3 py-1.5' : 'px-6 py-3'} rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border`} style={{ backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg, color: selectedCategory === "todos" ? catActiveText : catText, borderColor: selectedCategory === "todos" ? catActiveBg : catInactiveBorder }}>Todos</button>
           {displayCategories.map((cat: any) => (
-            <button key={cat.id} onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedCategory(cat.id); }} className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border" style={{ backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg, color: selectedCategory === cat.id ? catActiveText : catText, borderColor: selectedCategory === cat.id ? catActiveBg : 'rgba(255,255,255,0.1)' }}>{cat.name}</button>
+            <button key={cat.id} onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedCategory(cat.id); }} className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border" style={{ backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg, color: selectedCategory === cat.id ? catActiveText : catText, borderColor: selectedCategory === cat.id ? catActiveBg : catInactiveBorder }}>{cat.name}</button>
           ))}
         </div>
       </div>

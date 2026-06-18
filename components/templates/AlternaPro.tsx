@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { Utensils, ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check, Clock, Search } from 'lucide-react';
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { getContrastColor } from '@/lib/colorUtils';
 
 export default function AlternaPro({ 
   restaurant = {}, 
@@ -29,7 +30,8 @@ export default function AlternaPro({
   const DESC_COLOR = restaurant?.description_color || '#94a3b8'; 
   const PROD_NAME_COLOR = restaurant?.card_name_color || '#111827';
   const PRICE_BG = restaurant?.card_price_color || THEME;
-  const PRICE_TEXT = '#ffffff'; 
+  const PRICE_TEXT = '#ffffff';
+  const catInactiveBorder = getContrastColor(restaurant?.cat_bg_color || '#ffffff') === '#000000' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)';
   const PROMO_BG = restaurant?.promo_bg_color || (THEME + '15');
   const PROMO_TEXT = restaurant?.promo_text_color || THEME;
   const PROD_NAME_BG = restaurant?.card_name_bg || '#ffffff';
@@ -171,14 +173,14 @@ export default function AlternaPro({
         <button onClick={() => setSelectedCategory("todos")} className="px-5 py-2 rounded-full text-[9px] font-black uppercase shrink-0 shadow-sm border"
                 style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'),
                          color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#000000'),
-                         borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_text_color ? `${restaurant.cat_text_color}33` : 'rgba(0,0,0,0.15)') }}>
+                         borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : catInactiveBorder }}>
           Todos
         </button>
         {categoryButtons.map((cat: any) => (
           <button key={cat.id} onClick={() => setSelectedCategory(String(cat.id))} className="px-5 py-2 rounded-full text-[9px] font-black uppercase shrink-0 shadow-sm border"
                   style={{ backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'),
                            color: selectedCategory === String(cat.id) ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#000000'),
-                           borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_text_color ? `${restaurant.cat_text_color}33` : 'rgba(0,0,0,0.15)') }}>
+                           borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : catInactiveBorder }}>
             {cat.name}
           </button>
         ))}

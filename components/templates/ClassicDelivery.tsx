@@ -5,6 +5,7 @@ import { Clock, Search, Layers, Plus, Minus, Check,MapPin,X,Store,Zap } from 'lu
 import { useCart } from "@/context/CartContext";
 import { getProductDisplayPrice } from "@/lib/productPricing";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getContrastColor } from "@/lib/colorUtils";
 
 interface Props {
   restaurant: any;
@@ -45,6 +46,7 @@ const headerBg = restaurant.theme_color || '#1a1a2e';
   const catText = restaurant.cat_text_color || '#1a1a2e';
   const catActiveBg = restaurant.cat_active_bg_color || '#1a1a2e';
   const catActiveText = restaurant.cat_active_text_color || '#ffffff';
+  const catInactiveBorder = getContrastColor(catBg) === '#000000' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)';
 
   const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
   const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
@@ -241,9 +243,10 @@ const handleMainStep = (p: any, delta: number) => {
     <button 
         onClick={() => setSelectedCategory("todos")} 
         className="classic-cat-btn" 
-        style={{ 
-            backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg, 
-            color: selectedCategory === "todos" ? catActiveText : catText 
+        style={{
+            backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg,
+            color: selectedCategory === "todos" ? catActiveText : catText,
+            borderColor: selectedCategory === "todos" ? catActiveBg : catInactiveBorder
         }}
     >Todos</button>
     
@@ -252,9 +255,10 @@ const handleMainStep = (p: any, delta: number) => {
             key={cat.id} 
             onClick={() => setSelectedCategory(cat.id)} 
             className="classic-cat-btn" 
-            style={{ 
-                backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg, 
-                color: selectedCategory === cat.id ? catActiveText : catText 
+            style={{
+                backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg,
+                color: selectedCategory === cat.id ? catActiveText : catText,
+                borderColor: selectedCategory === cat.id ? catActiveBg : catInactiveBorder
             }}
         >{cat.name}</button>
     ))}
