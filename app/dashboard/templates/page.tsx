@@ -974,15 +974,28 @@ const finalTemplates = TEMPLATES.filter(t =>
           {renderPreview(t.type)}
         </div>
       </div>
-        {/* Store icon overlay */}
-        <div className="absolute top-2 right-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
-          <Store size={13} className="text-gray-700" />
-        </div>
-        {/* Badge Abierto — solo marketpro (único sin badge propio en su mockup) */}
-        {t.id === 'marketpro' && (
-          <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1 pointer-events-none">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-tighter">Abierto</span>
+        {/* Overlays por plantilla — Store icon nunca va en la misma esquina que el badge nativo */}
+        {t.id === 'carta' ? (
+          // Carta: badge nativo top-left → Store va top-right
+          <div className="absolute top-2 right-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+            <Store size={13} className="text-gray-700" />
+          </div>
+        ) : t.id === 'marketpro' ? (
+          // Market Pro: sin badge nativo → Badge Abierto top-right + Store top-left
+          <>
+            <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1 pointer-events-none">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-tighter">Abierto</span>
+            </div>
+            <div className="absolute top-2 left-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+              <Store size={13} className="text-gray-700" />
+            </div>
+          </>
+        ) : (
+          // Classic, Urban, Minimal, VisualGrid, Spotlight, Soft Premium, Alterna Pro:
+          // badge nativo top-right → Store va top-left
+          <div className="absolute top-2 left-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+            <Store size={13} className="text-gray-700" />
           </div>
         )}
    {/* 🚀 ESCUDO DE PRÓXIMAMENTE */}
@@ -1004,7 +1017,7 @@ const finalTemplates = TEMPLATES.filter(t =>
 
    <div className="card-info text-center flex flex-col items-center">
       <h3 className="card-title mt-2 text-slate-800">{t.name}</h3>
-      <p className="text-[8px] text-slate-400 font-bold mt-0.5 leading-tight px-1">{t.idealFor}</p>
+      <p className="text-[12px] text-slate-600 font-semibold mt-1 leading-tight px-1">{t.idealFor}</p>
       {isUpcoming ? (
         /* 🚀 BOTÓN DESACTIVADO PARA UPCOMING */
         <div className="mt-3 px-4 py-1.5 bg-gray-100 text-gray-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-gray-200">
