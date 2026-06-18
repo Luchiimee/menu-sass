@@ -15,41 +15,19 @@ export async function POST() {
     }
     const userId = sessionUser.id;
 
-    // Buscar el preapproval_id del usuario
-    const { data: restaurant } = await supabase
+    const { error: updateError } = await supabase
       .from('restaurants')
-      .select('mp_preapproval_id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const preapprovalId = restaurant?.mp_preapproval_id;
-
-    // Cancelar en MP si hay suscripción activa
-    if (preapprovalId) {
-      const mpResponse = await fetch(
-        `https://api.mercadopago.com/preapproval/${preapprovalId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
-          },
-          body: JSON.stringify({ status: 'cancelled' }),
-        }
-      );
-
-      if (!mpResponse.ok) {
-        const err = await mpResponse.json();
-        console.error('MP cancel error:', err);
-        return NextResponse.json({ error: 'Error al cancelar en MP' }, { status: 500 });
-      }
-    }
-
-    // Actualizar Supabase
-    await supabase
-      .from('restaurants')
-      .update({ subscription_status: 'cancelled', mp_preapproval_id: null })
+      .update({
+        subscription_status: 'cancelled',
+        mp_preapproval_id:   null,
+        mp_card_id:          null,
+      })
       .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Supabase UPDATE error (cancel):', updateError);
+      return NextResponse.json({ error: 'Error al cancelar la suscripción' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
