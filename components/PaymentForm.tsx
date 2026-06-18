@@ -86,10 +86,8 @@ export default function PaymentForm({
         identificationNumber: docNumber,
       });
 
-      const endpoint = mode === 'update-card' ? '/api/subscriptions/update-card' : '/api/subscriptions/create';
-      const body = mode === 'update-card'
-        ? { token: token.id, userId, email: userEmail, mpPreapprovalId }
-        : { token: token.id, plan, userId, email: userEmail };
+      const endpoint = '/api/subscriptions/save-card';
+      const body = { token: token.id, email: userEmail, planId: plan };
 
       const res = await fetch(endpoint, {
         method: 'POST',
