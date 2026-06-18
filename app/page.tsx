@@ -226,9 +226,9 @@ const PREVIEW_CONTENT: any = {
     products: [
       { id: 'k1', n: "Pepsi 500cc", p: "1200", i: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&q=80" },
       { id: 'k2', n: "Alfajor triple", p: "850", i: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80" },
-      { id: 'k3', n: "Chicles Beldent", p: "650", i: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" },
+      { id: 'k3', n: "Chicles Beldent", p: "650", i: "/chicles-beldent.png" },
       { id: 'k4', n: "Agua mineral 500cc", p: "700", i: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80" },
-      { id: 'k5', n: "Papas fritas", p: "1500", i: "https://images.unsplash.com/photo-1576777647209-e8733d7b851d?w=400&q=80" }
+      { id: 'k5', n: "Doritos", p: "1800", i: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&q=80" }
     ]
   },
   dietetica: {
@@ -241,7 +241,7 @@ const PREVIEW_CONTENT: any = {
       { id: 'd2', n: "Almendras x250g", p: "6800", i: "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80" },
       { id: 'd3', n: "Proteína vegana x1kg", p: "13800", i: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&q=80" },
       { id: 'd4', n: "Arroz integral x1kg", p: "3200", i: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80" },
-      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "https://images.unsplash.com/photo-1514733670139-4d66f3d22b5a?w=400&q=80" }
+      { id: 'd5', n: "Semillas de chía x250g", p: "2900", i: "/semilla-chia.jpg" }
     ]
   },
   heladeria: {
@@ -354,7 +354,7 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
                 <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
               </div>
               <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
-                <Info size={12} className="text-white/70" />
+                <Store size={12} className="text-white/70" />
               </div>
             </div>
              <div className="m-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=MK')"}}></div>
@@ -399,7 +399,7 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
               <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
             </div>
             <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
-              <Info size={12} className="text-white/70" />
+              <Store size={12} className="text-white/70" />
             </div>
           </div>
           <div className="minimal-header">
