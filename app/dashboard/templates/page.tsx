@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles,ArrowRight } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles, ArrowRight, Store } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -446,25 +446,19 @@ const GALLERY_STYLES = `
 
 // --- DATA ---
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic Delivery', type: 'classic', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
-  { id: 'urban', name: 'Urbano Dark', type: 'urban', category: 'basicas', sale_type: 'unidad', hasPhotos: true },
-  { id: 'minimal', name: 'Minimalista', type: 'minimal', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
-  { id: 'visualgrid', name: 'Visual Grid', type: 'visualgrid', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
-  
-  { id: 'pop', name: 'Pop Vibrante', type: 'pop', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true, isUpcoming: false},
-  { id: 'elegant', name: 'Elegante Serif', type: 'elegant', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-  { id: 'bistro', name: 'Bistro Chalk', type: 'bistro', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-
-  { id: 'icecream-v1', name: 'Soft Premium', type: 'icecream', category: 'basicas', sale_type: 'peso', hasPhotos: false, premium: true },
-  { id: 'marketpro', name: 'Market Pro', type: 'marketpro', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
-  { id: 'alterna-pro', name: 'Alterna Pro', type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true, premium: true },
-  { id: 'carta', name: 'Carta', type: 'carta', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
+  { id: 'classic',     name: 'Classic Delivery', type: 'classic',     category: 'basicas',   sale_type: 'unidad',           hasPhotos: false, businessCategory: 'delivery',     idealFor: 'Ideal para pizzería y delivery' },
+  { id: 'urban',       name: 'Urbano Dark',       type: 'urban',       category: 'basicas',   sale_type: 'unidad',           hasPhotos: true,  businessCategory: 'delivery',     idealFor: 'Ideal para hamburguesería y street food' },
+  { id: 'minimal',     name: 'Minimalista',       type: 'minimal',     category: 'basicas',   sale_type: 'unidad',           hasPhotos: false, businessCategory: 'elegante',     idealFor: 'Ideal para cafetería y panadería' },
+  { id: 'visualgrid',  name: 'Visual Grid',       type: 'visualgrid',  category: 'basicas',   sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'heladeria',    idealFor: 'Ideal para heladería y negocios visuales' },
+  { id: 'spotlight',   name: 'Spotlight Hero',    type: 'spotlight',   category: 'basicas',   sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
+  { id: 'icecream-v1', name: 'Soft Premium',      type: 'icecream',    category: 'basicas',   sale_type: 'peso',             hasPhotos: false, premium: true, businessCategory: 'heladeria',    idealFor: 'Ideal para heladería y dietética' },
+  { id: 'marketpro',   name: 'Market Pro',        type: 'marketpro',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'kiosco',       idealFor: 'Ideal para kiosco y despensa' },
+  { id: 'alterna-pro', name: 'Alterna Pro',       type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true,  premium: true, businessCategory: 'elegante',     idealFor: 'Ideal para carta compleja y mercado' },
+  { id: 'carta',       name: 'Carta',             type: 'carta',       category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
 ];
 
 function GalleryContent() {
-  const [photoFilter, setPhotoFilter] = useState<'todas' | 'con-foto' | 'sin-foto'>('todas');
-  const [mainCategory, setMainCategory] = useState<'basicas' | 'completas' | 'todas'>('todas');
+  const [businessFilter, setBusinessFilter] = useState<'todas' | 'restaurante' | 'delivery' | 'kiosco' | 'heladeria' | 'elegante'>('todas');
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
   const isNewlyActivated = searchParams.get('activated')
@@ -679,17 +673,25 @@ useEffect(() => {
       <div className="market-banner"><img src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300" alt="banner" /></div>
       <div className="market-cats">
         <div className="market-cat-pill" style={{background: '#000', color: '#fff'}}>TODOS</div>
-        <div className="market-cat-pill">BURGERS</div>
-        <div className="market-cat-pill">PAPAS</div>
+        <div className="market-cat-pill">BEBIDAS</div>
+        <div className="market-cat-pill">GOLOSINAS</div>
       </div>
       <div className="market-grid">
-        {[1,2,3].map(i => (
-           <div key={i} className="market-item">
-              <div className="market-img"><img src={`https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100`} /></div>
-              <div className="market-name uppercase italic">Bacon Burger</div>
-              <div className="market-price">$8.500</div>
-           </div>
-        ))}
+        <div className="market-item">
+          <div className="market-img"><img src="https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&w=100" /></div>
+          <div className="market-name uppercase italic">Coca Cola</div>
+          <div className="market-price">$1.800</div>
+        </div>
+        <div className="market-item">
+          <div className="market-img"><img src="https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&w=100" /></div>
+          <div className="market-name uppercase italic">Alfajor Milka</div>
+          <div className="market-price">$2.200</div>
+        </div>
+        <div className="market-item">
+          <div className="market-img"><img src="https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=100" /></div>
+          <div className="market-name uppercase italic">Agua 500ml</div>
+          <div className="market-price">$900</div>
+        </div>
       </div>
     </div>
   );
@@ -905,16 +907,9 @@ case 'alterna-pro':
   };
 // --- LÓGICA DE RENDERIZADO ---
 
-const finalTemplates = TEMPLATES.filter(t => {
-    // 1. Filtrar por Categoría Principal (Rápidas o Completas)
-    const matchesMain = mainCategory === 'todas' || t.category === mainCategory;
-
-    // 2. Filtrar por Estilo Visual (Con o Sin Fotos)
-    const matchesPhoto = photoFilter === 'todas' ||
-      (photoFilter === 'con-foto' ? t.hasPhotos === true : t.hasPhotos === false);
-
-    return matchesMain && matchesPhoto;
-  });
+const finalTemplates = TEMPLATES.filter(t =>
+    businessFilter === 'todas' || t.businessCategory === businessFilter
+  );
  return (
     <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20">
       <style>{GALLERY_STYLES}</style>
@@ -931,80 +926,24 @@ const finalTemplates = TEMPLATES.filter(t => {
         </div>
       </header>
 
-      {/* 2. MASTER CARDS (RÁPIDAS VS COMPLETAS) */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        
-        {/* DISEÑOS RÁPIDOS */}
-        <button 
-          onClick={() => { setMainCategory(mainCategory === 'basicas' ? 'todas' : 'basicas'); }}
-          className={`relative p-4 rounded-3xl border-2 text-left transition-all group overflow-hidden ${mainCategory === 'basicas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
-        >
-          <div className="relative z-10 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center transition-colors ${mainCategory === 'basicas' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-              <Zap size={20} fill={mainCategory === 'basicas' ? "currentColor" : "none"} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'basicas' ? 'text-slate-900' : 'text-slate-400'}`}>Diseños Rápidos</h3>
-              <p className={`text-[9px] font-bold uppercase tracking-widest leading-none mt-1 ${mainCategory === 'basicas' ? 'text-slate-500' : 'text-slate-300'}`}>Pedidos en 1-click y layouts simples</p>
-            </div>
-            
-            {/* BOTÓN X PARA DESMARCAR */}
-            {mainCategory === 'basicas' && (
-              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full hover:bg-indigo-200 transition-colors">
-                <X size={14} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-        </button>
-
-        {/* DISEÑOS COMPLETOS */}
-        <button 
-          onClick={() => { setMainCategory(mainCategory === 'completas' ? 'todas' : 'completas'); }}
-          className={`relative p-4 rounded-3xl border-2 text-left transition-all group overflow-hidden ${mainCategory === 'completas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
-        >
-          <div className="relative z-10 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center transition-colors ${mainCategory === 'completas' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-              <ShoppingBag size={20} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'completas' ? 'text-slate-900' : 'text-slate-400'}`}>Diseños Completos</h3>
-              <p className={`text-[9px] font-bold uppercase tracking-widest leading-none mt-1 ${mainCategory === 'completas' ? 'text-slate-500' : 'text-slate-300'}`}>Buscador, categorías y experiencia Pro</p>
-            </div>
-
-            {/* BOTÓN X PARA DESMARCAR */}
-            {mainCategory === 'completas' && (
-              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full hover:bg-indigo-200 transition-colors">
-                <X size={14} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-        </button>
-      </div>
-
-
-    
-
-      {/* 4. FILTROS DE ESTILO (CHIPS) */}
+      {/* FILTRO POR TIPO DE NEGOCIO */}
       <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-        <button 
-          onClick={() => setPhotoFilter('todas')}
-          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'todas' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
-        >
-          Todos los estilos
-        </button>
-        <button 
-          onClick={() => setPhotoFilter('sin-foto')}
-          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'sin-foto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
-        >
-          ✨ Minimalistas (Sin Fotos)
-        </button>
-        <button 
-          onClick={() => setPhotoFilter('con-foto')}
-          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'con-foto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
-        >
-          📸 Visuales (Con Fotos)
-        </button>
+        {([
+          { key: 'todas',       label: 'Todas' },
+          { key: 'restaurante', label: '🍽️ Restaurante con menú destacado' },
+          { key: 'delivery',    label: '🍔 Delivery y comida rápida' },
+          { key: 'kiosco',      label: '🛍️ Kiosco y despensa' },
+          { key: 'heladeria',   label: '🍦 Heladería y dietética' },
+          { key: 'elegante',    label: '✨ Elegante y minimalista' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setBusinessFilter(key)}
+            className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${businessFilter === key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     
   
@@ -1013,7 +952,7 @@ const finalTemplates = TEMPLATES.filter(t => {
         {finalTemplates.map((t) => {
           const isSelected = currentTemplate === t.id;
           const isLocked = t.premium && userPlan === 'free';
-          const isUpcoming = t.isUpcoming;
+          const isUpcoming = false;
           
 
           return (
@@ -1035,6 +974,17 @@ const finalTemplates = TEMPLATES.filter(t => {
           {renderPreview(t.type)}
         </div>
       </div>
+        {/* Store icon overlay */}
+        <div className="absolute top-2 right-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+          <Store size={13} className="text-gray-700" />
+        </div>
+        {/* Badge Abierto — solo marketpro (único sin badge propio en su mockup) */}
+        {t.id === 'marketpro' && (
+          <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1 pointer-events-none">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-tighter">Abierto</span>
+          </div>
+        )}
    {/* 🚀 ESCUDO DE PRÓXIMAMENTE */}
           {isUpcoming && (
             <div className="absolute inset-0 bg-indigo-600/20 backdrop-blur-[2px] flex flex-col items-center justify-center text-white z-40">
@@ -1054,6 +1004,7 @@ const finalTemplates = TEMPLATES.filter(t => {
 
    <div className="card-info text-center flex flex-col items-center">
       <h3 className="card-title mt-2 text-slate-800">{t.name}</h3>
+      <p className="text-[8px] text-slate-400 font-bold mt-0.5 leading-tight px-1">{t.idealFor}</p>
       {isUpcoming ? (
         /* 🚀 BOTÓN DESACTIVADO PARA UPCOMING */
         <div className="mt-3 px-4 py-1.5 bg-gray-100 text-gray-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-gray-200">
