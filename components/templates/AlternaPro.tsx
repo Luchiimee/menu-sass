@@ -169,16 +169,16 @@ export default function AlternaPro({
       <div className="relative z-[50] w-full flex items-center gap-2 px-4 overflow-x-auto no-scrollbar shadow-sm border-b border-black/[0.03]" 
            style={{ backgroundColor: BG, minHeight: '60px' }}>
         <button onClick={() => setSelectedCategory("todos")} className="px-5 py-2 rounded-full text-[9px] font-black uppercase shrink-0 shadow-sm border"
-                style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'), 
+                style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'),
                          color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#000000'),
-                         borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : 'transparent' }}>
+                         borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_text_color ? `${restaurant.cat_text_color}33` : 'rgba(0,0,0,0.15)') }}>
           Todos
         </button>
         {categoryButtons.map((cat: any) => (
           <button key={cat.id} onClick={() => setSelectedCategory(String(cat.id))} className="px-5 py-2 rounded-full text-[9px] font-black uppercase shrink-0 shadow-sm border"
-                  style={{ backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'), 
+                  style={{ backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'),
                            color: selectedCategory === String(cat.id) ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#000000'),
-                           borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : 'transparent' }}>
+                           borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_text_color ? `${restaurant.cat_text_color}33` : 'rgba(0,0,0,0.15)') }}>
             {cat.name}
           </button>
         ))}

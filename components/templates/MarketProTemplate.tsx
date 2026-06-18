@@ -147,10 +147,11 @@ const isOpenNow = isOpen;
             if (!isOpenNow && !isMockup) return setShowClosedModal(true);
             setSelectedCategory("todos");
           }}
-          className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm"
-          style={{ 
+          className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm border"
+          style={{
             backgroundColor: selectedCategory === "todos" ? (restaurant.cat_active_bg_color || '#000000') : (restaurant.cat_bg_color || '#f3f4f6'),
-            color: selectedCategory === "todos" ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999')
+            color: selectedCategory === "todos" ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999'),
+            borderColor: selectedCategory === "todos" ? (restaurant.cat_active_bg_color || '#000000') : (restaurant.cat_text_color ? `${restaurant.cat_text_color}33` : 'rgba(0,0,0,0.15)')
           }}
         >
           Todos
@@ -162,10 +163,11 @@ const isOpenNow = isOpen;
               if (!isOpenNow && !isMockup) return setShowClosedModal(true);
               setSelectedCategory(cat.id);
             }}
-            className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm"
-            style={{ 
+            className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm border"
+            style={{
                 backgroundColor: selectedCategory === cat.id ? (restaurant.cat_active_bg_color || '#000000') : (restaurant.cat_bg_color || '#f3f4f6'),
-                color: selectedCategory === cat.id ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999')
+                color: selectedCategory === cat.id ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999'),
+                borderColor: selectedCategory === cat.id ? (restaurant.cat_active_bg_color || '#000000') : (restaurant.cat_text_color ? `${restaurant.cat_text_color}33` : 'rgba(0,0,0,0.15)')
             }}
           >
             {cat.name}
