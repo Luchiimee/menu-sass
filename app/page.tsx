@@ -264,22 +264,18 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
   return (
     <div className="w-full h-full relative">
       <style>{PREVIEW_STYLES}</style>
-      {/* Ícono top-right: Store para Urban, Info para los demás */}
-      <div className="absolute top-[48px] right-2 z-50 w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 pointer-events-none">
-        {template === 'urban' ? <Store size={12} className="text-white/70" /> : <Info size={12} className="text-white/70" />}
-      </div>
-
-      {/* Badge ABIERTO top-left: solo templates que no son Urban (Urban ya lo tiene en su header) */}
-      {template !== 'urban' && (
-        <div className="absolute top-[48px] left-2 z-50 flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full pointer-events-none">
-          <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-          <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
-        </div>
-      )}
-
       {/* 1. DISEÑO VISUAL GRID (SUSHI) */}
 {template === 'visualgrid' && (
         <div className="preview-viewport s-visual">
+          <div className="flex justify-between items-center px-3 mb-2">
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+              <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+            </div>
+            <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+              <Store size={12} className="text-white/70" />
+            </div>
+          </div>
           <div className="s-header">
             <div className="s-logo flex items-center justify-center text-[8px] font-black italic" style={{background: data.accent}}>
               {data.title.slice(0, 2)}
@@ -309,6 +305,15 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
       {/* 2. DISEÑO URBAN DARK (FILAS HORIZONTALES) */}
       {template === 'urban' && (
         <div className="preview-viewport u-container">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+              <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+            </div>
+            <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+              <Store size={12} className="text-white/70" />
+            </div>
+          </div>
           <div className="u-top">
             <div className="u-brand">
               <div className="u-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=MK')"}}></div>
@@ -317,7 +322,6 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
                 <span>{data.description}</span>
               </div>
             </div>
-            <div className="u-status">ABIERTO</div>
           </div>
           
           <div className="u-msg">PROMO: Envío gratis {rubro === 'hamburgueseria' ? '> $15.000' : 'en tu primera compra'}</div>
@@ -344,6 +348,15 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
       {template === 'marketpro' && (
         <div className="preview-viewport bg-white">
           <div className="m-header">
+            <div className="flex justify-between items-center w-full mb-2" style={{textAlign:'left'}}>
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+              </div>
+              <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+                <Info size={12} className="text-white/70" />
+              </div>
+            </div>
              <div className="m-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=MK')"}}></div>
              <h4 className="font-black italic uppercase text-xs text-gray-900">{data.title}</h4>
              <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-gray-400">{data.description}</p>
@@ -380,6 +393,15 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
   {/* ✅ 4. DISEÑO MINIMAL (REEMPLAZA A ELEGANT) */}
       {template === 'elegant' && (
         <div className="preview-viewport minimal-container">
+          <div className="flex justify-between items-center w-full mb-3">
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+              <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+            </div>
+            <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+              <Info size={12} className="text-white/70" />
+            </div>
+          </div>
           <div className="minimal-header">
             <div className="minimal-logo">
                <Coffee size={16}/>
