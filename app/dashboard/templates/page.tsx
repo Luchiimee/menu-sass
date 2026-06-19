@@ -218,13 +218,13 @@ pop: {
 const SELECTOR_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lato:wght@400;700;900&display=swap');
 
-  /* Grid */
-  .templates-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 10px 0; align-items: start; width: 100%; }
-  @media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; } }
-  @media (min-width: 1550px) { .templates-grid { grid-template-columns: repeat(4, 1fr); } }
+  /* Grid — auto-fill mantiene columnas fantasma (no estira la ultima card);
+     max-width 1400px evita expansion infinita; justify-content centra cuando sobra espacio */
+  .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; padding: 10px 0; align-items: start; justify-content: center; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+  @media (max-width: 580px) { .templates-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
 
   /* Card contenedora */
-  .sel-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s; }
+  .sel-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s; max-width: 340px; width: 100%; margin: 0 auto; }
   .sel-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
   .sel-card--featured { border: 2px solid #22c55e; }
   .sel-featured-banner { background: #22c55e; color: #ffffff; text-align: center; font-size: 9px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; padding: 5px 0; }
@@ -439,7 +439,7 @@ const finalTemplates = TEMPLATES.filter(t =>
     businessFilter === 'todas' || t.businessCategory === businessFilter
   );
  return (
-    <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20">
+    <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20 overflow-x-hidden">
       <style>{SELECTOR_CSS}</style>
       
       {/* 1. HEADER CON TÍTULO */}
