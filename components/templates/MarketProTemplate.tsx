@@ -94,12 +94,25 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
             <Store size={18} strokeWidth={2.5} />
           </button>
         )}
+        {/* En mockup: Store top-left + badge Abierto top-right (esquinas, no centrado) */}
+        {isMockup && (
+          <>
+            <div className="absolute top-3 left-3 z-10 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+              <Store size={13} className="text-gray-700" />
+            </div>
+            <div className={`absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-sm ${isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {isOpenNow ? '● Abierto' : '● Cerrado'}
+            </div>
+          </>
+        )}
 
-        <div className="flex justify-center mb-3">
-          <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${mesaLabel ? 'bg-amber-100 text-amber-700' : isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-            {mesaLabel ? `📍 ${mesaLabel}` : isOpenNow ? '● Abierto ahora' : '○ Cerrado momentáneamente'}
-          </span>
-        </div>
+        {!isMockup && (
+          <div className="flex justify-center mb-3">
+            <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${mesaLabel ? 'bg-amber-100 text-amber-700' : isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {mesaLabel ? `📍 ${mesaLabel}` : isOpenNow ? '● Abierto ahora' : '○ Cerrado momentáneamente'}
+            </span>
+          </div>
+        )}
 
         {restaurant.logo_url && (
           <div className="w-16 h-16 mx-auto mb-2 relative rounded-full overflow-hidden border-2 shadow-sm" style={{ borderColor: restaurant.theme_color }}>

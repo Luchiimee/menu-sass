@@ -220,11 +220,11 @@ const SELECTOR_CSS = `
 
   /* Grid — auto-fill mantiene columnas fantasma (no estira la ultima card);
      max-width 1400px evita expansion infinita; justify-content centra cuando sobra espacio */
-  .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; padding: 10px 0; align-items: start; justify-content: center; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
-  @media (max-width: 580px) { .templates-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+  .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 10px 0; align-items: start; justify-content: center; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+  @media (max-width: 460px) { .templates-grid { grid-template-columns: 1fr; gap: 16px; } }
 
   /* Card contenedora */
-  .sel-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s; max-width: 340px; width: 100%; margin: 0 auto; }
+  .sel-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s; max-width: 340px; width: 100%; min-width: 0; margin: 0 auto; }
   .sel-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
   .sel-card--featured { border: 2px solid #22c55e; }
   .sel-featured-banner { background: #22c55e; color: #ffffff; text-align: center; font-size: 9px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; padding: 5px 0; }
@@ -241,8 +241,7 @@ const SELECTOR_CSS = `
   .sel-btn--selected:hover { background: #4338ca; }
 
   /* Marco del celular */
-  .phone-preview { width: 100%; height: 260px; background: white; position: relative; overflow: hidden; }
-  @media (max-width: 768px) { .phone-preview { max-width: 140px; border-radius: 18px; } }
+  .phone-preview { width: 100%; height: 360px; background: white; position: relative; overflow: hidden; }
   .preview-content { width: 100%; height: 100%; overflow: hidden; position: relative; }
 `;
 
@@ -314,7 +313,7 @@ const PREVIEW_MOCK: Record<string, any> = {
     categories: [{ id: 'pmk1', name: 'Bebidas' }, { id: 'pmk2', name: 'Golosinas' }],
   },
   'alterna-pro': {
-    restaurant: { name: 'Eco Nature', description: 'Productos Orgánicos', theme_color: '#ea580c', bg_color: '#fafaf9', text_color: '#111827', description_color: '#94a3b8', card_name_color: '#111827', card_price_color: '#ea580c', show_promo: true, promo_message: 'Envío Gratis — Compras +$20.000', categories: [{ id: 'pa1', name: 'Mixes' }, { id: 'pa2', name: 'Mieles' }, { id: 'pa3', name: 'Harinas' }] },
+    restaurant: { name: 'Eco Nature', description: 'Productos Orgánicos', theme_color: '#ea580c', bg_color: '#fafaf9', text_color: '#111827', description_color: '#94a3b8', card_name_color: '#111827', card_price_color: '#ea580c', show_promo: true, promo_message: 'Envío Gratis — Compras +$20.000', logo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80', categories: [{ id: 'pa1', name: 'Mixes' }, { id: 'pa2', name: 'Mieles' }, { id: 'pa3', name: 'Harinas' }] },
     products: [
       { id: 'a1', name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80', category_id: 'pa1' },
       { id: 'a2', name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=300&q=80', category_id: 'pa2' },
@@ -495,10 +494,7 @@ const finalTemplates = TEMPLATES.filter(t =>
             t.id === 'alterna-pro' ? 0.75 :
             t.id === 'carta'       ? 0.77 :
             0.75;
-          const mobileScale = t.id === 'alterna-pro' ? 0.45 : 0.52;
-          const previewScale = typeof window !== 'undefined' && window.innerWidth < 768
-            ? mobileScale
-            : desktopScale;
+          const previewScale = desktopScale;
 
           const isFeatured = !!(t as any).featured;
           return (
