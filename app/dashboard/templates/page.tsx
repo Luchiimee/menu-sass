@@ -221,7 +221,7 @@ const SELECTOR_CSS = `
   /* Grid — auto-fill mantiene columnas fantasma (no estira la ultima card);
      max-width 1400px evita expansion infinita; justify-content centra cuando sobra espacio */
   .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 10px 0; align-items: start; justify-content: center; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
-  @media (max-width: 460px) { .templates-grid { grid-template-columns: 1fr; gap: 16px; } }
+  @media (max-width: 460px) { .templates-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
 
   /* Card contenedora */
   .sel-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s; max-width: 340px; width: 100%; min-width: 0; margin: 0 auto; }
