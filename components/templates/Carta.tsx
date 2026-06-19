@@ -64,10 +64,10 @@ const Carta: React.FC<Props> = ({
 
   const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
-  // Sin productos/categorías reales todavía: mostramos un set de ejemplo estilo brasserie
-  const isPlaceholderMode = !products || products.length === 0;
+  // Placeholder solo en el selector (isMockup), nunca en la página pública real
+  const isPlaceholderMode = isMockup && (!products || products.length === 0);
   const displayProducts = isPlaceholderMode ? PLACEHOLDER_PRODUCTS : products;
-  const displayCategories = (categories && categories.length > 0 ? categories : PLACEHOLDER_CATEGORIES)
+  const displayCategories = (categories && categories.length > 0 ? categories : (isPlaceholderMode ? PLACEHOLDER_CATEGORIES : []))
     .filter((c: any) => c.name.toLowerCase() !== 'general');
 
   // --- PRODUCTO EN BANNER (HERO) ---
