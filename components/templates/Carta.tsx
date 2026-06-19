@@ -64,10 +64,10 @@ const Carta: React.FC<Props> = ({
 
   const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
-  // Sin productos/categorías reales todavía: mostramos un set de ejemplo estilo brasserie
-  const isPlaceholderMode = !products || products.length === 0;
+  // Placeholder solo en el selector (isMockup), nunca en la página pública real
+  const isPlaceholderMode = isMockup && (!products || products.length === 0);
   const displayProducts = isPlaceholderMode ? PLACEHOLDER_PRODUCTS : products;
-  const displayCategories = (categories && categories.length > 0 ? categories : PLACEHOLDER_CATEGORIES)
+  const displayCategories = (categories && categories.length > 0 ? categories : (isPlaceholderMode ? PLACEHOLDER_CATEGORIES : []))
     .filter((c: any) => c.name.toLowerCase() !== 'general');
 
   // --- PRODUCTO EN BANNER (HERO) ---
@@ -288,9 +288,12 @@ const Carta: React.FC<Props> = ({
       </div>
 
       <div ref={productsRef} className="flex-1 px-4 space-y-8">
-        {(selectedCategory === "todos" ? displayCategories : displayCategories.filter((c: any) => c.id === selectedCategory)).map((cat: any) => {
+        {(selectedCategory === "todos"
+          ? [{ id: '__all__', name: null, image_url: null }]
+          : displayCategories.filter((c: any) => c.id === selectedCategory)
+        ).map((cat: any) => {
           const catProducts = displayProducts.filter((p: any) =>
-            String(p.category_id) === String(cat.id) &&
+            (cat.id === '__all__' || String(p.category_id) === String(cat.id)) &&
             p.name.toLowerCase().includes(searchTerm.toLowerCase())
           );
 
@@ -298,7 +301,7 @@ const Carta: React.FC<Props> = ({
 
           return (
             <div key={cat.id} className="space-y-4">
-              {cat.image_url ? (
+              {cat.name && (cat.image_url ? (
                 <div className="carta-cat-banner" style={{ backgroundImage: `url('${getOptimizedImageUrl(cat.image_url, 800, 75)}')` }}>
                   <div className="carta-cat-banner-overlay">
                     <div className="carta-cat-banner-title">{cat.name}</div>
@@ -306,7 +309,7 @@ const Carta: React.FC<Props> = ({
                 </div>
               ) : (
                 <div className="carta-cat-title">✦ {cat.name} ✦</div>
-              )}
+              ))}
 
               {/* GRILLA UNIFORME */}
               <div className="carta-grid">

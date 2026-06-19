@@ -5,6 +5,7 @@ import { Coffee, Search, Layers, Plus, Minus, Store, Clock } from 'lucide-react'
 import { useCart } from "@/context/CartContext";
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { getContrastColor } from '@/lib/colorUtils';
 
 interface Props {
   restaurant: any;
@@ -41,6 +42,7 @@ const MinimalWhite: React.FC<Props> = ({
   const catText = restaurant.cat_text_color || '#999999';
   const catActiveBg = restaurant.cat_active_bg_color || text;
   const catActiveText = restaurant.cat_active_text_color || bg;
+  const catInactiveBorder = getContrastColor(catBg) === '#000000' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)';
   const searchBg = restaurant.search_bg_color || '#f3f4f6';
   const searchIcon = restaurant.search_icon_color || '#9ca3af';
 
@@ -116,9 +118,9 @@ const MinimalWhite: React.FC<Props> = ({
           <input type="text" placeholder="Buscar..." style={{ background: searchBg }} className="w-full border-none rounded-xl py-2.5 pl-9 pr-4 text-xs font-bold outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          <button onClick={() => setSelectedCategory("todos")} className="minimal-cat-btn" style={{ backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg, color: selectedCategory === "todos" ? catActiveText : catText }}>Todos</button>
+          <button onClick={() => setSelectedCategory("todos")} className="minimal-cat-btn" style={{ backgroundColor: selectedCategory === "todos" ? catActiveBg : catBg, color: selectedCategory === "todos" ? catActiveText : catText, borderColor: selectedCategory === "todos" ? catActiveBg : catInactiveBorder }}>Todos</button>
           {displayCategories.map((cat: any) => (
-            <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className="minimal-cat-btn" style={{ backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg, color: selectedCategory === cat.id ? catActiveText : catText }}>{cat.name}</button>
+            <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className="minimal-cat-btn" style={{ backgroundColor: selectedCategory === cat.id ? catActiveBg : catBg, color: selectedCategory === cat.id ? catActiveText : catText, borderColor: selectedCategory === cat.id ? catActiveBg : catInactiveBorder }}>{cat.name}</button>
           ))}
         </div>
       </div>

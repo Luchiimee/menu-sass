@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, Store, Instagram, Facebook, Music2, Phone,Check } from "lucide-react";
 import { getProductDisplayPrice } from "@/lib/productPricing";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getContrastColor } from "@/lib/colorUtils";
 
 export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -21,6 +22,7 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
 
 const isOpenNow = isOpen;
   const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
+const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6') === '#000000' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)';
   const titleFont = restaurant.title_font || 'Inter';
   const descFont = restaurant.desc_font || 'Inter';
   const promoFont = restaurant.promo_font || 'Inter';
@@ -87,15 +89,30 @@ const isOpenNow = isOpen;
     <div className="min-h-screen pb-24 transition-all duration-300" style={{ backgroundColor: restaurant.bg_color || '#ffffff' }}>
       
       <header className="pt-8 pb-4 px-5 text-center relative">
-        <button onClick={() => setShowInfo(true)} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm transition-all active:scale-90" style={{ backgroundColor: restaurant.bg_color, borderColor: `${restaurant.description_color}20`, color: restaurant.text_color }}>
-          <Store size={18} strokeWidth={2.5} />
-        </button>
+        {!isMockup && (
+          <button onClick={() => setShowInfo(true)} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm transition-all active:scale-90" style={{ backgroundColor: restaurant.bg_color, borderColor: `${restaurant.description_color}20`, color: restaurant.text_color }}>
+            <Store size={18} strokeWidth={2.5} />
+          </button>
+        )}
+        {/* En mockup: Store top-left + badge Abierto top-right (esquinas, no centrado) */}
+        {isMockup && (
+          <>
+            <div className="absolute top-3 left-3 z-10 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+              <Store size={13} className="text-gray-700" />
+            </div>
+            <div className={`absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-sm ${isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {isOpenNow ? '● Abierto' : '● Cerrado'}
+            </div>
+          </>
+        )}
 
-        <div className="flex justify-center mb-3">
-          <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${mesaLabel ? 'bg-amber-100 text-amber-700' : isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-            {mesaLabel ? `📍 ${mesaLabel}` : isOpenNow ? '● Abierto ahora' : '○ Cerrado momentáneamente'}
-          </span>
-        </div>
+        {!isMockup && (
+          <div className="flex justify-center mb-3">
+            <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${mesaLabel ? 'bg-amber-100 text-amber-700' : isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {mesaLabel ? `📍 ${mesaLabel}` : isOpenNow ? '● Abierto ahora' : '○ Cerrado momentáneamente'}
+            </span>
+          </div>
+        )}
 
         {restaurant.logo_url && (
           <div className="w-16 h-16 mx-auto mb-2 relative rounded-full overflow-hidden border-2 shadow-sm" style={{ borderColor: restaurant.theme_color }}>
@@ -147,10 +164,11 @@ const isOpenNow = isOpen;
             if (!isOpenNow && !isMockup) return setShowClosedModal(true);
             setSelectedCategory("todos");
           }}
-          className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm"
-          style={{ 
+          className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm border"
+          style={{
             backgroundColor: selectedCategory === "todos" ? (restaurant.cat_active_bg_color || '#000000') : (restaurant.cat_bg_color || '#f3f4f6'),
-            color: selectedCategory === "todos" ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999')
+            color: selectedCategory === "todos" ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999'),
+            borderColor: selectedCategory === "todos" ? (restaurant.cat_active_bg_color || '#000000') : catInactiveBorder
           }}
         >
           Todos
@@ -162,10 +180,11 @@ const isOpenNow = isOpen;
               if (!isOpenNow && !isMockup) return setShowClosedModal(true);
               setSelectedCategory(cat.id);
             }}
-            className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm"
-            style={{ 
+            className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm border"
+            style={{
                 backgroundColor: selectedCategory === cat.id ? (restaurant.cat_active_bg_color || '#000000') : (restaurant.cat_bg_color || '#f3f4f6'),
-                color: selectedCategory === cat.id ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999')
+                color: selectedCategory === cat.id ? (restaurant.cat_active_text_color || '#ffffff') : (restaurant.cat_text_color || '#999999'),
+                borderColor: selectedCategory === cat.id ? (restaurant.cat_active_bg_color || '#000000') : catInactiveBorder
             }}
           >
             {cat.name}

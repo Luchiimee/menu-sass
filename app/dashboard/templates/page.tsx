@@ -2,10 +2,20 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles,ArrowRight } from 'lucide-react';
+import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles, ArrowRight, Store, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { CartProvider } from '@/context/CartContext';
+import ClassicDelivery from '@/components/templates/ClassicDelivery';
+import UrbanoDark from '@/components/templates/UrbanoDark';
+import MinimalWhite from '@/components/templates/MinimalWhite';
+import VisualGrid from '@/components/templates/VisualGrid';
+import SpotlightHero from '@/components/templates/SpotlightHero';
+import HeladeriaSoft from '@/components/templates/HeladeriaSoft';
+import MarketProTemplate from '@/components/templates/MarketProTemplate';
+import AlternaPro from '@/components/templates/AlternaPro';
+import Carta from '@/components/templates/Carta';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
@@ -204,267 +214,152 @@ pop: {
   }
 };
 
-// --- CSS IDÉNTICO A TU HTML DE REFERENCIA ---
-const GALLERY_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap');
+// --- CSS del marco del selector (sin CSS de templates --- ya son self-contained) ---
+const SELECTOR_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lato:wght@400;700;900&display=swap');
 
-  :root {
-      --primary: #FF4500;
-      --border-color: #e5e7eb;
-  }
+  /* Grid — auto-fill mantiene columnas fantasma (no estira la ultima card);
+     max-width 1400px evita expansion infinita; justify-content centra cuando sobra espacio */
+  .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 10px 0; align-items: start; justify-content: center; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+  @media (max-width: 460px) { .templates-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+  @media (max-width: 460px) { .templates-page-wrap { padding-left: 8px; padding-right: 8px; } }
 
-  /* 1. GRILLA 2x2 EN MOBILE / 4 COL EN DESKTOP */
-.templates-grid { 
-      display: grid; 
-      grid-template-columns: repeat(2, 1fr); 
-      gap: 12px; 
-      padding: 10px 0;
-      align-items: start;
-      width: 100%;
-  }
+  /* Card contenedora */
+  .sel-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s; max-width: 340px; width: 100%; min-width: 0; margin: 0 auto; }
+  .sel-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .sel-card--featured { border: 2px solid #22c55e; }
+  .sel-featured-banner { background: #22c55e; color: #ffffff; text-align: center; font-size: 9px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; padding: 5px 0; }
+  .sel-preview-area { background: #f1f5f9; overflow: hidden; }
+  .sel-info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; }
+  .sel-name { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0; line-height: 1.2; }
+  .sel-ideal { font-size: 12px; color: #475569; font-weight: 500; margin: 0; line-height: 1.35; }
+  .sel-btn { width: 100%; margin-top: 10px; padding: 9px 12px; border-radius: 9px; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; border: none; transition: opacity 0.15s; }
+  .sel-btn--default { background: #f1f5f9; color: #0f172a; }
+  .sel-btn--default:hover { background: #e2e8f0; }
+  .sel-btn--featured { background: #111111; color: #ffffff; }
+  .sel-btn--featured:hover { background: #333333; }
+  .sel-btn--selected { background: #4f46e5; color: #ffffff; }
+  .sel-btn--selected:hover { background: #4338ca; }
 
-@media (min-width: 1100px) { .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
-  @media (min-width: 1550px) { .templates-grid { grid-template-columns: repeat(4, 1fr); } }
-
-  /* 2. EL TELÉFONO (MOCKUP) - REGLA DE ORO: ALTURA FIJA */
-.phone-preview {
-      width: 100%;
-      max-width: 260px;
-      aspect-ratio: 9/16; 
-      margin: 0 auto;
-      background: white;
-      position: relative;
-      overflow: hidden;
-      border-radius: 30px;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
-  }
-
-@media (max-width: 768px) { .phone-preview { max-width: 160px; border-radius: 20px; } }
-
+  /* Marco del celular */
+  .phone-preview { width: 100%; height: 360px; background: white; position: relative; overflow: hidden; }
   .preview-content { width: 100%; height: 100%; overflow: hidden; position: relative; }
-  
+`;
 
-  /* INFO TEXTO ABAJO */
- .card-info { padding: 0.5rem 0; }
-.card-title { font-size: 0.7rem; font-weight: 800; }
+// --- MOCK DATA PARA PREVIEWS DEL SELECTOR (no afecta menus reales) ---
+const PREVIEW_NOOP = () => {};
 
+const PREVIEW_MOCK: Record<string, any> = {
+  classic: {
+    restaurant: { name: 'Pizzería Los Tíos', description: 'Pizza a la piedra', theme_color: '#d32f2f', bg_color: '#f8f9fa', text_color: '#ffffff', show_promo: true, promo_message: 'Envío GRATIS primera compra' },
+    products: [
+      { id: 'c1', name: 'Muzzarella', description: 'Salsa, muzza y orégano.', price: 8500, category_id: 'pc1' },
+      { id: 'c2', name: 'Napolitana', description: 'Con ajo y perejil.', price: 10200, category_id: 'pc1' },
+      { id: 'c3', name: 'Fainá', description: 'Porción individual.', price: 1500, category_id: 'pc2' },
+      { id: 'c4', name: 'Coca Cola 1.5L', price: 3000, category_id: 'pc2' },
+    ],
+    categories: [{ id: 'pc1', name: 'Pizzas' }, { id: 'pc2', name: 'Extras' }],
+  },
+  urban: {
+    restaurant: { name: 'Burger Joint', description: 'La mejor hamburguesa', theme_color: '#ea580c', bg_color: '#121212', text_color: '#ffffff', show_promo: true, promo_message: 'PROMO: Envío gratis > $15.000' },
+    products: [
+      { id: 'u1', name: 'Doble Black', description: 'Medallón de carne 180g.', price: 8500, image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=80', category_id: 'pu1' },
+      { id: 'u2', name: 'Papas Cheddar', description: 'Con abundante queso.', price: 4200, image_url: 'https://images.unsplash.com/photo-1573080496987-a199f8cd4054?w=300&q=80', category_id: 'pu2' },
+    ],
+    categories: [{ id: 'pu1', name: 'Hamburguesas' }, { id: 'pu2', name: 'Extras' }],
+  },
+  minimal: {
+    restaurant: { name: 'CAFE CENTRAL', description: 'Specialty Coffee', theme_color: '#000000', bg_color: '#ffffff', text_color: '#111111', show_promo: true, promo_message: 'TAKE AWAY: 10% OFF EFECTIVO' },
+    products: [
+      { id: 'm1', name: 'Avocado Toast', description: 'Masa madre.', price: 5500, category_id: 'pm1' },
+      { id: 'm2', name: 'Flat White', description: 'Doble shot.', price: 2800, category_id: 'pm2' },
+      { id: 'm3', name: 'Croissant', description: 'Jamón y queso.', price: 1800, category_id: 'pm1' },
+    ],
+    categories: [{ id: 'pm1', name: 'Comida' }, { id: 'pm2', name: 'Bebidas' }],
+  },
+  visualgrid: {
+    restaurant: { name: 'Osaka Sushi', description: 'Cocina Nikkei', theme_color: '#ea580c', bg_color: '#1a1a1a', text_color: '#ffffff', show_promo: false },
+    products: [
+      { id: 'v1', name: 'Niguiri', price: 12500, image_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=80', category_id: 'pv1' },
+      { id: 'v2', name: 'California Roll', price: 14000, image_url: 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=300&q=80', category_id: 'pv1' },
+      { id: 'v3', name: 'Spicy Tuna', price: 15000, image_url: 'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=300&q=80', category_id: 'pv1' },
+    ],
+    categories: [{ id: 'pv1', name: 'Rolls' }],
+  },
+  spotlight: {
+    restaurant: { name: 'Club Mercedes', description: 'Restaurante', theme_color: '#FFD700', bg_color: '#ffffff', text_color: '#000000', show_banner: true, show_promo: true, hero_title: 'Estofado de Chef', hero_price: 28000, hero_badge_text: 'PLATO DEL DÍA', hero_badge_bg: '#FFD700', hero_badge_color: '#000000', banner_url: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&q=80', promo_message: 'Envíos gratis todos los jueves' },
+    products: [
+      { id: 's1', name: 'Milanesa Napolitana', description: 'Con fritas y ensalada.', price: 16000, image_url: 'https://images.unsplash.com/photo-1606471191009-63994c53433b?w=300&q=80', category_id: 'ps1' },
+      { id: 's2', name: 'Matambre Pizza', description: 'Muzzarella y jamón.', price: 25000, image_url: 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=300&q=80', category_id: 'ps1' },
+    ],
+    categories: [{ id: 'ps1', name: 'Platos' }],
+  },
+  icecream: {
+    restaurant: { name: 'Frozen Dreams', description: 'Heladería Artesanal', theme_color: '#06b6d4', bg_color: '#f0faff', show_promo: true, promo_message: 'PROMO: 1/4kg de regalo comprando 1kg' },
+    products: [
+      { id: 'h1', name: 'Pote de Helado', description: 'Hasta 3 sabores.', price: 12500, sale_type: 'peso', variations: [{ label: '1/4 KG', price: 3500 }, { label: '1/2 KG', price: 6500 }, { label: '1 KG', price: 12500 }] },
+      { id: 'h2', name: 'Granizado', description: 'Limón, menta o naranja.', price: 4500 },
+    ],
+  },
+  marketpro: {
+    restaurant: { name: 'Super Barrio', description: 'Kiosco y despensa', theme_color: '#000000', bg_color: '#ffffff', text_color: '#000000', show_promo: false },
+    products: [
+      { id: 'mk1', name: 'Coca Cola 600ml', price: 1800, image_url: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=200&q=80', category_id: 'pmk1' },
+      { id: 'mk2', name: 'Alfajor Milka', price: 2200, image_url: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=200&q=80', category_id: 'pmk2' },
+      { id: 'mk3', name: 'Agua 500ml', price: 900, image_url: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?w=200&q=80', category_id: 'pmk1' },
+      { id: 'mk4', name: 'Papas Fritas', price: 1500, image_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=200&q=80', category_id: 'pmk2' },
+      { id: 'mk5', name: 'Bizcochos', price: 800, image_url: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&q=80', category_id: 'pmk2' },
+      { id: 'mk6', name: 'Jugo Cepita', price: 1200, image_url: 'https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?w=200&q=80', category_id: 'pmk1' },
+    ],
+    categories: [{ id: 'pmk1', name: 'Bebidas' }, { id: 'pmk2', name: 'Golosinas' }],
+  },
+  'alterna-pro': {
+    restaurant: { name: 'Eco Nature', description: 'Productos Orgánicos', theme_color: '#ea580c', bg_color: '#fafaf9', text_color: '#111827', description_color: '#94a3b8', card_name_color: '#111827', card_price_color: '#ea580c', show_promo: true, promo_message: 'Envío Gratis — Compras +$20.000', logo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80', categories: [{ id: 'pa1', name: 'Mixes' }, { id: 'pa2', name: 'Mieles' }, { id: 'pa3', name: 'Harinas' }] },
+    products: [
+      { id: 'a1', name: 'Mix Frutos Secos', price: 8500, image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80', category_id: 'pa1' },
+      { id: 'a2', name: 'Miel Orgánica', price: 4200, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=300&q=80', category_id: 'pa2' },
+      { id: 'a3', name: 'Harina Integral', price: 2800, category_id: 'pa3' },
+    ],
+  },
+  carta: {
+    restaurant: { name: 'La Bourgogne', description: 'Restaurante de Autor', theme_color: '#B5863A' },
+    products: [],
+    categories: [],
+  },
+};
 
-  /* --- ESTILOS DE TUS PLANTILLAS (EXACTOS) --- */
-
-  /* URBANO DARK */
-
-  .urbano-dark { background: #121212; color: white; padding: 20px 10px; font-family: 'Inter', sans-serif; height: 100%;overflow: hidden;  display: flex; flex-direction: column; }
-  .urbano-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-  .urbano-brand { display: flex; gap: 8px; align-items: center; }
-  .urbano-logo { width: 32px; height: 32px; background: #333; border-radius: 50%; border: 2px solid white; background-size: cover; background-position: center; }
-  .urbano-names h4 { font-size: 12px; font-weight: 800; margin: 0; line-height: 1.1; }
-  .urbano-names span { font-size: 8px; color: #aaa; }
-  .urbano-status { background: #22c55e; color: #000; font-size: 7px; font-weight: 800; padding: 2px 5px; border-radius: 12px; }
-  .urbano-msg { background: #1E1E1E; padding: 6px; border-radius: 6px; font-size: 8px; color: #ddd; margin-bottom: 12px; border-left: 3px solid #ea580c; }
-  .urbano-item { background: #1E1E1E; padding: 8px; border-radius: 10px; display: flex; gap: 8px; margin-bottom: 8px; position: relative; }
-  .urbano-img { width: 50px; height: 50px; background-size: cover; border-radius: 6px; background-position: center; flex-shrink: 0; }
-  .urbano-info { flex: 1; padding-right: 15px; }
-  .urbano-tit { font-weight: 700; font-size: 10px; margin-bottom: 2px; }
-  .urbano-desc { font-size: 7px; color: #888; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .urbano-price { color: #ea580c; font-weight: 800; font-size: 10px; margin-top: 2px; }
-  .urbano-add-btn { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: none; font-size: 12px; }
-
-  /* VISUAL GRID (CON HOVER) */
-  .sushi-visual { background: #1a1a1a; color: white; padding: 15px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column;}
-  .sushi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-  .sushi-brand { display: flex; align-items: center; gap: 8px; }
-  .sushi-logo { width: 30px; height: 30px; border-radius: 50%; background-size: cover; border: 2px solid #ea580c; flex-shrink: 0; }
-  .sushi-name { font-size: 11px; font-weight: 800; line-height: 1.2; }
-  .sushi-desc-local { font-size: 7px; color: #bbb; }
-  .sushi-status { font-size: 6px; font-weight: bold; background: #22c55e; color: black; padding: 2px 4px; border-radius: 4px; }
- /* NUEVO ESTILO PROMO VISUAL GRID */
-  .sushi-msg { 
-      background: #1E1E1E; 
-      padding: 10px 12px; 
-      border-radius: 12px; 
-      font-size: 8px; 
-      color: #fff; 
-      margin: 0 1px 15px; 
-      border-left: 4px solid #ea580c; 
-      font-weight: 700;
-      text-align: left;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+function renderRealTemplate(id: string, isOpen: boolean) {
+  const m = PREVIEW_MOCK;
+  switch (id) {
+    case 'classic':     return <ClassicDelivery    restaurant={m.classic.restaurant}     products={m.classic.products}     categories={m.classic.categories}     fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'urban':       return <UrbanoDark         restaurant={m.urban.restaurant}       products={m.urban.products}       categories={m.urban.categories}       fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'minimal':     return <MinimalWhite       restaurant={m.minimal.restaurant}     products={m.minimal.products}     categories={m.minimal.categories}     fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'visualgrid':  return <VisualGrid         restaurant={m.visualgrid.restaurant}  products={m.visualgrid.products}  categories={m.visualgrid.categories}  fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'spotlight':   return <SpotlightHero      restaurant={m.spotlight.restaurant}   products={m.spotlight.products}   categories={m.spotlight.categories}   fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'icecream-v1':    return <HeladeriaSoft      restaurant={m.icecream.restaurant}    products={m.icecream.products}                                           isOpen={isOpen} onAddToCart={PREVIEW_NOOP} isMockup={true} />;
+    case 'marketpro':   return <MarketProTemplate  restaurant={m.marketpro.restaurant}   products={m.marketpro.products}   categories={m.marketpro.categories}   fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'alterna-pro': return <AlternaPro         restaurant={m['alterna-pro'].restaurant} products={m['alterna-pro'].products}                                  isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} setSelectedProduct={PREVIEW_NOOP} isMockup={true} />;
+    case 'carta':       return <Carta              restaurant={m.carta.restaurant}       products={m.carta.products}       categories={m.carta.categories}       fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    default: return null;
   }
-  .sushi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; overflow-y: auto; padding-bottom: 10px; }
-  .sushi-item { height: 110px; border-radius: 8px; position: relative; overflow: hidden; background-size: cover; background-position: center; cursor: pointer; }
-  .sushi-overlay { 
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; 
-      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); 
-      padding: 6px; display: flex; flex-direction: column; justify-content: flex-end;
-      transition: all 0.3s ease;
-  }
-  .sushi-title { font-weight: bold; font-size: 9px; text-shadow: 0 1px 2px black; }
-  .sushi-price { color: #ea580c; font-size: 9px; font-weight: bold; text-shadow: 0 1px 2px black; }
-  /* HOVER EFFECTS */
-  .sushi-desc { font-size: 8px; color: #ddd; margin: 4px 0; display: none; text-align: center; }
-  .sushi-btn { background: #ea580c; color: white; border: none; padding: 3px 8px; border-radius: 10px; font-size: 7px; font-weight: bold; margin-top: 3px; display: none; }
-  .sushi-item:hover .sushi-overlay { height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; }
-  .sushi-item:hover .sushi-desc { display: block; }
-  .sushi-item:hover .sushi-btn { display: block; }
-
-  /* CLASSIC */
-  .classic-del { background: white; font-family: Arial, sans-serif;min-height: 100vh;; display: flex; max-height: 100%; flex-direction: column; }
-  .classic-header { background: #d32f2f; padding: 25px 8px;  color: white; text-align: center; position: relative; }
-  .classic-logo { width: 26px; height: 26px; background: white; border-radius: 50%; color: #d32f2f; display: grid; place-items: center; font-size: 9px; margin: 0 auto 4px; font-weight: bold; }
-  .classic-title { font-size: 11px; font-weight: bold; }
-  .classic-status { position: absolute; top: 12px; right: 20px; background: white; color: #d32f2f; font-size: 6px; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
-  .classic-msg { background: #ffebee; color: #b71c1c; font-size: 8px; padding: 5px; text-align: center; border-bottom: 1px solid #ffcdd2; }
-  .classic-list { padding: 8px 10px; flex: 1; overflow-y: auto; }
-  .classic-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 6px 0; align-items: center; }
-  .classic-info { flex: 1; }
-  .classic-prod { font-weight: bold; font-size: 10px; color: #333; }
-  .classic-desc { font-size: 8px; color: #777; }
-  .classic-price { font-weight: bold; font-size: 10px; color: #d32f2f; margin-right: 6px; }
-  .classic-btn { width: 18px; height: 18px; border: 1px solid #ddd; background: white; color: #555; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; }
-
-  /* MINIMAL */
-  .minimal-white { background: white; padding: 20px 23px; text-align: center; font-family: 'Lato', sans-serif; color: #222; height:100%; display: flex; flex-direction: column; }
-  .minimal-header { margin-bottom: 15px; }
-  .minimal-logo { width: 34px; height: 34px; background: #111; color: white; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; }
-  .minimal-title { font-weight: 900; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
-  .minimal-status { position: absolute; top: 12px; right: 12px; font-size: 6px; font-weight: bold; text-transform: uppercase; border: 1px solid #222; padding: 1px 3px; border-radius: 2px; }
-  .minimal-msg { border: 1px solid #eee; background: #fafafa; padding: 6px; font-size: 7px; margin: 10px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
-  .minimal-list { text-align: left; flex: 1; overflow-y: auto; }
-  .minimal-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
-  .minimal-prod { font-weight: 700; font-size: 10px; }
-  .minimal-desc { font-size: 7px; color: #999; margin-top: 1px; }
-  .minimal-price { font-weight: 900; font-size: 9px; }
-  .minimal-btn { width: 16px; height: 16px; background: #222; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; border: none; }
-
-  /* POP VIBRANT */
-  .pop-vibrant { background: #fffbe6; padding: 12px; font-family: 'Inter', sans-serif; height: 100%; display: flex; flex-direction: column;}
-  .pop-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; background: #fff; border: 2px solid #000; padding: 6px; border-radius: 8px; box-shadow: 3px 3px 0 #000; position: relative; }
-  .pop-logo { width: 30px; height: 30px; background: #FF1493; border: 2px solid #000; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: white; font-size: 7px; }
-  .pop-title { font-weight: 900; font-size: 11px; text-transform: uppercase; color: #000; line-height: 1; }
-  .pop-status { background: #00CED1; color: black; border: 2px solid #000; font-size: 6px; font-weight: 900; padding: 1px 4px; transform: rotate(-5deg); position: absolute; top: -6px; right: -4px; }
-  .pop-msg { background: #FFD700; border: 2px solid #000; padding: 5px; margin-bottom: 12px; font-weight: 700; font-size: 8px; text-align: center; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); transform: rotate(1deg); }
-  .pop-list { flex: 1; overflow-y: auto; padding: 2px; }
-  .pop-item { background: white; border: 2px solid #000; border-radius: 8px; padding: 8px; margin-bottom: 8px; box-shadow: 2px 2px 0 #FF1493; }
-  .pop-item-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px; }
-  .pop-prod { font-weight: 900; font-size: 10px; text-transform: uppercase; color: #FF1493; }
-  .pop-price { background: #000; color: #fff; padding: 1px 5px; font-size: 8px; font-weight: 700; border-radius: 3px; transform: rotate(2deg); }
-  .pop-desc { font-size: 8px; color: #444; line-height: 1.1; margin-bottom: 6px; }
-  .pop-btn { width: 100%; background: #fff; border: 2px solid #000; padding: 3px; border-radius: 20px; font-weight: 900; font-size: 7px; text-transform: uppercase; text-align: center; }
-
-  /* SPOTLIGHT */
-  .spot-hero { background: white; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; text-align: left; }
-  
-  /* Header con Status Pill */
-  .spot-header-mini { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f8f8f8; }
-  .spot-logo-mini { width: 22px; height: 22px; background: #000; border-radius: 50%; display: grid; place-items: center; color: white; font-size: 7px; font-weight: bold; background-size: cover; }
-  .spot-status-mini { background: #22c55e; color: white; font-size: 6px; font-weight: 800; padding: 2px 5px; border-radius: 10px; }
-  
-  /* Banner con Botón + */
-  .spot-banner-mini { height: 130px; background-size: cover; background-position: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; }
-  .spot-overlay-mini { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent 70%); }
-  .spot-info-mini { position: relative; z-index: 2; color: white; }
-  .spot-badge-mini { background: #FFD700; color: black; padding: 2px 5px; font-size: 6px; font-weight: 900; border-radius: 4px; display: inline-block; margin-bottom: 3px; text-transform: uppercase; }
-  .spot-title-mini { font-size: 14px; font-weight: 900; line-height: 1; text-transform: uppercase; font-style: italic; }
-  .spot-price-mini { font-size: 11px; font-weight: 800; color: #FFD700; margin-top: 2px; }
-  .spot-hero-btn-mini { position: absolute; bottom: 12px; right: 12px; width: 28px; height: 28px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 5; }
-
-  /* Lista con Botones + */
-  .spot-list-mini { padding: 10px; flex: 1; overflow-y: auto; background: white; }
-  .spot-item-mini { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
-  .spot-thumb-mini { width: 40px; height: 40px; background-size: cover; border-radius: 8px; background-color: #eee; flex-shrink: 0; }
-  .spot-details-mini { flex: 1; }
-  .spot-details-mini h5 { font-size: 9px; font-weight: 800; margin: 0; text-transform: uppercase; }
- .spot-details-mini p { 
-    font-size: 7px; 
-    color: #999; 
-    margin: 1px 0; 
-    /* Borramos: line-clamp, display: -webkit-box, etc. */
 }
-  .spot-add-mini { width: 20px; height: 20px; background: #000; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
 
-  /* ELEGANT */
-  .elegant-serif { background: #f9f5f0; padding: 15px; font-family: 'Playfair Display', serif; color: #333; text-align: center; height: 100%; display: flex; flex-direction: column; }
-  .elegant-logo { width: 28px; height: 28px; margin: 0 auto 4px; border: 1px solid #D4AF37; border-radius: 50%; display: grid; place-items: center; color: #D4AF37; }
-  .elegant-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-  .elegant-msg { background: #f0e8dc; border: 1px solid #e0d0b8; padding: 6px; font-size: 8px; color: #5c4b30; margin: 12px 0; font-style: italic; }
-  .elegant-list { text-align: left; flex: 1; overflow-y: auto; }
-  .elegant-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eaddc5; }
-  .elegant-prod { font-weight: 700; font-size: 10px; }
-  .elegant-price { color: #D4AF37; font-weight: 700; font-size: 9px; }
-
-  /* BISTRO */
-  .bistro-chalk { 
- background: #222; 
-      color: #eee; 
-      padding: 12px; 
-      font-family: 'Patrick Hand', cursive; 
-      height: 100%;        /* Ocupa exactamente el alto del celu */
-      display: flex; 
-      flex-direction: column; 
-      width: 100%;
-      overflow: hidden;
-  }
-  .bistro-border { 
-    border: 2px dashed #555; 
-      padding: 8px; 
-      border-radius: 8px; 
-      display: flex; 
-      flex-direction: column; 
-      flex: 1;             /* Se estira hasta el fondo del 100% */
-      width: 100%;
-      height: 100%;
-  }
-  .bistro-header { text-align: center; margin-bottom: 12px; }
-  .bistro-logo { width: 32px; height: 32px; margin: 0 auto 4px; border: 2px solid #e6c87e; border-radius: 50%; display: grid; place-items: center; color: #e6c87e; font-size: 12px; }
-  .bistro-list { flex: 1; overflow-y: auto; }
-  .bistro-item { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-  .bistro-name { font-size: 11px; color: #fff; }
-  .bistro-dots { flex: 1; border-bottom: 1px dotted #555; margin: 0 4px; }
-  .bistro-price { font-size: 11px; color: #e6c87e; }
-  
-  /* --- ESTILOS MARKET PRO --- */
-  .market-pro { background: white; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; padding: 10px; }
-  .market-logo-wrap { width: 35px; height: 35px; background: #eee; border-radius: 50%; margin: 5px auto 8px; overflow: hidden; border: 1px solid #f0f0f0; }
-  .market-logo-wrap img { width: 100%; height: 100%; object-fit: cover; }
-  .market-search-fake { background: #f3f4f6; border-radius: 12px; height: 25px; margin-bottom: 12px; display: flex; align-items: center; padding: 0 8px; font-size: 7px; color: #999; }
-  .market-banner { width: 100%; height: 60px; background: #eee; border-radius: 12px; margin-bottom: 15px; position: relative; overflow: hidden; }
-  .market-banner img { width: 100%; height: 100%; object-fit: cover; }
-  .market-cats { display: flex; gap: 5px; margin-bottom: 15px; overflow: hidden; }
-  .market-cat-pill { padding: 4px 10px; background: #eee; border-radius: 20px; font-size: 6px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
-  .market-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .market-item { display: flex; flex-direction: column; gap: 3px; }
-  .market-img { aspect-ratio: 1/1; background: #f9f9f9; border-radius: 8px; overflow: hidden; }
-  .market-img img { width: 100%; height: 100%; object-fit: cover; }
-  .market-name { font-size: 6px; font-weight: 800; line-height: 1.1; color: #333; }
-  .market-price { font-size: 6px; font-weight: 900; color: #999; }
-  
-`
-
-
-;
 
 // --- DATA ---
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic Delivery', type: 'classic', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
-  { id: 'urban', name: 'Urbano Dark', type: 'urban', category: 'basicas', sale_type: 'unidad', hasPhotos: true },
-  { id: 'minimal', name: 'Minimalista', type: 'minimal', category: 'basicas', sale_type: 'unidad', hasPhotos: false },
-  { id: 'visualgrid', name: 'Visual Grid', type: 'visualgrid', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true },
-  
-  { id: 'pop', name: 'Pop Vibrante', type: 'pop', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-  { id: 'spotlight', name: 'Spotlight Hero', type: 'spotlight', category: 'basicas', sale_type: 'unidad', hasPhotos: true, premium: true, isUpcoming: false},
-  { id: 'elegant', name: 'Elegante Serif', type: 'elegant', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-  { id: 'bistro', name: 'Bistro Chalk', type: 'bistro', category: 'basicas', sale_type: 'unidad', hasPhotos: false, premium: true, isUpcoming: true },
-
-  { id: 'icecream-v1', name: 'Soft Premium', type: 'icecream', category: 'basicas', sale_type: 'peso', hasPhotos: false, premium: true },
-  { id: 'marketpro', name: 'Market Pro', type: 'marketpro', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
-  { id: 'alterna-pro', name: 'Alterna Pro', type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true, premium: true },
-  { id: 'carta', name: 'Carta', type: 'carta', category: 'completas', sale_type: 'unidad', hasPhotos: true, premium: true },
+  { id: 'classic',     name: 'Classic Delivery', type: 'classic',     category: 'basicas',   sale_type: 'unidad',           hasPhotos: false, businessCategory: 'delivery',     idealFor: 'Ideal para pizzería y delivery' },
+  { id: 'urban',       name: 'Urbano Dark',       type: 'urban',       category: 'basicas',   sale_type: 'unidad',           hasPhotos: true,  businessCategory: 'delivery',     idealFor: 'Ideal para hamburguesería y street food' },
+  { id: 'minimal',     name: 'Minimalista',       type: 'minimal',     category: 'basicas',   sale_type: 'unidad',           hasPhotos: false, businessCategory: 'elegante',     idealFor: 'Ideal para cafetería y panadería' },
+  { id: 'visualgrid',  name: 'Visual Grid',       type: 'visualgrid',  category: 'basicas',   sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'heladeria',    idealFor: 'Ideal para heladería y negocios visuales' },
+  { id: 'spotlight',   name: 'Spotlight Hero',    type: 'spotlight',   category: 'basicas',   sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
+  { id: 'icecream-v1', name: 'Soft Premium',      type: 'icecream',    category: 'basicas',   sale_type: 'peso',             hasPhotos: false, premium: true, businessCategory: 'heladeria',    idealFor: 'Ideal para heladería y dietética' },
+  { id: 'marketpro',   name: 'Market Pro',        type: 'marketpro',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'kiosco',       idealFor: 'Ideal para kiosco y despensa' },
+  { id: 'alterna-pro', name: 'Alterna Pro',       type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true,  premium: true, businessCategory: 'elegante',     idealFor: 'Ideal para carta compleja y mercado', featured: true },
+  { id: 'carta',       name: 'Carta',             type: 'carta',       category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
 ];
 
 function GalleryContent() {
-  const [photoFilter, setPhotoFilter] = useState<'todas' | 'con-foto' | 'sin-foto'>('todas');
-  const [mainCategory, setMainCategory] = useState<'basicas' | 'completas' | 'todas'>('todas');
+  const [businessFilter, setBusinessFilter] = useState<'todas' | 'restaurante' | 'delivery' | 'kiosco' | 'heladeria' | 'elegante'>('todas');
   const [isOpen, setIsOpen] = useState(true);
   const searchParams = useSearchParams();
   const isNewlyActivated = searchParams.get('activated')
@@ -497,7 +392,7 @@ useEffect(() => {
     };
     loadAllData();
 }, [supabase]);
-  // --- LOGICA DE SELECCIÓN CORREGIDA (HARD RESET) ---
+  // --- LOGICA DE SELECCI�"N CORREGIDA (HARD RESET) ---
  const handleSelect = async (id: string, premium: boolean) => {
     if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
     
@@ -538,386 +433,14 @@ useEffect(() => {
     setSavingId(null);
   };
 
-  const renderPreview = (type: string) => {
-    switch (type) {
-      case 'urban': return (
-        <div className="urbano-dark">
-          <div className="urbano-top"><div className="urbano-brand"><div className="urbano-logo" style={{backgroundImage: "url('https://placehold.co/100/333/fff?text=BK')"}}></div><div className="urbano-names"><h4>Burger King</h4><span>La mejor hamburguesa</span></div></div><div className="urbano-status">ABIERTO</div></div>
-          <div className="urbano-msg">🔥 PROMO: Envío gratis {'>'} $15.000</div>
-          <div className="urbano-list">
-            <div className="urbano-item"><div className="urbano-img" style={{backgroundImage: "url('https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100')"}}></div><div className="urbano-info"><div className="urbano-tit">Doble Black</div><div className="urbano-desc">Medallón de carne 180g.</div><div className="urbano-price">$8.500</div></div><button className="urbano-add-btn">+</button></div>
-            <div className="urbano-item"><div className="urbano-img" style={{backgroundImage: "url('https://images.unsplash.com/photo-1573080496987-a199f8cd4054?auto=format&fit=crop&w=100')"}}></div><div className="urbano-info"><div className="urbano-tit">Papas Cheddar</div><div className="urbano-desc">Con abundante queso.</div><div className="urbano-price">$4.200</div></div><button className="urbano-add-btn">+</button></div>
-          </div>
-        </div>
-      );
-      case 'visualgrid': return (
-        <div className="sushi-visual">
-          <div className="sushi-header"><div className="sushi-brand"><div className="sushi-logo" style={{backgroundImage: "url('https://placehold.co/100/000/fff?text=OS')"}}></div><div><div className="sushi-name">OSAKA SUSHI</div><div className="sushi-desc-local">Cocina Nikkei</div></div></div><div className="sushi-status">ABIERTO</div></div>
-          <div className="sushi-msg">🍣 Happy Hour: 2x1 en Rolls.</div>
-          <div className="sushi-grid">
-            <div className="sushi-item" style={{backgroundImage: "url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=150')"}}><div className="sushi-overlay"><div className="sushi-title">Niguiri</div><div className="sushi-price">$12.500</div><div className="sushi-desc">Premium.</div><button className="sushi-btn">AGREGAR</button></div></div>
-            <div className="sushi-item" style={{backgroundImage: "url('https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=150')"}}><div className="sushi-overlay"><div className="sushi-title">California</div><div className="sushi-price">$14.000</div><div className="sushi-desc">Con palta.</div><button className="sushi-btn">AGREGAR</button></div></div>
-          </div>
-        </div>
-      );
-      case 'classic': return (
-        <div className="classic-del">
-          <div className="classic-header"><div className="classic-status">ABIERTO</div><div className="classic-logo">LT</div><div className="classic-title">Pizzería Los Tíos</div><div style={{fontSize:'8px', opacity:0.8}}>Pizza a la piedra</div></div>
-          <div className="classic-msg">🛵 Envío GRATIS primera compra</div>
-          <div className="classic-list">
-            <div className="classic-item"><div className="classic-info"><div className="classic-prod">Muzzarella</div><div className="classic-desc">Salsa, muzza y orégano.</div></div><div className="classic-price">$8.500</div><div className="classic-btn">+</div></div>
-            <div className="classic-item"><div className="classic-info"><div className="classic-prod">Napolitana</div><div className="classic-desc">Con ajo y perejil.</div></div><div className="classic-price">$10.200</div><div className="classic-btn">+</div></div>
-            <div className="classic-item"><div className="classic-info"><div className="classic-prod">Fainá</div><div className="classic-desc">Porción individual.</div></div><div className="classic-price">$1.500</div><div className="classic-btn">+</div></div>
-            <div className="classic-item"><div className="classic-info"><div className="classic-prod">Coca Cola</div></div><div className="classic-price">$3.000</div><div className="classic-btn">+</div></div>
-          </div>
-        </div>
-      );
-      case 'minimal': return (
-        <div className="minimal-white">
-          <div className="minimal-status">ABIERTO</div><div className="minimal-logo"><Coffee size={16}/></div><div className="minimal-title">CAFÉ CENTRAL</div><div style={{fontSize:'8px', color:'#777'}}>Specialty Coffee</div>
-          <div className="minimal-msg">TAKE AWAY: 10% OFF EFECTIVO</div>
-          <div className="minimal-list">
-            <div className="minimal-item"><div><div className="minimal-prod">Avocado Toast</div><div className="minimal-desc">Masa madre.</div><div className="minimal-price">$5.500</div></div><button className="minimal-btn">+</button></div>
-            <div className="minimal-item"><div><div className="minimal-prod">Flat White</div><div className="minimal-desc">Doble shot.</div><div className="minimal-price">$2.800</div></div><button className="minimal-btn">+</button></div>
-            <div className="minimal-item"><div><div className="minimal-prod">Croissant</div><div className="minimal-desc">Jamón y Queso</div></div><button className="minimal-btn">+</button></div>
-          </div>
-        </div>
-      );
-      case 'pop': return (
-        <div className="pop-vibrant">
-          <div className="pop-header"><div className="pop-logo">DM!</div><div><div className="pop-title">DONUT MANIA</div><div style={{fontSize:'8px', color:'#555'}}>Donas • Café</div></div><div className="pop-status">OPEN</div></div>
-          <div className="pop-msg">⚡ 3x2 en donas rellenas</div>
-          <div className="pop-list">
-            <div className="pop-item" style={{boxShadow: '2px 2px 0 #FF1493'}}><div className="pop-item-top"><div className="pop-prod" style={{color:'#FF1493'}}>Homer Simpson</div><div className="pop-price">$1.500</div></div><div style={{fontSize:'8px', color:'#555'}}>Glaseado rosa.</div><div className="pop-btn" style={{borderColor:'#FF1493', color:'#FF1493'}}>+ AGREGAR</div></div>
-            <div className="pop-item" style={{boxShadow: '2px 2px 0 #00CED1'}}><div className="pop-item-top"><div className="pop-prod" style={{color:'#008B8B'}}>Choco Bomba</div><div className="pop-price">$1.800</div></div><div style={{fontSize:'8px', color:'#555'}}>Dulce de leche.</div><div className="pop-btn" style={{borderColor:'#008B8B', color:'#008B8B'}}>+ AGREGAR</div></div>
-          </div>
-        </div>
-      );
-    case 'spotlight': return (
-        <div className="spot-hero">
-          {/* Header Superior con Descripción */}
-          <div className="spot-header-mini">
-            <div className="flex items-center gap-2">
-              <div className="spot-logo-mini">CM</div>
-              <div className="text-left">
-                <div style={{fontSize:'9px', fontWeight:'800'}}>CLUB MERCEDES</div>
-                <div style={{fontSize:'7px', opacity:0.5, fontWeight:'600'}}>RESTAURANTE</div>
-              </div>
-            </div>
-            <div className="spot-status-mini">ABIERTO</div>
-          </div>
+// --- L�"GICA DE RENDERIZADO ---
 
-          {/* Banner con Imagen de Estofado y Botón + */}
-          <div className="spot-banner-mini" style={{backgroundImage: "url('https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=300')"}}>
-            <div className="spot-overlay-mini"></div>
-            <div className="spot-info-mini">
-              <div className="spot-badge-mini">PLATO DEL DIA</div>
-              <div className="spot-title-mini">ESTOFADO</div>
-              <div className="spot-price-mini">$ 28.000</div>
-            </div>
-            <div className="spot-hero-btn-mini">+</div>
-          </div>
-
-          {/* Mensaje Promo */}
-          <div style={{background:'#fff3e0', fontSize:'8px', padding:'6px', textAlign:'center', fontWeight:'700', color: '#000'}}>
-             Envios gratis todos los jueves
-          </div>
-
-          {/* Lista de Productos con imágenes correspondientes y botones + */}
-          <div className="spot-list-mini">
-           <div className="spot-item-mini">
-  
-    <div className="spot-thumb-mini" style={{backgroundImage:"url('https://images.unsplash.com/photo-1606471191009-63994c53433b?auto=format&fit=crop&w=100')"}}></div>
-    <div className="spot-details-mini text-left">
-      <h5>Milanesa Napo</h5>
-      <p>Con fritas y ensalada.</p>
-      <div style={{fontWeight:'800', fontSize:'9px'}}>$ 16.000</div>
-    </div>
-    <div className="spot-add-mini">+</div>
-  </div>
-            <div className="spot-item-mini">
-              <div className="spot-thumb-mini" style={{backgroundImage:"url('https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=100')"}}></div>
-              <div className="spot-details-mini text-left">
-                <h5>Matambre Pizza</h5>
-                <p>Muzzarella y jamón.</p>
-                <div style={{fontWeight:'800', fontSize:'9px'}}>$ 25.000</div>
-              </div>
-              <div className="spot-add-mini">+</div>
-            </div>
-          </div>
-        </div>
-      );
-      case 'elegant': return (
-        <div className="elegant-serif">
-          <div className="elegant-logo"><Utensils size={14}/></div><div className="elegant-title">LA BOURGOGNE</div><div style={{fontSize:'8px', fontStyle:'italic', color:'#777'}}>Alta Cocina</div>
-          <div className="elegant-msg">"Sugerencia del Chef: Maridaje de quesos."</div>
-          <div className="elegant-list">
-            <div className="elegant-item"><div><div className="elegant-prod">Boeuf Bourguignon</div><div style={{fontSize:'8px', fontStyle:'italic', color:'#888'}}>Estofado al vino.</div></div><div className="elegant-price">$22.000</div></div>
-            <div className="elegant-item"><div><div className="elegant-prod">Coq au Vin</div><div style={{fontSize:'8px', fontStyle:'italic', color:'#888'}}>Pollo de campo.</div></div><div className="elegant-price">$19.500</div></div>
-            <div className="elegant-item"><div><div className="elegant-prod">Crème Brûlée</div><div style={{fontSize:'8px', fontStyle:'italic', color:'#888'}}>Postre clásico.</div></div><div className="elegant-price">$8.200</div></div>
-          </div>
-        </div>
-      );
-      case 'bistro': return (
-        <div className="bistro-chalk">
-          <div className="bistro-border">
-            <div className="bistro-header"><div className="bistro-logo">EB</div><div style={{fontSize:'16px', color:'#e6c87e'}}>El Bodegón</div><div style={{fontSize:'10px', color:'#aaa'}}>Comida Casera</div></div>
-            <div className="bistro-list">
-              <div className="bistro-item"><div className="bistro-name">Tortilla</div><div className="bistro-dots"></div><div className="bistro-price">$4.500</div></div>
-              <div className="bistro-item"><div className="bistro-name">Milanesa</div><div className="bistro-dots"></div><div className="bistro-price">$9.200</div></div>
-              <div className="bistro-item"><div className="bistro-name">Vermut</div><div className="bistro-dots"></div><div className="bistro-price">$3.000</div></div>
-              <div className="bistro-item"><div className="bistro-name">Picada</div><div className="bistro-dots"></div><div className="bistro-price">$12.000</div></div>
-            </div>
-          </div>
-        </div>
-      );
-
-  case 'marketpro': return (
-    <div className="market-pro">
-      <div className="market-logo-wrap"><img src="https://placehold.co/100x100?text=Logo" alt="logo" /></div>
-      <div className="market-search-fake"><Search size={8} style={{marginRight: 4}}/> ¿Qué estás buscando hoy?</div>
-      <div className="market-banner"><img src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300" alt="banner" /></div>
-      <div className="market-cats">
-        <div className="market-cat-pill" style={{background: '#000', color: '#fff'}}>TODOS</div>
-        <div className="market-cat-pill">BURGERS</div>
-        <div className="market-cat-pill">PAPAS</div>
-      </div>
-      <div className="market-grid">
-        {[1,2,3].map(i => (
-           <div key={i} className="market-item">
-              <div className="market-img"><img src={`https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100`} /></div>
-              <div className="market-name uppercase italic">Bacon Burger</div>
-              <div className="market-price">$8.500</div>
-           </div>
-        ))}
-      </div>
-    </div>
+const finalTemplates = TEMPLATES.filter(t =>
+    businessFilter === 'todas' || t.businessCategory === businessFilter
   );
-case 'icecream': return (
-  <div className="flex flex-col h-full bg-[#f0faff] font-sans text-left relative">
-    <div className="p-3 bg-white border-b flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px] shadow-sm">
-          🍦
-        </div>
-        <div className="flex flex-col text-left">
-          <span className="text-[9px] font-black uppercase tracking-tighter text-gray-800 leading-none">
-            Frozen Dreams
-          </span>
-          <span className="text-[6px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-            Heladería Artesanal
-          </span>
-        </div>
-      </div>
-
-      {/* Cartel Dinámico: Verde si abre, Rojo si cierra */}
-      <div className={`${isOpen ? 'bg-green-500' : 'bg-red-500'} text-white text-[5px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest transition-colors`}>
-        {isOpen ? 'Abierto' : 'Cerrado'}
-      </div>
-    </div>
-    
-    <div className="p-3">
-      <div className="bg-cyan-100 p-2 rounded-lg text-[7px] text-cyan-800 font-bold mb-3 text-center border border-cyan-200">
-          🍦 PROMO: 1/4kg de regalo comprando 1kg
-      </div>
-      
-      <div className="bg-white p-3 rounded-xl shadow-sm border border-cyan-50">
-        <div className="flex justify-between items-start mb-2">
-          <div className="text-left">
-            <h4 className="text-[10px] font-black uppercase leading-tight text-gray-900">Pote de Helado</h4>
-            <p className="text-[7px] text-gray-400">Hasta 3 sabores a elección</p>
-          </div>
-          <div className="text-right">
-             <span className="text-[10px] font-black text-cyan-600 block leading-none">$12.500</span>
-             <span className="text-[5px] text-gray-400 uppercase font-bold tracking-tighter">precio por kg</span>
-          </div>
-        </div>
-        
-        <p className="text-[6px] font-black uppercase text-gray-400 mb-1">Seleccionar cantidad:</p>
-        <div className="grid grid-cols-3 gap-1">
-          {/* Los selectores de peso también cambian de color si está cerrado */}
-          <div className={`border-2 rounded-md py-1 text-[7px] text-center font-black tracking-tighter ${isOpen ? 'border-cyan-500 bg-cyan-50 text-cyan-600' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>1/4 KG</div>
-          <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold tracking-tighter">1/2 KG</div>
-          <div className="border border-gray-100 rounded-md py-1 text-[7px] text-center text-gray-400 font-bold tracking-tighter">1 KG</div>
-        </div>
-        
-        {/* Botón: Se bloquea y se pone gris si está cerrado */}
-        <button 
-          disabled={!isOpen}
-          className={`w-full mt-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md transition-all ${
-            isOpen 
-              ? 'bg-cyan-500 text-white active:scale-95 shadow-cyan-100' 
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          {isOpen ? 'Agregar al carrito' : 'Local Cerrado'}
-        </button>
-      </div>
-    </div>
-  </div>
-  
-);
-
-case 'alterna-pro':
-  return (
-    <div className="w-full h-full bg-[#fafaf9] flex flex-col overflow-hidden relative font-sans select-none">
-      
-      {/* 1. HEADER - TAMAÑOS INTERMEDIOS */}
-      <div className="pt-4 px-3 pb-2 bg-white relative flex-shrink-0 border-b border-gray-50">
-        {/* Status Pill tamaño medio */}
-        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Abierto</span>
-        </div>
-        
-        {/* Logo Mediano: de w-16 a w-12 */}
-        <div className="w-12 h-12 rounded-full bg-orange-100 border-2 border-orange-200 mx-auto mb-1.5 flex items-center justify-center overflow-hidden shadow-sm">
-           <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=80" className="object-cover w-full h-full" />
-        </div>
-        
-        {/* Título: de text-base a text-sm (14px) */}
-        <div className="text-sm font-black uppercase text-gray-900 leading-none text-center tracking-tighter">Eco Nature</div>
-        {/* Subtítulo: text-[9px] */}
-        <div className="text-[9px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter text-center leading-none">Productos Orgánicos</div>
-      </div>
-
-      {/* 2. BANNER DE PROMOS - AJUSTADO */}
-      <div className="px-3 py-1.5 flex-shrink-0">
-        <div className="bg-orange-50 border-2 border-dashed border-orange-200 rounded-lg py-1.5 text-center">
-          <span className="text-[9px] font-black text-orange-700 uppercase tracking-widest leading-none block">
-             Envío Gratis — Compras +$20.000
-          </span>
-        </div>
-      </div>
-
-      {/* 3. BOTONES DE CATEGORÍA - AJUSTADOS */}
-      <div className="flex gap-1.5 px-3 py-1.5 justify-center flex-shrink-0 border-b border-gray-100 bg-white">
-        {['Mixes', 'Mieles', 'Harinas'].map((cat, i) => (
-          <div key={i} className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border-2 ${i === 0 ? 'bg-orange-600 text-white border-orange-600 shadow-sm' : 'bg-white text-gray-400 border-gray-100'}`}>
-            {cat}
-          </div>
-        ))}
-      </div>
-
-      {/* 4. LISTADO ZIG-ZAG - CÍRCULOS DE PRODUCTO MEDIANOS */}
-      <div className="flex-1 p-3 space-y-4 overflow-hidden">
-        
-        {/* PRODUCTO 1 */}
-        <div className="flex items-center gap-3">
-          {/* Imagen: de w-24 a w-16 */}
-          <div className="w-16 h-16 rounded-full border-[3px] border-orange-600 shrink-0 overflow-hidden shadow-lg">
-             <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=100" className="object-cover w-full h-full" />
-          </div>
-          <div className="flex-1 min-w-0 flex flex-col items-start space-y-1">
-            <div className="leading-none">
-              {/* Texto labels: de text-xs a text-[11px] */}
-              <span className="inline-block bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm text-[11px] font-black text-gray-900 uppercase">
-                  Mix Frutos Secos
-              </span>
-            </div>
-            <div className="inline-block bg-orange-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-md leading-none border border-white/20">
-              $8.500
-            </div>
-          </div>
-        </div>
-
-        {/* PRODUCTO 2 (INVERTIDO) */}
-        <div className="flex items-center gap-3 flex-row-reverse">
-          <div className="w-16 h-16 rounded-full border-[3px] border-orange-600 shrink-0 overflow-hidden shadow-lg">
-             <img src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=100" className="object-cover w-full h-full" />
-          </div>
-          <div className="flex-1 text-right min-w-0 flex flex-col items-end space-y-1">
-            <div className="leading-none">
-              <span className="inline-block bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm text-[11px] font-black text-gray-900 uppercase">
-                  Miel Orgánica
-              </span>
-            </div>
-            <div className="inline-block bg-orange-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-md leading-none border border-white/20">
-              $4.200
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-      case 'carta': return (
-        <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: '#F7F3EE', fontFamily: 'Georgia, serif', color: '#1C1A18' }}>
-          {/* HEADER */}
-          <div className="pt-4 px-3 pb-2 text-center relative flex-shrink-0">
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-tighter">Abierto</span>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-white border-2 mx-auto mb-1 flex items-center justify-center" style={{ borderColor: '#B5863A' }}>
-              <span className="text-[10px] font-bold" style={{ color: '#B5863A' }}>LB</span>
-            </div>
-            <div className="text-sm font-bold" style={{ letterSpacing: '0.04em' }}>La Bourgogne</div>
-            <div className="text-[8px] mt-0.5" style={{ color: '#8a8278' }}>Restaurante de Autor</div>
-            <div className="text-[10px] mt-1" style={{ color: '#B5863A', letterSpacing: '0.4em' }}>✦ ✦ ✦</div>
-          </div>
-
-          {/* CATEGORÍAS */}
-          <div className="flex gap-1.5 px-3 py-1.5 justify-center flex-shrink-0">
-            {['Entradas', 'Principales', 'Postres'].map((cat, i) => (
-              <div key={i} className="px-2 py-1 rounded-full text-[8px] font-bold uppercase border" style={{
-                backgroundColor: i === 0 ? '#1C1A18' : '#F7F3EE',
-                color: i === 0 ? '#F7F3EE' : '#9a948c',
-                borderColor: '#B5863A55'
-              }}>
-                {cat}
-              </div>
-            ))}
-          </div>
-
-          {/* PRODUCTO FEATURED */}
-          <div className="px-3 pt-2">
-            <div className="relative w-full h-20 rounded-xl overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=300" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 flex flex-col justify-end p-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}>
-                <div className="text-white text-[11px] font-bold">Boeuf Bourguignon</div>
-                <div className="text-white text-[9px] font-bold mt-0.5">$22.000</div>
-              </div>
-            </div>
-          </div>
-
-          {/* GRILLA 2 COLUMNAS */}
-          <div className="flex-1 px-3 py-2 grid grid-cols-2 gap-2 overflow-hidden">
-            <div className="rounded-lg overflow-hidden bg-white border border-black/5">
-              <img src="https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=150" className="w-full h-12 object-cover" />
-              <div className="p-1.5">
-                <div className="text-[9px] font-bold leading-tight">Tarte Tatin</div>
-                <div className="text-[9px] font-bold mt-1" style={{ color: '#B5863A' }}>$8.200</div>
-              </div>
-            </div>
-            <div className="rounded-lg overflow-hidden bg-white border border-black/5">
-              <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=150" className="w-full h-12 object-cover" />
-              <div className="p-1.5">
-                <div className="text-[9px] font-bold leading-tight">Coq au Vin</div>
-                <div className="text-[9px] font-bold mt-1" style={{ color: '#B5863A' }}>$19.500</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-      default: return null;
-    }
-  };
-// --- LÓGICA DE RENDERIZADO ---
-
-const finalTemplates = TEMPLATES.filter(t => {
-    // 1. Filtrar por Categoría Principal (Rápidas o Completas)
-    const matchesMain = mainCategory === 'todas' || t.category === mainCategory;
-
-    // 2. Filtrar por Estilo Visual (Con o Sin Fotos)
-    const matchesPhoto = photoFilter === 'todas' ||
-      (photoFilter === 'con-foto' ? t.hasPhotos === true : t.hasPhotos === false);
-
-    return matchesMain && matchesPhoto;
-  });
  return (
-    <div className="relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20">
-      <style>{GALLERY_STYLES}</style>
+    <div className="templates-page-wrap relative px-4 pt-0 lg:px-8 min-h-[85vh] bg-gray-50/50 pb-20 overflow-x-hidden">
+      <style>{SELECTOR_CSS}</style>
       
       {/* 1. HEADER CON TÍTULO */}
       <header className="mb-10 pt-20 lg:pt-0 text-left relative z-10">
@@ -931,172 +454,107 @@ const finalTemplates = TEMPLATES.filter(t => {
         </div>
       </header>
 
-      {/* 2. MASTER CARDS (RÁPIDAS VS COMPLETAS) */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        
-        {/* DISEÑOS RÁPIDOS */}
-        <button 
-          onClick={() => { setMainCategory(mainCategory === 'basicas' ? 'todas' : 'basicas'); }}
-          className={`relative p-4 rounded-3xl border-2 text-left transition-all group overflow-hidden ${mainCategory === 'basicas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
-        >
-          <div className="relative z-10 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center transition-colors ${mainCategory === 'basicas' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-              <Zap size={20} fill={mainCategory === 'basicas' ? "currentColor" : "none"} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'basicas' ? 'text-slate-900' : 'text-slate-400'}`}>Diseños Rápidos</h3>
-              <p className={`text-[9px] font-bold uppercase tracking-widest leading-none mt-1 ${mainCategory === 'basicas' ? 'text-slate-500' : 'text-slate-300'}`}>Pedidos en 1-click y layouts simples</p>
-            </div>
-            
-            {/* BOTÓN X PARA DESMARCAR */}
-            {mainCategory === 'basicas' && (
-              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full hover:bg-indigo-200 transition-colors">
-                <X size={14} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-        </button>
-
-        {/* DISEÑOS COMPLETOS */}
-        <button 
-          onClick={() => { setMainCategory(mainCategory === 'completas' ? 'todas' : 'completas'); }}
-          className={`relative p-4 rounded-3xl border-2 text-left transition-all group overflow-hidden ${mainCategory === 'completas' ? 'border-indigo-600 bg-white shadow-lg shadow-indigo-100' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}
-        >
-          <div className="relative z-10 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center transition-colors ${mainCategory === 'completas' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-              <ShoppingBag size={20} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-base font-black uppercase italic tracking-tighter ${mainCategory === 'completas' ? 'text-slate-900' : 'text-slate-400'}`}>Diseños Completos</h3>
-              <p className={`text-[9px] font-bold uppercase tracking-widest leading-none mt-1 ${mainCategory === 'completas' ? 'text-slate-500' : 'text-slate-300'}`}>Buscador, categorías y experiencia Pro</p>
-            </div>
-
-            {/* BOTÓN X PARA DESMARCAR */}
-            {mainCategory === 'completas' && (
-              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full hover:bg-indigo-200 transition-colors">
-                <X size={14} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-        </button>
-      </div>
-
-
-    
-
-      {/* 4. FILTROS DE ESTILO (CHIPS) */}
+      {/* FILTRO POR TIPO DE NEGOCIO */}
       <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-        <button 
-          onClick={() => setPhotoFilter('todas')}
-          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'todas' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
-        >
-          Todos los estilos
-        </button>
-        <button 
-          onClick={() => setPhotoFilter('sin-foto')}
-          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'sin-foto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
-        >
-          ✨ Minimalistas (Sin Fotos)
-        </button>
-        <button 
-          onClick={() => setPhotoFilter('con-foto')}
-          className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${photoFilter === 'con-foto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
-        >
-          📸 Visuales (Con Fotos)
-        </button>
+        {([
+          { key: 'todas',       label: 'Todas' },
+          { key: 'restaurante', label: 'Restaurante con menu destacado' },
+          { key: 'delivery',    label: 'Delivery y comida rapida' },
+          { key: 'kiosco',      label: 'Kiosco y despensa' },
+          { key: 'heladeria',   label: 'Heladeria y dietetica' },
+          { key: 'elegante',    label: 'Elegante y minimalista' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setBusinessFilter(key)}
+            className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${businessFilter === key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     
   
-{/* GRILLA DE MOCKUPS OPTIMIZADA */}
+{/* GRILLA DE MOCKUPS �?" CartProvider necesario para los 5 templates que usan useCart() */}
+      <CartProvider>
       <div className="templates-grid animate-in fade-in duration-500 pb-20">
         {finalTemplates.map((t) => {
           const isSelected = currentTemplate === t.id;
           const isLocked = t.premium && userPlan === 'free';
-          const isUpcoming = t.isUpcoming;
-          
+          const isUpcoming = false;
 
+          // Escalas confirmadas visualmente �?" cada una muestra header + al menos 1 elemento de contenido
+          const desktopScale =
+            t.id === 'classic'     ? 0.68 :
+            t.id === 'urban'       ? 0.72 :
+            t.id === 'minimal'     ? 0.68 :
+            t.id === 'visualgrid'  ? 0.62 :
+            t.id === 'spotlight'   ? 0.80 :
+            t.id === 'icecream-v1' ? 0.76 :
+            t.id === 'marketpro'   ? 0.63 :
+            t.id === 'alterna-pro' ? 0.75 :
+            t.id === 'carta'       ? 0.77 :
+            0.75;
+          const previewScale = desktopScale;
+
+          const isFeatured = !!(t as any).featured;
           return (
-        <article key={t.id} className="template-item">
-  <div className="template-card">
-    <div className="phone-preview">
-      <div className="preview-content">
-        {/* ZOOM DINÁMICO: 0.45 para Alterna Pro, 0.52 para el resto en mobile */}
-        <div className="w-full h-full overflow-hidden"
-             style={{ 
-               zoom: typeof window !== 'undefined' && window.innerWidth < 768 
-                      ? (t.id === 'alterna-pro' ? '0.45' : '0.52') 
-                      : '0.82',
-               height: '100%',
-               width: '100%',
-               display: 'flex',
-               flexDirection: 'column'
-             }}>
-          {renderPreview(t.type)}
-        </div>
-      </div>
-   {/* 🚀 ESCUDO DE PRÓXIMAMENTE */}
-          {isUpcoming && (
-            <div className="absolute inset-0 bg-indigo-600/20 backdrop-blur-[2px] flex flex-col items-center justify-center text-white z-40">
-              <div className="bg-indigo-600 px-4 py-1.5 rounded-full shadow-xl animate-pulse">
-                 <span className="font-black text-[10px] uppercase tracking-[0.2em]">Muy Pronto</span>
+            <article key={t.id}>
+              <div className={`sel-card${isFeatured ? ' sel-card--featured' : ''}`}>
+                {isFeatured && <div className="sel-featured-banner">MAS ELEGIDA</div>}
+
+                {/* Zona preview */}
+                <div className="sel-preview-area">
+                  <div className="phone-preview">
+                    <div className="preview-content">
+                      <div style={{ width: `${Math.round(100 / previewScale)}%`, transform: `scale(${previewScale})`, transformOrigin: 'top left', display: 'flex', flexDirection: 'column' }}>
+                        {renderRealTemplate(t.id, isOpen)}
+                      </div>
+                    </div>
+                    {/* Store overlay: icecream-v1 (sin setShowInfo nativo) y alterna-pro (boton nativo ocultado en isMockup) */}
+                    {(t.id === 'icecream-v1' || t.id === 'alterna-pro') && (
+                      <div className="absolute top-2 left-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+                        <Store size={13} className="text-gray-700" />
+                      </div>
+                    )}
+                    {isLocked && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+                        <Lock size={20} className="mb-1 opacity-80" />
+                        <span className="font-bold text-[10px]">PREMIUM</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Zona info */}
+                <div className="sel-info">
+                  <h3 className="sel-name">{t.name}</h3>
+                  <p className="sel-ideal">{t.idealFor}</p>
+                  {isSelected ? (
+                    <Link href="/dashboard/personalizar" className="sel-btn sel-btn--selected">
+                      <Check size={13} strokeWidth={3} /> Diseno en uso
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+                      disabled={savingId === t.id}
+                      className={`sel-btn ${isFeatured ? 'sel-btn--featured' : 'sel-btn--default'}`}
+                    >
+                      {savingId === t.id
+                        ? <><Loader2 size={12} className="animate-spin"/> Activando...</>
+                        : <><CheckCircle2 size={13} /> Elegir esta plantilla</>
+                      }
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-
-          {isLocked && !isUpcoming && (
-            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
-              <Lock size={20} className="mb-2 opacity-80" />
-              <span className="font-bold text-[10px]">PREMIUM</span>
-            </div>
-          )}
-        </div>
-
-   <div className="card-info text-center flex flex-col items-center">
-      <h3 className="card-title mt-2 text-slate-800">{t.name}</h3>
-      {isUpcoming ? (
-        /* 🚀 BOTÓN DESACTIVADO PARA UPCOMING */
-        <div className="mt-3 px-4 py-1.5 bg-gray-100 text-gray-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-gray-200">
-           No disponible
-        </div>
-      ) : isSelected ? (
-        /* --- ESTADO: YA SELECCIONADO (Botón Personalizar) --- */
-        <div className="flex flex-col items-center gap-2 mt-2 w-full px-2 animate-in fade-in zoom-in-95 duration-300">
-           <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
-             <Check size={10} strokeWidth={4}/> Diseño en uso
-           </span>
-           <Link 
-             href="/dashboard/personalizar"
-             className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.1em] hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95"
-           >
-             Ir a Personalizar <ArrowRight size={12} strokeWidth={3} />
-           </Link>
-        </div>
-      ) : (
-        /* --- ESTADO: NO SELECCIONADO (Botón Seleccionar) --- */
-        <button 
-          onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
-          disabled={savingId === t.id}
-          className="mt-3 text-[10px] font-black uppercase transition-all text-indigo-600 hover:text-indigo-800 hover:tracking-widest disabled:opacity-50 flex items-center gap-1"
-        >
-          {savingId === t.id ? (
-            <><Loader2 size={10} className="animate-spin"/> Activando...</>
-          ) : (
-            'Seleccionar'
-          )}
-        </button>
-      )}
-    </div>
-  </div>
-</article>
+            </article>
           );
         })}
       </div>
+      </CartProvider>
 
-  
-
-
-    </div>
+</div>
   );
 }
 

@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { Utensils, ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check, Clock, Search } from 'lucide-react';
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { getContrastColor } from '@/lib/colorUtils';
 
 export default function AlternaPro({ 
   restaurant = {}, 
@@ -29,7 +30,8 @@ export default function AlternaPro({
   const DESC_COLOR = restaurant?.description_color || '#94a3b8'; 
   const PROD_NAME_COLOR = restaurant?.card_name_color || '#111827';
   const PRICE_BG = restaurant?.card_price_color || THEME;
-  const PRICE_TEXT = '#ffffff'; 
+  const PRICE_TEXT = '#ffffff';
+  const catInactiveBorder = getContrastColor(restaurant?.cat_bg_color || '#ffffff') === '#000000' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)';
   const PROMO_BG = restaurant?.promo_bg_color || (THEME + '15');
   const PROMO_TEXT = restaurant?.promo_text_color || THEME;
   const PROD_NAME_BG = restaurant?.card_name_bg || '#ffffff';
@@ -119,11 +121,13 @@ export default function AlternaPro({
       <span className={`text-[8px] font-black uppercase ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>{isOpen ? 'Abierto' : 'Cerrado'}</span>
     </div>
   )}
-  {/* Botón de Info */}
-  <button onClick={() => setShowInfo(true)} className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform bg-white/80 backdrop-blur-sm" 
-          style={{ borderColor: 'rgba(0,0,0,0.05)', color: NAME_COLOR }}>
-    <Store size={isMockup ? 18 : 22} />
-  </button>
+  {/* Botón de Info — oculto en mockup: el selector agrega su propio overlay */}
+  {!isMockup && (
+    <button onClick={() => setShowInfo(true)} className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform bg-white/80 backdrop-blur-sm"
+            style={{ borderColor: 'rgba(0,0,0,0.05)', color: NAME_COLOR }}>
+      <Store size={22} />
+    </button>
+  )}
 </div>
 
 <div className="text-center px-4">
@@ -169,16 +173,16 @@ export default function AlternaPro({
       <div className="relative z-[50] w-full flex items-center gap-2 px-4 overflow-x-auto no-scrollbar shadow-sm border-b border-black/[0.03]" 
            style={{ backgroundColor: BG, minHeight: '60px' }}>
         <button onClick={() => setSelectedCategory("todos")} className="px-5 py-2 rounded-full text-[9px] font-black uppercase shrink-0 shadow-sm border"
-                style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'), 
+                style={{ backgroundColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'),
                          color: selectedCategory === "todos" ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#000000'),
-                         borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : 'transparent' }}>
+                         borderColor: selectedCategory === "todos" ? (restaurant?.cat_active_bg_color || THEME) : catInactiveBorder }}>
           Todos
         </button>
         {categoryButtons.map((cat: any) => (
           <button key={cat.id} onClick={() => setSelectedCategory(String(cat.id))} className="px-5 py-2 rounded-full text-[9px] font-black uppercase shrink-0 shadow-sm border"
-                  style={{ backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'), 
+                  style={{ backgroundColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : (restaurant?.cat_bg_color || '#ffffff'),
                            color: selectedCategory === String(cat.id) ? (restaurant?.cat_active_text_color || '#ffffff') : (restaurant?.cat_text_color || '#000000'),
-                           borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : 'transparent' }}>
+                           borderColor: selectedCategory === String(cat.id) ? (restaurant?.cat_active_bg_color || THEME) : catInactiveBorder }}>
             {cat.name}
           </button>
         ))}
