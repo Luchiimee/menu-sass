@@ -228,7 +228,7 @@ const SELECTOR_CSS = `
   .sel-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
   .sel-card--featured { border: 2px solid #22c55e; }
   .sel-featured-banner { background: #22c55e; color: #ffffff; text-align: center; font-size: 9px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; padding: 5px 0; }
-  .sel-preview-area { background: #f1f5f9; padding: 16px 16px 12px; display: flex; justify-content: center; }
+  .sel-preview-area { background: #f1f5f9; overflow: hidden; }
   .sel-info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; }
   .sel-name { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0; line-height: 1.2; }
   .sel-ideal { font-size: 12px; color: #475569; font-weight: 500; margin: 0; line-height: 1.35; }
@@ -241,7 +241,7 @@ const SELECTOR_CSS = `
   .sel-btn--selected:hover { background: #4338ca; }
 
   /* Marco del celular */
-  .phone-preview { width: 100%; max-width: 220px; height: 180px; margin: 0 auto; background: white; position: relative; overflow: hidden; border-radius: 28px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.15); }
+  .phone-preview { width: 100%; height: 260px; background: white; position: relative; overflow: hidden; }
   @media (max-width: 768px) { .phone-preview { max-width: 140px; border-radius: 18px; } }
   .preview-content { width: 100%; height: 100%; overflow: hidden; position: relative; }
 `;
@@ -336,7 +336,7 @@ function renderRealTemplate(id: string, isOpen: boolean) {
     case 'minimal':     return <MinimalWhite       restaurant={m.minimal.restaurant}     products={m.minimal.products}     categories={m.minimal.categories}     fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
     case 'visualgrid':  return <VisualGrid         restaurant={m.visualgrid.restaurant}  products={m.visualgrid.products}  categories={m.visualgrid.categories}  fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
     case 'spotlight':   return <SpotlightHero      restaurant={m.spotlight.restaurant}   products={m.spotlight.products}   categories={m.spotlight.categories}   fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
-    case 'icecream':    return <HeladeriaSoft      restaurant={m.icecream.restaurant}    products={m.icecream.products}                                           isOpen={isOpen} onAddToCart={PREVIEW_NOOP} isMockup={true} />;
+    case 'icecream-v1':    return <HeladeriaSoft      restaurant={m.icecream.restaurant}    products={m.icecream.products}                                           isOpen={isOpen} onAddToCart={PREVIEW_NOOP} isMockup={true} />;
     case 'marketpro':   return <MarketProTemplate  restaurant={m.marketpro.restaurant}   products={m.marketpro.products}   categories={m.marketpro.categories}   fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
     case 'alterna-pro': return <AlternaPro         restaurant={m['alterna-pro'].restaurant} products={m['alterna-pro'].products}                                  isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} setSelectedProduct={PREVIEW_NOOP} isMockup={true} />;
     case 'carta':       return <Carta              restaurant={m.carta.restaurant}       products={m.carta.products}       categories={m.carta.categories}       fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
@@ -514,7 +514,8 @@ const finalTemplates = TEMPLATES.filter(t =>
                         {renderRealTemplate(t.id, isOpen)}
                       </div>
                     </div>
-                    {t.id === 'icecream-v1' && (
+                    {/* Store overlay: icecream-v1 (sin setShowInfo nativo) y alterna-pro (boton nativo ocultado en isMockup) */}
+                    {(t.id === 'icecream-v1' || t.id === 'alterna-pro') && (
                       <div className="absolute top-2 left-2 z-20 w-7 h-7 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm pointer-events-none">
                         <Store size={13} className="text-gray-700" />
                       </div>

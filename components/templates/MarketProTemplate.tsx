@@ -89,9 +89,11 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
     <div className="min-h-screen pb-24 transition-all duration-300" style={{ backgroundColor: restaurant.bg_color || '#ffffff' }}>
       
       <header className="pt-8 pb-4 px-5 text-center relative">
-        <button onClick={() => setShowInfo(true)} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm transition-all active:scale-90" style={{ backgroundColor: restaurant.bg_color, borderColor: `${restaurant.description_color}20`, color: restaurant.text_color }}>
-          <Store size={18} strokeWidth={2.5} />
-        </button>
+        {!isMockup && (
+          <button onClick={() => setShowInfo(true)} className="absolute top-6 right-6 p-2.5 rounded-full border shadow-sm transition-all active:scale-90" style={{ backgroundColor: restaurant.bg_color, borderColor: `${restaurant.description_color}20`, color: restaurant.text_color }}>
+            <Store size={18} strokeWidth={2.5} />
+          </button>
+        )}
 
         <div className="flex justify-center mb-3">
           <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${mesaLabel ? 'bg-amber-100 text-amber-700' : isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>

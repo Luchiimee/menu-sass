@@ -121,11 +121,13 @@ export default function AlternaPro({
       <span className={`text-[8px] font-black uppercase ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>{isOpen ? 'Abierto' : 'Cerrado'}</span>
     </div>
   )}
-  {/* Botón de Info */}
-  <button onClick={() => setShowInfo(true)} className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform bg-white/80 backdrop-blur-sm" 
-          style={{ borderColor: 'rgba(0,0,0,0.05)', color: NAME_COLOR }}>
-    <Store size={isMockup ? 18 : 22} />
-  </button>
+  {/* Botón de Info — oculto en mockup: el selector agrega su propio overlay */}
+  {!isMockup && (
+    <button onClick={() => setShowInfo(true)} className="p-2.5 rounded-full border shadow-sm active:scale-90 transition-transform bg-white/80 backdrop-blur-sm"
+            style={{ borderColor: 'rgba(0,0,0,0.05)', color: NAME_COLOR }}>
+      <Store size={22} />
+    </button>
+  )}
 </div>
 
 <div className="text-center px-4">
