@@ -558,7 +558,7 @@ useEffect(() => {
             if (resId && resId !== restaurantId) return;
 
             if (eventType === 'INSERT') {
-                setOrders(prev => [newData, ...prev]);
+                setOrders(prev => prev.some(o => o.id === newData.id) ? prev : [newData, ...prev]);
                 // Si tiene audio habilitado, dispárelo aquí
             } 
             else if (eventType === 'UPDATE') {
