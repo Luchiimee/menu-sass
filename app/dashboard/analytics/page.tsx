@@ -55,6 +55,8 @@ export default function AnalyticsPage() {
   const [expenseData, setExpenseData] = useState({ description: '', amount: '', category: '' });
   const [saving, setSaving] = useState(false);
 
+  const [hasActiveShift, setHasActiveShift] = useState(false);
+
   const currentShift = shifts[shiftIdx] ?? null;
   const isShiftOpen = currentShift ? !currentShift.closed_at : false;
   const isToday = selectedDate === getARDate();
@@ -94,7 +96,7 @@ export default function AnalyticsPage() {
 
       const { data: rest } = await supabase
         .from('restaurants')
-        .select('id, subscription_plan, delivery_cost, cash_close_hour')
+        .select('id, subscription_plan, delivery_cost, cash_close_hour, current_shift_id')
         .eq('user_id', user.id)
         .single();
 
@@ -104,6 +106,7 @@ export default function AnalyticsPage() {
       setDeliveryCost(Number(rest.delivery_cost ?? 0));
       const closeHour = rest.cash_close_hour?.slice(0, 5) ?? '00:00';
       setCashCloseHour(closeHour);
+      setHasActiveShift(!!rest.current_shift_id);
 
       const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
       const locked = rest.subscription_plan === 'light' && !isSuperAdmin;
@@ -152,6 +155,7 @@ export default function AnalyticsPage() {
       body: JSON.stringify({ opening_balance: Number(aperturaAmount) || 0 }),
     });
     if (res.ok) {
+      setHasActiveShift(true);
       setShowAperturaModal(false);
       setAperturaAmount('');
       await loadData(selectedDate);
@@ -171,6 +175,7 @@ export default function AnalyticsPage() {
       body: JSON.stringify({ shift_id: currentShift.id }),
     });
     if (res.ok) {
+      setHasActiveShift(false);
       setShowCloseConfirm(false);
       await loadData(selectedDate);
     } else {
@@ -303,7 +308,7 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="flex gap-2 w-full md:w-auto flex-wrap justify-end">
-              {isToday && !currentShift && (
+              {!hasActiveShift && (
                 <button onClick={() => setShowAperturaModal(true)} className="flex-1 md:flex-none px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-orange-500 text-white shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all">
                   <Calculator size={18} /> Iniciar Caja
                 </button>
@@ -347,7 +352,7 @@ export default function AnalyticsPage() {
           <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-16 text-center">
             <Calculator size={40} className="text-gray-200 mx-auto mb-4" />
             <p className="font-black text-gray-400 uppercase tracking-widest text-sm">Sin caja para este día</p>
-            {isToday && (
+            {!hasActiveShift && (
               <button onClick={() => setShowAperturaModal(true)} className="mt-6 px-8 py-3 bg-orange-500 text-white rounded-2xl font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-100 active:scale-95">
                 Iniciar Caja
               </button>
