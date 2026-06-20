@@ -83,9 +83,10 @@ const handleNotificarPagoMesa = async (metodo: string) => {
         });
 
         if (error) throw error;
-        
+
+        setMetodoPago(metodo);
         setPasoPago('espera');
-        
+
     } catch (error: any) {
         console.error("Error de seguridad/red:", error.message);
         alert("No se pudo procesar la solicitud de pago.");
