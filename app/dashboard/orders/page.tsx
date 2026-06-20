@@ -829,6 +829,13 @@ useEffect(() => {
                               </button>
                             )}
 
+                            {/* Badge llamando al mozo */}
+                            {isCalling && (
+                              <div className="absolute -top-2.5 left-2 bg-red-600 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-bounce z-20">
+                                🔔 Llamando al mozo
+                              </div>
+                            )}
+
                             {/* Badge pago pendiente */}
                             {isWaitingPayment && !isCalling && (
                               <div className="absolute -top-2.5 left-2 bg-purple-600 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-pulse z-20">
@@ -862,7 +869,7 @@ useEffect(() => {
                                 isOccupied ? 'text-orange-400' :
                                 'text-gray-300'
                               }`}>
-                                {isCalling ? '¡Llama!' : isPendingAcceptance ? '¡Nuevo Pedido!' : isWaitingPayment ? 'Pago Pendiente' : isOccupied ? 'Ocupada' : 'Disponible'}
+                                {isCalling ? 'Llamando al mozo' : isPendingAcceptance ? '¡Nuevo Pedido!' : isWaitingPayment ? 'Pago Pendiente' : isOccupied ? 'Ocupada' : 'Disponible'}
                               </p>
                               {isOccupied && (
                                 <p className={`text-sm font-black leading-tight ${isCalling ? 'text-white' : 'text-gray-900'}`}>

@@ -324,7 +324,7 @@ const handleCallWaiter = async () => {
         return (
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
                {aviso && (
-                        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] whitespace-nowrap">
+                        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] w-max max-w-[90vw]">
                             <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
                                 <Check size={16} className="text-green-500" />
                                 <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
@@ -1029,7 +1029,7 @@ return (
         
         {/* --- TOAST DE AVISOS --- */}
         {aviso && (
-            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] whitespace-nowrap">
+            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] w-max max-w-[90vw]">
                 <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
                     <Check size={16} className="text-green-500" />
                     <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
