@@ -435,10 +435,15 @@ export default function AnalyticsPage() {
             {!isShiftOpen && (
               <div className="bg-gray-900 text-white rounded-3xl p-5 flex items-center gap-4">
                 <div className="bg-green-500 p-3 rounded-2xl shrink-0"><CheckCircle2 size={22} /></div>
-                <div>
-                  <p className="font-black uppercase tracking-tight">Caja cerrada — {currentShift.close_type === 'auto' ? 'Cierre automático' : 'Cierre manual'}</p>
+                <div className="space-y-1">
+                  <p className="font-black uppercase tracking-tight">
+                    Caja cerrada — {currentShift.close_type === 'auto' ? 'Cierre automático' : 'Cierre manual'}
+                  </p>
                   <p className="text-[11px] text-gray-400 font-bold">
-                    {new Date(currentShift.closed_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
+                    Abierto: {new Date(currentShift.opened_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} hs
+                  </p>
+                  <p className="text-[11px] text-gray-400 font-bold">
+                    Cerrado: {new Date(currentShift.closed_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} hs
                   </p>
                 </div>
               </div>
