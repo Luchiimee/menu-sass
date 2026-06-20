@@ -219,6 +219,16 @@ const handleCancelSubscription = async () => {
         setLoading(false);
     }
 };
+  // --- FUNCIÓN DE HORARIO DE CIERRE DE CAJA ---
+  const handleCashCloseHour = async (value: string) => {
+    setRestaurant((prev: any) => ({ ...prev, cash_close_hour: value }));
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ cash_close_hour: value })
+      .eq('id', restaurant.id);
+    if (!error) toast.success('Horario de caja guardado', { position: 'bottom-right', duration: 1000 });
+  };
+
   // --- FUNCIONES DE HORARIOS ---
   const updateHour = async (day: string, field: string, value: any) => {
       const updatedHours = {
@@ -384,8 +394,8 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
           </section>
         </div>
 
-        {/* --- COLUMNA DERECHA: HORARIOS --- */}
-        <div className="lg:col-span-8">
+        {/* --- COLUMNA DERECHA: HORARIOS + CAJA --- */}
+        <div className="lg:col-span-8 space-y-6">
             <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
                 <button onClick={() => setShowHours(!showHours)} className="w-full p-8 flex justify-between items-center hover:bg-gray-50/50 transition-colors">
                     <div className="flex items-center gap-4">
@@ -495,6 +505,48 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   </div>
                 )}
             </section>
+
+            {/* --- SECCIÓN: HORARIO DE CIERRE DE CAJA --- */}
+            {restaurant.subscription_plan !== 'light' && (
+              <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                    <Clock size={24} />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-xl text-gray-900">Horario de Cierre de Caja</h2>
+                    <p className="text-xs text-gray-400 font-medium italic">
+                      Define cuándo termina tu "día de caja" (independiente del horario del menú)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="flex-1 space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Hora de cierre
+                    </label>
+                    <input
+                      type="time"
+                      value={restaurant.cash_close_hour?.slice(0, 5) ?? '00:00'}
+                      onChange={(e) => handleCashCloseHour(e.target.value)}
+                      className="w-full p-4 bg-gray-50 rounded-2xl text-lg font-black text-gray-900 text-center border-2 border-transparent focus:border-amber-400 outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="flex-1 bg-amber-50 rounded-2xl p-4 border border-amber-100">
+                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Ejemplo</p>
+                    <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                      Si el cierre es <strong>03:00</strong>, el resumen del "20 de julio" incluye ventas
+                      desde las 03:00 del 20 hasta las 03:00 del 21. Útil para negocios nocturnos.
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-4">
+                  El cambio aplica desde el próximo turno de caja
+                </p>
+              </section>
+            )}
         </div>
       </div>
       {loading && (

@@ -1775,6 +1775,7 @@ case "spotlight":
             isAdmin={false}
             tableIdFromQR={mesaId}
             mesaLabel={mesaLabel}
+            currentShiftId={restaurant.current_shift_id ?? null}
           />
         </div>
         {showReservationModal && (

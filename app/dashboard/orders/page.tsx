@@ -7,6 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { displayTableLabel } from "@/lib/tableUtils";
+import { getCashShiftRange } from "@/lib/cashUtils";
 import {
   Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
   CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
@@ -78,6 +79,7 @@ const [productSearch, setProductSearch] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [isLocked, setIsLocked] = useState(true);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [cashCloseHour, setCashCloseHour] = useState('00:00');
   const [receiveWhatsapp, setReceiveWhatsapp] = useState(true);
   const [restaurantPhone, setRestaurantPhone] = useState<string | null>(null);
   const [showPhoneAlert, setShowPhoneAlert] = useState(false);
@@ -226,6 +228,27 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
 
   const occupyTableManual = async (mesa: any) => {
     if (!restaurantId) return;
+
+    // Buscar turno activo; si no hay, auto-crear uno con opened_type 'auto'
+    let shiftId: string | null = null;
+    const { data: activeShift } = await supabase
+      .from('cash_shifts')
+      .select('id')
+      .eq('restaurant_id', restaurantId)
+      .is('closed_at', null)
+      .maybeSingle();
+
+    if (activeShift) {
+      shiftId = activeShift.id;
+    } else {
+      const { data: newShift } = await supabase
+        .from('cash_shifts')
+        .insert({ restaurant_id: restaurantId, opening_balance: 0, opened_type: 'auto' })
+        .select('id')
+        .single();
+      shiftId = newShift?.id ?? null;
+    }
+
     const { error } = await supabase.from("orders").insert({
         restaurant_id: restaurantId,
         table_number: mesa.name,
@@ -234,7 +257,8 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
         status: "en_proceso",
         total: 0,
         items: [],
-        payment_method: "efectivo"
+        payment_method: "efectivo",
+        shift_id: shiftId,
     });
     if (!error) loadOrders();
   };
@@ -311,26 +335,15 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
 const loadOrders = async () => {
   if (!restaurantId || isLocked) return;
   try {
-    const isToday = selectedDate === getArgentinaDate();
-    
-    // Agregamos el offset -03:00 para que Supabase entienda que es hora de Argentina
-    const startOfDay = `${selectedDate}T00:00:00-03:00`; 
+    const { start, end } = getCashShiftRange(selectedDate, cashCloseHour);
 
     let query = supabase
       .from("orders")
       .select("*")
       .eq("restaurant_id", restaurantId)
-      .neq("order_type", "apertura");
-
-    if (isToday) {
-      // Filtro estricto: Desde las 00:00 de hoy hasta el final del día
-      const endOfToday = `${selectedDate}T23:59:59-03:00`;
-      query = query.gte("created_at", startOfDay).lte("created_at", endOfToday);
-    } else {
-      // Para días anteriores (Ayer, etc)
-      const endOfDay = `${selectedDate}T23:59:59-03:00`;
-      query = query.gte("created_at", startOfDay).lte("created_at", endOfDay);
-    }
+      .neq("order_type", "apertura")
+      .gte("created_at", start)
+      .lt("created_at", end);
       
     const { data: ords } = await query.order("created_at", { ascending: false });
     setOrders(ords || []);
@@ -474,6 +487,7 @@ const loadOrders = async () => {
     setBusinessType(rest.business_type);
     setCurrentPlan(rest.subscription_plan);
     setRestaurantSlug(rest.slug || null);
+    setCashCloseHour(rest.cash_close_hour?.slice(0, 5) ?? '00:00');
     if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
         setShowTables(true);
     }
