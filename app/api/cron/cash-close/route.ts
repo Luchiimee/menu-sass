@@ -26,7 +26,8 @@ export async function GET(request: Request) {
       restaurants (
         delivery_cost,
         cash_close_hour,
-        subscription_plan
+        subscription_plan,
+        cash_auto_close_enabled
       )
     `)
     .is('closed_at', null);
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
   const toClose = (openShifts ?? []).filter(shift => {
     const rest = shift.restaurants as any;
     if (!rest || rest.subscription_plan === 'light') return false;
+    if (!rest.cash_auto_close_enabled) return false;
 
     const expectedClose = getExpectedCloseTime(
       shift.opened_at,

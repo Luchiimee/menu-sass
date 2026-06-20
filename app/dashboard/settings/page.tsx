@@ -30,7 +30,7 @@ function SettingsContent() {
   // --- ESTADOS ---
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const [showHours, setShowHours] = useState(true); // Por defecto abierto para mejor UX
+  const [showHours, setShowHours] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [emailUpdateLoading, setEmailUpdateLoading] = useState(false);
@@ -219,7 +219,7 @@ const handleCancelSubscription = async () => {
         setLoading(false);
     }
 };
-  // --- FUNCIÓN DE HORARIO DE CIERRE DE CAJA ---
+  // --- FUNCIONES DE CAJA ---
   const handleCashCloseHour = async (value: string) => {
     setRestaurant((prev: any) => ({ ...prev, cash_close_hour: value }));
     const { error } = await supabase
@@ -227,6 +227,19 @@ const handleCancelSubscription = async () => {
       .update({ cash_close_hour: value })
       .eq('id', restaurant.id);
     if (!error) toast.success('Horario de caja guardado', { position: 'bottom-right', duration: 1000 });
+  };
+
+  const handleAutoCloseToggle = async () => {
+    const newValue = !restaurant.cash_auto_close_enabled;
+    setRestaurant((prev: any) => ({ ...prev, cash_auto_close_enabled: newValue }));
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ cash_auto_close_enabled: newValue })
+      .eq('id', restaurant.id);
+    if (!error) toast.success(
+      newValue ? 'Cierre automático activado' : 'Cierre automático desactivado',
+      { position: 'bottom-right', duration: 1000 }
+    );
   };
 
   // --- FUNCIONES DE HORARIOS ---
@@ -542,8 +555,30 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   </div>
                 </div>
 
-                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-4">
-                  El cambio aplica desde el próximo turno de caja
+                {/* Toggle cierre automático */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 mt-2">
+                  <div>
+                    <p className="font-black text-sm text-gray-900">Cierre automático</p>
+                    <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                      {restaurant.cash_auto_close_enabled
+                        ? 'La caja se cierra sola a la hora configurada'
+                        : 'Solo cierre manual — el botón "Cerrar Caja" del panel'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAutoCloseToggle}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                      restaurant.cash_auto_close_enabled ? 'bg-amber-500' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                      restaurant.cash_auto_close_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                  El cambio de horario aplica desde el próximo turno de caja
                 </p>
               </section>
             )}
