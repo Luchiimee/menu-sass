@@ -1031,10 +1031,10 @@ return (
         
         {/* --- TOAST DE AVISOS --- */}
         {aviso && (
-            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] w-max max-w-[90vw]">
+            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] w-max max-w-[90vw] overflow-hidden">
                 <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300">
-                    <Check size={16} className="text-green-500" />
-                    <span className="font-bold text-xs uppercase tracking-widest">{aviso}</span>
+                    <Check size={16} className="text-green-500 shrink-0" />
+                    <span className="font-bold text-xs uppercase tracking-widest truncate">{aviso}</span>
                 </div>
             </div>
         )}
