@@ -231,7 +231,7 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
         table_number: mesa.name,
         customer_name: "Cliente Local",
         order_type: "mesa",
-        status: "recibido",
+        status: "en_proceso",
         total: 0,
         items: [],
         payment_method: "efectivo"
@@ -558,7 +558,7 @@ useEffect(() => {
             if (resId && resId !== restaurantId) return;
 
             if (eventType === 'INSERT') {
-                setOrders(prev => [newData, ...prev]);
+                setOrders(prev => prev.some(o => o.id === newData.id) ? prev : [newData, ...prev]);
                 // Si tiene audio habilitado, dispárelo aquí
             } 
             else if (eventType === 'UPDATE') {
@@ -1204,6 +1204,30 @@ useEffect(() => {
 
             {/* Cuerpo con scroll */}
             <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                {/* Link de mesa + QR — siempre visible */}
+                {restaurantSlug && (
+                    <div className="pb-2 border-b border-dashed border-gray-100">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Link de mesa</p>
+                        <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                            <span className="text-[10px] font-bold text-gray-500 flex-1 truncate">
+                                snappy.uno/{restaurantSlug}?mesa={selectedTableForDetail.id}
+                            </span>
+                            <button
+                                onClick={(e) => copyMesaLink(selectedTableForDetail, e)}
+                                className={`p-2 rounded-xl transition-all shrink-0 ${copiedMesaId === selectedTableForDetail.id ? 'bg-green-500 text-white' : 'bg-white border border-gray-200 text-gray-400 hover:bg-gray-100'}`}
+                            >
+                                {copiedMesaId === selectedTableForDetail.id ? <Check size={12} strokeWidth={3} /> : <Copy size={12} />}
+                            </button>
+                            <button
+                                onClick={(e) => downloadQR(selectedTableForDetail, e)}
+                                className="p-2 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-1 hover:bg-gray-700 transition-all shrink-0"
+                            >
+                                <QrCode size={12} /> QR
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Libre state: Ocupar + Reservar */}
                 {!selectedTableForDetail.activeOrder && (
                     <div className="flex gap-3">
@@ -1345,29 +1369,6 @@ useEffect(() => {
                   </>
                 )}
 
-                {/* Link de mesa + QR — siempre visible */}
-                {restaurantSlug && (
-                    <div className="pt-6 border-t border-dashed border-gray-100">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Link de mesa</p>
-                        <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                            <span className="text-[10px] font-bold text-gray-500 flex-1 truncate">
-                                snappy.uno/{restaurantSlug}?mesa={selectedTableForDetail.id}
-                            </span>
-                            <button
-                                onClick={(e) => copyMesaLink(selectedTableForDetail, e)}
-                                className={`p-2 rounded-xl transition-all shrink-0 ${copiedMesaId === selectedTableForDetail.id ? 'bg-green-500 text-white' : 'bg-white border border-gray-200 text-gray-400 hover:bg-gray-100'}`}
-                            >
-                                {copiedMesaId === selectedTableForDetail.id ? <Check size={12} strokeWidth={3} /> : <Copy size={12} />}
-                            </button>
-                            <button
-                                onClick={(e) => downloadQR(selectedTableForDetail, e)}
-                                className="p-2 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-1 hover:bg-gray-700 transition-all shrink-0"
-                            >
-                                <QrCode size={12} /> QR
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
 
 
