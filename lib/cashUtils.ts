@@ -117,7 +117,11 @@ export function buildShiftSummary(
   deliveryCost: number,
   openingBalance = 0
 ): ShiftSummary {
-  const sales = orders.filter(o => SALE_TYPES.includes(o.order_type as SaleOrderType));
+  const EXCLUDED_STATUSES = ['pendiente', 'cancelado'];
+  const sales = orders.filter(o =>
+    SALE_TYPES.includes(o.order_type as SaleOrderType) &&
+    !EXCLUDED_STATUSES.includes(o.status)
+  );
 
   const salesByType: ShiftSummary['salesByType'] = {
     mesa:      { count: 0, total: 0 },

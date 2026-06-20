@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
         .from('orders')
         .select('*')
         .eq('shift_id', shift_id)
-        .neq('status', 'cancelado')
+        .not('status', 'in', '("pendiente","cancelado")')
         .order('created_at', { ascending: false }),
       fetch(`/api/cash/expenses?shift_id=${shift_id}`),
     ]);

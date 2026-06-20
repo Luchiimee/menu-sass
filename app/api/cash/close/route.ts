@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       .from('orders')
       .select('id, order_type, payment_method, total, status')
       .eq('shift_id', shift_id)
-      .neq('status', 'cancelado'),
+      .not('status', 'in', '("pendiente","cancelado")'),
     supabase
       .from('cash_expenses')
       .select('id, amount, description, category')
