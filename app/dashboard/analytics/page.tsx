@@ -359,25 +359,48 @@ export default function AnalyticsPage() {
         {currentShift && liveSummary && (
           <>
             {/* TOP CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-3xl border-2 border-green-100 shadow-sm relative overflow-hidden group">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              <div className="bg-white p-5 md:p-6 rounded-3xl border-2 border-green-100 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Banknote size={80} className="text-green-600" /></div>
                 <p className="text-xs font-bold text-green-600 uppercase mb-1 flex items-center gap-1"><ArrowDownRight size={14} /> Efectivo</p>
-                <p className="text-4xl font-black text-gray-900">{fp(liveSummary.byPaymentMethod.efectivo + liveSummary.openingBalance)}</p>
+                <p className="text-3xl md:text-4xl font-black text-gray-900">{fp(liveSummary.byPaymentMethod.efectivo + liveSummary.openingBalance)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Ventas efectivo + inicio de caja</p>
               </div>
-              <div className="bg-white p-6 rounded-3xl border-2 border-blue-100 shadow-sm relative overflow-hidden group">
+              <div className="bg-white p-5 md:p-6 rounded-3xl border-2 border-blue-100 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><CreditCard size={80} className="text-blue-600" /></div>
                 <p className="text-xs font-bold text-blue-600 uppercase mb-1 flex items-center gap-1"><ArrowUpRight size={14} /> Digital</p>
-                <p className="text-4xl font-black text-gray-900">{fp(liveSummary.byPaymentMethod.tarjeta + liveSummary.byPaymentMethod.transferencia)}</p>
+                <p className="text-3xl md:text-4xl font-black text-gray-900">{fp(liveSummary.byPaymentMethod.tarjeta + liveSummary.byPaymentMethod.transferencia)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Transferencias y tarjetas</p>
               </div>
-              <div className="bg-violet-600 p-6 rounded-3xl text-white shadow-xl shadow-violet-100 flex flex-col justify-center">
+              <div className="bg-violet-600 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-violet-100 flex flex-col justify-center">
                 <p className="text-xs font-bold text-violet-200 uppercase mb-1">Total Vendido</p>
-                <p className="text-4xl font-black">{fp(liveSummary.totalSales)}</p>
+                <p className="text-3xl md:text-4xl font-black">{fp(liveSummary.totalSales)}</p>
                 <div className="mt-2 flex items-center gap-1 text-[10px] text-violet-100">
                   <CheckCircle2 size={12} /> {liveSummary.orderCount} {liveSummary.orderCount === 1 ? 'operación' : 'operaciones'}
                 </div>
+              </div>
+              {/* 4ta card: NETO — placeholder si abierto, valor real si cerrado */}
+              <div className={`p-5 md:p-6 rounded-3xl shadow-sm flex flex-col justify-center ${
+                isShiftOpen
+                  ? 'bg-gray-50 border-2 border-dashed border-gray-200'
+                  : liveSummary.netProfit >= 0
+                    ? 'bg-green-600 shadow-xl shadow-green-100'
+                    : 'bg-red-500 shadow-xl shadow-red-100'
+              }`}>
+                <p className={`text-xs font-bold uppercase mb-1 ${isShiftOpen ? 'text-gray-400' : 'text-white/80'}`}>
+                  Neto
+                </p>
+                {isShiftOpen ? (
+                  <>
+                    <p className="text-3xl md:text-4xl font-black text-gray-300">—</p>
+                    <p className="text-[10px] text-gray-400 mt-2 font-medium">Disponible al cerrar</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-3xl md:text-4xl font-black text-white">{fp(liveSummary.netProfit)}</p>
+                    <p className="text-[10px] text-white/70 mt-2 font-medium">Ventas − gastos − delivery</p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -463,24 +486,43 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="bg-gray-900 rounded-3xl p-5 text-white space-y-2">
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-3">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Resumen del turno</p>
+
+                  {/* Ventas totales */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Ventas totales</span>
+                    <span className="text-sm font-black text-gray-900">{fp(liveSummary.totalSales)}</span>
+                  </div>
+
+                  {/* Gastos */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Gastos</span>
+                    <span className={`text-sm font-black ${liveSummary.totalExpenses > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                      -{fp(liveSummary.totalExpenses)}
+                    </span>
+                  </div>
+
+                  {/* Costo delivery — solo si aplica */}
                   {deliveryCost > 0 && (
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-400 font-bold uppercase">
-                        Costo delivery ({liveSummary.deliveryCount} × {fp(deliveryCost)})
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        Costo delivery{liveSummary.deliveryCount > 0 ? ` (${liveSummary.deliveryCount})` : ''}
                       </span>
-                      <span className="text-red-400 font-black">-{fp(liveSummary.deliveryCostTotal)}</span>
+                      <span className={`text-sm font-black ${liveSummary.deliveryCostTotal > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                        -{fp(liveSummary.deliveryCostTotal)}
+                      </span>
                     </div>
                   )}
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-gray-400 font-bold uppercase">Gastos del turno</span>
-                    <span className="text-red-400 font-black">-{fp(liveSummary.totalExpenses)}</span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-white/10">
-                    <span className="font-black uppercase tracking-widest text-xs">Ganancia Neta</span>
-                    <span className={`font-black text-xl ${liveSummary.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {fp(liveSummary.netProfit)}
-                    </span>
+
+                  {/* Separador */}
+                  <div className="border-t-2 border-dashed border-gray-200 pt-3 mt-1">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs font-black text-gray-700 uppercase tracking-widest">Ganancia Neta</span>
+                      <span className={`text-2xl font-black ${liveSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {fp(liveSummary.netProfit)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
