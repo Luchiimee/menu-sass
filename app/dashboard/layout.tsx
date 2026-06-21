@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
     LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
-    LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
+    LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, TrendingUp, ArrowRight,
     ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone
 } from 'lucide-react';
 
@@ -164,13 +164,20 @@ const menuItems = [
       locked: noPlan || isTrialExpired,
       msg: "Necesitás un plan activo para cargar tus productos. 🍕" 
   },
-  { 
-      name: 'Caja', 
-      href: '/dashboard/analytics', 
-      icon: BarChart3, 
-      locked: restaurant.plan !== 'plus' || isTrialExpired, // 👈 Bloqueado si no es PLUS
-      msg: "La sección de Caja es exclusiva del Plan PLUS. 💎" 
-  }, 
+  {
+      name: 'Caja',
+      href: '/dashboard/analytics',
+      icon: BarChart3,
+      locked: restaurant.plan !== 'plus' || isTrialExpired,
+      msg: "La sección de Caja es exclusiva del Plan PLUS. 💎"
+  },
+  {
+      name: 'Rentabilidad',
+      href: '/dashboard/rentabilidad',
+      icon: TrendingUp,
+      locked: restaurant.plan !== 'plus' || isTrialExpired,
+      msg: "El reporte de rentabilidad es exclusivo del Plan PLUS. 💎"
+  },
   { 
       name: 'Pedidos', 
       href: '/dashboard/orders', 
