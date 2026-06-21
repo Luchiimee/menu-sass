@@ -47,34 +47,29 @@ const SALE_TYPES: SaleOrderType[] = ['mesa', 'retiro', 'delivery', 'mostrador'];
 /**
  * Calcula el rango ISO (UTC) del "día de caja" para una fecha y hora de cierre dadas.
  * Argentina no observa horario de verano: UTC-3 constante.
- * Usado como fallback para órdenes sin shift_id (anteriores a la migración).
  *
- * Para closeHour < '12:00' (ej. '02:00'): el cierre es de madrugada →
- *   range va de midnight del `date` hasta closeHour del día siguiente.
- * Para closeHour >= '12:00' (ej. '22:00'): el cierre es antes de medianoche →
- *   range va de midnight del `date` hasta closeHour del mismo día.
+ * El "día de negocio D" es siempre una ventana de exactamente 24h:
+ *   start = D a closeHour ART
+ *   end   = D+1 a closeHour ART (= start + 24h)
+ *
+ * Para cierres después de medianoche (ej. '03:00'):
+ *   date='2026-06-20' → [June 20 03:00 ART, June 21 03:00 ART]
+ *   El pedido de las 00:02 ART del 21 cae en el rango del 20 ✓
+ *
+ * Para cierres antes de medianoche (ej. '22:00'):
+ *   date='2026-06-20' → [June 20 22:00 ART, June 21 22:00 ART]
+ *
+ * Para '00:00' (medianoche):
+ *   date='2026-06-20' → [June 20 00:00 ART, June 21 00:00 ART] = día calendario ✓
+ *
+ * Rangos consecutivos no se solapan.
  */
 export function getCashShiftRange(
   date: string,      // 'YYYY-MM-DD' en timezone Argentina
   closeHour: string  // 'HH:MM'
 ): { start: string; end: string } {
-  const [h] = closeHour.split(':').map(Number);
-  const isAfterMidnight = h < 12;
-
-  const startDate = new Date(`${date}T00:00:00-03:00`);
-
-  let endDate: Date;
-  if (isAfterMidnight) {
-    // Fin = closeHour del día SIGUIENTE en ART
-    // Partimos de midnight ART (= startDate) y avanzamos 1 día UTC para el siguiente midnight ART
-    const nextMidnightART = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-    const [ny, nm, nd] = nextMidnightART.toISOString().split('T')[0].split('-');
-    endDate = new Date(`${ny}-${nm}-${nd}T${closeHour}:00-03:00`);
-  } else {
-    // Fin = closeHour del MISMO día en ART
-    endDate = new Date(`${date}T${closeHour}:00-03:00`);
-  }
-
+  const startDate = new Date(`${date}T${closeHour}:00-03:00`);
+  const endDate   = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
   return { start: startDate.toISOString(), end: endDate.toISOString() };
 }
 

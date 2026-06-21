@@ -47,7 +47,6 @@ const [formData, setFormData] = useState({
   name: '',
   description: '',
   price: '',
-  cost: '',
   image_url: '',
   video_url: '',
   category_id: '',
@@ -155,7 +154,7 @@ const openCreateModal = () => {
     
     setEditingId(null);
     setFormData({
-      name: '', description: '', price: '', cost: '', image_url: '', video_url: '', category_id: '',
+      name: '', description: '', price: '', image_url: '', video_url: '', category_id: '',
       sale_type: 'unidad',
       variations: []
     });
@@ -169,7 +168,6 @@ const openEditModal = async (product: any) => {
         name: product.name,
         description: product.description || '',
         price: product.price || '',
-        cost: product.cost != null ? String(product.cost) : '',
         image_url: product.image_url || '',
         video_url: product.video_url || '',
         category_id: product.category_id || '',
@@ -296,7 +294,6 @@ const openEditModal = async (product: any) => {
             name: formData.name,
             description: formData.description,
             price: formData.price ? Number(formData.price) : 0,
-            cost: formData.cost !== '' ? Number(formData.cost) : null,
             image_url: formData.image_url,
             video_url: formData.video_url || null,
             category_id: formData.category_id || null,
@@ -1105,33 +1102,11 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
   </div>
 ) : (
   /* PRECIO ÚNICO (ESTÁNDAR) */
-  <div className="space-y-3">
-    <div>
-      <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Precio de venta</label>
-      <div className="relative">
-        <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
-        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-      </div>
-    </div>
-    <div>
-      <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">
-        Costo <span className="normal-case text-gray-400 font-medium">(opcional — solo vos lo ves)</span>
-      </label>
-      <div className="relative">
-        <input type="number" value={formData.cost} onChange={(e) => setFormData({...formData, cost: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-emerald-500 transition-all" placeholder="0"/>
-        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-      </div>
-      {formData.price && formData.cost && Number(formData.price) > 0 && (
-        <div className={`mt-2 px-3 py-2 rounded-xl text-xs font-black flex items-center justify-between ${
-          Number(formData.price) - Number(formData.cost) >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
-        }`}>
-          <span className="uppercase tracking-wide">Ganancia estimada</span>
-          <span>
-            ${Math.round(Number(formData.price) - Number(formData.cost)).toLocaleString('es-AR')}
-            {' '}({Math.round(((Number(formData.price) - Number(formData.cost)) / Number(formData.price)) * 100)}%)
-          </span>
-        </div>
-      )}
+  <div>
+    <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Precio</label>
+    <div className="relative">
+      <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
+      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
     </div>
   </div>
 )}

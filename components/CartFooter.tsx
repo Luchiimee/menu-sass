@@ -567,9 +567,16 @@ const handleCallWaiter = async () => {
             // Resolver shift_id: usar el activo o auto-crear uno si no hay caja abierta
             let resolvedShiftId = currentShiftId;
             if (!resolvedShiftId && restaurantId) {
-                const { data: autoShiftId } = await supabase.rpc('get_or_create_shift', {
+                const { data: autoShiftId, error: shiftError } = await supabase.rpc('get_or_create_shift', {
                     p_restaurant_id: restaurantId,
                 });
+                if (shiftError) {
+                    console.error('[CartFooter] get_or_create_shift falló — pedido sin turno asignado:', {
+                        restaurant_id: restaurantId,
+                        error_message: shiftError.message,
+                        error_code: shiftError.code,
+                    });
+                }
                 resolvedShiftId = autoShiftId ?? null;
             }
 
