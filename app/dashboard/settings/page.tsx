@@ -286,9 +286,12 @@ const handleCancelSubscription = async () => {
         };
       });
 
+      // Sin overrides: la librería usa localhost.qz.surf (SSL público → wss://)
+      // en el puerto correcto 8181. No pasar host ni port evita los bugs
+      // de puertos incorrectos que causaban los 4 intentos fallidos.
       await Promise.race([
-        qz.websocket.connect({ host: 'localhost', port: { secure: [8183], insecure: [8182] } }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000)),
+        qz.websocket.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
       ]);
 
       const printers: string | string[] = await qz.printers.find();
