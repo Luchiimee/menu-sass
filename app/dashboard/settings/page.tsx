@@ -286,11 +286,13 @@ const handleCancelSubscription = async () => {
         };
       });
 
-      // Sin overrides: la librería usa localhost.qz.surf (SSL público → wss://)
-      // en el puerto correcto 8181. No pasar host ni port evita los bugs
-      // de puertos incorrectos que causaban los 4 intentos fallidos.
+      // usingSecure: true debe pasarse explícitamente.
+      // Sin él, qz-tray.js lo fuerza a false cuando location.protocol === 'http:'
+      // (dev local), ignorando el default interno de la librería.
+      // Con true explícito: usa wss://localhost.qz.surf:8181 (cert público, sin
+      // necesidad de aceptar certificado manual) en cualquier contexto http/https.
       await Promise.race([
-        qz.websocket.connect(),
+        qz.websocket.connect({ usingSecure: true }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
       ]);
 
