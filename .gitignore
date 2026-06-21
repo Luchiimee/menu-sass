@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+# Excepción: certificado público de QZ Tray (no es sensible, es el cert del sitio)
+!public/qz-certificate.pem
 
 # debug
 npm-debug.log*
