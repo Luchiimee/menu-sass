@@ -38,8 +38,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     localStorage.setItem('sidebar-collapsed', String(next));
   };
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState("");
+  const [showRentabilidadModal, setShowRentabilidadModal] = useState(false);
 
   const [restaurant, setRestaurant] = useState<any>({
     name: 'Cargando...',      
@@ -56,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!session) return;
 const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginoroblabelleggia@gmail.com'];
 setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
+setUserEmail(session.user.email?.toLowerCase() ?? '');
       const [restRes, profileRes] = await Promise.all([
         supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
         fetch(`/api/profile?userId=${session.user.id}`).then(r => r.json()).catch(() => ({ profile: null }))
@@ -136,6 +139,11 @@ setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
   const missingPhone = !profileData?.phone;
   const noPlan = !restaurant.plan;
 
+// Usuarios con acceso anticipado a Rentabilidad y Caja
+// independientemente de su plan. Agregar email cuando se habilite.
+const BETA_ACCESS_EMAILS = ['luchiimee2@gmail.com'];
+const hasBetaAccess = BETA_ACCESS_EMAILS.includes(userEmail);
+
 const menuItems = [
   { 
       name: 'Inicio', 
@@ -169,15 +177,15 @@ const menuItems = [
       name: 'Caja',
       href: '/dashboard/analytics',
       icon: BarChart3,
-      locked: restaurant.plan !== 'plus' || isTrialExpired,
+      locked: (restaurant.plan !== 'plus' && !hasBetaAccess) || isTrialExpired,
       msg: "La sección de Caja es exclusiva del Plan PLUS. 💎"
   },
   {
       name: 'Rentabilidad',
       href: '/dashboard/rentabilidad',
       icon: TrendingUp,
-      locked: restaurant.plan !== 'plus' || isTrialExpired,
-      msg: "El reporte de rentabilidad es exclusivo del Plan PLUS. 💎"
+      locked: !hasBetaAccess,
+      msg: ""
   },
   { 
       name: 'Pedidos', 
@@ -298,13 +306,18 @@ const menuItems = [
                 href={(shouldShowLock && !isAdmin) ? '#' : item.href}
                 title={isCollapsed ? item.name : undefined}
                 onClick={(e) => {
-                  // Si está bloqueado (ya sea por Plan o por Trial para mortales), mostramos el modal.
                   if (shouldShowLock) {
-                    // El Admin puede entrar igual si quiere forzar la vista, pero le mostramos el aviso.
-                    if (!isAdmin) e.preventDefault(); 
-                    
-                    setUpgradeMsg(item.msg ?? "");
-                    setShowUpgradeModal(true); 
+                    if (item.name === 'Rentabilidad') {
+                      if (!hasBetaAccess) {
+                        e.preventDefault();
+                        setShowRentabilidadModal(true);
+                      }
+                    } else {
+                      // El Admin puede entrar igual si quiere forzar la vista, pero le mostramos el aviso.
+                      if (!isAdmin) e.preventDefault();
+                      setUpgradeMsg(item.msg ?? "");
+                      setShowUpgradeModal(true);
+                    }
                   }
                 }}
                 className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-xl text-xs font-bold transition-all 
@@ -394,6 +407,25 @@ const menuItems = [
               <Link href="/dashboard/plan" onClick={() => setShowUpgradeModal(false)} className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest">ACTIVAR UN PLAN 🚀</Link>
               <button onClick={() => setShowUpgradeModal(false)} className="block w-full py-3 text-gray-400 font-bold uppercase text-[10px]">Más tarde</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Próximamente — Rentabilidad */}
+      {showRentabilidadModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-indigo-50 max-w-sm w-full text-center animate-in zoom-in-95 relative">
+            <button onClick={() => setShowRentabilidadModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
+            <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <TrendingUp size={40} />
+            </div>
+            <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Próximamente</h2>
+            <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium">
+              Esta sección estará disponible muy pronto. Estamos trabajando para traerte reportes de rentabilidad detallados.
+            </p>
+            <button onClick={() => setShowRentabilidadModal(false)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">
+              Cerrar
+            </button>
           </div>
         </div>
       )}

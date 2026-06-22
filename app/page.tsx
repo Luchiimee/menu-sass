@@ -1600,7 +1600,7 @@ export default function LandingPage() {
 </li>
           <li className="flex items-start gap-3 text-left">
             <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/>
-            <span>Gestión de Cupones y Promos</span>
+            <span>Gestión de Cupones</span>
           </li>
           <li className="flex items-start gap-3 text-left">
             <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/>
