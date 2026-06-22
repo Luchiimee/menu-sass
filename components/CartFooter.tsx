@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User,CreditCard,Clock } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
@@ -17,6 +17,16 @@ interface Table {
     restaurant_id: string;
 }
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function CartFooter({
     phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp,
     businessType, restaurantName,
@@ -27,6 +37,14 @@ export default function CartFooter({
     tableIdFromQR = null,
     mesaLabel = null,
     currentShiftId = null,
+    // Zonas de delivery
+    deliveryZonesEnabled = false,
+    deliveryLat = null,
+    deliveryLng = null,
+    deliveryZone1Km = 3,
+    deliveryZone1Cost = 0,
+    deliveryZone2Km = 7,
+    deliveryZone2Cost = 0,
 }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     
@@ -103,6 +121,10 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [direccion, setDireccion] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
+    // --- ZONAS DE DELIVERY ---
+    const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
+    const [forcedZone, setForcedZone] = useState<'zone2' | null>(null);
+    const [detectingLocation, setDetectingLocation] = useState(false);
 
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
     const [metodoEnvio, setMetodoEnvio] = useState(tableIdFromQR ? 'mesa' : 'delivery');
@@ -540,14 +562,67 @@ const handleCallWaiter = async () => {
         return acc + (item.price + extrasTotal) * item.quantity;
     }, 0);
     const montoDescuento = appliedCoupon ? (subtotal * Number(appliedCoupon.discount_percent) / 100) : 0;
-    const envio = metodoEnvio === 'delivery' ? (Number(deliveryCost) || 0) : 0;
+    const zoneStatus = (() => {
+      if (metodoEnvio !== 'delivery') return null;
+      if (!deliveryZonesEnabled) return 'flat';
+      if (forcedZone) return forcedZone;
+      if (!clientCoords || deliveryLat == null || deliveryLng == null) return 'calculating';
+      const dist = haversineKm(clientCoords.lat, clientCoords.lng, deliveryLat, deliveryLng);
+      if (dist <= deliveryZone1Km) return 'zone1';
+      if (dist <= deliveryZone2Km) return 'zone2';
+      return 'outside';
+    })();
+    const envio = (() => {
+      if (metodoEnvio !== 'delivery') return 0;
+      if (zoneStatus === 'flat')  return Number(deliveryCost) || 0;
+      if (zoneStatus === 'zone1') return Number(deliveryZone1Cost) || 0;
+      if (zoneStatus === 'zone2') return Number(deliveryZone2Cost) || 0;
+      return 0; // 'calculating' o 'outside'
+    })();
     const totalFinal = subtotal - montoDescuento + envio;
    
+
+  const handleDetectLocation = async () => {
+    setDetectingLocation(true);
+    setClientCoords(null);
+    setForcedZone(null);
+
+    const tryNominatim = async () => {
+      if (!direccion.trim()) { setForcedZone('zone2'); setDetectingLocation(false); return; }
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccion)}&format=json&limit=1`,
+          { headers: { 'Accept-Language': 'es' } },
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          setClientCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+        } else {
+          setForcedZone('zone2');
+        }
+      } catch {
+        setForcedZone('zone2');
+      }
+      setDetectingLocation(false);
+    };
+
+    if (!navigator.geolocation) { await tryNominatim(); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setClientCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setDetectingLocation(false);
+      },
+      tryNominatim,
+    );
+  };
 
   const handleSendOrder = async () => {
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
     if (metodoEnvio !== 'mesa' && !apellido.trim()) return alert("Por favor, ingresá tu apellido.");
     if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
+    if (metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'calculating') return alert("Necesitamos tu ubicación para calcular el costo de envío");
+    if (metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'outside') return alert("Lo sentimos, no llegamos a tu zona");
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
     const nombreCompleto = metodoEnvio === 'mesa' ? nombre.trim() : `${nombre.trim()} ${apellido.trim()}`;
     // 🚀 VALIDACIÓN: Si eligió programar pero no seleccionó un horario
@@ -852,10 +927,54 @@ return (
                     </div>
                     )}
                     {metodoEnvio === 'delivery' && (
-                        <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100"><span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span><span className="font-black text-green-700">{formatPrice(envio)}</span></div>
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            {/* Costo de envío — muestra "A calcular" cuando las zonas están activas y sin coords */}
+                            <div className="flex justify-between items-center px-4 py-2 bg-green-50 rounded-2xl border border-green-100">
+                              <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
+                              <span className="font-black text-green-700">
+                                {deliveryZonesEnabled && zoneStatus === 'calculating' ? 'A calcular' : formatPrice(envio)}
+                              </span>
+                            </div>
+                            {/* Dirección — siempre obligatoria */}
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
                             <input type="text" placeholder="Calle, número..." value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            {/* Selector de zona — solo cuando zonas están habilitadas */}
+                            {deliveryZonesEnabled && (
+                              <div className="space-y-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleDetectLocation}
+                                  disabled={detectingLocation}
+                                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-gray-200 text-[11px] font-black uppercase tracking-wide text-gray-500 hover:border-green-400 hover:text-green-600 transition-all disabled:opacity-40 active:scale-95"
+                                >
+                                  {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                                  Usar mi ubicación para calcular el envío
+                                </button>
+                                {zoneStatus === 'zone1' && (
+                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-2xl border border-green-200">
+                                    <Check size={14} className="text-green-600 shrink-0" />
+                                    <span className="text-[11px] font-black text-green-700">Zona 1 — {formatPrice(deliveryZone1Cost)}</span>
+                                  </div>
+                                )}
+                                {zoneStatus === 'zone2' && (
+                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-2xl border border-green-200">
+                                    <Check size={14} className="text-green-600 shrink-0" />
+                                    <span className="text-[11px] font-black text-green-700">Zona 2 — {formatPrice(deliveryZone2Cost)}</span>
+                                  </div>
+                                )}
+                                {zoneStatus === 'outside' && (
+                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 rounded-2xl border border-red-200">
+                                    <XCircle size={14} className="text-red-500 shrink-0" />
+                                    <span className="text-[11px] font-black text-red-600">Lo sentimos, no llegamos a tu zona</span>
+                                  </div>
+                                )}
+                                {zoneStatus === 'calculating' && (
+                                  <div className="px-4 py-2.5 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                    <span className="text-[11px] font-bold text-gray-400">Calculá el costo según tu ubicación</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                         </div>
                     )}
                     {metodoEnvio === 'mesa' && (
