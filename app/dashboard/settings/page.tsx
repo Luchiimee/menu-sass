@@ -280,7 +280,7 @@ const handleCancelSubscription = async () => {
     setQzStatus('connecting');
     try {
       // Certificado público de Snappy (identifica el sitio ante QZ Tray)
-      qz.security.setCertificatePromise((_resolve: Function, reject: Function) => {
+      qz.security.setCertificatePromise((_resolve: (v: string) => void, reject: (e?: any) => void) => {
         fetch('/qz-certificate.pem')
           .then(r => r.text())
           .then(_resolve)
@@ -289,7 +289,7 @@ const handleCancelSubscription = async () => {
 
       qz.security.setSignatureAlgorithm('SHA512');
       qz.security.setSignaturePromise((toSign: string) => {
-        return (resolve: Function, reject: Function) => {
+        return (resolve: (v: string) => void, reject: (e?: any) => void) => {
           fetch('/api/qz/sign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
