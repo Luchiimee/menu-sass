@@ -99,9 +99,19 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
     }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`,
+            { headers: { 'Accept-Language': 'es' } },
+          );
+          const data = await res.json();
+          if (data.display_name) setAddressInput(data.display_name);
+        } catch {
+          // reverse geocoding falló — coordenadas ya seteadas, campo queda vacío
+        }
         setLocating(false);
       },
       () => {
