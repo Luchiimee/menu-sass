@@ -428,11 +428,11 @@ const loadOrders = async () => {
 
     try {
       if (!qz.websocket.isActive()) {
-        qz.security.setCertificatePromise((_resolve: Function, reject: Function) => {
+        qz.security.setCertificatePromise((_resolve: (v: string) => void, reject: (e?: any) => void) => {
           fetch('/qz-certificate.pem').then(r => r.text()).then(_resolve).catch(reject);
         });
         qz.security.setSignatureAlgorithm('SHA512');
-        qz.security.setSignaturePromise((toSign: string) => (resolve: Function, reject: Function) => {
+        qz.security.setSignaturePromise((toSign: string) => (resolve: (v: string) => void, reject: (e?: any) => void) => {
           fetch('/api/qz/sign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

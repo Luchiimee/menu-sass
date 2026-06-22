@@ -37,7 +37,7 @@ const PLANS = [
       { text: 'Snapplink (2 links)', included: true },
       { text: 'Imágenes y Videos', included: false },
       { text: 'Descuentos y Cupones', included: false },
-      { text: 'Panel Pro y Caja', included: false },
+      { text: 'Caja', included: false },
     ],
   },
   {
@@ -54,8 +54,9 @@ const PLANS = [
       { text: 'Snapplink (4 links)', included: true },
       { text: 'Descuentos y Cupones', included: true },
       { text: 'Seguimiento en Vivo', included: true },
+      { text: 'Comandas e Impresión de Tickets', included: true },
       { text: 'Productos ilimitados', included: false },
-      { text: 'Panel Pro y Caja', included: false },
+      { text: 'Caja', included: false },
       { text: 'Gestión de Reservas', included: false },
     ],
   },
@@ -69,7 +70,7 @@ const PLANS = [
     badge: null,
     features: [
       { text: 'Productos Ilimitados', included: true },
-      { text: 'Panel Pro y Caja', included: true },
+      { text: 'Caja', included: true },
       { text: 'Snapplink Ilimitado', included: true },
       { text: 'Gestión de Reservas', included: true },
       { text: 'Tickets y Comandas', included: true },
