@@ -94,6 +94,18 @@ function SettingsContent() {
         subscription.unsubscribe();
     };
 }, []);
+
+  // Auto-reconectar a QZ Tray si thermal_printing_enabled está activo en DB.
+  // Se dispara cuando: (1) el script cargó, (2) thermalEnabled=true (leído de DB),
+  // (3) aún no estamos conectados. Sin esta condición triple, conectaría
+  // aunque el usuario haya desactivado el toggle o ya esté conectado.
+  useEffect(() => {
+    if (qzScriptLoaded && thermalEnabled && qzStatus === 'idle') {
+      connectQZ();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qzScriptLoaded, thermalEnabled]);
+
   // --- FUNCIONES DE CUENTA ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
