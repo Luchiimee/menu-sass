@@ -1104,7 +1104,7 @@ useEffect(() => {
             {order.status === "pendiente" && (
                 <div className="flex gap-2">
                     <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
-                    <button onClick={() => updateStatus(order.id, "recibido")} className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
+                    <button onClick={() => { updateStatus(order.id, "recibido"); if (thermalPrintingEnabled) { handleThermalPrint(order); } }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
                         <Check size={14} /> Tomar Pedido
                     </button>
                 </div>
