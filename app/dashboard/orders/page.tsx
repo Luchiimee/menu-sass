@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import QRCode from 'qrcode';
 import Link from "next/link";
+import { toast } from 'sonner';
 const CUSTOM_STYLES = `
   @keyframes blink-alert {
     0%, 100% { background-color: #ef4444 !important; border-color: #b91c1c !important; color: white !important; }
@@ -80,6 +81,8 @@ const [productSearch, setProductSearch] = useState("");
   const [isLocked, setIsLocked] = useState(true);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [cashCloseHour, setCashCloseHour] = useState('00:00');
+  const [thermalPrintingEnabled, setThermalPrintingEnabled] = useState(false);
+  const [thermalPrinterName, setThermalPrinterName] = useState('');
   const [receiveWhatsapp, setReceiveWhatsapp] = useState(true);
   const [restaurantPhone, setRestaurantPhone] = useState<string | null>(null);
   const [showPhoneAlert, setShowPhoneAlert] = useState(false);
@@ -352,23 +355,14 @@ const loadOrders = async () => {
   }
 };
 
-  // --- 3. IMPRESIÓN (CIERRA PESTAÑA SOLA) ---
-  const handlePrint = (order: any) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+  // --- 3. IMPRESIÓN ---
 
-    const direccionExhibida = order.order_type === 'delivery' 
-      ? (order.address || 'Sin dirección') 
-      : order.order_type === 'mesa' ? displayTableLabel(order.table_number || 'S/N') : 'Retiro';
-
-    // --- CÁLCULOS PARA EL DESGLOSE ---
-    // Sumamos solo los productos
+  // HTML del ticket compartido entre window.print() y QZ Tray
+  const getTicketHTML = (order: any): string => {
     const subtotalProductos = order.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-    // Usamos el nombre real de la columna: delivery_cost
     const costoEnvio = Number(order.delivery_cost || 0);
     const montoDescuento = Number(order.discount_amount || 0);
     const totalFinal = Number(order.total);
-
     const itemsHtml = order.items.map((item: any) => `
         <div style="margin-bottom: 5px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between;">
@@ -377,24 +371,19 @@ const loadOrders = async () => {
             </div>
             ${item.extrasList?.map((e: any) => `<div style="font-size: 10px; margin-left: 10px;">+ ${e.name.toUpperCase()}</div>`).join('') || ''}
         </div>`).join("");
-
-  printWindow.document.write(`
+    return `
         <html>
             <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto; color: #000;">
               <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
     <h2 style="margin:0; font-size: 18px;">${restaurantName.toUpperCase()}</h2>
-  
     ${order.order_type === 'mesa' ? `<h1 style="margin: 5px 0; font-size: 24px;">${displayTableLabel(order.table_number, true)}</h1>` : ''}
     <p style="margin: 5px 0; font-size: 12px;">TICKET #${order.id.slice(0, 5).toUpperCase()}</p>
     <p style="margin: 0; font-size: 10px;">${new Date(order.created_at).toLocaleString("es-AR", { hour12: false })}</p>
 </div>
-
-
 <div style="font-size: 12px; margin-bottom: 10px; border: 1px solid #000; padding: 8px; border-radius: 5px;">
     <p style="margin: 2px 0; font-size: 14px;"><strong>CLIENTE:</strong> ${order.customer_name.toUpperCase()}</p>
     <p style="margin: 2px 0; font-size: 14px;"><strong>WHATSAPP:</strong> ${order.customer_phone || 'NO INFORMADO'}</p>
     <p style="margin: 2px 0;"><strong>ENTREGA:</strong> ${order.order_type.toUpperCase()}</p>
-    
     ${order.order_type !== 'mesa' ? `
         ${order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato' ? `
             <div style="margin: 8px 0; padding: 5px; border: 2px solid #000; text-align: center; font-size: 14px; background: #eee;">
@@ -405,47 +394,73 @@ const loadOrders = async () => {
         `}
     ` : ''}
 </div>
-                
                 <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 5px 0; margin-bottom: 10px;">
                     ${itemsHtml}
                 </div>
-
                 <div style="font-size: 13px; line-height: 1.6;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>SUBTOTAL PRODUCTOS:</span>
-                        <span>$${subtotalProductos.toLocaleString()}</span>
-                    </div>
-
-                    ${montoDescuento > 0 ? `
-                    <div style="display: flex; justify-content: space-between; color: #000;">
-                        <span>CUPÓN (${order.coupon_code?.toUpperCase() || 'DESC'}):</span>
-                        <span>-$${montoDescuento.toLocaleString()}</span>
-                    </div>` : ''}
-
-                    ${costoEnvio > 0 ? `
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>ENVÍO / DELIVERY:</span>
-                        <span>+$${costoEnvio.toLocaleString()}</span>
-                    </div>` : ''}
-
-                    <div style="border-top: 2px dashed #000; padding-top: 8px; margin-top: 5px; font-size: 22px; font-weight: bold; display: flex; justify-content: space-between;">
-                        <span>TOTAL:</span>
-                        <span>$${totalFinal.toLocaleString()}</span>
-                    </div>
+                    <div style="display: flex; justify-content: space-between;"><span>SUBTOTAL PRODUCTOS:</span><span>$${subtotalProductos.toLocaleString()}</span></div>
+                    ${montoDescuento > 0 ? `<div style="display: flex; justify-content: space-between; color: #000;"><span>CUPÓN (${order.coupon_code?.toUpperCase() || 'DESC'}):</span><span>-$${montoDescuento.toLocaleString()}</span></div>` : ''}
+                    ${costoEnvio > 0 ? `<div style="display: flex; justify-content: space-between;"><span>ENVÍO / DELIVERY:</span><span>+$${costoEnvio.toLocaleString()}</span></div>` : ''}
+                    <div style="border-top: 2px dashed #000; padding-top: 8px; margin-top: 5px; font-size: 22px; font-weight: bold; display: flex; justify-content: space-between;"><span>TOTAL:</span><span>$${totalFinal.toLocaleString()}</span></div>
                 </div>
-                
-                <p style="text-align: center; font-size: 10px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 10px;">
-                    GRACIAS POR TU COMPRA<br>
-                    Snappy Tu Menú Digital
-                </p>
+                <p style="text-align: center; font-size: 10px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 10px;">GRACIAS POR TU COMPRA<br>Snappy Tu Menú Digital</p>
             </body>
-        </html>
-    `);
+        </html>`;
+  };
+
+  // Impresión térmica via QZ Tray — fallback silencioso a window.print()
+  const handleThermalPrint = async (order: any) => {
+    const qz = (window as any).qz;
+
+    const windowPrintFallback = () => {
+      const pw = window.open("", "_blank");
+      if (!pw) return;
+      pw.document.write(getTicketHTML(order));
+      pw.document.close();
+      setTimeout(() => { pw.print(); pw.close(); }, 350);
+    };
+
+    if (!qz) {
+      windowPrintFallback();
+      toast.warning('Impresión automática falló — usando impresión manual', { duration: 4000 });
+      return;
+    }
+
+    try {
+      if (!qz.websocket.isActive()) {
+        qz.security.setCertificatePromise((_resolve: Function, reject: Function) => {
+          fetch('/qz-certificate.pem').then(r => r.text()).then(_resolve).catch(reject);
+        });
+        qz.security.setSignatureAlgorithm('SHA512');
+        qz.security.setSignaturePromise((toSign: string) => (resolve: Function, reject: Function) => {
+          fetch('/api/qz/sign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request: toSign }),
+          }).then(r => r.json()).then(d => resolve(d.signature)).catch(reject);
+        });
+        await Promise.race([
+          qz.websocket.connect({ usingSecure: true }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+        ]);
+      }
+      const cfg = qz.configs.create(thermalPrinterName);
+      await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: getTicketHTML(order) }]);
+    } catch (err: any) {
+      console.error('[handleThermalPrint]', err.message);
+      windowPrintFallback();
+      toast.warning('Impresión automática falló — usando impresión manual', { duration: 4000 });
+    }
+  };
+
+  // Impresión normal (CIERRA PESTAÑA SOLA) — intacta salvo el if de intercepción al inicio
+  const handlePrint = (order: any) => {
+    if (thermalPrintingEnabled) { handleThermalPrint(order); return; }
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(getTicketHTML(order));
     printWindow.document.close();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 350);
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 350);
   };
 
   const changeView = (newView: string) => {
@@ -488,6 +503,8 @@ const loadOrders = async () => {
     setCurrentPlan(rest.subscription_plan);
     setRestaurantSlug(rest.slug || null);
     setCashCloseHour(rest.cash_close_hour?.slice(0, 5) ?? '00:00');
+    setThermalPrintingEnabled(!!rest.thermal_printing_enabled);
+    setThermalPrinterName(rest.thermal_printer_name ?? '');
     if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
         setShowTables(true);
     }
@@ -1037,8 +1054,9 @@ useEffect(() => {
                         )}
 
   <div className="flex flex-col gap-2 pt-4 border-t border-gray-50 mt-auto">
-    {/* Botón de Ticket (Siempre visible para todos) */}
-    <button 
+    {/* Botón de Ticket — oculto si impresión térmica activa */}
+    {!thermalPrintingEnabled && (
+    <button
         onClick={() => {
             if (currentPlan === 'light') {
                 setUpgradeModalInfo({
@@ -1050,16 +1068,17 @@ useEffect(() => {
             } else {
                 handlePrint(order);
             }
-        }} 
+        }}
         className={`w-full py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all border ${
             currentPlan === 'light'
             ? 'bg-gray-50 text-gray-300 border-gray-100'
             : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-transparent'
         }`}
     >
-        {currentPlan === 'light' ? <Lock size={14} /> : <Printer size={14} />} 
+        {currentPlan === 'light' ? <Lock size={14} /> : <Printer size={14} />}
         Imprimir Comanda
     </button>
+    )}
     
     {/* 🚀 LÓGICA DE SEPARACIÓN: MESA vs DELIVERY */}
     {order.order_type === 'mesa' ? (
@@ -1425,6 +1444,7 @@ useEffect(() => {
                     ) : selectedTableForDetail.activeOrder.status === 'entregado' ? (
                     <div className="flex flex-col gap-2">
                         {/* Botón Imprimir más chico */}
+                  {!thermalPrintingEnabled && (
                   <button
         onClick={() => {
             if (currentPlan === 'light') {
@@ -1441,6 +1461,7 @@ useEffect(() => {
     >
         {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
     </button>
+                  )}
 
 
 <button
