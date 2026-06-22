@@ -1156,9 +1156,15 @@ return (
                             <span className="text-xs font-black text-amber-800 uppercase tracking-tight">Pedido para {mesaLabel}</span>
                         </div>
                     )}
+                    {metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'calculating' && (
+                      <p className="text-[11px] font-bold text-gray-400 text-center pb-1">Calculá el costo de envío para continuar</p>
+                    )}
+                    {metodoEnvio === 'delivery' && zoneStatus === 'outside' && (
+                      <p className="text-[11px] font-bold text-red-500 text-center pb-1">No llegamos a tu zona de entrega</p>
+                    )}
                     <button
                         onClick={handleSendOrder}
-                        disabled={isSending || zoneStatus === 'outside' || (deliveryZonesEnabled && zoneStatus === 'calculating')}
+                        disabled={isSending || (metodoEnvio === 'delivery' && deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside'))}
                         className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
                     >
                         {isSending ? (
