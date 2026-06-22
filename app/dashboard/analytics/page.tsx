@@ -313,7 +313,7 @@ export default function AnalyticsPage() {
                   <Calculator size={18} /> Iniciar Caja
                 </button>
               )}
-              {currentShift && isShiftOpen && isToday && (
+              {currentShift && isShiftOpen && hasActiveShift && (
                 <button onClick={() => setShowCloseConfirm(true)} className="flex-1 md:flex-none px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-red-500 text-white shadow-lg shadow-red-100 hover:bg-red-600 active:scale-95 transition-all">
                   <Lock size={16} /> Cerrar Caja
                 </button>
