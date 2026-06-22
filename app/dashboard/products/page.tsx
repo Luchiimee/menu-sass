@@ -43,15 +43,15 @@ const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<string | null>(null);
 
-const [formData, setFormData] = useState({ 
-  name: '', 
-  description: '', 
-  price: '', 
-  image_url: '', 
-  video_url: '', // <--- AGREGAMOS ESTO
-  category_id: '',
+const [formData, setFormData] = useState({
+  name: '',
+  description: '',
+  price: '',
+  image_url: '',
+  video_url: '',
+  category_id: '',
   sale_type: 'unidad' as 'unidad' | 'peso',
-  variations: [] as { label: string, price: string, is_featured?: boolean }[]
+  variations: [] as { label: string, price: string, is_featured?: boolean }[]
 });
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
@@ -291,15 +291,15 @@ const openEditModal = async (product: any) => {
         // 2. PREPARAMOS LOS DATOS (Incluyendo las nuevas variaciones)
       // 2. PREPARAMOS LOS DATOS (Incluyendo video y variaciones)
         const productData: any = {
-            name: formData.name,
-            description: formData.description,
-            price: formData.price ? Number(formData.price) : 0, 
-            image_url: formData.image_url,
-            video_url: formData.video_url || null, // <--- GUARDAMOS EL VIDEO
-            category_id: formData.category_id || null,
-      sale_type: formData.sale_type,
-            variations: formData.variations 
-        };
+            name: formData.name,
+            description: formData.description,
+            price: formData.price ? Number(formData.price) : 0,
+            image_url: formData.image_url,
+            video_url: formData.video_url || null,
+            category_id: formData.category_id || null,
+            sale_type: formData.sale_type,
+            variations: formData.variations
+        };
 
         if (editingId) {
             const { error } = await supabase.from('products').update(productData).eq('id', editingId);

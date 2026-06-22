@@ -354,7 +354,7 @@ const PhoneWarningBanner = () => {
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Emprendimientos pequeños. <br/> 
-                   15 productos, fotos y pedidos directos a tu WhatsApp.
+                   20 productos, fotos y pedidos directos a tu WhatsApp.
                 </p>
                 <span className="mt-4 text-[9px] font-black uppercase text-blue-600 group-hover:underline">Elegir este plan →</span>
             </Link>

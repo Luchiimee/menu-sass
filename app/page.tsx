@@ -1506,7 +1506,7 @@ export default function LandingPage() {
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
           <li className="flex items-start gap-3 text-left">
             <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span><b>Hasta 15 Productos</b></span>
+            <span><b>Hasta 20 Productos</b></span>
           </li>
           <li className="flex items-start gap-3 text-left">
             <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
@@ -1599,8 +1599,12 @@ export default function LandingPage() {
   </div>
 </li>
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
-            <span>Gestión de Cupones y Promos</span>
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/>
+            <span>Gestión de Cupones</span>
+          </li>
+          <li className="flex items-start gap-3 text-left">
+            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/>
+            <span><b>Comandas</b> e Impresión de Tickets</span>
           </li>
         </ul>
         <Link href="/login" className="block w-full py-3 rounded-xl bg-blue-500 text-white text-center font-bold hover:bg-blue-600 transition text-sm">Prueba 14 días gratis</Link>
@@ -1648,7 +1652,7 @@ export default function LandingPage() {
 
     <li className="flex items-start gap-3 text-left">
       <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Panel Pro</b> y Gestión de Caja</span>
+      <span><b>Caja</b></span>
     </li>
     <li className="flex items-start gap-3 text-left">
       <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 

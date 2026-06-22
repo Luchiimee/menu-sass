@@ -66,7 +66,7 @@ async function getRestaurant(slug: string) {
     console.log("✅ MENÚ ENCONTRADO - PRIORIDAD ALTA");
     const { data: products } = await supabase
       .from("products")
-      .select("*")
+      .select("id, name, description, price, image_url, video_url, category_id, sale_type, variations")
       .eq("restaurant_id", menuData.id)
       .order("name", { ascending: true });
 
@@ -1775,6 +1775,7 @@ case "spotlight":
             isAdmin={false}
             tableIdFromQR={mesaId}
             mesaLabel={mesaLabel}
+            currentShiftId={restaurant.current_shift_id ?? null}
           />
         </div>
         {showReservationModal && (

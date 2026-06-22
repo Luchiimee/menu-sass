@@ -26,6 +26,7 @@ export default function CartFooter({
     isAdmin,
     tableIdFromQR = null,
     mesaLabel = null,
+    currentShiftId = null,
 }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     
@@ -563,8 +564,24 @@ const handleCallWaiter = async () => {
         
         // 1. GUARDADO EN BASE DE DATOS (Solo si no es Light)
         if (!isLight) {
+            // Resolver shift_id: usar el activo o auto-crear uno si no hay caja abierta
+            let resolvedShiftId = currentShiftId;
+            if (!resolvedShiftId && restaurantId) {
+                const { data: autoShiftId, error: shiftError } = await supabase.rpc('get_or_create_shift', {
+                    p_restaurant_id: restaurantId,
+                });
+                if (shiftError) {
+                    console.error('[CartFooter] get_or_create_shift falló — pedido sin turno asignado:', {
+                        restaurant_id: restaurantId,
+                        error_message: shiftError.message,
+                        error_code: shiftError.code,
+                    });
+                }
+                resolvedShiftId = autoShiftId ?? null;
+            }
+
             const { data: newOrder, error } = await supabase.from('orders').insert({
-                restaurant_id: restaurantId, 
+                restaurant_id: restaurantId,
                 customer_name: nombreCompleto,
                 customer_phone: telCliente, 
                 address: metodoEnvio === 'delivery' ? direccion : '',
@@ -577,10 +594,10 @@ const handleCallWaiter = async () => {
                 items: cart, 
                 table_number: metodoEnvio === 'mesa' ? nroMesa : null, 
                 description: aclaraciones, 
-                coupon_code: appliedCoupon?.code || null, 
+                coupon_code: appliedCoupon?.code || null,
                 discount_amount: montoDescuento || 0,
-                // 🚀 GUARDAMOS EL HORARIO EN LA DB
-                scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato'
+                scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
+                shift_id: resolvedShiftId ?? null,
             }).select().single();
 
             if (error) throw error;

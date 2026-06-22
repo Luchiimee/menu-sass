@@ -2,11 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
     LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
-    LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, ArrowRight,
+    LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, TrendingUp, ArrowRight,
     ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone
 } from 'lucide-react';
 
@@ -37,8 +38,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     localStorage.setItem('sidebar-collapsed', String(next));
   };
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState("");
+  const [showRentabilidadModal, setShowRentabilidadModal] = useState(false);
 
   const [restaurant, setRestaurant] = useState<any>({
     name: 'Cargando...',      
@@ -55,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!session) return;
 const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginoroblabelleggia@gmail.com'];
 setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
+setUserEmail(session.user.email?.toLowerCase() ?? '');
       const [restRes, profileRes] = await Promise.all([
         supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
         fetch(`/api/profile?userId=${session.user.id}`).then(r => r.json()).catch(() => ({ profile: null }))
@@ -135,6 +139,11 @@ setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
   const missingPhone = !profileData?.phone;
   const noPlan = !restaurant.plan;
 
+// Usuarios con acceso anticipado a Rentabilidad y Caja
+// independientemente de su plan. Agregar email cuando se habilite.
+const BETA_ACCESS_EMAILS = ['luchiimee2@gmail.com'];
+const hasBetaAccess = BETA_ACCESS_EMAILS.includes(userEmail);
+
 const menuItems = [
   { 
       name: 'Inicio', 
@@ -164,13 +173,20 @@ const menuItems = [
       locked: noPlan || isTrialExpired,
       msg: "Necesitás un plan activo para cargar tus productos. 🍕" 
   },
-  { 
-      name: 'Caja', 
-      href: '/dashboard/analytics', 
-      icon: BarChart3, 
-      locked: restaurant.plan !== 'plus' || isTrialExpired, // 👈 Bloqueado si no es PLUS
-      msg: "La sección de Caja es exclusiva del Plan PLUS. 💎" 
-  }, 
+  {
+      name: 'Caja',
+      href: '/dashboard/analytics',
+      icon: BarChart3,
+      locked: (restaurant.plan !== 'plus' && !hasBetaAccess) || isTrialExpired,
+      msg: "La sección de Caja es exclusiva del Plan PLUS. 💎"
+  },
+  {
+      name: 'Rentabilidad',
+      href: '/dashboard/rentabilidad',
+      icon: TrendingUp,
+      locked: !hasBetaAccess,
+      msg: ""
+  },
   { 
       name: 'Pedidos', 
       href: '/dashboard/orders', 
@@ -290,13 +306,18 @@ const menuItems = [
                 href={(shouldShowLock && !isAdmin) ? '#' : item.href}
                 title={isCollapsed ? item.name : undefined}
                 onClick={(e) => {
-                  // Si está bloqueado (ya sea por Plan o por Trial para mortales), mostramos el modal.
                   if (shouldShowLock) {
-                    // El Admin puede entrar igual si quiere forzar la vista, pero le mostramos el aviso.
-                    if (!isAdmin) e.preventDefault(); 
-                    
-                    setUpgradeMsg(item.msg ?? "");
-                    setShowUpgradeModal(true); 
+                    if (item.name === 'Rentabilidad') {
+                      if (!hasBetaAccess) {
+                        e.preventDefault();
+                        setShowRentabilidadModal(true);
+                      }
+                    } else {
+                      // El Admin puede entrar igual si quiere forzar la vista, pero le mostramos el aviso.
+                      if (!isAdmin) e.preventDefault();
+                      setUpgradeMsg(item.msg ?? "");
+                      setShowUpgradeModal(true);
+                    }
                   }
                 }}
                 className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-xl text-xs font-bold transition-all 
@@ -389,6 +410,32 @@ const menuItems = [
           </div>
         </div>
       )}
+
+      {/* Modal Próximamente — Rentabilidad */}
+      {showRentabilidadModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-indigo-50 max-w-sm w-full text-center animate-in zoom-in-95 relative">
+            <button onClick={() => setShowRentabilidadModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
+            <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <TrendingUp size={40} />
+            </div>
+            <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Próximamente</h2>
+            <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium">
+              Esta sección estará disponible muy pronto. Estamos trabajando para traerte reportes de rentabilidad detallados.
+            </p>
+            <button onClick={() => setShowRentabilidadModal(false)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* qz-tray.js disponible en todo el dashboard — onLoad dispara 'qz-ready' */}
+      <Script
+        src="/qz-tray.js"
+        strategy="afterInteractive"
+        onLoad={() => window.dispatchEvent(new Event('qz-ready'))}
+      />
     </div>
   );
 }
