@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import Script from 'next/script';
+
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import {
@@ -42,7 +42,6 @@ function SettingsContent() {
   const [settingsTab, setSettingsTab] = useState<'seguridad' | 'horarios' | 'impresoras' | 'integraciones'>('seguridad');
 
   // --- QZ TRAY ---
-  const [qzScriptLoaded, setQzScriptLoaded] = useState(false);
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [availablePrinters, setAvailablePrinters] = useState<string[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState('');
@@ -100,11 +99,15 @@ function SettingsContent() {
   // (3) aún no estamos conectados. Sin esta condición triple, conectaría
   // aunque el usuario haya desactivado el toggle o ya esté conectado.
   useEffect(() => {
-    if (qzScriptLoaded && thermalEnabled && qzStatus === 'idle') {
-      connectQZ();
-    }
+    if (!thermalEnabled) return;
+    const tryConnect = () => {
+      if ((window as any).qz && qzStatus === 'idle') connectQZ();
+    };
+    if ((window as any).qz) { tryConnect(); return; }
+    window.addEventListener('qz-ready', tryConnect, { once: true });
+    return () => window.removeEventListener('qz-ready', tryConnect);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qzScriptLoaded, thermalEnabled]);
+  }, [thermalEnabled]);
 
   // --- FUNCIONES DE CUENTA ---
   const handleLogout = async () => {
@@ -765,7 +768,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   </div>
                   <button
                     onClick={connectQZ}
-                    disabled={!qzScriptLoaded || qzStatus === 'connecting'}
+                    disabled={qzStatus === 'connecting'}
                     className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
                   >
                     <RefreshCw size={12} className={qzStatus === 'connecting' ? 'animate-spin' : ''} />
@@ -872,14 +875,6 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 
       </div>{/* fin contenido tabs */}
 
-      {/* Script de QZ Tray — carga en settings independientemente del tab activo */}
-      {qzScriptLoaded === false && (
-        <Script
-          src="/qz-tray.js"
-          strategy="afterInteractive"
-          onLoad={() => setQzScriptLoaded(true)}
-        />
-      )}
 
       {loading && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/80 backdrop-blur-md animate-in fade-in duration-300">

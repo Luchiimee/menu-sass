@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { 
@@ -396,6 +397,13 @@ const menuItems = [
           </div>
         </div>
       )}
+
+      {/* qz-tray.js disponible en todo el dashboard — onLoad dispara 'qz-ready' */}
+      <Script
+        src="/qz-tray.js"
+        strategy="afterInteractive"
+        onLoad={() => window.dispatchEvent(new Event('qz-ready'))}
+      />
     </div>
   );
 }
