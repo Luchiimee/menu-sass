@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { MapPin, Search, Save, Loader2 } from 'lucide-react';
+import { MapPin, Search, Save, Loader2, LocateFixed } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Carga dinámica obligatoria: Leaflet usa APIs del browser que no existen en SSR
@@ -41,6 +41,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   // Cargar valores actuales de la DB
   useEffect(() => {
@@ -89,6 +90,25 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
     } finally {
       setGeocoding(false);
     }
+  };
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no soporta geolocalización');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
+        setLocating(false);
+      },
+      () => {
+        toast.error('No se pudo obtener tu ubicación');
+        setLocating(false);
+      },
+    );
   };
 
   // Guardar las 6 columnas de zonas en DB
@@ -182,6 +202,14 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
               >
                 {geocoding ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
                 Buscar
+              </button>
+              <button
+                onClick={handleLocate}
+                disabled={locating || geocoding}
+                className="px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-50 transition-all disabled:opacity-40 flex items-center gap-2 shrink-0"
+              >
+                {locating ? <Loader2 size={14} className="animate-spin" /> : <LocateFixed size={14} />}
+                Mi ubicación
               </button>
             </div>
             <p className="text-[10px] text-gray-400 mt-1.5 ml-1 font-medium">
