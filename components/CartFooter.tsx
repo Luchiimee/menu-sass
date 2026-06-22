@@ -971,6 +971,7 @@ return (
                                 {zoneStatus === 'calculating' && (
                                   <div className="px-4 py-2.5 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                                     <span className="text-[11px] font-bold text-gray-400">Calculá el costo según tu ubicación</span>
+                                    <p className="text-[10px] font-bold text-gray-400 mt-1">Calculá el costo de envío antes de confirmar</p>
                                   </div>
                                 )}
                               </div>
@@ -1149,7 +1150,7 @@ return (
                     )}
                     <button
                         onClick={handleSendOrder}
-                        disabled={isSending}
+                        disabled={isSending || zoneStatus === 'outside' || (deliveryZonesEnabled && zoneStatus === 'calculating')}
                         className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
                     >
                         {isSending ? (
