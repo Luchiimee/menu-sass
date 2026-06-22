@@ -118,7 +118,8 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [nombre, setNombre] = useState('');
     const [apellido, setApellido] = useState('');
     const [telCliente, setTelCliente] = useState('');
-    const [direccion, setDireccion] = useState('');
+    const [direccionCalle, setDireccionCalle] = useState('');
+    const [direccionEntreCalles, setDireccionEntreCalles] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
     // --- ZONAS DE DELIVERY ---
@@ -582,16 +583,20 @@ const handleCallWaiter = async () => {
     const totalFinal = subtotal - montoDescuento + envio;
    
 
+  const direccionCompleta = direccionEntreCalles.trim()
+    ? `${direccionCalle} (entre ${direccionEntreCalles})`
+    : direccionCalle;
+
   const handleDetectLocation = async () => {
     setDetectingLocation(true);
     setClientCoords(null);
     setForcedZone(null);
 
     const tryNominatim = async () => {
-      if (!direccion.trim()) { setForcedZone('zone2'); setDetectingLocation(false); return; }
+      if (!direccionCalle.trim()) { setForcedZone('zone2'); setDetectingLocation(false); return; }
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccion)}&format=json&limit=1`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccionCalle)}&format=json&limit=1`,
           { headers: { 'Accept-Language': 'es' } },
         );
         const data = await res.json();
@@ -620,7 +625,7 @@ const handleCallWaiter = async () => {
   const handleSendOrder = async () => {
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
     if (metodoEnvio !== 'mesa' && !apellido.trim()) return alert("Por favor, ingresá tu apellido.");
-    if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
+    if (metodoEnvio === 'delivery' && !direccionCalle.trim()) return alert("Ingresá la calle y número de envío.");
     if (metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'calculating') return alert("Necesitamos tu ubicación para calcular el costo de envío");
     if (metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'outside') return alert("Lo sentimos, no llegamos a tu zona");
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
@@ -659,7 +664,7 @@ const handleCallWaiter = async () => {
                 restaurant_id: restaurantId,
                 customer_name: nombreCompleto,
                 customer_phone: telCliente, 
-                address: metodoEnvio === 'delivery' ? direccion : '',
+                address: metodoEnvio === 'delivery' ? direccionCompleta : '',
                 order_type: metodoEnvio, 
                 payment_method: metodoPago, 
                 total: totalFinal, 
@@ -701,7 +706,7 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
         mensaje += `⏰ *Horario:* ${infoHorario}\n`;
     }
 
-        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
+        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccionCompleta}\n`;
         if (metodoEnvio === 'mesa') mensaje += `🍽️ *${displayTableLabel(nroMesa)}*\n`;
         mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
         
@@ -935,9 +940,12 @@ return (
                                 {deliveryZonesEnabled && zoneStatus === 'calculating' ? 'A calcular' : formatPrice(envio)}
                               </span>
                             </div>
-                            {/* Dirección — siempre obligatoria */}
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
-                            <input type="text" placeholder="Calle, número..." value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            {/* Calle y número — obligatorio */}
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Calle y número *</label>
+                            <input type="text" placeholder="Ej: Calle 28 N° 1112" value={direccionCalle} onChange={(e)=>setDireccionCalle(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            {/* Entre calles — opcional */}
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mt-1 block">Entre calles <span className="font-medium normal-case text-gray-300">(opcional)</span></label>
+                            <input type="text" placeholder="Ej: Entre 29 y 31" value={direccionEntreCalles} onChange={(e)=>setDireccionEntreCalles(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
                             {/* Selector de zona — solo cuando zonas están habilitadas */}
                             {deliveryZonesEnabled && (
                               <div className="space-y-2 pt-1">
