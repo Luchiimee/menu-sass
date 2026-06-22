@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
+import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
 
 import UrbanoDark from '../../../components/templates/UrbanoDark';
 import PopVibrant from '../../../components/templates/PopVibrant';
@@ -1167,6 +1168,7 @@ const confirmReset = () => {
                         <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-gray-50 text-gray-500 border-r"><Bike size={14} /></div><input type="number" value={data.delivery_cost} onChange={(e) => { setData({ ...data, delivery_cost: Number(e.target.value) }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="0" /></div>
                         <p className="text-[10px] text-gray-400 mt-1 leading-tight">Costo fijo de envío.</p>
                       </div>
+                      <DeliveryZonesConfig restaurantId={data.id} />
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias (Mercado Pago)</label>
