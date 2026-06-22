@@ -30,7 +30,7 @@ const PLANS = [
     accent: 'border-gray-500',
     badge: null,
     features: [
-      { text: '15 Productos', included: true },
+      { text: '20 Productos', included: true },
       { text: 'Código QR propio', included: true },
       { text: 'Horarios de atención', included: true },
       { text: 'Pedidos a WhatsApp', included: true },

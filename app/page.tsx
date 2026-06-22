@@ -1506,7 +1506,7 @@ export default function LandingPage() {
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
           <li className="flex items-start gap-3 text-left">
             <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span><b>Hasta 15 Productos</b></span>
+            <span><b>Hasta 20 Productos</b></span>
           </li>
           <li className="flex items-start gap-3 text-left">
             <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
