@@ -410,9 +410,12 @@ const loadOrders = async () => {
 
   // Impresión térmica via QZ Tray — fallback silencioso a window.print()
   const handleThermalPrint = async (order: any) => {
+    console.log('[handleThermalPrint] llamado', { thermalPrinterName, order_id: order?.id });
     const qz = (window as any).qz;
+    console.log('[handleThermalPrint] window.qz:', qz ? 'OK' : 'undefined');
 
     const windowPrintFallback = () => {
+      console.log('[handleThermalPrint] fallback a window.print()');
       const pw = window.open("", "_blank");
       if (!pw) return;
       pw.document.write(getTicketHTML(order));
@@ -421,13 +424,16 @@ const loadOrders = async () => {
     };
 
     if (!qz) {
+      console.log('[handleThermalPrint] qz no disponible → fallback');
       windowPrintFallback();
       toast.warning('Impresión automática falló — usando impresión manual', { duration: 4000 });
       return;
     }
 
     try {
+      console.log('[handleThermalPrint] isActive:', qz.websocket.isActive());
       if (!qz.websocket.isActive()) {
+        console.log('[handleThermalPrint] conectando a QZ Tray...');
         qz.security.setCertificatePromise((_resolve: Function, reject: Function) => {
           fetch('/qz-certificate.pem').then(r => r.text()).then(_resolve).catch(reject);
         });
@@ -444,10 +450,13 @@ const loadOrders = async () => {
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
         ]);
       }
+      console.log('[handleThermalPrint] enviando a impresora:', thermalPrinterName);
       const cfg = qz.configs.create(thermalPrinterName);
       await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: getTicketHTML(order) }]);
+      console.log('[handleThermalPrint] impresión OK');
     } catch (err: any) {
       console.error('[handleThermalPrint]', err.message);
+      console.error('[handleThermalPrint] stack:', err.stack);
       windowPrintFallback();
       toast.warning('Impresión automática falló — usando impresión manual', { duration: 4000 });
     }
@@ -455,6 +464,7 @@ const loadOrders = async () => {
 
   // Impresión normal (CIERRA PESTAÑA SOLA) — intacta salvo el if de intercepción al inicio
   const handlePrint = (order: any) => {
+    console.log('[handlePrint] llamado, thermalPrintingEnabled:', thermalPrintingEnabled);
     if (thermalPrintingEnabled) { handleThermalPrint(order); return; }
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
