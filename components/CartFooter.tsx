@@ -912,7 +912,7 @@ return (
                             {['delivery', 'retiro', 'mesa']
                                 .filter(m => {
                                     if (m === 'mesa') {
-                                        return planType === 'plus' || planType === 'max';
+                                        return (planType === 'plus' || planType === 'max') && tableIdFromQR !== null;
                                     }
                                     return true;
                                 })
