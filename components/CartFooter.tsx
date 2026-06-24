@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
@@ -383,15 +383,24 @@ const handleCallWaiter = async () => {
                             </div>
                         )}
 
+                        {/* HERO IMAGE según método */}
+                        <div className="flex justify-center mb-4">
+                          <img
+                            src={metodoEnvio === 'delivery' ? '/delivery-hero.svg' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
+                            alt=""
+                            className="w-[120px] h-[120px] object-contain"
+                          />
+                        </div>
+
                         {/* 🔘 TRACKER CENTRAL (IGUAL PARA TODOS) */}
                         <div className="mb-8">
-                    <OrderTracker 
-    orderId={activeOrderId} 
-    restaurantPhone={phone} 
-    businessType={metodoEnvio} 
-    paymentMethodProp={metodoPago} 
-    aliasMpProp={aliasMp} 
-    onStatusChange={(s: string) => setOrderStatus(s)} 
+                    <OrderTracker
+    orderId={activeOrderId}
+    restaurantPhone={phone}
+    businessType={metodoEnvio}
+    paymentMethodProp={metodoPago}
+    aliasMpProp={aliasMp}
+    onStatusChange={(s: string) => setOrderStatus(s)}
 />
                         </div>
 
@@ -402,14 +411,14 @@ const handleCallWaiter = async () => {
         {/* PASO 1: BOTONES INICIALES (Solo si no empezó el pago) */}
         {pasoPago === 'inicio' && (
             <>
-                <button onClick={handleCallWaiter} className="w-full bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
-                    <MessageSquare size={18} /> Llamar Mozo
+                <button onClick={handleCallWaiter} className="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+                    <Bell size={18} /> Llamar Mozo
                 </button>
                 
                 {(orderStatus === 'entregado' || orderStatus === 'listo') && (
-                    <button 
+                    <button
                         onClick={() => setPasoPago('seleccion')}
-                        className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
+                        className="w-full bg-green-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
                     >
                         <Wallet size={18} /> Pagar Cuenta
                     </button>
@@ -825,7 +834,7 @@ return (
     >
         <div 
             onClick={(e) => e.stopPropagation()} // Evita que al tocar adentro del pedido se cierre
-            className="w-full max-w-md mx-auto bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.3)] rounded-t-[2.5rem] h-[85vh] flex flex-col overflow-hidden font-sans text-black animate-in slide-in-from-bottom-full duration-300"
+            className="w-full max-w-md mx-auto bg-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] rounded-t-[2.5rem] h-[85vh] flex flex-col overflow-hidden font-sans text-black animate-in slide-in-from-bottom-full duration-300"
         >
             
            
@@ -846,30 +855,35 @@ return (
             </div>
 
             {/* --- CUERPO SCROLLEABLE (EL CARRITO NORMAL) --- */}
-            <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-4 space-y-5 pb-32">
-                <h2 className="text-xl font-black text-gray-800 px-1">Tu Pedido</h2>
+            <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-4 space-y-3 pb-32">
+                <div className="flex items-center gap-3 px-1 mb-1">
+                  <div className="w-9 h-9 bg-green-600 rounded-[10px] flex items-center justify-center shadow-sm">
+                    <ShoppingBag size={18} className="text-white" />
+                  </div>
+                  <h2 className="text-xl font-black text-gray-800">Tu Pedido</h2>
+                </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {cart.map((item: any) => (
-                        <div key={item.uniqueId} className="bg-gray-50 rounded-3xl p-4 border border-gray-100 shadow-sm">
-                            <div className="flex justify-between items-center mb-3">
+                        <div key={item.uniqueId} className="bg-white rounded-[20px] border border-slate-200 p-[18px] shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
                                 <div className="flex-1">
                                     <span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span>
                                     <span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span>
                                 </div>
-                                <div className="flex items-center gap-4 bg-white shadow-sm rounded-2xl p-1 border border-gray-100">
-                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-red-500 active:scale-75"><Minus size={20} strokeWidth={3}/></button>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 shadow-sm rounded-full text-red-500 active:scale-75"><Minus size={16} strokeWidth={3}/></button>
                                     <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-green-600 active:scale-75"><Plus size={20} strokeWidth={3}/></button>
+                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-9 h-9 flex items-center justify-center bg-green-600 rounded-full text-white active:scale-75"><Plus size={16} strokeWidth={3}/></button>
                                 </div>
                             </div>
                             {item.extrasList?.map((ex: any) => (
-                                <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
-                                    <div className="flex flex-col flex-1"><span className="text-xs text-gray-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
-                                    <div className="flex items-center gap-3 mr-1">
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-75"><Minus size={16} strokeWidth={3}/></button>
+                                <div key={ex.id} className="flex justify-between items-center pl-3 py-1.5 mt-1.5 border-t border-dashed border-slate-100">
+                                    <div className="flex flex-col flex-1"><span className="text-[11px] text-slate-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
+                                    <div className="flex items-center gap-2 mr-1">
+                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm rounded-full text-red-500 active:scale-75"><Minus size={13} strokeWidth={3}/></button>
                                         <span className="text-xs font-black">{ex.quantity}</span>
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-green-600 active:scale-75"><Plus size={16} strokeWidth={3}/></button>
+                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-7 h-7 flex items-center justify-center bg-green-600 rounded-full text-white active:scale-75"><Plus size={13} strokeWidth={3}/></button>
                                     </div>
                                 </div>
                             ))}
@@ -877,12 +891,14 @@ return (
                     ))}
                 </div>
 
-                <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-inner">
-    {/* 🚀 MENSAJE DE AYUDA (Solo envío/retiro) */}
+                <div className="bg-white rounded-[20px] border border-slate-200 p-[18px] mb-3 shadow-sm space-y-4">
+    {/* MENSAJE DE AYUDA (Solo envío/retiro) */}
     {metodoEnvio !== 'mesa' && (
-        <p className="text-[9px] font-bold text-blue-500 uppercase tracking-tight ml-2 italic leading-tight">
+        <div className="bg-indigo-50 border border-indigo-100 rounded-[10px] p-2">
+          <p className="text-[11px] font-bold text-indigo-600 leading-tight">
             * Pedimos apellido para identificar tu transferencia más rápido en nuestra cuenta.
-        </p>
+          </p>
+        </div>
     )}
 
     {/* FILA 1: NOMBRE Y APELLIDO (Se adapta si es mesa o no) */}
@@ -908,7 +924,7 @@ return (
                     {!tableIdFromQR && (
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
-                        <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
+                        <div className="flex bg-slate-100 rounded-[14px] p-1 gap-1">
                             {['delivery', 'retiro', 'mesa']
                                 .filter(m => {
                                     if (m === 'mesa') {
@@ -920,8 +936,8 @@ return (
                                     <button
                                         key={m}
                                         onClick={() => setMetodoEnvio(m)}
-                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
-                                            metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'
+                                        className={`flex-1 py-2.5 rounded-[10px] text-[10px] font-black uppercase transition-all ${
+                                            metodoEnvio === m ? 'bg-white shadow-sm text-green-600 font-black' : 'text-slate-400'
                                         }`}
                                     >
                                         {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
@@ -934,9 +950,9 @@ return (
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                             {/* Costo de envío — muestra "A calcular" cuando las zonas están activas y sin coords */}
-                            <div className="flex justify-between items-center px-4 py-2 bg-green-50 rounded-2xl border border-green-100">
+                            <div className="flex justify-between items-center px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
                               <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
-                              <span className="font-black text-green-700">
+                              <span className="font-black text-[18px] text-green-700">
                                 {deliveryZonesEnabled && zoneStatus === 'calculating' ? 'A calcular' : formatPrice(envio)}
                               </span>
                             </div>
@@ -953,7 +969,11 @@ return (
                                   type="button"
                                   onClick={handleDetectLocation}
                                   disabled={detectingLocation}
-                                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-gray-200 text-[11px] font-black uppercase tracking-wide text-gray-500 hover:border-green-400 hover:text-green-600 transition-all disabled:opacity-40 active:scale-95"
+                                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all disabled:opacity-40 active:scale-95 ${
+                                    clientCoords || forcedZone
+                                      ? 'border-2 border-dashed border-gray-300 text-gray-400'
+                                      : 'border-2 border-green-600 text-green-600 hover:bg-green-50'
+                                  }`}
                                 >
                                   {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
                                   Usar mi ubicación para calcular el envío
@@ -1092,23 +1112,23 @@ return (
                         <div className="grid grid-cols-2 gap-2">
                       
 
-<button 
-    onClick={() => setMetodoPago('efectivo')} 
-    className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
-        metodoPago === 'efectivo' 
-        ? 'border-green-600 bg-green-50 text-green-700' 
-        : 'border-gray-100 text-slate-600' // 👈 Cambiado de gray-400 a slate-600
+<button
+    onClick={() => setMetodoPago('efectivo')}
+    className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+        metodoPago === 'efectivo'
+        ? 'border-green-600 bg-green-50 text-green-700 shadow-md'
+        : 'border-slate-200 text-slate-600 bg-white'
     }`}
 >
     <Wallet size={18} /> Efectivo
 </button>
 
-<button 
-    onClick={() => setMetodoPago('transferencia')} 
-    className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
-        metodoPago === 'transferencia' 
-        ? 'border-blue-500 bg-blue-50 text-blue-700' 
-        : 'border-gray-100 text-slate-600' // 👈 Cambiado de gray-400 a slate-600
+<button
+    onClick={() => setMetodoPago('transferencia')}
+    className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+        metodoPago === 'transferencia'
+        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+        : 'border-slate-200 text-slate-600 bg-white'
     }`}
 >
     <Landmark size={18} /> Transferencia
@@ -1119,7 +1139,7 @@ return (
                             <div className="space-y-2">
                                 <div 
                                     onClick={handleCopyAlias} 
-                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
+                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-green-600 border-green-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
                                 >
                                     <div className={copied ? 'text-white' : 'text-blue-900'}>
                                         <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
@@ -1153,11 +1173,11 @@ return (
                         )}
                         {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 ml-2 italic animate-in fade-in">{couponError}</p>}
                     </div>
-                    <div className="px-2 space-y-1 pb-4">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                    <div className="px-2 space-y-1 pb-4 bg-white rounded-[16px] p-4 border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                         {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
-                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
+                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-slate-200"><span className="text-xs font-black uppercase text-slate-700 mb-1">Total Final</span><span className="text-[20px] font-black text-green-700 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
                     {tableIdFromQR && mesaLabel && (
                         <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
@@ -1166,7 +1186,10 @@ return (
                         </div>
                     )}
                     {metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'calculating' && (
-                      <p className="text-[11px] font-bold text-gray-400 text-center pb-1">Calculá el costo de envío para continuar</p>
+                      <div className="flex items-center justify-center gap-1.5 pb-1">
+                        <HelpCircle size={13} className="text-slate-400 shrink-0" />
+                        <p className="text-[11px] font-bold text-slate-400 text-center">Calculá el costo de envío para continuar</p>
+                      </div>
                     )}
                     {metodoEnvio === 'delivery' && zoneStatus === 'outside' && (
                       <p className="text-[11px] font-bold text-red-500 text-center pb-1">No llegamos a tu zona de entrega</p>
@@ -1174,7 +1197,7 @@ return (
                     <button
                         onClick={handleSendOrder}
                         disabled={isSending || (metodoEnvio === 'delivery' && deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside'))}
-                        className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
+                        className="w-full bg-green-700 disabled:bg-slate-100 disabled:text-slate-400 text-white py-4 rounded-[18px] font-black flex items-center justify-center gap-3 shadow-[0_4px_20px_rgba(22,163,74,0.35)] text-[16px] active:scale-95 transition-all mb-10"
                     >
                         {isSending ? (
                             <Loader2 className="animate-spin" size={24} />
