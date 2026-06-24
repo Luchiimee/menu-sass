@@ -384,13 +384,11 @@ const handleCallWaiter = async () => {
                         )}
 
                         {/* HERO IMAGE según método */}
-                        <div className="flex justify-center mb-4">
-                          <img
-                            src={metodoEnvio === 'delivery' ? '/delivery-hero.png' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
-                            alt=""
-                            className="w-[120px] h-[120px] object-contain"
-                          />
-                        </div>
+                        <img
+                          src={metodoEnvio === 'delivery' ? '/delivery-hero.png' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
+                          alt=""
+                          className="w-[180px] h-[180px] object-contain mx-auto mb-4"
+                        />
 
                         {/* 🔘 TRACKER CENTRAL (IGUAL PARA TODOS) */}
                         <div className="mb-8">
@@ -403,9 +401,9 @@ const handleCallWaiter = async () => {
     onStatusChange={(s: string) => setOrderStatus(s)}
 />
                         </div>
-
-                        {/* 🔘 BOTONES DE ACCIÓN: SEPARADOS POR TIPO */}
-                        <div className="flex flex-col gap-3 mt-auto pb-4">
+                    </div>{/* cierra flex-1 overflow-y-auto */}
+                    {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
+                    <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
         {/* PASO 1: BOTONES INICIALES (Solo si no empezó el pago) */}
@@ -560,7 +558,6 @@ const handleCallWaiter = async () => {
                                 </>
                             )}
                         </div>
-                    </div>
                 </div>
             </div>
             </>
