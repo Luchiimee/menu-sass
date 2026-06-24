@@ -988,17 +988,26 @@ return (
                     )}
                     {metodoEnvio === 'mesa' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
-                            {availableTables.length === 0 && (
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
-                                    <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
+                            {tableIdFromQR ? (
+                                <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
+                                    <span className="text-sm">🍽️</span>
+                                    <span className="text-xs font-black text-amber-800 uppercase tracking-tight">{mesaLabel || nroMesa}</span>
                                 </div>
+                            ) : (
+                                <>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
+                                    {availableTables.length === 0 && (
+                                        <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
+                                            <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {availableTables.map((mesa: any) => (
+                                            <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
+                                        ))}
+                                    </div>
+                                </>
                             )}
-                            <div className="grid grid-cols-3 gap-2">
-                                {availableTables.map((mesa: any) => (
-                                    <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
-                                ))}
-                            </div>
                         </div>
                     )}
                 </div>
