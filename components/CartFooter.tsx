@@ -386,7 +386,7 @@ const handleCallWaiter = async () => {
                         {/* HERO IMAGE según método */}
                         <div className="flex justify-center mb-4">
                           <img
-                            src={metodoEnvio === 'delivery' ? '/delivery-hero.svg' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
+                            src={metodoEnvio === 'delivery' ? '/delivery-hero.png' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
                             alt=""
                             className="w-[120px] h-[120px] object-contain"
                           />
