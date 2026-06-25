@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
@@ -400,17 +400,44 @@ const handleCallWaiter = async () => {
                           className="w-[180px] h-[180px] object-contain mx-auto mb-4"
                         />
 
-                        {/* 🔘 TRACKER CENTRAL (IGUAL PARA TODOS) */}
-                        <div className="mb-8">
-                    <OrderTracker
-    orderId={activeOrderId}
-    restaurantPhone={phone}
-    businessType={metodoEnvio}
-    paymentMethodProp={metodoPago}
-    aliasMpProp={aliasMp}
-    onStatusChange={(s: string) => setOrderStatus(s)}
-/>
+                        {/* TRACKER CARD */}
+                        <div className="bg-white rounded-[20px] border border-slate-200 shadow-sm p-4 mb-4">
+                            <OrderTracker
+                                orderId={activeOrderId}
+                                restaurantPhone={phone}
+                                businessType={metodoEnvio}
+                                paymentMethodProp={metodoPago}
+                                aliasMpProp={aliasMp}
+                                onStatusChange={(s: string) => setOrderStatus(s)}
+                            />
                         </div>
+
+                        {/* STATUS CARD: solo para delivery/retiro */}
+                        {!isMesa && (
+                            <div className="bg-white rounded-[20px] border border-slate-200 shadow-sm p-4 text-center mb-4">
+                                <div className="flex justify-center mb-3">
+                                    {orderStatus === 'pendiente'  && <Clock size={40} className="text-slate-400" />}
+                                    {orderStatus === 'en_proceso' && <ChefHat size={40} className="text-orange-400" />}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && <Bike size={40} className="text-green-500" />}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && <Footprints size={40} className="text-green-500" />}
+                                    {orderStatus === 'completado' && <CheckCircle2 size={40} className="text-green-600" />}
+                                </div>
+                                <p className="font-black text-gray-900 text-base leading-tight mb-1">
+                                    {orderStatus === 'pendiente'  && 'Revisando tu pedido'}
+                                    {orderStatus === 'en_proceso' && 'Preparando tu pedido'}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'En camino'}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Listo para retirar'}
+                                    {orderStatus === 'completado' && '¡Pedido completado!'}
+                                </p>
+                                <p className="text-[11px] text-slate-400 font-bold">
+                                    {orderStatus === 'pendiente'  && 'El local está confirmando tu pedido'}
+                                    {orderStatus === 'en_proceso' && 'Tu pedido está en preparación'}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'Tu pedido está en camino a tu domicilio'}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Ya podés pasar a buscar tu pedido'}
+                                    {orderStatus === 'completado' && '¡Gracias por tu compra!'}
+                                </p>
+                            </div>
+                        )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
                     {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
                     <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
