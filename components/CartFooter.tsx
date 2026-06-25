@@ -182,7 +182,7 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             const savedMesa = localStorage.getItem('nroMesa');
 
             if (savedEnvio) {
-                setMetodoEnvio(savedEnvio === 'mesa' ? 'delivery' : savedEnvio);
+                setMetodoEnvio(savedEnvio);
             }
             if (savedMesa) setNroMesa(savedMesa);
         }
@@ -356,7 +356,7 @@ const handleCallWaiter = async () => {
                 </div>
             )}
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
-                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
+                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
          { (metodoEnvio !== 'mesa' || ['completado', 'cancelado'].includes(orderStatus)) && (
     <button 
         onClick={() => {
@@ -541,16 +541,16 @@ const handleCallWaiter = async () => {
                                 // --- BOTONES SOLO PARA ENVÍO/RETIRO ---
                                 <>
                                     {(orderStatus === 'entregado' || orderStatus === 'completado') ? (
-                                        <button 
+                                        <button
                                             onClick={() => { clearCart(); setActiveOrderId(null); }}
-                                            className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest animate-in fade-in"
+                                            className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest animate-in fade-in"
                                         >
                                             Finalizar
                                         </button>
                                     ) : (
-                                        <button 
+                                        <button
                                             onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
-                                            className="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                            className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
                                         >
                                             <MessageSquare size={18} /> Consultar por WhatsApp
                                         </button>
