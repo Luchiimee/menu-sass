@@ -474,30 +474,26 @@ const handleCallWaiter = async () => {
                                     })}
                                 </div>
 
-                                {/* Separador */}
-                                <div className="border-t border-slate-100 my-4" />
-
-                                {/* Resumen del pedido */}
-                                {cart.length > 0 && (
-                                    <div className="space-y-2">
-                                        {cart.map((item: any) => (
-                                            <div key={item.uniqueId} className="flex justify-between text-[13px]">
-                                                <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                                <span className="text-gray-700">{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
-                                            </div>
-                                        ))}
-                                        {trackingEnvio > 0 && (
-                                            <div className="flex justify-between text-[13px]">
-                                                <span className="text-slate-400">Envío</span>
-                                                <span className="text-slate-400">{formatPrice(trackingEnvio)}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between font-black text-[16px] text-green-700 pt-2 border-t border-slate-100">
-                                            <span>Total</span>
-                                            <span>{formatPrice(trackingTotal)}</span>
+                                {/* Separador + Resumen del pedido */}
+                                <div className="border-t border-slate-100 my-3" />
+                                <div className="space-y-2">
+                                    {cart.map((item: any) => (
+                                        <div key={item.uniqueId} className="flex justify-between text-[13px] text-slate-600">
+                                            <span>{item.quantity}x {item.name}</span>
+                                            <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
                                         </div>
+                                    ))}
+                                    {trackingEnvio > 0 && (
+                                        <div className="flex justify-between text-[13px] text-slate-600">
+                                            <span>Envío</span>
+                                            <span>{formatPrice(trackingEnvio)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
+                                        <span>Total</span>
+                                        <span className="text-green-700">{formatPrice(trackingTotal)}</span>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
