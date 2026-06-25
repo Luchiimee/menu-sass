@@ -797,6 +797,11 @@ const handleCallWaiter = async () => {
         // 2. CONSTRUCCIÓN DEL MENSAJE
 let mensaje = `*¡Hola! Nuevo Pedido*\nRef: ${orderRef}\n------------------\n`;
 mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO AQUÍ
+if (telCliente.trim()) {
+    const telLimpio = telCliente.replace(/\D/g, '').replace(/^0/, '');
+    const waLink = `https://wa.me/54${telLimpio}`;
+    mensaje += `📱 *Tel:* ${waLink}\n`;
+}
         
         // 🚀 AGREGAMOS EL HORARIO AL WHATSAPP
       // 🚀 BUSCÁ ESTA PARTE EN handleSendOrder:
