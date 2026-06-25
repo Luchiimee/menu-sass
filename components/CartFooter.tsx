@@ -410,61 +410,8 @@ const handleCallWaiter = async () => {
                           className="w-[180px] h-[180px] object-contain mx-auto mb-4"
                         />
 
-                        {/* CARD CENTRAL: estado + resumen del pedido (solo delivery/retiro) */}
-                        {!isMesa && (
-                            <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 text-center mb-4">
-                                {/* Ícono del estado */}
-                                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    {orderStatus === 'pendiente'  && <Clock size={28} className="text-slate-500" />}
-                                    {orderStatus === 'en_proceso' && <ChefHat size={28} className="text-orange-400" />}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && <Bike size={28} className="text-green-500" />}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && <Check size={28} className="text-green-500" />}
-                                    {orderStatus === 'completado' && <Check size={28} className="text-green-600" />}
-                                </div>
-                                {/* Texto del estado */}
-                                <p className="text-[20px] font-black uppercase text-gray-900 leading-tight">
-                                    {orderStatus === 'pendiente'  && 'Confirmando...'}
-                                    {orderStatus === 'en_proceso' && 'Cocinando 🔥'}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'En camino 🛵'}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Listo para retirar ✅'}
-                                    {orderStatus === 'completado' && 'Entregado ✅'}
-                                </p>
-                                {/* Subtexto */}
-                                <p className="text-[12px] text-slate-400 text-center mt-1">
-                                    {orderStatus === 'pendiente'  && 'El local está confirmando tu pedido'}
-                                    {orderStatus === 'en_proceso' && 'Tu pedido está en preparación'}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'Tu pedido está en camino a tu domicilio'}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Ya podés pasar a buscar tu pedido'}
-                                    {orderStatus === 'completado' && '¡Gracias por tu compra!'}
-                                </p>
-                                <div className="border-t border-slate-100 my-4" />
-                                {cart.length > 0 && (
-                                    <>
-                                        <div className="space-y-2 text-left">
-                                            {cart.map((item: any) => (
-                                                <div key={item.uniqueId} className="flex justify-between text-[13px]">
-                                                    <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                                    <span className="text-gray-700">{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
-                                                </div>
-                                            ))}
-                                            {trackingEnvio > 0 && (
-                                                <div className="flex justify-between text-[13px]">
-                                                    <span className="text-slate-400">Envío</span>
-                                                    <span className="text-slate-400">{formatPrice(trackingEnvio)}</span>
-                                                </div>
-                                            )}
-                                            <div className="flex justify-between font-black text-[16px] text-green-700 pt-2 border-t border-slate-100">
-                                                <span>Total</span>
-                                                <span>{formatPrice(trackingTotal)}</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {/* OrderTracker oculto — mantiene el canal Supabase Realtime activo */}
-                        <div className="hidden">
+                        {/* OrderTracker visible */}
+                        <div className="mb-4">
                             <OrderTracker
                                 orderId={activeOrderId}
                                 restaurantPhone={phone}
@@ -474,6 +421,30 @@ const handleCallWaiter = async () => {
                                 onStatusChange={(s: string) => setOrderStatus(s)}
                             />
                         </div>
+
+                        {/* CARD RESUMEN DEL PEDIDO (solo delivery/retiro) */}
+                        {!isMesa && cart.length > 0 && (
+                            <div className="bg-white rounded-[20px] p-4 mb-4">
+                                <div className="space-y-2">
+                                    {cart.map((item: any) => (
+                                        <div key={item.uniqueId} className="flex justify-between text-[13px]">
+                                            <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                                            <span className="text-gray-700">{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
+                                        </div>
+                                    ))}
+                                    {trackingEnvio > 0 && (
+                                        <div className="flex justify-between text-[13px]">
+                                            <span className="text-slate-400">Envío</span>
+                                            <span className="text-slate-400">{formatPrice(trackingEnvio)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between font-black text-[16px] text-green-700 pt-2 border-t border-slate-100">
+                                        <span>Total</span>
+                                        <span>{formatPrice(trackingTotal)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
                     {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
                     <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
