@@ -365,6 +365,20 @@ const handleCallWaiter = async () => {
         const trackingEnvio = metodoEnvio === 'delivery' ? Number(deliveryCost) || 0 : 0;
         const trackingTotal = trackingSubtotal + trackingEnvio;
 
+        const trackingActiveStep =
+            orderStatus === 'en_proceso' ? 1 :
+            orderStatus === 'entregado'  ? 2 :
+            orderStatus === 'completado' ? 3 : 0;
+
+        const trackingBadge = orderStatus === 'entregado'
+            ? { cls: 'bg-blue-100 text-blue-700', label: metodoEnvio === 'delivery' ? 'En camino' : 'Listo para retirar' }
+            : ({ pendiente: { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' }, en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Preparando tu pedido' }, completado: { cls: 'bg-green-100 text-green-700', label: 'Entregado' } } as any)[orderStatus]
+            ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
+
+        const trackingSteps: { label: string; icon: any }[] = metodoEnvio === 'delivery'
+            ? [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Preparando', icon: ChefHat }, { label: 'En camino', icon: Bike }, { label: 'Entregado', icon: CheckCircle2 }]
+            : [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Preparando', icon: ChefHat }, { label: 'Listo', icon: Bell }, { label: 'Retirado', icon: CheckCircle2 }];
+
         return (
             <>
             {aviso && (
@@ -410,8 +424,8 @@ const handleCallWaiter = async () => {
                           className="w-[180px] h-[180px] object-contain mx-auto mb-4"
                         />
 
-                        {/* OrderTracker visible */}
-                        <div className="mb-4">
+                        {/* OrderTracker oculto — mantiene canal Supabase Realtime activo */}
+                        <div className="hidden">
                             <OrderTracker
                                 orderId={activeOrderId}
                                 restaurantPhone={phone}
@@ -422,27 +436,68 @@ const handleCallWaiter = async () => {
                             />
                         </div>
 
-                        {/* CARD RESUMEN DEL PEDIDO (solo delivery/retiro) */}
-                        {!isMesa && cart.length > 0 && (
-                            <div className="bg-white rounded-[20px] p-4 mb-4">
-                                <div className="space-y-2">
-                                    {cart.map((item: any) => (
-                                        <div key={item.uniqueId} className="flex justify-between text-[13px]">
-                                            <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                            <span className="text-gray-700">{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
-                                        </div>
-                                    ))}
-                                    {trackingEnvio > 0 && (
-                                        <div className="flex justify-between text-[13px]">
-                                            <span className="text-slate-400">Envío</span>
-                                            <span className="text-slate-400">{formatPrice(trackingEnvio)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between font-black text-[16px] text-green-700 pt-2 border-t border-slate-100">
-                                        <span>Total</span>
-                                        <span>{formatPrice(trackingTotal)}</span>
-                                    </div>
+                        {/* TRACKER VISUAL + RESUMEN (solo delivery/retiro) */}
+                        {!isMesa && (
+                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
+                                {/* Badge de estado */}
+                                <div className="flex justify-center mb-5">
+                                    <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide ${trackingBadge.cls}`}>
+                                        {trackingBadge.label}
+                                    </span>
                                 </div>
+
+                                {/* Tracker horizontal */}
+                                <div className="flex items-start w-full px-1 mb-5">
+                                    {trackingSteps.flatMap((step, i) => {
+                                        const isCompleted = i < trackingActiveStep;
+                                        const isActive    = i === trackingActiveStep;
+                                        const Icon = step.icon;
+                                        const items: React.ReactNode[] = [
+                                            <div key={`step-${i}`} className="flex flex-col items-center">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompleted || isActive ? 'bg-green-600' : 'bg-slate-100'}`}>
+                                                    {isCompleted
+                                                        ? <Check size={14} className="text-white" />
+                                                        : <Icon size={14} className={isActive ? 'text-white' : 'text-slate-300'} />
+                                                    }
+                                                </div>
+                                                <span className={`text-[9px] font-bold mt-1 text-center leading-tight max-w-[44px] ${i > trackingActiveStep ? 'text-slate-300' : 'text-gray-600'}`}>
+                                                    {step.label}
+                                                </span>
+                                            </div>
+                                        ];
+                                        if (i < trackingSteps.length - 1) {
+                                            items.push(
+                                                <div key={`line-${i}`} className={`flex-1 h-0.5 mt-[18px] ${isCompleted ? 'bg-green-600' : 'bg-slate-200'}`} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </div>
+
+                                {/* Separador */}
+                                <div className="border-t border-slate-100 my-4" />
+
+                                {/* Resumen del pedido */}
+                                {cart.length > 0 && (
+                                    <div className="space-y-2">
+                                        {cart.map((item: any) => (
+                                            <div key={item.uniqueId} className="flex justify-between text-[13px]">
+                                                <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                                                <span className="text-gray-700">{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
+                                            </div>
+                                        ))}
+                                        {trackingEnvio > 0 && (
+                                            <div className="flex justify-between text-[13px]">
+                                                <span className="text-slate-400">Envío</span>
+                                                <span className="text-slate-400">{formatPrice(trackingEnvio)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between font-black text-[16px] text-green-700 pt-2 border-t border-slate-100">
+                                            <span>Total</span>
+                                            <span>{formatPrice(trackingTotal)}</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
