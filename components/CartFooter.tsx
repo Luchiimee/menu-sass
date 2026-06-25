@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints } from 'lucide-react';
+import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -354,13 +355,6 @@ const handleCallWaiter = async () => {
     }
 };
 
-        const trackingSubtotal = cart.reduce((acc: number, item: any) => {
-            const extras = (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0);
-            return acc + (item.price + extras) * item.quantity;
-        }, 0);
-        const trackingEnvio = metodoEnvio === 'delivery' ? Number(deliveryCost) || 0 : 0;
-        const trackingTotal = trackingSubtotal + trackingEnvio;
-
         return (
             <>
             {aviso && (
@@ -406,46 +400,42 @@ const handleCallWaiter = async () => {
                           className="w-[180px] h-[180px] object-contain mx-auto mb-4"
                         />
 
-                        {/* CARD CENTRAL: estado + resumen del pedido */}
+                        {/* TRACKER CARD */}
+                        <div className="bg-white rounded-[20px] border border-slate-200 shadow-sm p-4 mb-4">
+                            <OrderTracker
+                                orderId={activeOrderId}
+                                restaurantPhone={phone}
+                                businessType={metodoEnvio}
+                                paymentMethodProp={metodoPago}
+                                aliasMpProp={aliasMp}
+                                onStatusChange={(s: string) => setOrderStatus(s)}
+                            />
+                        </div>
+
+                        {/* STATUS CARD: solo para delivery/retiro */}
                         {!isMesa && (
-                            <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 text-center mb-4">
-                                <p className="text-[22px] font-black uppercase text-gray-900 leading-tight">
+                            <div className="bg-white rounded-[20px] border border-slate-200 shadow-sm p-4 text-center mb-4">
+                                <div className="flex justify-center mb-3">
+                                    {orderStatus === 'pendiente'  && <Clock size={40} className="text-slate-400" />}
+                                    {orderStatus === 'en_proceso' && <ChefHat size={40} className="text-orange-400" />}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && <Bike size={40} className="text-green-500" />}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && <Footprints size={40} className="text-green-500" />}
+                                    {orderStatus === 'completado' && <CheckCircle2 size={40} className="text-green-600" />}
+                                </div>
+                                <p className="font-black text-gray-900 text-base leading-tight mb-1">
                                     {orderStatus === 'pendiente'  && 'Revisando tu pedido'}
                                     {orderStatus === 'en_proceso' && 'Preparando tu pedido'}
                                     {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'En camino'}
                                     {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Listo para retirar'}
                                     {orderStatus === 'completado' && '¡Pedido completado!'}
                                 </p>
-                                <p className="text-[13px] text-slate-400 mt-1">
+                                <p className="text-[11px] text-slate-400 font-bold">
                                     {orderStatus === 'pendiente'  && 'El local está confirmando tu pedido'}
                                     {orderStatus === 'en_proceso' && 'Tu pedido está en preparación'}
                                     {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'Tu pedido está en camino a tu domicilio'}
                                     {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Ya podés pasar a buscar tu pedido'}
                                     {orderStatus === 'completado' && '¡Gracias por tu compra!'}
                                 </p>
-                                {cart.length > 0 && (
-                                    <>
-                                        <div className="border-t border-slate-100 my-4" />
-                                        <div className="space-y-2 text-left">
-                                            {cart.map((item: any) => (
-                                                <div key={item.uniqueId} className="flex justify-between text-[13px]">
-                                                    <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                                    <span className="text-gray-700">{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
-                                                </div>
-                                            ))}
-                                            {trackingEnvio > 0 && (
-                                                <div className="flex justify-between text-[13px]">
-                                                    <span className="text-slate-400">Envío</span>
-                                                    <span className="text-slate-400">{formatPrice(trackingEnvio)}</span>
-                                                </div>
-                                            )}
-                                            <div className="flex justify-between font-black text-[16px] text-green-700 pt-2 border-t border-slate-100">
-                                                <span>Total</span>
-                                                <span>{formatPrice(trackingTotal)}</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
