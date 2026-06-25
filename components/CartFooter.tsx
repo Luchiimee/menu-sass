@@ -413,23 +413,33 @@ const handleCallWaiter = async () => {
                         {/* CARD CENTRAL: estado + resumen del pedido (solo delivery/retiro) */}
                         {!isMesa && (
                             <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 text-center mb-4">
-                                <p className="text-[22px] font-black uppercase text-gray-900 leading-tight">
-                                    {orderStatus === 'pendiente'  && 'Revisando tu pedido'}
-                                    {orderStatus === 'en_proceso' && 'Preparando tu pedido'}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'En camino'}
-                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Listo para retirar'}
-                                    {orderStatus === 'completado' && '¡Pedido completado!'}
+                                {/* Ícono del estado */}
+                                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    {orderStatus === 'pendiente'  && <Clock size={28} className="text-slate-500" />}
+                                    {orderStatus === 'en_proceso' && <ChefHat size={28} className="text-orange-400" />}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && <Bike size={28} className="text-green-500" />}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && <Check size={28} className="text-green-500" />}
+                                    {orderStatus === 'completado' && <Check size={28} className="text-green-600" />}
+                                </div>
+                                {/* Texto del estado */}
+                                <p className="text-[20px] font-black uppercase text-gray-900 leading-tight">
+                                    {orderStatus === 'pendiente'  && 'Confirmando...'}
+                                    {orderStatus === 'en_proceso' && 'Cocinando 🔥'}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'En camino 🛵'}
+                                    {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Listo para retirar ✅'}
+                                    {orderStatus === 'completado' && 'Entregado ✅'}
                                 </p>
-                                <p className="text-[13px] text-slate-400 mt-1">
+                                {/* Subtexto */}
+                                <p className="text-[12px] text-slate-400 text-center mt-1">
                                     {orderStatus === 'pendiente'  && 'El local está confirmando tu pedido'}
                                     {orderStatus === 'en_proceso' && 'Tu pedido está en preparación'}
                                     {orderStatus === 'entregado'  && metodoEnvio === 'delivery' && 'Tu pedido está en camino a tu domicilio'}
                                     {orderStatus === 'entregado'  && metodoEnvio === 'retiro'   && 'Ya podés pasar a buscar tu pedido'}
                                     {orderStatus === 'completado' && '¡Gracias por tu compra!'}
                                 </p>
+                                <div className="border-t border-slate-100 my-4" />
                                 {cart.length > 0 && (
                                     <>
-                                        <div className="border-t border-slate-100 my-4" />
                                         <div className="space-y-2 text-left">
                                             {cart.map((item: any) => (
                                                 <div key={item.uniqueId} className="flex justify-between text-[13px]">
