@@ -146,6 +146,16 @@ const handleNotificarPagoMesa = async (metodo: string) => {
         }
     }, [mesaLabel]);
 
+    // 🛡️ Si entramos por QR de mesa, descartar activeOrderId de un pedido que no era de mesa
+    useEffect(() => {
+        if (tableIdFromQR && activeOrderId) {
+            const savedMetodoEnvio = localStorage.getItem('metodoEnvio');
+            if (savedMetodoEnvio !== 'mesa') {
+                setActiveOrderId(null);
+            }
+        }
+    }, [tableIdFromQR, activeOrderId]);
+
     // --- 5. LÓGICA DE CUPONES ---
     const [couponCode, setCouponCode] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
