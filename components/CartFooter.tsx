@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints } from 'lucide-react';
@@ -56,6 +56,8 @@ export default function CartFooter({
     const [aviso, setAviso] = useState<string | null>(null); 
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
+    const orderStatusRef = useRef(orderStatus);
+    useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
     const [initializing, setInitializing] = useState(true);
     // Reemplazá el estado de entregaTipo por este:
@@ -217,16 +219,16 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             // Si es delivery/retiro: mantenemos tu lógica de "entregado" para limpiar.
             const estadosFinales = isMesa ? ['completado', 'cancelado'] : ['entregado', 'completado', 'cancelado'];
 
-            if (estadosFinales.includes(orderStatus)) {
-                const timer = setTimeout(() => { 
-                    clearCart(); 
-                    setActiveOrderId(null); 
+            if (estadosFinales.includes(orderStatusRef.current)) {
+                const timer = setTimeout(() => {
+                    clearCart();
+                    setActiveOrderId(null);
                     localStorage.removeItem("activeOrderId"); // Limpieza total
                 }, 5 * 60 * 1000);
                 return () => clearTimeout(timer);
             }
         }
-    }, [activeOrderId, planType, orderStatus, metodoEnvio]); // Agregamos metodoEnvio aquí
+    }, [activeOrderId, planType, metodoEnvio]);
 
 useEffect(() => {
     if (activeOrderId) {
