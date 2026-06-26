@@ -358,7 +358,8 @@ const loadOrders = async () => {
   // --- 3. IMPRESIÓN ---
 
   // HTML del ticket compartido entre window.print() y QZ Tray
-  const getTicketHTML = (order: any): string => {
+  const getTicketHTML = (order: any, paperWidth: string = '80mm'): string => {
+    const bodyWidth = paperWidth === '58mm' ? 160 : 280;
     const subtotalProductos = order.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
     const costoEnvio = Number(order.delivery_cost || 0);
     const montoDescuento = Number(order.discount_amount || 0);
@@ -373,7 +374,7 @@ const loadOrders = async () => {
         </div>`).join("");
     return `
         <html>
-            <body style="font-family: monospace; width: 280px; padding: 10px; margin: 0 auto; color: #000;">
+            <body style="font-family: monospace; width: ${bodyWidth}px; padding: 10px; margin: 0 auto; color: #000;">
               <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
     <h2 style="margin:0; font-size: 18px;">${restaurantName.toUpperCase()}</h2>
     ${order.order_type === 'mesa' ? `<h1 style="margin: 5px 0; font-size: 24px;">${displayTableLabel(order.table_number, true)}</h1>` : ''}
@@ -411,11 +412,12 @@ const loadOrders = async () => {
   // Impresión térmica via QZ Tray — fallback silencioso a window.print()
   const handleThermalPrint = async (order: any) => {
     const qz = (window as any).qz;
+    const paperWidth = localStorage.getItem('thermal_paper_width') || '80mm';
 
     const windowPrintFallback = () => {
       const pw = window.open("", "_blank");
       if (!pw) return;
-      pw.document.write(getTicketHTML(order));
+      pw.document.write(getTicketHTML(order, paperWidth));
       pw.document.close();
       setTimeout(() => { pw.print(); pw.close(); }, 350);
     };
@@ -445,7 +447,7 @@ const loadOrders = async () => {
         ]);
       }
       const cfg = qz.configs.create(thermalPrinterName);
-      await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: getTicketHTML(order) }]);
+      await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: getTicketHTML(order, paperWidth) }]);
     } catch (err: any) {
       console.error('[handleThermalPrint]', err.message);
       console.error('[handleThermalPrint] stack:', err.stack);
@@ -1092,6 +1094,13 @@ useEffect(() => {
     ) : (
         /* 🛵 SI ES DELIVERY/RETIRO: Flujo normal con "Tomar Pedido" inicial */
         <>
+            {order.status === "cancelado" && (
+                <div className="flex items-center justify-center gap-2 py-3 px-4 bg-red-50 border border-red-200 rounded-xl animate-in fade-in">
+                    <X size={14} className="text-red-500 shrink-0" />
+                    <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Rechazado</span>
+                </div>
+            )}
+
             {order.status === "pendiente" && (
                 <div className="flex gap-2">
                     <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>

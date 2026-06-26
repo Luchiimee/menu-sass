@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap,User,CreditCard,Clock } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
@@ -17,6 +17,16 @@ interface Table {
     restaurant_id: string;
 }
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function CartFooter({
     phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp,
     businessType, restaurantName,
@@ -27,6 +37,14 @@ export default function CartFooter({
     tableIdFromQR = null,
     mesaLabel = null,
     currentShiftId = null,
+    // Zonas de delivery
+    deliveryZonesEnabled = false,
+    deliveryLat = null,
+    deliveryLng = null,
+    deliveryZone1Km = 3,
+    deliveryZone1Cost = 0,
+    deliveryZone2Km = 7,
+    deliveryZone2Cost = 0,
 }: any) {
     const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
     
@@ -38,7 +56,11 @@ export default function CartFooter({
     const [aviso, setAviso] = useState<string | null>(null); 
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
+    const orderStatusRef = useRef(orderStatus);
+    useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+    const [initializing, setInitializing] = useState(true);
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
     // Reemplazá el estado de entregaTipo por este:
 const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'programada' : 'inmediata');
     const [selectedSlot, setSelectedSlot] = useState('');
@@ -53,12 +75,15 @@ const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'pro
             setCopied(true);
             setTimeout(() => setCopied(false), 4000); 
         } catch (err) {
-            const textArea = document.createElement("textarea"); 
-            textArea.value = aliasMp; 
-            document.body.appendChild(textArea); 
-            textArea.select(); 
-            document.execCommand('copy'); 
-            document.body.removeChild(textArea);
+            const textArea = document.createElement("textarea");
+            textArea.value = aliasMp;
+            textArea.style.position = 'fixed';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try { document.execCommand('copy'); } finally {
+                document.body.removeChild(textArea);
+            }
             setCopied(true);
             setTimeout(() => setCopied(false), 4000);
         }
@@ -100,9 +125,14 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [nombre, setNombre] = useState('');
     const [apellido, setApellido] = useState('');
     const [telCliente, setTelCliente] = useState('');
-    const [direccion, setDireccion] = useState('');
+    const [direccionCalle, setDireccionCalle] = useState('');
+    const [direccionEntreCalles, setDireccionEntreCalles] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
+    // --- ZONAS DE DELIVERY ---
+    const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
+    const [forcedZone, setForcedZone] = useState<'zone2' | null>(null);
+    const [detectingLocation, setDetectingLocation] = useState(false);
 
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
     const [metodoEnvio, setMetodoEnvio] = useState(tableIdFromQR ? 'mesa' : 'delivery');
@@ -122,6 +152,17 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             setNroMesa(mesaLabel);
         }
     }, [mesaLabel]);
+
+    // 🛡️ Si entramos por QR de mesa, descartar activeOrderId de un pedido que no era de mesa
+    useEffect(() => {
+        if (tableIdFromQR && activeOrderId) {
+            const savedMetodoEnvio = localStorage.getItem('metodoEnvio');
+            if (savedMetodoEnvio !== 'mesa') {
+                setActiveOrderId(null);
+            }
+        }
+        setInitializing(false);
+    }, [tableIdFromQR, activeOrderId]);
 
     // --- 5. LÓGICA DE CUPONES ---
     const [couponCode, setCouponCode] = useState("");
@@ -159,7 +200,7 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             const savedMesa = localStorage.getItem('nroMesa');
 
             if (savedEnvio) {
-                setMetodoEnvio(savedEnvio === 'mesa' ? 'delivery' : savedEnvio);
+                setMetodoEnvio(savedEnvio);
             }
             if (savedMesa) setNroMesa(savedMesa);
         }
@@ -179,16 +220,16 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             // Si es delivery/retiro: mantenemos tu lógica de "entregado" para limpiar.
             const estadosFinales = isMesa ? ['completado', 'cancelado'] : ['entregado', 'completado', 'cancelado'];
 
-            if (estadosFinales.includes(orderStatus)) {
-                const timer = setTimeout(() => { 
-                    clearCart(); 
-                    setActiveOrderId(null); 
+            if (estadosFinales.includes(orderStatusRef.current)) {
+                const timer = setTimeout(() => {
+                    clearCart();
+                    setActiveOrderId(null);
                     localStorage.removeItem("activeOrderId"); // Limpieza total
                 }, 5 * 60 * 1000);
                 return () => clearTimeout(timer);
             }
         }
-    }, [activeOrderId, planType, orderStatus, metodoEnvio]); // Agregamos metodoEnvio aquí
+    }, [activeOrderId, planType, metodoEnvio]);
 
 useEffect(() => {
     if (activeOrderId) {
@@ -291,6 +332,8 @@ useEffect(() => {
             return () => clearTimeout(timer);
         }
     }, [metodoEnvio, restaurantId]);
+if (initializing) return <div className="hidden" />;
+
 if (activeOrderId && !isVisible) {
     if (planType === 'go' || planType === 'plus' || planType === 'max') {
         const isMesa = metodoEnvio === 'mesa';
@@ -322,6 +365,58 @@ const handleCallWaiter = async () => {
     }
 };
 
+        const trackingSubtotal = cart.reduce((acc: number, item: any) => {
+            const extras = (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0);
+            return acc + (item.price + extras) * item.quantity;
+        }, 0);
+        const trackingEnvio = metodoEnvio === 'delivery' ? Number(deliveryCost) || 0 : 0;
+        const trackingTotal = trackingSubtotal + trackingEnvio;
+
+        const trackingActiveStep =
+            orderStatus === 'recibido'   ? 1 :
+            orderStatus === 'en_proceso' ? 2 :
+            orderStatus === 'en_camino'  ? 3 :
+            orderStatus === 'entregado'  ? 4 :
+            orderStatus === 'completado' ? 4 : 0;
+
+        const trackingBadge = ({
+            pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
+            recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido recibido' },
+            en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Preparando tu pedido' },
+            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: metodoEnvio === 'retiro' ? 'Listo para retirar 🏪' : 'En camino 🛵' },
+            entregado:  { cls: 'bg-blue-100 text-blue-700',     label: 'Entregado ✅' },
+            completado: { cls: 'bg-green-100 text-green-700',   label: 'Completado' },
+            cancelado:  { cls: 'bg-red-100 text-red-700',       label: 'Pedido cancelado ❌' },
+        } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
+
+        const trackingSteps: { label: string; icon: any }[] = metodoEnvio === 'delivery'
+            ? [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Recibido', icon: Check }, { label: 'Preparando', icon: ChefHat }, { label: 'En camino', icon: Bike }, { label: 'Entregado', icon: CheckCircle2 }]
+            : [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Recibido', icon: Check }, { label: 'Preparando', icon: ChefHat }, { label: 'Listo', icon: Bell }, { label: 'Retirado', icon: CheckCircle2 }];
+
+        const mesaTrackingStep =
+            orderStatus === 'recibido'   ? 1 :
+            orderStatus === 'en_proceso' ? 2 :
+            orderStatus === 'en_camino'  ? 3 :
+            orderStatus === 'entregado'  ? 3 :
+            orderStatus === 'completado' ? 3 : 0;
+
+        const mesaBadge = ({
+            pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
+            recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido confirmado ✅' },
+            en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Cocinando 🔥' },
+            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: '¡Tu plato está listo! Enseguida lo llevamos a tu mesa 🍽️' },
+            entregado:  { cls: 'bg-green-100 text-green-700',   label: 'Entregado en mesa' },
+            completado: { cls: 'bg-green-100 text-green-700',   label: 'Gracias por tu visita' },
+            cancelado:  { cls: 'bg-red-100 text-red-700',       label: 'Pedido cancelado ❌' },
+        } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
+
+        const mesaTrackingSteps: { label: string; icon: any }[] = [
+            { label: 'Pedido', icon: ShoppingBag },
+            { label: 'Confirmado', icon: Check },
+            { label: 'Cocinando', icon: ChefHat },
+            { label: 'Entregado', icon: CheckCircle2 },
+        ];
+
         return (
             <>
             {aviso && (
@@ -333,23 +428,44 @@ const handleCallWaiter = async () => {
                 </div>
             )}
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
-                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
-         { (metodoEnvio !== 'mesa' || ['completado', 'cancelado'].includes(orderStatus)) && (
-    <button 
-        onClick={() => {
-            if (orderStatus === 'completado') {
-                handleFinalizarTodo(); // 👈 Si ya pagó, limpia y refresca al cerrar
-            } else {
-                clearCart(); 
-                setActiveOrderId(null); 
-                localStorage.removeItem("activeOrderId");
-            }
-        }} 
-        className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm animate-in fade-in"
-    >
-        <X size={20} className="text-gray-400" />
-    </button>
-)}
+                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
+                    <button
+                        onClick={() => {
+                            if (orderStatus === 'entregado' || orderStatus === 'completado' || orderStatus === 'cancelado') {
+                                if (orderStatus === 'completado') { handleFinalizarTodo(); }
+                                else { clearCart(); setActiveOrderId(null); localStorage.removeItem("activeOrderId"); }
+                            } else {
+                                setShowExitConfirm(true);
+                            }
+                        }}
+                        className="absolute top-6 right-6 p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-50 z-[135] shadow-sm animate-in fade-in"
+                    >
+                        <X size={20} className="text-slate-600" />
+                    </button>
+
+                    {showExitConfirm && (
+                        <div className="absolute inset-0 z-[140] bg-black/50 flex items-center justify-center p-6">
+                            <div className="bg-white rounded-[24px] p-6 shadow-2xl w-full max-w-sm animate-in zoom-in duration-200">
+                                <p className="text-sm font-black text-gray-800 text-center mb-6 leading-snug">
+                                    ¿Seguro que querés salir? Perderás el seguimiento de tu pedido.
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={() => setShowExitConfirm(false)}
+                                        className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest"
+                                    >
+                                        Quedarme
+                                    </button>
+                                    <button
+                                        onClick={() => { clearCart(); setActiveOrderId(null); localStorage.removeItem("activeOrderId"); }}
+                                        className="w-full bg-gray-100 text-gray-600 py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest"
+                                    >
+                                        Salir igual
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
@@ -360,38 +476,208 @@ const handleCallWaiter = async () => {
                             </div>
                         )}
 
-                        {/* 🔘 TRACKER CENTRAL (IGUAL PARA TODOS) */}
-                        <div className="mb-8">
-                    <OrderTracker 
-    orderId={activeOrderId} 
-    restaurantPhone={phone} 
-    businessType={metodoEnvio} 
-    paymentMethodProp={metodoPago} 
-    aliasMpProp={aliasMp} 
-    onStatusChange={(s: string) => setOrderStatus(s)} 
-/>
+                        {/* HERO IMAGE según método */}
+                        <img
+                          src={metodoEnvio === 'delivery' ? '/delivery-hero.png' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
+                          alt=""
+                          className="w-[220px] h-[220px] object-contain mx-auto mb-4"
+                        />
+
+                        {/* OrderTracker oculto — mantiene canal Supabase Realtime activo */}
+                        <div className="hidden">
+                            <OrderTracker
+                                orderId={activeOrderId}
+                                restaurantPhone={phone}
+                                businessType={metodoEnvio}
+                                paymentMethodProp={metodoPago}
+                                aliasMpProp={aliasMp}
+                                onStatusChange={(s: string) => setOrderStatus(s)}
+                            />
                         </div>
 
-                        {/* 🔘 BOTONES DE ACCIÓN: SEPARADOS POR TIPO */}
-                        <div className="flex flex-col gap-3 mt-auto pb-4">
+                        {/* TRACKER VISUAL + RESUMEN (solo delivery/retiro) */}
+                        {!isMesa && (
+                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
+                                {/* Badge de estado */}
+                                <div className="flex justify-center mb-3">
+                                    <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide ${trackingBadge.cls}`}>
+                                        {trackingBadge.label}
+                                    </span>
+                                </div>
+
+                                {orderStatus === 'cancelado' && (
+                                    <p className="text-[11px] text-red-500 font-bold text-center mb-5 px-2">
+                                        Si creés que hubo un error, comunicate con el local.
+                                    </p>
+                                )}
+
+                                {/* Tracker horizontal */}
+                                <div className="flex items-start w-full px-1 mb-5">
+                                    {trackingSteps.flatMap((step, i) => {
+                                        const isCompleted = i < trackingActiveStep;
+                                        const isActive    = i === trackingActiveStep;
+                                        const Icon = step.icon;
+                                        const items: React.ReactNode[] = [
+                                            <div key={`step-${i}`} className="flex flex-col items-center">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompleted || isActive ? 'bg-green-600' : 'bg-slate-100'}`}>
+                                                    {isCompleted
+                                                        ? <Check size={14} className="text-white" />
+                                                        : <Icon size={14} className={isActive ? 'text-white' : 'text-slate-300'} />
+                                                    }
+                                                </div>
+                                                <span className={`text-[9px] font-bold mt-1 text-center leading-tight max-w-[44px] ${i > trackingActiveStep ? 'text-slate-300' : 'text-gray-600'}`}>
+                                                    {step.label}
+                                                </span>
+                                            </div>
+                                        ];
+                                        if (i < trackingSteps.length - 1) {
+                                            items.push(
+                                                <div key={`line-${i}`} className={`flex-1 h-0.5 mt-[18px] ${isCompleted ? 'bg-green-600' : 'bg-slate-200'}`} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </div>
+
+                                {/* Card de transferencia */}
+                                {metodoPago === 'transferencia' && !['cancelado', 'completado'].includes(orderStatus) && (
+                                    <div className="bg-purple-50 border border-purple-200 rounded-[16px] p-4 mb-4">
+                                        <p className="text-purple-700 font-black text-[13px] mb-3">Pago por transferencia</p>
+                                        <div
+                                            onClick={handleCopyAlias}
+                                            className={`flex justify-between items-center cursor-pointer p-3 rounded-[12px] transition-all border-2 ${copied ? 'bg-green-600 border-green-600' : 'bg-blue-50 border-blue-200 active:scale-95'}`}
+                                        >
+                                            <div className={copied ? 'text-white' : 'text-blue-900'}>
+                                                <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
+                                                    {copied ? '¡COPIADO!' : 'TOCÁ PARA COPIAR ALIAS'}
+                                                </p>
+                                                <p className="text-sm font-black">{aliasMp}</p>
+                                            </div>
+                                            {copied ? <Check size={18} className="text-white shrink-0" /> : <Copy size={18} className="text-blue-400 shrink-0" />}
+                                        </div>
+                                        <p className="text-[11px] text-purple-600 text-center mt-2 leading-snug">
+                                            Envianos el comprobante por WhatsApp o esperá a que confirmemos el ingreso manualmente.
+                                        </p>
+                                        <button
+                                            onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                                            className="w-full bg-green-600 text-white rounded-[12px] py-2 text-[12px] font-black mt-3 flex items-center justify-center gap-2"
+                                        >
+                                            <MessageSquare size={14} /> Enviar comprobante por WhatsApp
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Separador + Resumen del pedido */}
+                                <div className="border-t border-slate-100 my-3" />
+                                <div className="space-y-2">
+                                    {cart.map((item: any) => (
+                                        <div key={item.uniqueId} className="flex justify-between text-[13px] text-slate-600">
+                                            <span>{item.quantity}x {item.name}</span>
+                                            <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
+                                        </div>
+                                    ))}
+                                    {trackingEnvio > 0 && (
+                                        <div className="flex justify-between text-[13px] text-slate-600">
+                                            <span>Envío</span>
+                                            <span>{formatPrice(trackingEnvio)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
+                                        <span>Total</span>
+                                        <span className="text-green-700">{formatPrice(trackingTotal)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TRACKER VISUAL + RESUMEN (solo mesa) */}
+                        {isMesa && (
+                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
+                                {/* Badge de estado */}
+                                <div className="flex justify-center mb-3">
+                                    <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide text-center ${mesaBadge.cls}`}>
+                                        {mesaBadge.label}
+                                    </span>
+                                </div>
+
+                                {orderStatus === 'cancelado' && (
+                                    <p className="text-[11px] text-red-500 font-bold text-center mb-5 px-2">
+                                        Si creés que hubo un error, comunicate con el local.
+                                    </p>
+                                )}
+
+                                {/* Tracker horizontal 4 pasos */}
+                                <div className="flex items-start w-full px-1 mb-5">
+                                    {mesaTrackingSteps.flatMap((step, i) => {
+                                        const isCompleted = i < mesaTrackingStep;
+                                        const isActive    = i === mesaTrackingStep;
+                                        const Icon = step.icon;
+                                        const items: React.ReactNode[] = [
+                                            <div key={`mstep-${i}`} className="flex flex-col items-center">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompleted || isActive ? 'bg-green-600' : 'bg-slate-100'}`}>
+                                                    {isCompleted
+                                                        ? <Check size={14} className="text-white" />
+                                                        : <Icon size={14} className={isActive ? 'text-white' : 'text-slate-300'} />
+                                                    }
+                                                </div>
+                                                <span className={`text-[9px] font-bold mt-1 text-center leading-tight max-w-[44px] ${i > mesaTrackingStep ? 'text-slate-300' : 'text-gray-600'}`}>
+                                                    {step.label}
+                                                </span>
+                                            </div>
+                                        ];
+                                        if (i < mesaTrackingSteps.length - 1) {
+                                            items.push(
+                                                <div key={`mline-${i}`} className={`flex-1 h-0.5 mt-[18px] ${isCompleted ? 'bg-green-600' : 'bg-slate-200'}`} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </div>
+
+                                {/* Separador + Resumen del pedido */}
+                                <div className="border-t border-slate-100 my-3" />
+                                <div className="space-y-2">
+                                    {cart.map((item: any) => (
+                                        <div key={item.uniqueId} className="flex justify-between text-[13px] text-slate-600">
+                                            <span>{item.quantity}x {item.name}</span>
+                                            <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
+                                        <span>Total</span>
+                                        <span className="text-green-700">{formatPrice(trackingTotal)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>{/* cierra flex-1 overflow-y-auto */}
+                    {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
+                    <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
-        {/* PASO 1: BOTONES INICIALES (Solo si no empezó el pago) */}
-        {pasoPago === 'inicio' && (
-            <>
-                <button onClick={handleCallWaiter} className="w-full bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
-                    <MessageSquare size={18} /> Llamar Mozo
-                </button>
-                
-                {(orderStatus === 'entregado' || orderStatus === 'listo') && (
-                    <button 
-                        onClick={() => setPasoPago('seleccion')}
-                        className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
-                    >
-                        <Wallet size={18} /> Pagar Cuenta
-                    </button>
-                )}
-            </>
+        {/* LLAMAR MOZO: Siempre visible */}
+        <button onClick={handleCallWaiter} className="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+            <Bell size={18} /> Llamar Mozo
+        </button>
+
+        {/* WHATSAPP: Visible cuando cancelado */}
+        {orderStatus === 'cancelado' && (
+            <button
+                onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                className="w-full bg-green-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 animate-in zoom-in"
+            >
+                <MessageSquare size={18} /> Consultar por WhatsApp
+            </button>
+        )}
+
+        {/* PAGAR CUENTA: Solo cuando entregado o completado y no empezó flujo de pago */}
+        {pasoPago === 'inicio' && (orderStatus === 'entregado' || orderStatus === 'completado') && (
+            <button
+                onClick={() => setPasoPago('seleccion')}
+                className="w-full bg-green-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
+            >
+                <Wallet size={18} /> Pagar Cuenta
+            </button>
         )}
 
         {/* PASO 2: SELECCIÓN DE MÉTODO */}
@@ -510,25 +796,23 @@ const handleCallWaiter = async () => {
 ) : (
                                 // --- BOTONES SOLO PARA ENVÍO/RETIRO ---
                                 <>
-                                    {(orderStatus === 'entregado' || orderStatus === 'completado') ? (
-                                        <button 
+                                    {trackingActiveStep === 4 && (
+                                        <button
                                             onClick={() => { clearCart(); setActiveOrderId(null); }}
-                                            className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest animate-in fade-in"
+                                            className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest animate-in fade-in"
                                         >
                                             Finalizar
                                         </button>
-                                    ) : (
-                                        <button 
-                                            onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
-                                            className="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
-                                        >
-                                            <MessageSquare size={18} /> Consultar por WhatsApp
-                                        </button>
                                     )}
+                                    <button
+                                        onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                                        className={`w-full py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 ${orderStatus === 'cancelado' ? 'bg-green-700 text-white' : 'bg-white border-2 border-green-700 text-green-700'}`}
+                                    >
+                                        <MessageSquare size={18} /> Consultar por WhatsApp
+                                    </button>
                                 </>
                             )}
                         </div>
-                    </div>
                 </div>
             </div>
             </>
@@ -540,14 +824,71 @@ const handleCallWaiter = async () => {
         return acc + (item.price + extrasTotal) * item.quantity;
     }, 0);
     const montoDescuento = appliedCoupon ? (subtotal * Number(appliedCoupon.discount_percent) / 100) : 0;
-    const envio = metodoEnvio === 'delivery' ? (Number(deliveryCost) || 0) : 0;
+    const zoneStatus = (() => {
+      if (metodoEnvio !== 'delivery') return null;
+      if (!deliveryZonesEnabled) return 'flat';
+      if (forcedZone) return forcedZone;
+      if (!clientCoords || deliveryLat == null || deliveryLng == null) return 'calculating';
+      const dist = haversineKm(clientCoords.lat, clientCoords.lng, deliveryLat, deliveryLng);
+      if (dist <= deliveryZone1Km) return 'zone1';
+      if (dist <= deliveryZone2Km) return 'zone2';
+      return 'outside';
+    })();
+    const envio = (() => {
+      if (metodoEnvio !== 'delivery') return 0;
+      if (zoneStatus === 'flat')  return Number(deliveryCost) || 0;
+      if (zoneStatus === 'zone1') return Number(deliveryZone1Cost) || 0;
+      if (zoneStatus === 'zone2') return Number(deliveryZone2Cost) || 0;
+      return 0; // 'calculating' o 'outside'
+    })();
     const totalFinal = subtotal - montoDescuento + envio;
    
+
+  const direccionCompleta = direccionEntreCalles.trim()
+    ? `${direccionCalle} (entre ${direccionEntreCalles})`
+    : direccionCalle;
+
+  const handleDetectLocation = async () => {
+    setDetectingLocation(true);
+    setClientCoords(null);
+    setForcedZone(null);
+
+    const tryNominatim = async () => {
+      if (!direccionCalle.trim()) { setForcedZone('zone2'); setDetectingLocation(false); return; }
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccionCalle)}&format=json&limit=1`,
+          { headers: { 'Accept-Language': 'es' } },
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          setClientCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+        } else {
+          setForcedZone('zone2');
+        }
+      } catch {
+        setForcedZone('zone2');
+      }
+      setDetectingLocation(false);
+    };
+
+    if (!navigator.geolocation) { await tryNominatim(); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setClientCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setDetectingLocation(false);
+      },
+      tryNominatim,
+    );
+  };
 
   const handleSendOrder = async () => {
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
     if (metodoEnvio !== 'mesa' && !apellido.trim()) return alert("Por favor, ingresá tu apellido.");
-    if (metodoEnvio === 'delivery' && !direccion.trim()) return alert("Ingresá la dirección de envío.");
+    if (metodoEnvio === 'delivery' && !direccionCalle.trim()) return alert("Ingresá la calle y número de envío.");
+    if (metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'calculating') return alert("Necesitamos tu ubicación para calcular el costo de envío");
+    if (metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'outside') return alert("Lo sentimos, no llegamos a tu zona");
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
     const nombreCompleto = metodoEnvio === 'mesa' ? nombre.trim() : `${nombre.trim()} ${apellido.trim()}`;
     // 🚀 VALIDACIÓN: Si eligió programar pero no seleccionó un horario
@@ -584,7 +925,7 @@ const handleCallWaiter = async () => {
                 restaurant_id: restaurantId,
                 customer_name: nombreCompleto,
                 customer_phone: telCliente, 
-                address: metodoEnvio === 'delivery' ? direccion : '',
+                address: metodoEnvio === 'delivery' ? direccionCompleta : '',
                 order_type: metodoEnvio, 
                 payment_method: metodoPago, 
                 total: totalFinal, 
@@ -616,6 +957,11 @@ const handleCallWaiter = async () => {
         // 2. CONSTRUCCIÓN DEL MENSAJE
 let mensaje = `*¡Hola! Nuevo Pedido*\nRef: ${orderRef}\n------------------\n`;
 mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO AQUÍ
+if (telCliente.trim()) {
+    const telLimpio = telCliente.replace(/\D/g, '').replace(/^0/, '');
+    const waLink = `https://wa.me/54${telLimpio}`;
+    mensaje += `📱 *Tel:* ${waLink}\n`;
+}
         
         // 🚀 AGREGAMOS EL HORARIO AL WHATSAPP
       // 🚀 BUSCÁ ESTA PARTE EN handleSendOrder:
@@ -626,7 +972,7 @@ mensaje += `👤 *Cliente:* ${nombreCompleto}\n`; // 👈 USAMOS NOMBRE COMPLETO
         mensaje += `⏰ *Horario:* ${infoHorario}\n`;
     }
 
-        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccion}\n`;
+        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccionCompleta}\n`;
         if (metodoEnvio === 'mesa') mensaje += `🍽️ *${displayTableLabel(nroMesa)}*\n`;
         mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
         
@@ -745,7 +1091,7 @@ return (
     >
         <div 
             onClick={(e) => e.stopPropagation()} // Evita que al tocar adentro del pedido se cierre
-            className="w-full max-w-md mx-auto bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.3)] rounded-t-[2.5rem] h-[85vh] flex flex-col overflow-hidden font-sans text-black animate-in slide-in-from-bottom-full duration-300"
+            className="w-full max-w-md mx-auto bg-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] rounded-t-[2.5rem] h-[85vh] flex flex-col overflow-hidden font-sans text-black animate-in slide-in-from-bottom-full duration-300"
         >
             
            
@@ -766,30 +1112,35 @@ return (
             </div>
 
             {/* --- CUERPO SCROLLEABLE (EL CARRITO NORMAL) --- */}
-            <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-4 space-y-5 pb-32">
-                <h2 className="text-xl font-black text-gray-800 px-1">Tu Pedido</h2>
+            <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar p-4 space-y-3 pb-32">
+                <div className="flex items-center gap-3 px-1 mb-1">
+                  <div className="w-9 h-9 bg-green-600 rounded-[10px] flex items-center justify-center shadow-sm">
+                    <ShoppingBag size={18} className="text-white" />
+                  </div>
+                  <h2 className="text-xl font-black text-gray-800">Tu Pedido</h2>
+                </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {cart.map((item: any) => (
-                        <div key={item.uniqueId} className="bg-gray-50 rounded-3xl p-4 border border-gray-100 shadow-sm">
-                            <div className="flex justify-between items-center mb-3">
+                        <div key={item.uniqueId} className="bg-white rounded-[20px] border border-slate-200 p-[18px] shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
                                 <div className="flex-1">
                                     <span className="text-gray-900 font-black text-base block leading-tight">{item.name}</span>
                                     <span className="text-green-600 font-bold text-sm">{formatPrice(item.price)}</span>
                                 </div>
-                                <div className="flex items-center gap-4 bg-white shadow-sm rounded-2xl p-1 border border-gray-100">
-                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-10 h-10 flex items-center justify-center text-red-500 active:scale-75"><Minus size={20} strokeWidth={3}/></button>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity - 1)} className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 shadow-sm rounded-full text-red-500 active:scale-75"><Minus size={16} strokeWidth={3}/></button>
                                     <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-green-600 active:scale-75"><Plus size={20} strokeWidth={3}/></button>
+                                    <button onClick={() => updateQuantity(item.uniqueId, item.quantity + 1)} className="w-9 h-9 flex items-center justify-center bg-green-600 rounded-full text-white active:scale-75"><Plus size={16} strokeWidth={3}/></button>
                                 </div>
                             </div>
                             {item.extrasList?.map((ex: any) => (
-                                <div key={ex.id} className="flex justify-between items-center pl-4 py-2 mt-2 bg-white/60 rounded-xl border border-dashed border-gray-200">
-                                    <div className="flex flex-col flex-1"><span className="text-xs text-gray-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
-                                    <div className="flex items-center gap-3 mr-1">
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-red-500 active:scale-75"><Minus size={16} strokeWidth={3}/></button>
+                                <div key={ex.id} className="flex justify-between items-center pl-3 py-1.5 mt-1.5 border-t border-dashed border-slate-100">
+                                    <div className="flex flex-col flex-1"><span className="text-[11px] text-slate-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
+                                    <div className="flex items-center gap-2 mr-1">
+                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm rounded-full text-red-500 active:scale-75"><Minus size={13} strokeWidth={3}/></button>
                                         <span className="text-xs font-black">{ex.quantity}</span>
-                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-green-600 active:scale-75"><Plus size={16} strokeWidth={3}/></button>
+                                        <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity + 1)} className="w-7 h-7 flex items-center justify-center bg-green-600 rounded-full text-white active:scale-75"><Plus size={13} strokeWidth={3}/></button>
                                     </div>
                                 </div>
                             ))}
@@ -797,12 +1148,14 @@ return (
                     ))}
                 </div>
 
-                <div className="space-y-4 bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-inner">
-    {/* 🚀 MENSAJE DE AYUDA (Solo envío/retiro) */}
+                <div className="bg-white rounded-[20px] border border-slate-200 p-[18px] mb-3 shadow-sm space-y-4">
+    {/* MENSAJE DE AYUDA (Solo envío/retiro) */}
     {metodoEnvio !== 'mesa' && (
-        <p className="text-[9px] font-bold text-blue-500 uppercase tracking-tight ml-2 italic leading-tight">
+        <div className="bg-indigo-50 border border-indigo-100 rounded-[10px] p-2">
+          <p className="text-[11px] font-bold text-indigo-600 leading-tight">
             * Pedimos apellido para identificar tu transferencia más rápido en nuestra cuenta.
-        </p>
+          </p>
+        </div>
     )}
 
     {/* FILA 1: NOMBRE Y APELLIDO (Se adapta si es mesa o no) */}
@@ -828,11 +1181,11 @@ return (
                     {!tableIdFromQR && (
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Método de Entrega</label>
-                        <div className="flex bg-gray-200/50 p-1 rounded-2xl gap-1">
+                        <div className="flex bg-slate-100 rounded-[14px] p-1 gap-1">
                             {['delivery', 'retiro', 'mesa']
                                 .filter(m => {
                                     if (m === 'mesa') {
-                                        return planType === 'plus' || planType === 'max';
+                                        return (planType === 'plus' || planType === 'max') && tableIdFromQR !== null;
                                     }
                                     return true;
                                 })
@@ -840,8 +1193,8 @@ return (
                                     <button
                                         key={m}
                                         onClick={() => setMetodoEnvio(m)}
-                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
-                                            metodoEnvio === m ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'
+                                        className={`flex-1 py-2.5 rounded-[10px] text-[10px] font-black uppercase transition-all ${
+                                            metodoEnvio === m ? 'bg-white shadow-sm text-green-600 font-black' : 'text-slate-400'
                                         }`}
                                     >
                                         {m === 'delivery' ? 'Envío' : m === 'retiro' ? 'Retiro' : 'Mesa'}
@@ -852,25 +1205,86 @@ return (
                     </div>
                     )}
                     {metodoEnvio === 'delivery' && (
-                        <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-green-50 rounded-2xl border border-green-100"><span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span><span className="font-black text-green-700">{formatPrice(envio)}</span></div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección del Envío</label>
-                            <input type="text" placeholder="Calle, número..." value={direccion} onChange={(e)=>setDireccion(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            {/* Costo de envío — muestra "A calcular" cuando las zonas están activas y sin coords */}
+                            <div className="flex justify-between items-center px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
+                              <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
+                              <span className="font-black text-[18px] text-green-700">
+                                {deliveryZonesEnabled && zoneStatus === 'calculating' ? 'A calcular' : formatPrice(envio)}
+                              </span>
+                            </div>
+                            {/* Calle y número — obligatorio */}
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Calle y número *</label>
+                            <input type="text" placeholder="Ej: Calle 28 N° 1112" value={direccionCalle} onChange={(e)=>setDireccionCalle(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            {/* Entre calles — opcional */}
+                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mt-1 block">Entre calles <span className="font-medium normal-case text-gray-300">(opcional)</span></label>
+                            <input type="text" placeholder="Ej: Entre 29 y 31" value={direccionEntreCalles} onChange={(e)=>setDireccionEntreCalles(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            {/* Selector de zona — solo cuando zonas están habilitadas */}
+                            {deliveryZonesEnabled && (
+                              <div className="space-y-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleDetectLocation}
+                                  disabled={detectingLocation}
+                                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all disabled:opacity-40 active:scale-95 ${
+                                    clientCoords || forcedZone
+                                      ? 'border-2 border-dashed border-gray-300 text-gray-400'
+                                      : 'border-2 border-green-600 text-green-600 hover:bg-green-50'
+                                  }`}
+                                >
+                                  {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                                  Usar mi ubicación para calcular el envío
+                                </button>
+                                {zoneStatus === 'zone1' && (
+                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-2xl border border-green-200">
+                                    <Check size={14} className="text-green-600 shrink-0" />
+                                    <span className="text-[11px] font-black text-green-700">Zona 1 — {formatPrice(deliveryZone1Cost)}</span>
+                                  </div>
+                                )}
+                                {zoneStatus === 'zone2' && (
+                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-2xl border border-green-200">
+                                    <Check size={14} className="text-green-600 shrink-0" />
+                                    <span className="text-[11px] font-black text-green-700">Zona 2 — {formatPrice(deliveryZone2Cost)}</span>
+                                  </div>
+                                )}
+                                {zoneStatus === 'outside' && (
+                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 rounded-2xl border border-red-200">
+                                    <XCircle size={14} className="text-red-500 shrink-0" />
+                                    <span className="text-[11px] font-black text-red-600">Lo sentimos, no llegamos a tu zona</span>
+                                  </div>
+                                )}
+                                {zoneStatus === 'calculating' && (
+                                  <div className="px-4 py-2.5 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                    <span className="text-[11px] font-bold text-gray-400">Calculá el costo según tu ubicación</span>
+                                    <p className="text-[10px] font-bold text-gray-400 mt-1">Calculá el costo de envío antes de confirmar</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                         </div>
                     )}
                     {metodoEnvio === 'mesa' && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
-                            <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
-                            {availableTables.length === 0 && (
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
-                                    <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
+                            {tableIdFromQR ? (
+                                <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
+                                    <span className="text-sm">🍽️</span>
+                                    <span className="text-xs font-black text-amber-800 uppercase tracking-tight">{mesaLabel || nroMesa}</span>
                                 </div>
+                            ) : (
+                                <>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Seleccioná tu mesa</label>
+                                    {availableTables.length === 0 && (
+                                        <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-2">
+                                            <p className="text-[10px] text-gray-400 text-center italic">Cargando mesas o no hay mesas disponibles...</p>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {availableTables.map((mesa: any) => (
+                                            <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
+                                        ))}
+                                    </div>
+                                </>
                             )}
-                            <div className="grid grid-cols-3 gap-2">
-                                {availableTables.map((mesa: any) => (
-                                    <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
-                                ))}
-                            </div>
                         </div>
                     )}
                 </div>
@@ -955,23 +1369,23 @@ return (
                         <div className="grid grid-cols-2 gap-2">
                       
 
-<button 
-    onClick={() => setMetodoPago('efectivo')} 
-    className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
-        metodoPago === 'efectivo' 
-        ? 'border-green-600 bg-green-50 text-green-700' 
-        : 'border-gray-100 text-slate-600' // 👈 Cambiado de gray-400 a slate-600
+<button
+    onClick={() => setMetodoPago('efectivo')}
+    className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+        metodoPago === 'efectivo'
+        ? 'border-green-600 bg-green-50 text-green-700 shadow-md'
+        : 'border-slate-200 text-slate-600 bg-white'
     }`}
 >
     <Wallet size={18} /> Efectivo
 </button>
 
-<button 
-    onClick={() => setMetodoPago('transferencia')} 
-    className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
-        metodoPago === 'transferencia' 
-        ? 'border-blue-500 bg-blue-50 text-blue-700' 
-        : 'border-gray-100 text-slate-600' // 👈 Cambiado de gray-400 a slate-600
+<button
+    onClick={() => setMetodoPago('transferencia')}
+    className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
+        metodoPago === 'transferencia'
+        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+        : 'border-slate-200 text-slate-600 bg-white'
     }`}
 >
     <Landmark size={18} /> Transferencia
@@ -982,7 +1396,7 @@ return (
                             <div className="space-y-2">
                                 <div 
                                     onClick={handleCopyAlias} 
-                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-blue-600 border-blue-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
+                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-green-600 border-green-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
                                 >
                                     <div className={copied ? 'text-white' : 'text-blue-900'}>
                                         <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
@@ -1016,11 +1430,11 @@ return (
                         )}
                         {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 ml-2 italic animate-in fade-in">{couponError}</p>}
                     </div>
-                    <div className="px-2 space-y-1 pb-4">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                    <div className="px-2 space-y-1 pb-4 bg-white rounded-[16px] p-4 border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                         {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-gray-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
-                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-gray-200"><span className="text-xs font-black uppercase text-gray-900 mb-1">Total Final</span><span className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
+                        <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-slate-200"><span className="text-xs font-black uppercase text-slate-700 mb-1">Total Final</span><span className="text-[20px] font-black text-green-700 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
                     {tableIdFromQR && mesaLabel && (
                         <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
@@ -1028,10 +1442,19 @@ return (
                             <span className="text-xs font-black text-amber-800 uppercase tracking-tight">Pedido para {mesaLabel}</span>
                         </div>
                     )}
+                    {metodoEnvio === 'delivery' && deliveryZonesEnabled && zoneStatus === 'calculating' && (
+                      <div className="flex items-center justify-center gap-1.5 pb-1">
+                        <HelpCircle size={13} className="text-slate-400 shrink-0" />
+                        <p className="text-[11px] font-bold text-slate-400 text-center">Calculá el costo de envío para continuar</p>
+                      </div>
+                    )}
+                    {metodoEnvio === 'delivery' && zoneStatus === 'outside' && (
+                      <p className="text-[11px] font-bold text-red-500 text-center pb-1">No llegamos a tu zona de entrega</p>
+                    )}
                     <button
                         onClick={handleSendOrder}
-                        disabled={isSending}
-                        className="w-full bg-green-700 text-white py-5 rounded-[2.5rem] font-black flex items-center justify-center gap-3 shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50 mb-10"
+                        disabled={isSending || (metodoEnvio === 'delivery' && deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside'))}
+                        className="w-full bg-green-700 disabled:bg-slate-100 disabled:text-slate-400 text-white py-4 rounded-[18px] font-black flex items-center justify-center gap-3 shadow-[0_4px_20px_rgba(22,163,74,0.35)] text-[16px] active:scale-95 transition-all mb-10"
                     >
                         {isSending ? (
                             <Loader2 className="animate-spin" size={24} />

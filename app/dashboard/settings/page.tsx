@@ -48,6 +48,7 @@ function SettingsContent() {
   const [thermalEnabled, setThermalEnabled] = useState(false);
   const [savingPrinter, setSavingPrinter] = useState(false);
   const [testPrinting, setTestPrinting] = useState(false);
+  const [thermalPaperWidth, setThermalPaperWidth] = useState('80mm');
 
  useEffect(() => {
     let mounted = true;
@@ -71,6 +72,7 @@ function SettingsContent() {
                 setRestaurant({ ...restData, business_hours: restData.business_hours || {} });
                 setThermalEnabled(!!restData.thermal_printing_enabled);
                 setSelectedPrinter(restData.thermal_printer_name ?? '');
+                setThermalPaperWidth(localStorage.getItem('thermal_paper_width') || '80mm');
             }
         } catch (error) { 
             console.error("Error:", error); 
@@ -280,7 +282,7 @@ const handleCancelSubscription = async () => {
     setQzStatus('connecting');
     try {
       // Certificado público de Snappy (identifica el sitio ante QZ Tray)
-      qz.security.setCertificatePromise((_resolve: Function, reject: Function) => {
+      qz.security.setCertificatePromise((_resolve: (v: string) => void, reject: (e?: any) => void) => {
         fetch('/qz-certificate.pem')
           .then(r => r.text())
           .then(_resolve)
@@ -289,7 +291,7 @@ const handleCancelSubscription = async () => {
 
       qz.security.setSignatureAlgorithm('SHA512');
       qz.security.setSignaturePromise((toSign: string) => {
-        return (resolve: Function, reject: Function) => {
+        return (resolve: (v: string) => void, reject: (e?: any) => void) => {
           fetch('/api/qz/sign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -340,16 +342,36 @@ const handleCancelSubscription = async () => {
     if (!qz || qzStatus !== 'connected' || !selectedPrinter) return;
     setTestPrinting(true);
     try {
-      const cfg = qz.configs.create(selectedPrinter, { size: { width: 72, height: null }, units: 'mm' });
-      const html = `<html><body style="font-family:monospace;width:72mm;padding:8px;margin:0">
-        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px">
-          <b style="font-size:16px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b><br>
-          <span style="font-size:12px">TEST DE IMPRESIÓN</span>
+      const paperWidthMm = thermalPaperWidth === '58mm' ? 58 : 80;
+      const bodyWidth    = thermalPaperWidth === '58mm' ? 160 : 280;
+      const cfg = qz.configs.create(selectedPrinter, { size: { width: paperWidthMm, height: null }, units: 'mm' });
+      const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;padding:10px;margin:0 auto;color:#000">
+        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px">
+          <b style="font-size:18px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b>
+          <p style="margin:5px 0;font-size:12px">TICKET #PRUEBA</p>
+          <p style="margin:0;font-size:10px">${new Date().toLocaleString('es-AR', { hour12: false })}</p>
         </div>
-        <p style="text-align:center;font-size:11px">✓ La impresora térmica está<br>correctamente configurada</p>
-        <p style="text-align:center;font-size:10px;color:#666">${new Date().toLocaleString('es-AR')}</p>
+        <div style="font-size:12px;margin-bottom:10px;border:1px solid #000;padding:8px;border-radius:5px">
+          <p style="margin:2px 0;font-size:14px"><strong>CLIENTE:</strong> CLIENTE DE PRUEBA</p>
+          <p style="margin:2px 0"><strong>ENTREGA:</strong> DELIVERY</p>
+          <p style="margin:4px 0"><strong>HORARIO:</strong> LO ANTES POSIBLE</p>
+        </div>
+        <div style="border-top:1px solid #000;border-bottom:1px solid #000;padding:5px 0;margin-bottom:10px">
+          <div style="margin-bottom:5px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span>1x HAMBURGUESA CLÁSICA</span><span>$8.500</span></div>
+          </div>
+          <div style="margin-bottom:5px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span>1x COCA COLA</span><span>$4.500</span></div>
+          </div>
+        </div>
+        <div style="font-size:13px;line-height:1.6">
+          <div style="display:flex;justify-content:space-between"><span>SUBTOTAL PRODUCTOS:</span><span>$13.000</span></div>
+          <div style="display:flex;justify-content:space-between"><span>ENVÍO / DELIVERY:</span><span>+$2.500</span></div>
+          <div style="border-top:2px dashed #000;padding-top:8px;margin-top:5px;font-size:22px;font-weight:bold;display:flex;justify-content:space-between"><span>TOTAL:</span><span>$15.500</span></div>
+        </div>
+        <p style="text-align:center;font-size:10px;margin-top:25px;border-top:1px solid #eee;padding-top:10px">GRACIAS POR TU COMPRA<br>Snappy Tu Menú Digital</p>
       </body></html>`;
-      await qz.print(cfg, [{ type: 'html', data: html }]);
+      await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: html }]);
       toast.success('Ticket de prueba enviado', { position: 'bottom-right' });
     } catch (err: any) {
       toast.error('Error al imprimir: ' + err.message);
@@ -797,22 +819,41 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   </div>
 
                   {qzStatus === 'connected' && thermalEnabled && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Impresora para comandas
-                      </label>
-                      <select
-                        value={selectedPrinter}
-                        onChange={e => setSelectedPrinter(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
-                      >
-                        {availablePrinters.length === 0 && (
-                          <option value="">Sin impresoras detectadas</option>
-                        )}
-                        {availablePrinters.map(p => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          Impresora para comandas
+                        </label>
+                        <select
+                          value={selectedPrinter}
+                          onChange={e => setSelectedPrinter(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
+                        >
+                          {availablePrinters.length === 0 && (
+                            <option value="">Sin impresoras detectadas</option>
+                          )}
+                          {availablePrinters.map(p => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          Ancho del papel
+                        </label>
+                        <select
+                          value={thermalPaperWidth}
+                          onChange={e => {
+                            setThermalPaperWidth(e.target.value);
+                            localStorage.setItem('thermal_paper_width', e.target.value);
+                          }}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
+                        >
+                          <option value="58mm">58mm (papel angosto)</option>
+                          <option value="80mm">80mm (papel estándar)</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 

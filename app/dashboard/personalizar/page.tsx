@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
+import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
 
 import UrbanoDark from '../../../components/templates/UrbanoDark';
 import PopVibrant from '../../../components/templates/PopVibrant';
@@ -1175,8 +1176,8 @@ const confirmReset = () => {
                     </div>
                   </section>
 
-       
-                
+                  <DeliveryZonesConfig restaurantId={data.id} />
+
                     <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">

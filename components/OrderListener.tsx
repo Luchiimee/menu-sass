@@ -69,14 +69,7 @@ export default function OrderListener() {
             // 2. Reproducir Sonido
             if (audioRef.current) {
               audioRef.current.currentTime = 0;
-              const playPromise = audioRef.current.play();
-              
-              if (playPromise !== undefined) {
-                playPromise.catch((error) => {
-                  console.error("Audio bloqueado:", error);
-                  toast.info("Haz clic en la pantalla para activar el sonido.");
-                });
-              }
+              audioRef.current.play().catch(() => { /* autoplay bloqueado por el navegador */ });
             }
           }
         )
