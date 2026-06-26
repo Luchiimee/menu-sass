@@ -351,8 +351,8 @@ const handleCancelSubscription = async () => {
     if (!qz || qzStatus !== 'connected' || !selectedPrinter) return;
     setTestPrinting(true);
     try {
-      const paperWidthMm = thermalPaperWidth === '58mm' ? 58 : 80;
-      const bodyWidth    = thermalPaperWidth === '58mm' ? 160 : 280;
+      const paperWidthMm = thermalPaperWidth === '48mm' ? 48 : thermalPaperWidth === '58mm' ? 58 : 80;
+      const bodyWidth    = thermalPaperWidth === '48mm' ? 130 : thermalPaperWidth === '58mm' ? 160 : 280;
       const cfg = qz.configs.create(selectedPrinter, { size: { width: paperWidthMm, height: null }, units: 'mm' });
       const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;padding:10px;margin:0 auto;color:#000">
         <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px">
@@ -859,6 +859,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                           }}
                           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
                         >
+                          <option value="48mm">48mm (papel muy angosto)</option>
                           <option value="58mm">58mm (papel angosto)</option>
                           <option value="80mm">80mm (papel estándar)</option>
                         </select>
