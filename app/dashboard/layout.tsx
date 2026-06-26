@@ -141,7 +141,7 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
 
 // Usuarios con acceso anticipado a Rentabilidad y Caja
 // independientemente de su plan. Agregar email cuando se habilite.
-const BETA_ACCESS_EMAILS = ['luchiimee2@gmail.com'];
+const BETA_ACCESS_EMAILS = ['luchiimee2@gmail.com', 'vachettigustavo@gmail.com'];
 const hasBetaAccess = BETA_ACCESS_EMAILS.includes(userEmail);
 
 const menuItems = [
