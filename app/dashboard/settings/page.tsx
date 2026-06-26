@@ -279,6 +279,15 @@ const handleCancelSubscription = async () => {
     const qz = (window as any).qz;
     if (!qz) return;
 
+    if (qz.websocket.isActive()) {
+      const printers = await qz.printers.find();
+      const list = Array.isArray(printers) ? printers : [printers];
+      setAvailablePrinters(list);
+      if (!selectedPrinter && list.length > 0) setSelectedPrinter(list[0]);
+      setQzStatus('connected');
+      return;
+    }
+
     setQzStatus('connecting');
     try {
       // Certificado público de Snappy (identifica el sitio ante QZ Tray)
