@@ -353,32 +353,44 @@ const handleCancelSubscription = async () => {
     try {
       const paperWidthMm = thermalPaperWidth === '48mm' ? 48 : thermalPaperWidth === '58mm' ? 58 : 80;
       const bodyWidth    = thermalPaperWidth === '48mm' ? 130 : thermalPaperWidth === '58mm' ? 160 : 280;
+      const narrow = thermalPaperWidth === '48mm' || thermalPaperWidth === '58mm';
+      const fs = {
+        name:     narrow ? 13 : 18,
+        ticket:   narrow ?  9 : 12,
+        date:     narrow ?  8 : 10,
+        client:   narrow ?  9 : 12,
+        clientLbl:narrow ? 10 : 14,
+        items:    narrow ? 10 : 13,
+        totals:   narrow ? 10 : 13,
+        total:    narrow ? 15 : 22,
+        footer:   narrow ?  8 : 10,
+      };
       const cfg = qz.configs.create(selectedPrinter, { size: { width: paperWidthMm, height: null }, units: 'mm' });
       const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;padding:10px;margin:0 auto;color:#000">
         <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px">
-          <b style="font-size:18px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b>
-          <p style="margin:5px 0;font-size:12px">TICKET #PRUEBA</p>
-          <p style="margin:0;font-size:10px">${new Date().toLocaleString('es-AR', { hour12: false })}</p>
+          <b style="font-size:${fs.name}px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b>
+          <p style="margin:5px 0;font-size:${fs.ticket}px">TICKET #PRUEBA</p>
+          <p style="margin:0;font-size:${fs.date}px">${new Date().toLocaleString('es-AR', { hour12: false })}</p>
         </div>
-        <div style="font-size:12px;margin-bottom:10px;border:1px solid #000;padding:8px;border-radius:5px">
-          <p style="margin:2px 0;font-size:14px"><strong>CLIENTE:</strong> CLIENTE DE PRUEBA</p>
+        <div style="font-size:${fs.client}px;margin-bottom:10px;border:1px solid #000;padding:8px;border-radius:5px">
+          <p style="margin:2px 0;font-size:${fs.clientLbl}px"><strong>CLIENTE:</strong> CLIENTE DE PRUEBA</p>
           <p style="margin:2px 0"><strong>ENTREGA:</strong> DELIVERY</p>
           <p style="margin:4px 0"><strong>HORARIO:</strong> LO ANTES POSIBLE</p>
         </div>
         <div style="border-top:1px solid #000;border-bottom:1px solid #000;padding:5px 0;margin-bottom:10px">
-          <div style="margin-bottom:5px;font-size:13px">
+          <div style="margin-bottom:5px;font-size:${fs.items}px">
             <div style="display:flex;justify-content:space-between"><span>1x HAMBURGUESA CLÁSICA</span><span>$8.500</span></div>
           </div>
-          <div style="margin-bottom:5px;font-size:13px">
+          <div style="margin-bottom:5px;font-size:${fs.items}px">
             <div style="display:flex;justify-content:space-between"><span>1x COCA COLA</span><span>$4.500</span></div>
           </div>
         </div>
-        <div style="font-size:13px;line-height:1.6">
+        <div style="font-size:${fs.totals}px;line-height:1.6">
           <div style="display:flex;justify-content:space-between"><span>SUBTOTAL PRODUCTOS:</span><span>$13.000</span></div>
           <div style="display:flex;justify-content:space-between"><span>ENVÍO / DELIVERY:</span><span>+$2.500</span></div>
-          <div style="border-top:2px dashed #000;padding-top:8px;margin-top:5px;font-size:22px;font-weight:bold;display:flex;justify-content:space-between"><span>TOTAL:</span><span>$15.500</span></div>
+          <div style="border-top:2px dashed #000;padding-top:8px;margin-top:5px;font-size:${fs.total}px;font-weight:bold;display:flex;justify-content:space-between"><span>TOTAL:</span><span>$15.500</span></div>
         </div>
-        <p style="text-align:center;font-size:10px;margin-top:25px;border-top:1px solid #eee;padding-top:10px">GRACIAS POR TU COMPRA<br>Snappy Tu Menú Digital</p>
+        <p style="text-align:center;font-size:${fs.footer}px;margin-top:25px;border-top:1px solid #eee;padding-top:10px">GRACIAS POR TU COMPRA<br>Snappy Tu Menú Digital</p>
       </body></html>`;
       await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: html }]);
       toast.success('Ticket de prueba enviado', { position: 'bottom-right' });
