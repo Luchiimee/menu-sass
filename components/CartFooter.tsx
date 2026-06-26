@@ -436,9 +436,9 @@ const handleCallWaiter = async () => {
                                 setShowExitConfirm(true);
                             }
                         }}
-                        className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm animate-in fade-in"
+                        className="absolute top-6 right-6 p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-50 z-[135] shadow-sm animate-in fade-in"
                     >
-                        <X size={20} className="text-gray-400" />
+                        <X size={20} className="text-slate-600" />
                     </button>
 
                     {showExitConfirm && (
