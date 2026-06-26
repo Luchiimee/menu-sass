@@ -382,7 +382,7 @@ const handleCallWaiter = async () => {
             pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
             recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido recibido' },
             en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Preparando tu pedido' },
-            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: 'En camino 🛵' },
+            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: metodoEnvio === 'retiro' ? 'Listo para retirar 🏪' : 'En camino 🛵' },
             entregado:  { cls: 'bg-blue-100 text-blue-700',     label: 'Entregado ✅' },
             completado: { cls: 'bg-green-100 text-green-700',   label: 'Completado' },
         } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
@@ -647,21 +647,20 @@ const handleCallWaiter = async () => {
 ) : (
                                 // --- BOTONES SOLO PARA ENVÍO/RETIRO ---
                                 <>
-                                    {trackingActiveStep === 4 ? (
+                                    {trackingActiveStep === 4 && (
                                         <button
                                             onClick={() => { clearCart(); setActiveOrderId(null); }}
                                             className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest animate-in fade-in"
                                         >
                                             Finalizar
                                         </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
-                                            className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
-                                        >
-                                            <MessageSquare size={18} /> Consultar por WhatsApp
-                                        </button>
                                     )}
+                                    <button
+                                        onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                                        className="w-full bg-white border-2 border-green-700 text-green-700 py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                    >
+                                        <MessageSquare size={18} /> Consultar por WhatsApp
+                                    </button>
                                 </>
                             )}
                         </div>
