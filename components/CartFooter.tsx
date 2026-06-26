@@ -60,6 +60,7 @@ export default function CartFooter({
     useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
     const [initializing, setInitializing] = useState(true);
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
     // Reemplazá el estado de entregaTipo por este:
 const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'programada' : 'inmediata');
     const [selectedSlot, setSelectedSlot] = useState('');
@@ -426,22 +427,43 @@ const handleCallWaiter = async () => {
             )}
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
                 <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
-         { (metodoEnvio !== 'mesa' || ['completado', 'cancelado'].includes(orderStatus)) && (
-    <button 
-        onClick={() => {
-            if (orderStatus === 'completado') {
-                handleFinalizarTodo(); // 👈 Si ya pagó, limpia y refresca al cerrar
-            } else {
-                clearCart(); 
-                setActiveOrderId(null); 
-                localStorage.removeItem("activeOrderId");
-            }
-        }} 
-        className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm animate-in fade-in"
-    >
-        <X size={20} className="text-gray-400" />
-    </button>
-)}
+                    <button
+                        onClick={() => {
+                            if (orderStatus === 'entregado' || orderStatus === 'completado') {
+                                if (orderStatus === 'completado') { handleFinalizarTodo(); }
+                                else { clearCart(); setActiveOrderId(null); localStorage.removeItem("activeOrderId"); }
+                            } else {
+                                setShowExitConfirm(true);
+                            }
+                        }}
+                        className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full hover:bg-gray-100 z-[130] shadow-sm animate-in fade-in"
+                    >
+                        <X size={20} className="text-gray-400" />
+                    </button>
+
+                    {showExitConfirm && (
+                        <div className="absolute inset-0 z-[140] bg-black/50 flex items-center justify-center p-6">
+                            <div className="bg-white rounded-[24px] p-6 shadow-2xl w-full max-w-sm animate-in zoom-in duration-200">
+                                <p className="text-sm font-black text-gray-800 text-center mb-6 leading-snug">
+                                    ¿Seguro que querés salir? Perderás el seguimiento de tu pedido.
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={() => setShowExitConfirm(false)}
+                                        className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest"
+                                    >
+                                        Quedarme
+                                    </button>
+                                    <button
+                                        onClick={() => { clearCart(); setActiveOrderId(null); localStorage.removeItem("activeOrderId"); }}
+                                        className="w-full bg-gray-100 text-gray-600 py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest"
+                                    >
+                                        Salir igual
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
