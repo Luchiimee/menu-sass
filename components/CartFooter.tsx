@@ -539,6 +539,34 @@ const handleCallWaiter = async () => {
                                     })}
                                 </div>
 
+                                {/* Card de transferencia */}
+                                {metodoPago === 'transferencia' && !['cancelado', 'completado'].includes(orderStatus) && (
+                                    <div className="bg-purple-50 border border-purple-200 rounded-[16px] p-4 mb-4">
+                                        <p className="text-purple-700 font-black text-[13px] mb-3">Pago por transferencia</p>
+                                        <div
+                                            onClick={handleCopyAlias}
+                                            className={`flex justify-between items-center cursor-pointer p-3 rounded-[12px] transition-all border-2 ${copied ? 'bg-green-600 border-green-600' : 'bg-blue-50 border-blue-200 active:scale-95'}`}
+                                        >
+                                            <div className={copied ? 'text-white' : 'text-blue-900'}>
+                                                <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
+                                                    {copied ? '¡COPIADO!' : 'TOCÁ PARA COPIAR ALIAS'}
+                                                </p>
+                                                <p className="text-sm font-black">{aliasMp}</p>
+                                            </div>
+                                            {copied ? <Check size={18} className="text-white shrink-0" /> : <Copy size={18} className="text-blue-400 shrink-0" />}
+                                        </div>
+                                        <p className="text-[11px] text-purple-600 text-center mt-2 leading-snug">
+                                            Envianos el comprobante por WhatsApp o esperá a que confirmemos el ingreso manualmente.
+                                        </p>
+                                        <button
+                                            onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                                            className="w-full bg-green-600 text-white rounded-[12px] py-2 text-[12px] font-black mt-3 flex items-center justify-center gap-2"
+                                        >
+                                            <MessageSquare size={14} /> Enviar comprobante por WhatsApp
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Separador + Resumen del pedido */}
                                 <div className="border-t border-slate-100 my-3" />
                                 <div className="space-y-2">
