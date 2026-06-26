@@ -386,6 +386,7 @@ const handleCallWaiter = async () => {
             en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: metodoEnvio === 'retiro' ? 'Listo para retirar 🏪' : 'En camino 🛵' },
             entregado:  { cls: 'bg-blue-100 text-blue-700',     label: 'Entregado ✅' },
             completado: { cls: 'bg-green-100 text-green-700',   label: 'Completado' },
+            cancelado:  { cls: 'bg-red-100 text-red-700',       label: 'Pedido cancelado ❌' },
         } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
 
         const trackingSteps: { label: string; icon: any }[] = metodoEnvio === 'delivery'
@@ -406,6 +407,7 @@ const handleCallWaiter = async () => {
             en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: '¡Tu plato está listo! Enseguida lo llevamos a tu mesa 🍽️' },
             entregado:  { cls: 'bg-green-100 text-green-700',   label: 'Entregado en mesa' },
             completado: { cls: 'bg-green-100 text-green-700',   label: 'Gracias por tu visita' },
+            cancelado:  { cls: 'bg-red-100 text-red-700',       label: 'Pedido cancelado ❌' },
         } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
 
         const mesaTrackingSteps: { label: string; icon: any }[] = [
@@ -429,7 +431,7 @@ const handleCallWaiter = async () => {
                 <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
                     <button
                         onClick={() => {
-                            if (orderStatus === 'entregado' || orderStatus === 'completado') {
+                            if (orderStatus === 'entregado' || orderStatus === 'completado' || orderStatus === 'cancelado') {
                                 if (orderStatus === 'completado') { handleFinalizarTodo(); }
                                 else { clearCart(); setActiveOrderId(null); localStorage.removeItem("activeOrderId"); }
                             } else {
@@ -497,11 +499,17 @@ const handleCallWaiter = async () => {
                         {!isMesa && (
                             <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
                                 {/* Badge de estado */}
-                                <div className="flex justify-center mb-5">
+                                <div className="flex justify-center mb-3">
                                     <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide ${trackingBadge.cls}`}>
                                         {trackingBadge.label}
                                     </span>
                                 </div>
+
+                                {orderStatus === 'cancelado' && (
+                                    <p className="text-[11px] text-red-500 font-bold text-center mb-5 px-2">
+                                        Si creés que hubo un error, comunicate con el local.
+                                    </p>
+                                )}
 
                                 {/* Tracker horizontal */}
                                 <div className="flex items-start w-full px-1 mb-5">
@@ -558,11 +566,17 @@ const handleCallWaiter = async () => {
                         {isMesa && (
                             <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
                                 {/* Badge de estado */}
-                                <div className="flex justify-center mb-5">
+                                <div className="flex justify-center mb-3">
                                     <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide text-center ${mesaBadge.cls}`}>
                                         {mesaBadge.label}
                                     </span>
                                 </div>
+
+                                {orderStatus === 'cancelado' && (
+                                    <p className="text-[11px] text-red-500 font-bold text-center mb-5 px-2">
+                                        Si creés que hubo un error, comunicate con el local.
+                                    </p>
+                                )}
 
                                 {/* Tracker horizontal 4 pasos */}
                                 <div className="flex items-start w-full px-1 mb-5">
@@ -617,6 +631,16 @@ const handleCallWaiter = async () => {
         <button onClick={handleCallWaiter} className="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
             <Bell size={18} /> Llamar Mozo
         </button>
+
+        {/* WHATSAPP: Visible cuando cancelado */}
+        {orderStatus === 'cancelado' && (
+            <button
+                onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                className="w-full bg-green-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 animate-in zoom-in"
+            >
+                <MessageSquare size={18} /> Consultar por WhatsApp
+            </button>
+        )}
 
         {/* PAGAR CUENTA: Solo cuando entregado o completado y no empezó flujo de pago */}
         {pasoPago === 'inicio' && (orderStatus === 'entregado' || orderStatus === 'completado') && (
@@ -754,7 +778,7 @@ const handleCallWaiter = async () => {
                                     )}
                                     <button
                                         onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
-                                        className="w-full bg-white border-2 border-green-700 text-green-700 py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                        className={`w-full py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 ${orderStatus === 'cancelado' ? 'bg-green-700 text-white' : 'bg-white border-2 border-green-700 text-green-700'}`}
                                     >
                                         <MessageSquare size={18} /> Consultar por WhatsApp
                                     </button>
