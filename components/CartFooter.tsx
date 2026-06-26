@@ -391,6 +391,29 @@ const handleCallWaiter = async () => {
             ? [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Recibido', icon: Check }, { label: 'Preparando', icon: ChefHat }, { label: 'En camino', icon: Bike }, { label: 'Entregado', icon: CheckCircle2 }]
             : [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Recibido', icon: Check }, { label: 'Preparando', icon: ChefHat }, { label: 'Listo', icon: Bell }, { label: 'Retirado', icon: CheckCircle2 }];
 
+        const mesaTrackingStep =
+            orderStatus === 'recibido'   ? 1 :
+            orderStatus === 'en_proceso' ? 2 :
+            orderStatus === 'en_camino'  ? 3 :
+            orderStatus === 'entregado'  ? 3 :
+            orderStatus === 'completado' ? 3 : 0;
+
+        const mesaBadge = ({
+            pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
+            recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido confirmado ✅' },
+            en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Cocinando 🔥' },
+            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: '¡Tu plato está listo! Enseguida lo llevamos a tu mesa 🍽️' },
+            entregado:  { cls: 'bg-green-100 text-green-700',   label: 'Entregado en mesa' },
+            completado: { cls: 'bg-green-100 text-green-700',   label: 'Gracias por tu visita' },
+        } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
+
+        const mesaTrackingSteps: { label: string; icon: any }[] = [
+            { label: 'Pedido', icon: ShoppingBag },
+            { label: 'Confirmado', icon: Check },
+            { label: 'Cocinando', icon: ChefHat },
+            { label: 'Entregado', icon: CheckCircle2 },
+        ];
+
         return (
             <>
             {aviso && (
@@ -508,27 +531,79 @@ const handleCallWaiter = async () => {
                                 </div>
                             </div>
                         )}
+
+                        {/* TRACKER VISUAL + RESUMEN (solo mesa) */}
+                        {isMesa && (
+                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
+                                {/* Badge de estado */}
+                                <div className="flex justify-center mb-5">
+                                    <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide text-center ${mesaBadge.cls}`}>
+                                        {mesaBadge.label}
+                                    </span>
+                                </div>
+
+                                {/* Tracker horizontal 4 pasos */}
+                                <div className="flex items-start w-full px-1 mb-5">
+                                    {mesaTrackingSteps.flatMap((step, i) => {
+                                        const isCompleted = i < mesaTrackingStep;
+                                        const isActive    = i === mesaTrackingStep;
+                                        const Icon = step.icon;
+                                        const items: React.ReactNode[] = [
+                                            <div key={`mstep-${i}`} className="flex flex-col items-center">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompleted || isActive ? 'bg-green-600' : 'bg-slate-100'}`}>
+                                                    {isCompleted
+                                                        ? <Check size={14} className="text-white" />
+                                                        : <Icon size={14} className={isActive ? 'text-white' : 'text-slate-300'} />
+                                                    }
+                                                </div>
+                                                <span className={`text-[9px] font-bold mt-1 text-center leading-tight max-w-[44px] ${i > mesaTrackingStep ? 'text-slate-300' : 'text-gray-600'}`}>
+                                                    {step.label}
+                                                </span>
+                                            </div>
+                                        ];
+                                        if (i < mesaTrackingSteps.length - 1) {
+                                            items.push(
+                                                <div key={`mline-${i}`} className={`flex-1 h-0.5 mt-[18px] ${isCompleted ? 'bg-green-600' : 'bg-slate-200'}`} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </div>
+
+                                {/* Separador + Resumen del pedido */}
+                                <div className="border-t border-slate-100 my-3" />
+                                <div className="space-y-2">
+                                    {cart.map((item: any) => (
+                                        <div key={item.uniqueId} className="flex justify-between text-[13px] text-slate-600">
+                                            <span>{item.quantity}x {item.name}</span>
+                                            <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
+                                        <span>Total</span>
+                                        <span className="text-green-700">{formatPrice(trackingTotal)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
                     {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
                     <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
-        {/* PASO 1: BOTONES INICIALES (Solo si no empezó el pago) */}
-        {pasoPago === 'inicio' && (
-            <>
-                <button onClick={handleCallWaiter} className="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
-                    <Bell size={18} /> Llamar Mozo
-                </button>
-                
-                {(orderStatus === 'entregado' || orderStatus === 'listo') && (
-                    <button
-                        onClick={() => setPasoPago('seleccion')}
-                        className="w-full bg-green-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
-                    >
-                        <Wallet size={18} /> Pagar Cuenta
-                    </button>
-                )}
-            </>
+        {/* LLAMAR MOZO: Siempre visible */}
+        <button onClick={handleCallWaiter} className="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+            <Bell size={18} /> Llamar Mozo
+        </button>
+
+        {/* PAGAR CUENTA: Solo cuando entregado o completado y no empezó flujo de pago */}
+        {pasoPago === 'inicio' && (orderStatus === 'entregado' || orderStatus === 'completado') && (
+            <button
+                onClick={() => setPasoPago('seleccion')}
+                className="w-full bg-green-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 animate-in zoom-in"
+            >
+                <Wallet size={18} /> Pagar Cuenta
+            </button>
         )}
 
         {/* PASO 2: SELECCIÓN DE MÉTODO */}
