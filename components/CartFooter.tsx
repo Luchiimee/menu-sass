@@ -375,7 +375,7 @@ const handleCallWaiter = async () => {
             orderStatus === 'recibido'   ? 1 :
             orderStatus === 'en_proceso' ? 2 :
             orderStatus === 'en_camino'  ? 3 :
-            orderStatus === 'entregado'  ? 3 :
+            orderStatus === 'entregado'  ? 4 :
             orderStatus === 'completado' ? 4 : 0;
 
         const trackingBadge = ({
@@ -647,7 +647,7 @@ const handleCallWaiter = async () => {
 ) : (
                                 // --- BOTONES SOLO PARA ENVÍO/RETIRO ---
                                 <>
-                                    {(orderStatus === 'entregado' || orderStatus === 'completado') ? (
+                                    {trackingActiveStep === 4 ? (
                                         <button
                                             onClick={() => { clearCart(); setActiveOrderId(null); }}
                                             className="w-full bg-green-700 text-white py-4 rounded-[18px] font-black uppercase text-[10px] tracking-widest animate-in fade-in"
