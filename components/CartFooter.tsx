@@ -57,6 +57,7 @@ export default function CartFooter({
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+    const [initializing, setInitializing] = useState(true);
     // Reemplazá el estado de entregaTipo por este:
 const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'programada' : 'inmediata');
     const [selectedSlot, setSelectedSlot] = useState('');
@@ -157,6 +158,7 @@ const handleNotificarPagoMesa = async (metodo: string) => {
                 setActiveOrderId(null);
             }
         }
+        setInitializing(false);
     }, [tableIdFromQR, activeOrderId]);
 
     // --- 5. LÓGICA DE CUPONES ---
@@ -327,6 +329,8 @@ useEffect(() => {
             return () => clearTimeout(timer);
         }
     }, [metodoEnvio, restaurantId]);
+if (initializing) return null;
+
 if (activeOrderId && !isVisible) {
     if (planType === 'go' || planType === 'plus' || planType === 'max') {
         const isMesa = metodoEnvio === 'mesa';
