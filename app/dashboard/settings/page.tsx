@@ -48,6 +48,7 @@ function SettingsContent() {
   const [thermalEnabled, setThermalEnabled] = useState(false);
   const [savingPrinter, setSavingPrinter] = useState(false);
   const [testPrinting, setTestPrinting] = useState(false);
+  const [thermalPaperWidth, setThermalPaperWidth] = useState('80mm');
 
  useEffect(() => {
     let mounted = true;
@@ -71,6 +72,7 @@ function SettingsContent() {
                 setRestaurant({ ...restData, business_hours: restData.business_hours || {} });
                 setThermalEnabled(!!restData.thermal_printing_enabled);
                 setSelectedPrinter(restData.thermal_printer_name ?? '');
+                setThermalPaperWidth(localStorage.getItem('thermal_paper_width') || '80mm');
             }
         } catch (error) { 
             console.error("Error:", error); 
@@ -797,22 +799,41 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   </div>
 
                   {qzStatus === 'connected' && thermalEnabled && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Impresora para comandas
-                      </label>
-                      <select
-                        value={selectedPrinter}
-                        onChange={e => setSelectedPrinter(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
-                      >
-                        {availablePrinters.length === 0 && (
-                          <option value="">Sin impresoras detectadas</option>
-                        )}
-                        {availablePrinters.map(p => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          Impresora para comandas
+                        </label>
+                        <select
+                          value={selectedPrinter}
+                          onChange={e => setSelectedPrinter(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
+                        >
+                          {availablePrinters.length === 0 && (
+                            <option value="">Sin impresoras detectadas</option>
+                          )}
+                          {availablePrinters.map(p => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          Ancho del papel
+                        </label>
+                        <select
+                          value={thermalPaperWidth}
+                          onChange={e => {
+                            setThermalPaperWidth(e.target.value);
+                            localStorage.setItem('thermal_paper_width', e.target.value);
+                          }}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
+                        >
+                          <option value="58mm">58mm (papel angosto)</option>
+                          <option value="80mm">80mm (papel estándar)</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 
