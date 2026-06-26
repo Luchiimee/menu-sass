@@ -342,16 +342,36 @@ const handleCancelSubscription = async () => {
     if (!qz || qzStatus !== 'connected' || !selectedPrinter) return;
     setTestPrinting(true);
     try {
-      const cfg = qz.configs.create(selectedPrinter, { size: { width: 72, height: null }, units: 'mm' });
-      const html = `<html><body style="font-family:monospace;width:72mm;padding:8px;margin:0">
-        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px">
-          <b style="font-size:16px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b><br>
-          <span style="font-size:12px">TEST DE IMPRESIÓN</span>
+      const paperWidthMm = thermalPaperWidth === '58mm' ? 58 : 80;
+      const bodyWidth    = thermalPaperWidth === '58mm' ? 160 : 280;
+      const cfg = qz.configs.create(selectedPrinter, { size: { width: paperWidthMm, height: null }, units: 'mm' });
+      const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;padding:10px;margin:0 auto;color:#000">
+        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px">
+          <b style="font-size:18px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b>
+          <p style="margin:5px 0;font-size:12px">TICKET #PRUEBA</p>
+          <p style="margin:0;font-size:10px">${new Date().toLocaleString('es-AR', { hour12: false })}</p>
         </div>
-        <p style="text-align:center;font-size:11px">✓ La impresora térmica está<br>correctamente configurada</p>
-        <p style="text-align:center;font-size:10px;color:#666">${new Date().toLocaleString('es-AR')}</p>
+        <div style="font-size:12px;margin-bottom:10px;border:1px solid #000;padding:8px;border-radius:5px">
+          <p style="margin:2px 0;font-size:14px"><strong>CLIENTE:</strong> CLIENTE DE PRUEBA</p>
+          <p style="margin:2px 0"><strong>ENTREGA:</strong> DELIVERY</p>
+          <p style="margin:4px 0"><strong>HORARIO:</strong> LO ANTES POSIBLE</p>
+        </div>
+        <div style="border-top:1px solid #000;border-bottom:1px solid #000;padding:5px 0;margin-bottom:10px">
+          <div style="margin-bottom:5px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span>1x HAMBURGUESA CLÁSICA</span><span>$8.500</span></div>
+          </div>
+          <div style="margin-bottom:5px;font-size:13px">
+            <div style="display:flex;justify-content:space-between"><span>1x COCA COLA</span><span>$4.500</span></div>
+          </div>
+        </div>
+        <div style="font-size:13px;line-height:1.6">
+          <div style="display:flex;justify-content:space-between"><span>SUBTOTAL PRODUCTOS:</span><span>$13.000</span></div>
+          <div style="display:flex;justify-content:space-between"><span>ENVÍO / DELIVERY:</span><span>+$2.500</span></div>
+          <div style="border-top:2px dashed #000;padding-top:8px;margin-top:5px;font-size:22px;font-weight:bold;display:flex;justify-content:space-between"><span>TOTAL:</span><span>$15.500</span></div>
+        </div>
+        <p style="text-align:center;font-size:10px;margin-top:25px;border-top:1px solid #eee;padding-top:10px">GRACIAS POR TU COMPRA<br>Snappy Tu Menú Digital</p>
       </body></html>`;
-      await qz.print(cfg, [{ type: 'html', data: html }]);
+      await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: html }]);
       toast.success('Ticket de prueba enviado', { position: 'bottom-right' });
     } catch (err: any) {
       toast.error('Error al imprimir: ' + err.message);
