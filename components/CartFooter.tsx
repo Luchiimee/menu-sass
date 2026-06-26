@@ -478,7 +478,7 @@ const handleCallWaiter = async () => {
                         <img
                           src={metodoEnvio === 'delivery' ? '/delivery-hero.png' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
                           alt=""
-                          className="w-[180px] h-[180px] object-contain mx-auto mb-4"
+                          className="w-[220px] h-[220px] object-contain mx-auto mb-4"
                         />
 
                         {/* OrderTracker oculto — mantiene canal Supabase Realtime activo */}
