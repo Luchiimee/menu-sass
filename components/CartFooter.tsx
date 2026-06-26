@@ -329,7 +329,7 @@ useEffect(() => {
             return () => clearTimeout(timer);
         }
     }, [metodoEnvio, restaurantId]);
-if (initializing) return null;
+if (initializing) return <div className="hidden" />;
 
 if (activeOrderId && !isVisible) {
     if (planType === 'go' || planType === 'plus' || planType === 'max') {
