@@ -372,18 +372,24 @@ const handleCallWaiter = async () => {
         const trackingTotal = trackingSubtotal + trackingEnvio;
 
         const trackingActiveStep =
-            orderStatus === 'en_proceso' ? 1 :
-            orderStatus === 'entregado'  ? 2 :
-            orderStatus === 'completado' ? 3 : 0;
+            orderStatus === 'recibido'   ? 1 :
+            orderStatus === 'en_proceso' ? 2 :
+            orderStatus === 'en_camino'  ? 3 :
+            orderStatus === 'entregado'  ? 3 :
+            orderStatus === 'completado' ? 4 : 0;
 
-        const trackingBadge = orderStatus === 'entregado'
-            ? { cls: 'bg-blue-100 text-blue-700', label: metodoEnvio === 'delivery' ? 'En camino' : 'Listo para retirar' }
-            : ({ pendiente: { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' }, en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Preparando tu pedido' }, completado: { cls: 'bg-green-100 text-green-700', label: 'Entregado' } } as any)[orderStatus]
-            ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
+        const trackingBadge = ({
+            pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
+            recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido recibido' },
+            en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Preparando tu pedido' },
+            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: 'En camino 🛵' },
+            entregado:  { cls: 'bg-blue-100 text-blue-700',     label: 'Entregado ✅' },
+            completado: { cls: 'bg-green-100 text-green-700',   label: 'Completado' },
+        } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
 
         const trackingSteps: { label: string; icon: any }[] = metodoEnvio === 'delivery'
-            ? [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Preparando', icon: ChefHat }, { label: 'En camino', icon: Bike }, { label: 'Entregado', icon: CheckCircle2 }]
-            : [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Preparando', icon: ChefHat }, { label: 'Listo', icon: Bell }, { label: 'Retirado', icon: CheckCircle2 }];
+            ? [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Recibido', icon: Check }, { label: 'Preparando', icon: ChefHat }, { label: 'En camino', icon: Bike }, { label: 'Entregado', icon: CheckCircle2 }]
+            : [{ label: 'Pedido', icon: ShoppingBag }, { label: 'Recibido', icon: Check }, { label: 'Preparando', icon: ChefHat }, { label: 'Listo', icon: Bell }, { label: 'Retirado', icon: CheckCircle2 }];
 
         return (
             <>
