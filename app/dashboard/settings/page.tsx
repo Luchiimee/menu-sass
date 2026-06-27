@@ -365,7 +365,7 @@ const handleCancelSubscription = async () => {
         total:    narrow ? 15 : 22,
         footer:   narrow ?  8 : 10,
       };
-      const cfg = qz.configs.create(selectedPrinter, { size: { width: paperWidthMm, height: null }, units: 'mm' });
+      const cfg = qz.configs.create(selectedPrinter, { scaleContent: false, size: { width: paperWidthMm, height: null }, units: 'mm' });
       const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;max-width:300px;padding:10px;margin:0 auto;color:#000">
         <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px">
           <b style="font-size:${fs.name}px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b>
