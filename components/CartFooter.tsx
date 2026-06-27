@@ -470,7 +470,7 @@ const handleCallWaiter = async () => {
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
                         {isMesa && (
-                            <div className="bg-indigo-600 text-white rounded-3xl p-5 mb-6 text-left shadow-lg animate-in zoom-in">
+                            <div className="bg-indigo-600 text-white rounded-3xl p-5 m6 text-left shadow-lg animate-in zoom-in">
                                 <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">{displayTableLabel(nroMesa)}</p>
                                 <h4 className="text-base font-black leading-tight">{tableStatusText[orderStatus] || 'Procesando...'}</h4>
                             </div>
@@ -480,7 +480,13 @@ const handleCallWaiter = async () => {
                         <img
                           src={metodoEnvio === 'delivery' ? '/delivery-hero.png' : metodoEnvio === 'retiro' ? '/retiro-hero.png' : '/mesa-hero.png'}
                           alt=""
-                          className="w-[220px] h-[220px] object-contain mx-auto mb-4"
+                          className={`-mt-30 mb-8 w-[calc(100%+3rem)] ${
+                            metodoEnvio === 'retiro'
+                              ? 'h-[310px] object-cover object-center'
+                              : metodoEnvio === 'delivery'
+                              ? 'h-[320px] object-contain object-center'
+                              : 'h-[320px] object-contain object-bottom'
+                          }`}
                         />
 
                         {/* OrderTracker oculto — mantiene canal Supabase Realtime activo */}
@@ -497,7 +503,7 @@ const handleCallWaiter = async () => {
 
                         {/* TRACKER VISUAL + RESUMEN (solo delivery/retiro) */}
                         {!isMesa && (
-                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
+                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4" style={{ marginTop: '-5rem', position: 'relative', zIndex: 10 }}>
                                 {/* Badge de estado */}
                                 <div className="flex justify-center mb-3">
                                     <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide ${trackingBadge.cls}`}>
@@ -592,7 +598,7 @@ const handleCallWaiter = async () => {
 
                         {/* TRACKER VISUAL + RESUMEN (solo mesa) */}
                         {isMesa && (
-                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4">
+                            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 mb-4" style={{ marginTop: '-5rem', position: 'relative', zIndex: 10 }}>
                                 {/* Badge de estado */}
                                 <div className="flex justify-center mb-3">
                                     <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide text-center ${mesaBadge.cls}`}>
