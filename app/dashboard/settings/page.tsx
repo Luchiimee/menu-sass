@@ -871,9 +871,9 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                           }}
                           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-gray-900 transition-all"
                         >
-                          <option value="48mm">48mm (papel muy angosto)</option>
-                          <option value="58mm">58mm (papel angosto)</option>
-                          <option value="80mm">80mm (papel estándar)</option>
+                          <option value="48mm">48mm (impresora de hoja normal)</option>
+                          <option value="58mm">58mm (térmica estándar)</option>
+                          <option value="80mm">80mm (térmica grande)</option>
                         </select>
                       </div>
                     </div>
