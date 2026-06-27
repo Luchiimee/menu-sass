@@ -906,29 +906,34 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Configuración inicial (una sola vez por computadora)
                   </p>
-                  <ol className="space-y-2 text-xs text-gray-500 font-medium">
-                    <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">1.</span>Instalá QZ Tray y dejalo corriendo en la computadora del mostrador</li>
-                    <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">2.</span>Descargá el certificado de Snappy y agregalo en QZ Tray → Site Manager → snappy.uno</li>
-                    <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">3.</span>Aceptá la conexión segura que pide el browser la primera vez</li>
-                  </ol>
-                  <a
-                    href="/qz-certificate.pem"
-                    download="snappy-qz-certificate.pem"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-100 transition-all"
-                  >
-                    <Download size={13} /> Descargar certificado
-                  </a>
+                  <div className="flex flex-col md:flex-row gap-6 items-start">
+                    {/* Columna izquierda: pasos + botón */}
+                    <div className="flex-1 space-y-3">
+                      <ol className="space-y-2 text-xs text-gray-500 font-medium">
+                        <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">1.</span>Instalá QZ Tray y dejalo corriendo en la computadora del mostrador</li>
+                        <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">2.</span>Descargá el certificado de Snappy y agregalo en QZ Tray → Site Manager → snappy.uno</li>
+                        <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">3.</span>Aceptá la conexión segura que pide el browser la primera vez</li>
+                      </ol>
+                      <a
+                        href="/qz-certificate.pem"
+                        download="snappy-qz-certificate.pem"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-100 transition-all"
+                      >
+                        <Download size={13} /> Descargar certificado
+                      </a>
+                    </div>
 
-                  <div className="space-y-2 pt-2">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Video tutorial de configuración
-                    </p>
-                    <video
-                      src="/videos/tutorial-impresora.mp4"
-                      controls
-                      style={{ width: '100%' }}
-                      className="rounded-2xl"
-                    />
+                    {/* Columna derecha: video */}
+                    <div className="w-full md:w-1/2 space-y-2">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Video tutorial de configuración
+                      </p>
+                      <video
+                        src="/videos/tutorial-impresora.mp4"
+                        controls
+                        className="w-full rounded-2xl"
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
