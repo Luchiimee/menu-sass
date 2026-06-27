@@ -784,39 +784,56 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   </div>
                 </div>
 
-                {/* Estado de conexión */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-3">
-                    {qzStatus === 'connecting' && <Loader2 size={18} className="text-gray-400 animate-spin" />}
-                    {qzStatus === 'connected'  && <Wifi size={18} className="text-emerald-500" />}
-                    {(qzStatus === 'error' || qzStatus === 'idle') && <WifiOff size={18} className="text-gray-400" />}
-                    <div>
-                      <p className="text-sm font-black text-gray-900">
-                        {qzStatus === 'connecting' ? 'Conectando...' :
-                         qzStatus === 'connected'  ? 'QZ Tray activo' :
-                         qzStatus === 'error'      ? 'QZ Tray no detectado' :
-                         'Sin escanear'}
-                      </p>
-                      {qzStatus !== 'connected' && (
-                        <a
-                          href="https://qz.io/download/"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[10px] text-blue-500 font-bold underline underline-offset-2"
-                        >
-                          Descargar QZ Tray ↗
-                        </a>
-                      )}
+                {/* Estado de conexión + video tutorial */}
+                <div className="flex flex-col md:flex-row gap-4 items-start">
+                  {/* Columna izquierda: estado de conexión */}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        {qzStatus === 'connecting' && <Loader2 size={18} className="text-gray-400 animate-spin" />}
+                        {qzStatus === 'connected'  && <Wifi size={18} className="text-emerald-500" />}
+                        {(qzStatus === 'error' || qzStatus === 'idle') && <WifiOff size={18} className="text-gray-400" />}
+                        <div>
+                          <p className="text-sm font-black text-gray-900">
+                            {qzStatus === 'connecting' ? 'Conectando...' :
+                             qzStatus === 'connected'  ? 'QZ Tray activo' :
+                             qzStatus === 'error'      ? 'QZ Tray no detectado' :
+                             'Sin escanear'}
+                          </p>
+                          {qzStatus !== 'connected' && (
+                            <a
+                              href="https://qz.io/download/"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[10px] text-blue-500 font-bold underline underline-offset-2"
+                            >
+                              Descargar QZ Tray ↗
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={connectQZ}
+                        disabled={qzStatus === 'connecting'}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
+                      >
+                        <RefreshCw size={12} className={qzStatus === 'connecting' ? 'animate-spin' : ''} />
+                        {qzStatus === 'connected' ? 'Reescanear' : 'Conectar'}
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={connectQZ}
-                    disabled={qzStatus === 'connecting'}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
-                  >
-                    <RefreshCw size={12} className={qzStatus === 'connecting' ? 'animate-spin' : ''} />
-                    {qzStatus === 'connected' ? 'Reescanear' : 'Conectar'}
-                  </button>
+
+                  {/* Columna derecha: video tutorial (preview) */}
+                  <div className="w-full md:w-2/5 space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Video tutorial de configuración
+                    </p>
+                    <video
+                      src="/videos/tutorial-impresora.mp4"
+                      controls
+                      className="w-full rounded-2xl"
+                    />
+                  </div>
                 </div>
 
                 {/* Toggle + selector */}
@@ -906,35 +923,18 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Configuración inicial (una sola vez por computadora)
                   </p>
-                  <div className="flex flex-col md:flex-row gap-6 items-start">
-                    {/* Columna izquierda: pasos + botón */}
-                    <div className="flex-1 space-y-3">
-                      <ol className="space-y-2 text-xs text-gray-500 font-medium">
-                        <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">1.</span>Instalá QZ Tray y dejalo corriendo en la computadora del mostrador</li>
-                        <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">2.</span>Descargá el certificado de Snappy y agregalo en QZ Tray → Site Manager → snappy.uno</li>
-                        <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">3.</span>Aceptá la conexión segura que pide el browser la primera vez</li>
-                      </ol>
-                      <a
-                        href="/qz-certificate.pem"
-                        download="snappy-qz-certificate.pem"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-100 transition-all"
-                      >
-                        <Download size={13} /> Descargar certificado
-                      </a>
-                    </div>
-
-                    {/* Columna derecha: video */}
-                    <div className="w-full md:w-1/2 space-y-2">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Video tutorial de configuración
-                      </p>
-                      <video
-                        src="/videos/tutorial-impresora.mp4"
-                        controls
-                        className="w-full rounded-2xl"
-                      />
-                    </div>
-                  </div>
+                  <ol className="space-y-2 text-xs text-gray-500 font-medium">
+                    <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">1.</span>Instalá QZ Tray y dejalo corriendo en la computadora del mostrador</li>
+                    <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">2.</span>Descargá el certificado de Snappy y agregalo en QZ Tray → Site Manager → snappy.uno</li>
+                    <li className="flex gap-2"><span className="font-black text-gray-400 shrink-0">3.</span>Aceptá la conexión segura que pide el browser la primera vez</li>
+                  </ol>
+                  <a
+                    href="/qz-certificate.pem"
+                    download="snappy-qz-certificate.pem"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-100 transition-all"
+                  >
+                    <Download size={13} /> Descargar certificado
+                  </a>
                 </div>
               </section>
             )}
