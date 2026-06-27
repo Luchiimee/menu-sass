@@ -366,7 +366,7 @@ const handleCancelSubscription = async () => {
         footer:   narrow ?  8 : 10,
       };
       const cfg = qz.configs.create(selectedPrinter, { scaleContent: false, size: { width: paperWidthMm, height: null }, units: 'mm' });
-      const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;max-width:300px;padding:10px;margin:0 auto;color:#000">
+      const html = `<html><body style="font-family:monospace;width:${bodyWidth}px;max-width:300px;padding:10px;margin:0 auto;color:#000${narrow ? ';text-align:center' : ''}">
         <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px">
           <b style="font-size:${fs.name}px">${restaurant.name?.toUpperCase() ?? 'SNAPPY'}</b>
           <p style="margin:5px 0;font-size:${fs.ticket}px">TICKET #PRUEBA</p>
@@ -918,6 +918,18 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   >
                     <Download size={13} /> Descargar certificado
                   </a>
+
+                  <div className="space-y-2 pt-2">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Video tutorial de configuración
+                    </p>
+                    <video
+                      src="/videos/tutorial-impresora.mp4"
+                      controls
+                      style={{ width: '100%' }}
+                      className="rounded-2xl"
+                    />
+                  </div>
                 </div>
               </section>
             )}
