@@ -785,55 +785,49 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                 </div>
 
                 {/* Estado de conexión + video tutorial */}
-                <div className="flex flex-col md:flex-row gap-4 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                   {/* Columna izquierda: estado de conexión */}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="flex items-center gap-3">
-                        {qzStatus === 'connecting' && <Loader2 size={18} className="text-gray-400 animate-spin" />}
-                        {qzStatus === 'connected'  && <Wifi size={18} className="text-emerald-500" />}
-                        {(qzStatus === 'error' || qzStatus === 'idle') && <WifiOff size={18} className="text-gray-400" />}
-                        <div>
-                          <p className="text-sm font-black text-gray-900">
-                            {qzStatus === 'connecting' ? 'Conectando...' :
-                             qzStatus === 'connected'  ? 'QZ Tray activo' :
-                             qzStatus === 'error'      ? 'QZ Tray no detectado' :
-                             'Sin escanear'}
-                          </p>
-                          {qzStatus !== 'connected' && (
-                            <a
-                              href="https://qz.io/download/"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[10px] text-blue-500 font-bold underline underline-offset-2"
-                            >
-                              Descargar QZ Tray ↗
-                            </a>
-                          )}
-                        </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 h-full">
+                    <div className="flex items-center gap-3">
+                      {qzStatus === 'connecting' && <Loader2 size={18} className="text-gray-400 animate-spin" />}
+                      {qzStatus === 'connected'  && <Wifi size={18} className="text-emerald-500" />}
+                      {(qzStatus === 'error' || qzStatus === 'idle') && <WifiOff size={18} className="text-gray-400" />}
+                      <div>
+                        <p className="text-sm font-black text-gray-900">
+                          {qzStatus === 'connecting' ? 'Conectando...' :
+                           qzStatus === 'connected'  ? 'QZ Tray activo' :
+                           qzStatus === 'error'      ? 'QZ Tray no detectado' :
+                           'Sin escanear'}
+                        </p>
+                        {qzStatus !== 'connected' && (
+                          <a
+                            href="https://qz.io/download/"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] text-blue-500 font-bold underline underline-offset-2"
+                          >
+                            Descargar QZ Tray ↗
+                          </a>
+                        )}
                       </div>
-                      <button
-                        onClick={connectQZ}
-                        disabled={qzStatus === 'connecting'}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
-                      >
-                        <RefreshCw size={12} className={qzStatus === 'connecting' ? 'animate-spin' : ''} />
-                        {qzStatus === 'connected' ? 'Reescanear' : 'Conectar'}
-                      </button>
                     </div>
+                    <button
+                      onClick={connectQZ}
+                      disabled={qzStatus === 'connecting'}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
+                    >
+                      <RefreshCw size={12} className={qzStatus === 'connecting' ? 'animate-spin' : ''} />
+                      {qzStatus === 'connected' ? 'Reescanear' : 'Conectar'}
+                    </button>
                   </div>
 
-                  {/* Columna derecha: video tutorial (preview) */}
-                  <div className="w-full md:w-2/5 space-y-1.5">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Video tutorial de configuración
-                    </p>
-                    <video
-                      src="/videos/tutorial-impresora.mp4"
-                      controls
-                      className="w-full rounded-2xl"
-                    />
-                  </div>
+                  {/* Columna derecha: video tutorial */}
+                  <video
+                    src="/videos/tutorial-impresora.mp4"
+                    controls
+                    className="w-full rounded-2xl"
+                    style={{ minWidth: 300 }}
+                  />
                 </div>
 
                 {/* Toggle + selector */}
