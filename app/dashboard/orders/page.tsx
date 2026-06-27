@@ -446,7 +446,7 @@ const loadOrders = async () => {
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
         ]);
       }
-      const cfg = qz.configs.create(thermalPrinterName);
+      const cfg = qz.configs.create(thermalPrinterName, { scaleContent: false, size: { width: 80, height: null }, units: 'mm' });
       await qz.print(cfg, [{ type: 'pixel', format: 'html', flavor: 'plain', data: getTicketHTML(order, paperWidth) }]);
     } catch (err: any) {
       console.error('[handleThermalPrint]', err.message);
