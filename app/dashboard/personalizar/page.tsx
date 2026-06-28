@@ -866,7 +866,7 @@ const confirmReset = () => {
           <div className="flex flex-col xl:flex-row gap-6 pb-24 xl:pb-0 min-w-0">
 
             {/* ── PANEL IZQUIERDO ── */}
-            <div className="flex-1 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4 min-w-0">
+            <div className="flex-[7] min-w-0 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-8 animate-in fade-in slide-in-from-bottom-4">
 
               {/* TAB SWITCHER */}
               <div className="flex bg-gray-100 p-1.5 rounded-[2rem] border border-gray-200 shadow-sm">
@@ -2035,21 +2035,21 @@ const confirmReset = () => {
             </div>
 
         {/* ── PANEL DERECHO: VISTA PREVIA ── */}
-            <div className="hidden xl:flex flex-col flex-1 items-center justify-center gap-4 bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
-              
-              <div className="absolute top-4 text-gray-400 text-xs font-medium flex items-center gap-2 z-20">
+            <div className="hidden xl:flex flex-col flex-[3] items-center justify-center gap-2 bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
+
+              <div className="text-gray-400 text-xs font-medium flex items-center gap-2 z-20">
                 <MonitorSmartphone size={14} /> Vista Previa en Vivo
               </div>
 
               {/* 🚀 NUEVO BOTÓN: Mira cómo lo ven tus clientes (Versión PC) */}
-              <button 
-                onClick={() => setShowMobilePreview(true)} 
-                className="z-20 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 border-2 border-white/10"
+              <button
+                onClick={() => setShowMobilePreview(true)}
+                className="z-20 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 border-2 border-white/10"
               >
                 <Eye size={16} /> Mira cómo lo ven tus clientes
               </button>
 
-              <div className="w-[300px] h-[600px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col transform-gpu mt-20">
+              <div className="w-[300px] h-[600px] bg-white rounded-[40px] border-[8px] border-gray-900 shadow-2xl overflow-hidden relative z-10 flex flex-col transform-gpu">
                 {/* 🚀 ACÁ VA TRUE: para que se vea chiquito en la barra lateral */}
                 <PhoneMockup activeTab={activeTab} data={data} products={products} categories={categories} previewTemplateId={null} isMockup={true} />
               </div>

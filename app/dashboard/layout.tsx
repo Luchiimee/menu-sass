@@ -364,7 +364,7 @@ const menuItems = [
         {renderBanners()}
         
         {/* BLOQUEO GLOBAL SI EL TRIAL EXPIRÓ */}
-        <div className={`${pathname === '/dashboard/orders' ? 'p-2 lg:p-4' : 'p-4 lg:p-10 max-w-7xl mx-auto'} w-full flex-1 relative transition-all duration-700 ${isBlocked ? 'blur-xl pointer-events-none opacity-40 select-none grayscale' : ''}`}>
+        <div className={`${pathname === '/dashboard/orders' ? 'p-2 lg:p-4' : 'p-4 lg:p-10'} w-full flex-1 relative transition-all duration-700 ${isBlocked ? 'blur-xl pointer-events-none opacity-40 select-none grayscale' : ''}`}>
           <Suspense fallback={<div>Cargando...</div>}>
             {children}
           </Suspense>
