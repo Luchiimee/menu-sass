@@ -136,8 +136,20 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
       </div>
 
       {showBanner && (
-        <div className="spot-banner" style={{ backgroundImage: bannerVideo ? 'none' : `url('${getOptimizedImageUrl(bannerImage, 800, 75)}')` }}>
-          {bannerVideo && <video autoPlay loop muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}><source src={bannerVideo} /></video>}
+        <div className="spot-banner" style={{ position: 'relative' }}>
+          {bannerVideo ? (
+            <video autoPlay loop muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
+              <source src={bannerVideo} />
+            </video>
+          ) : (
+            <img
+              src={getOptimizedImageUrl(bannerImage, 800, 75)}
+              alt="banner"
+              fetchPriority="high"
+              loading="eager"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          )}
           <div className="spot-overlay"></div>
           <div className="spot-info relative z-10">
             <div style={{ background: hBadgeBg, color: hBadgeColor }} className="px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block mb-1">{heroBadge}</div>
