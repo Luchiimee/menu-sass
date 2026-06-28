@@ -1,17 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display, Patrick_Hand, Lato } from "next/font/google";
 import "./globals.css";
-import { Toaster } from 'sonner'; 
+import { Toaster } from 'sonner';
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700"], variable: "--font-playfair" });
+const patrickHand = Patrick_Hand({ subsets: ["latin"], weight: ["400"], variable: "--font-patrick" });
+const lato = Lato({ subsets: ["latin"], weight: ["400", "700", "900"], variable: "--font-lato" });
 
 export const metadata: Metadata = {
   title: "Snappy | Tu Menú Digital",
   description: "Tu carta digital inteligente.",
   icons: {
     icon: '/logo-snappy192.svg',
-    apple: '/logo-snappy192.svg', 
+    apple: '/logo-snappy192.svg',
   },
   appleWebApp: {
     capable: true,
@@ -21,13 +24,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  
-  themeColor: "#ffffff", 
+
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover", 
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -36,11 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${inter.variable} ${playfair.variable} ${patrickHand.variable} ${lato.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
         {/* --- FIX ANTIBARRAS iOS (Dentro del Head y corregido) --- */}
         <Script id="ios-pwa-fix" strategy="beforeInteractive">
           {`
@@ -87,7 +87,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <noscript>
-          <img 
+          <img
             height="1" width="1" style={{ display: 'none' }}
             src="https://www.facebook.com/tr?id=1093678972956224&ev=PageView&noscript=1"
           />

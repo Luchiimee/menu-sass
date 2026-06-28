@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-playfair: 'Playfair Display', serif;
+  --font-patrick: 'Patrick Hand', cursive;
+  --font-lato: 'Lato', sans-serif;
+}
+
 /* Estilos extra para que parezca una App nativa */
 body {
   background-color: #f3f4f6; /* Gris muy suave de fondo */
