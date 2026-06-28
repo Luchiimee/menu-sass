@@ -2035,7 +2035,7 @@ const confirmReset = () => {
             </div>
 
         {/* ── PANEL DERECHO: VISTA PREVIA ── */}
-            <div className="hidden xl:flex flex-1 items-center justify-center bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
+            <div className="hidden xl:flex flex-col flex-1 items-center justify-center gap-4 bg-gray-100 rounded-3xl border p-8 relative h-[calc(100vh-40px)] min-h-[680px] sticky top-6">
               
               <div className="absolute top-4 text-gray-400 text-xs font-medium flex items-center gap-2 z-20">
                 <MonitorSmartphone size={14} /> Vista Previa en Vivo
@@ -2044,7 +2044,7 @@ const confirmReset = () => {
               {/* 🚀 NUEVO BOTÓN: Mira cómo lo ven tus clientes (Versión PC) */}
               <button 
                 onClick={() => setShowMobilePreview(true)} 
-                className="absolute top-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 border-2 border-white/10"
+                className="z-20 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 border-2 border-white/10"
               >
                 <Eye size={16} /> Mira cómo lo ven tus clientes
               </button>
