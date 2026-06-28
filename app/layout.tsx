@@ -38,6 +38,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Patrick+Hand&family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
         {/* --- FIX ANTIBARRAS iOS (Dentro del Head y corregido) --- */}
         <Script id="ios-pwa-fix" strategy="beforeInteractive">
           {`

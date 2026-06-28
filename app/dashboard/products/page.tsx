@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { CldUploadWidget } from 'next-cloudinary';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function ProductsPage() {
@@ -232,7 +231,7 @@ const openEditModal = async (product: any) => {
               formDataCloudinary.append('upload_preset', 'snappy_videos');
 
               
-              const cloudName = 'dlm6mc4i2';
+              const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
                   method: 'POST',
                   body: formDataCloudinary
