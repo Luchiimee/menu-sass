@@ -1,6 +1,5 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from '@supabase/ssr';
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -437,11 +436,6 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
 
 export default function LandingPage() {
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   // --- ESTADOS CORREGIDOS (SIN DUPLICADOS) ---
   const [activeTab, setActiveTab] = useState('marketpro'); 
   const [activeRubro, setActiveRubro] = useState('hamburgueseria');
@@ -457,19 +451,18 @@ export default function LandingPage() {
   const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
   const [activeBusinessType, setActiveBusinessType] = useState<'gastronomia' | 'kiosco' | 'dietetica'>('gastronomia');
 
-  // 2. Agregá este useEffect al principio del componente
   useEffect(() => {
-    const checkPWAFlow = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
-
- if (isStandalone) {
-        // Si es la App y no está logueado, al login
+    const isStandalone = (window.navigator as any).standalone
+      || window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      // Verificar sesión via cookie de Supabase sin cargar el SDK
+      const hasSession = document.cookie.includes('sb-')
+        || localStorage.getItem('supabase.auth.token') !== null;
+      if (!hasSession) {
         router.replace('/login');
       }
-    };
-    checkPWAFlow();
-  }, [router, supabase]);
+    }
+  }, [router]);
 
   useEffect(() => {
     setActiveStep(0);
