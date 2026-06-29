@@ -219,12 +219,12 @@ const menuItems = [
       <div className="flex flex-col w-full">
         {/* 1. BANNER DE TELÉFONO (Prioridad Alta) */}
         {missingPhone && (
-          <div className="bg-amber-500 text-white px-4 py-2 flex justify-between items-center text-[10px] sm:text-xs font-black uppercase tracking-widest z-[60] border-b border-black/5">
+          <div className="bg-brasa text-white px-4 py-2 flex justify-between items-center text-[10px] sm:text-xs font-black uppercase tracking-widest z-[60] border-b border-black/5">
             <div className="flex items-center gap-2">
               <Phone size={14} fill="currentColor" />
               <span>Falta tu WhatsApp para enviarte avisos de ventas</span>
             </div>
-            <Link href="/dashboard/plan?requirePhone=true" className="bg-white text-amber-600 px-3 py-1 rounded-lg hover:bg-amber-50 transition shadow-sm">Cargar ahora</Link>
+            <Link href="/dashboard/plan?requirePhone=true" className="bg-white text-brasa px-3 py-1 rounded-lg hover:bg-brasa/10 transition shadow-sm">Cargar ahora</Link>
           </div>
         )}
 
@@ -241,12 +241,12 @@ const menuItems = [
 
         {/* 3. BANNER DE PAGO FALLIDO */}
         {restaurant.status === 'paused' && !isAdmin && (
-          <div className="bg-red-600 text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
+          <div className="bg-alert text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
             <div className="flex items-center gap-2">
               <AlertTriangle size={16}/>
               <span>Tu pago falló y la suscripción está pausada. Actualizá tu tarjeta para continuar.</span>
             </div>
-            <Link href="/dashboard/plan" className="bg-white text-red-600 px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-red-50 transition shadow-sm">Actualizar Tarjeta</Link>
+            <Link href="/dashboard/plan" className="bg-white text-alert px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-alert/10 transition shadow-sm">Actualizar Tarjeta</Link>
           </div>
         )}
       </div>
@@ -273,7 +273,7 @@ const menuItems = [
           {!isCollapsed && (
             <div className="flex flex-col overflow-hidden flex-1 min-w-0">
                 <h2 className="font-bold text-sm leading-tight truncate capitalize text-gray-900">{restaurant.name}</h2>
-                <p className={`text-[9px] font-black uppercase tracking-tighter mt-0.5 ${restaurant.plan === 'plus' ? 'text-emerald-600' : 'text-fresco'}`}>
+                <p className={`text-[9px] font-black uppercase tracking-tighter mt-0.5 ${restaurant.plan === 'plus' ? 'text-fresco' : 'text-fresco'}`}>
                     {restaurant.plan ? `Plan ${restaurant.plan}` : 'Sin Activar'}
                 </p>
             </div>
@@ -327,7 +327,7 @@ const menuItems = [
                   <item.icon size={18} /> 
                   {/* Candado rojo: se muestra si la sección no corresponde al plan o si el trial venció */}
                   {shouldShowLock && (
-                    <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 border-2 border-white shadow-sm z-10">
+                    <div className="absolute -top-1.5 -right-1.5 bg-alert text-white rounded-full p-0.5 border-2 border-white shadow-sm z-10">
                       <Lock size={8} fill="currentColor" />
                     </div>
                   )}
@@ -354,7 +354,7 @@ const menuItems = [
         </a>
 
         <div className="p-4 border-t mt-auto">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 w-full text-red-600 hover:bg-red-50 rounded-lg text-[11px] font-bold">
+          <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 w-full text-alert hover:bg-alert/10 rounded-lg text-[11px] font-bold">
             <LogOut size={18} /> {!isCollapsed && <span>Cerrar Sesión</span>}
           </button>
         </div>
@@ -373,8 +373,8 @@ const menuItems = [
         {/* BLOQUEO GLOBAL */}
         {isBlocked && (
           <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 bg-black/20 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border-2 border-red-100 max-w-sm w-full text-center animate-in zoom-in-95">
-              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <div className="bg-white p-10 rounded-[3.5rem] shadow-2xl border-2 border-alert/10 max-w-sm w-full text-center animate-in zoom-in-95">
+              <div className="w-20 h-20 bg-alert/10 text-alert rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
                 <AlertTriangle size={40} />
               </div>
               <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">
@@ -398,7 +398,7 @@ const menuItems = [
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-[#F0FAF6] max-w-sm w-full text-center animate-in zoom-in-95">
             <button onClick={() => setShowUpgradeModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
-          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm ${isTrialExpired ? 'bg-red-50 text-red-500' : 'bg-[#F0FAF6] text-fresco'}`}>
+          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm ${isTrialExpired ? 'bg-alert/10 text-alert' : 'bg-[#F0FAF6] text-fresco'}`}>
   {isTrialExpired ? <AlertTriangle size={40} /> : <Zap size={40} fill="currentColor" />}
 </div>
             <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Sección Pro</h2>

@@ -246,13 +246,13 @@ export default function RentabilidadPage() {
             <button onClick={() => router.push('/dashboard')} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
               <X size={20} className="text-gray-500" />
             </button>
-            <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-5 text-emerald-600">
+            <div className="mx-auto w-16 h-16 bg-fresco/10 rounded-full flex items-center justify-center mb-5 text-fresco">
               <TrendingUp size={32} />
             </div>
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Rentabilidad</h2>
             <p className="text-gray-500 mb-8 text-sm font-medium">El reporte de rentabilidad por producto es exclusivo del <b>Plan Plus</b>.</p>
             <div className="flex flex-col gap-3">
-              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-fresco transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
                 Actualizar a Plus <Zap size={18} fill="currentColor" />
               </Link>
               <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
@@ -331,11 +331,11 @@ export default function RentabilidadPage() {
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Total vendido en el período</p>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-[#DEDDD3] shadow-sm">
-                <p className="text-xs font-bold text-red-500 uppercase mb-1">Costo total</p>
+                <p className="text-xs font-bold text-alert uppercase mb-1">Costo total</p>
                 <p className="text-4xl font-black text-gray-900">{fp(summary.totalCost)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Solo productos con costo cargado</p>
               </div>
-              <div className={`p-6 rounded-3xl shadow-xl flex flex-col justify-center ${summary.grossProfit >= 0 ? 'bg-emerald-600 shadow-emerald-100' : 'bg-red-500 shadow-red-100'}`}>
+              <div className={`p-6 rounded-3xl shadow-xl flex flex-col justify-center ${summary.grossProfit >= 0 ? 'bg-fresco shadow-fresco/10' : 'bg-alert shadow-alert/10'}`}>
                 <p className="text-xs font-bold text-white/80 uppercase mb-1">Ganancia bruta</p>
                 <p className="text-4xl font-black text-white">{fp(summary.grossProfit)}</p>
                 <p className="text-[10px] text-white/70 mt-2 font-medium">Margen: {pct(summary.grossProfit, summary.totalRevenue)}</p>
@@ -347,7 +347,7 @@ export default function RentabilidadPage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Lo que te queda</p>
-                  <p className={`text-5xl font-black ${netReal >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <p className={`text-5xl font-black ${netReal >= 0 ? 'text-fresco' : 'text-alert'}`}>
                     {fp(netReal)}
                   </p>
                   <p className="text-[10px] text-gray-500 font-medium mt-2 max-w-xs">
@@ -366,21 +366,21 @@ export default function RentabilidadPage() {
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span className="text-gray-400 font-bold uppercase">− Costo productos</span>
-                    <span className="text-red-400 font-black">−{fp(summary.totalCost)}</span>
+                    <span className="text-alert font-black">−{fp(summary.totalCost)}</span>
                   </div>
                   {deliveryCostTotal > 0 && (
                     <div className="flex justify-between text-[11px]">
                       <span className="text-gray-400 font-bold uppercase">− Delivery ({deliveryOrderCount} × {fp(deliveryCost)})</span>
-                      <span className="text-red-400 font-black">−{fp(deliveryCostTotal)}</span>
+                      <span className="text-alert font-black">−{fp(deliveryCostTotal)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-[11px]">
                     <span className="text-gray-400 font-bold uppercase">− Gastos operativos</span>
-                    <span className="text-red-400 font-black">−{fp(totalExpenses)}</span>
+                    <span className="text-alert font-black">−{fp(totalExpenses)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-white/10">
                     <span className="text-white font-black uppercase text-xs tracking-widest">= Neto</span>
-                    <span className={`font-black text-lg ${netReal >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`font-black text-lg ${netReal >= 0 ? 'text-fresco' : 'text-alert'}`}>
                       {fp(netReal)}
                     </span>
                   </div>
@@ -393,7 +393,7 @@ export default function RentabilidadPage() {
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-50 bg-gray-50/30">
                   <h3 className="font-bold text-lg flex items-center gap-2">
-                    <TrendingUp size={20} className="text-emerald-500" /> Por producto
+                    <TrendingUp size={20} className="text-fresco" /> Por producto
                   </h3>
                 </div>
                 <div className="overflow-x-auto">
@@ -417,10 +417,10 @@ export default function RentabilidadPage() {
                             <td className="px-6 py-4"><p className="font-bold text-sm text-gray-900">{p.name}</p></td>
                             <td className="px-6 py-4 text-right text-sm font-bold text-gray-600">{p.qty}</td>
                             <td className="px-6 py-4 text-right font-black text-gray-900 text-sm">{fp(p.revenue)}</td>
-                            <td className="px-6 py-4 text-right text-sm font-bold text-red-500">{fp(p.cost)}</td>
-                            <td className={`px-6 py-4 text-right font-black text-sm ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fp(profit)}</td>
+                            <td className="px-6 py-4 text-right text-sm font-bold text-alert">{fp(p.cost)}</td>
+                            <td className={`px-6 py-4 text-right font-black text-sm ${profit >= 0 ? 'text-fresco' : 'text-alert'}`}>{fp(profit)}</td>
                             <td className="px-6 py-4 text-right">
-                              <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${margin >= 50 ? 'bg-emerald-100 text-emerald-700' : margin >= 25 ? 'bg-[#F5F5EF] text-graphite' : 'bg-red-100 text-red-600'}`}>
+                              <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${margin >= 50 ? 'bg-fresco/10 text-fresco' : margin >= 25 ? 'bg-[#F5F5EF] text-graphite' : 'bg-alert/10 text-alert'}`}>
                                 {Math.round(margin)}%
                               </span>
                             </td>
@@ -442,7 +442,7 @@ export default function RentabilidadPage() {
                     <p className="font-bold text-sm text-gray-700">Sin costo cargado</p>
                     <p className="text-[10px] text-gray-400 font-medium">
                       Vendidos en el período pero sin costo — no impactan la ganancia bruta.{' '}
-                      <button onClick={() => setTab('costos')} className="text-emerald-600 underline font-bold">Cargar costos →</button>
+                      <button onClick={() => setTab('costos')} className="text-fresco underline font-bold">Cargar costos →</button>
                     </p>
                   </div>
                 </div>
@@ -489,12 +489,12 @@ export default function RentabilidadPage() {
         {tab === 'costos' && (
           <div className="space-y-4">
             {/* Banner de estado */}
-            <div className={`rounded-3xl p-5 flex items-center gap-4 ${missingCostCount === 0 ? 'bg-emerald-50 border-2 border-emerald-100' : 'bg-[#F5F5EF] border border-[#DEDDD3]'}`}>
+            <div className={`rounded-3xl p-5 flex items-center gap-4 ${missingCostCount === 0 ? 'bg-fresco/10 border-2 border-fresco/10' : 'bg-[#F5F5EF] border border-[#DEDDD3]'}`}>
               {missingCostCount === 0
-                ? <CheckCircle2 size={22} className="text-emerald-500 shrink-0" />
+                ? <CheckCircle2 size={22} className="text-fresco shrink-0" />
                 : <AlertCircle size={22} className="text-graphite shrink-0" />
               }
-              <p className={`text-sm font-bold ${missingCostCount === 0 ? 'text-emerald-800' : 'text-graphite'}`}>
+              <p className={`text-sm font-bold ${missingCostCount === 0 ? 'text-ink' : 'text-graphite'}`}>
                 {missingCostCount === 0
                   ? 'Todos los productos tienen costo cargado — el reporte de margen es completo.'
                   : `${missingCostCount} ${missingCostCount === 1 ? 'producto sin costo' : 'productos sin costo'} — completá los que faltan para un reporte completo.`
@@ -524,9 +524,9 @@ export default function RentabilidadPage() {
                       {/* Status dot */}
                       <div className="shrink-0">
                         {justSaved
-                          ? <CheckCircle2 size={18} className="text-emerald-500" />
+                          ? <CheckCircle2 size={18} className="text-fresco" />
                           : hasCost
-                            ? <CheckCircle2 size={18} className="text-emerald-400" />
+                            ? <CheckCircle2 size={18} className="text-fresco" />
                             : <div className="w-[18px] h-[18px] rounded-full border-2 border-[#DEDDD3] bg-[#F5F5EF]" />
                         }
                       </div>
@@ -540,9 +540,9 @@ export default function RentabilidadPage() {
                       {/* Margen calculado (solo si tiene costo) */}
                       {margin !== null && (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 ${
-                          margin >= 50 ? 'bg-emerald-100 text-emerald-700' :
+                          margin >= 50 ? 'bg-fresco/10 text-fresco' :
                           margin >= 25 ? 'bg-[#F5F5EF] text-graphite' :
-                          'bg-red-100 text-red-600'
+                          'bg-alert/10 text-alert'
                         }`}>
                           {margin}% margen
                         </span>
@@ -562,7 +562,7 @@ export default function RentabilidadPage() {
                           }}
                           className={`w-full pl-7 pr-3 py-2 rounded-xl text-sm font-bold outline-none transition-all border ${
                             hasCost
-                              ? 'bg-gray-50 border-gray-200 focus:border-emerald-400 focus:bg-white'
+                              ? 'bg-gray-50 border-gray-200 focus:border-fresco focus:bg-white'
                               : 'bg-[#F5F5EF] border-[#DEDDD3] focus:border-fresco focus:bg-white'
                           }`}
                         />

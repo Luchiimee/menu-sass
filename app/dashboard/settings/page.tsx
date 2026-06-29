@@ -475,11 +475,11 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                         </span>
                         <div className="mt-2 flex items-center gap-2">
                             {isPending ? (
-                                <span className="text-[7px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-md font-black animate-pulse uppercase tracking-tighter">
+                                <span className="text-[7px] bg-brasa/10 text-brasa px-2 py-0.5 rounded-md font-black animate-pulse uppercase tracking-tighter">
                                     Pendiente de Verificación
                                 </span>
                             ) : (
-                                <span className="text-[7px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-md font-black uppercase tracking-tighter flex items-center gap-1">
+                                <span className="text-[7px] bg-fresco/10 text-fresco px-2 py-0.5 rounded-md font-black uppercase tracking-tighter flex items-center gap-1">
                                     <Check size={8} /> Correo Activo
                                 </span>
                             )}
@@ -491,7 +491,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                 <div className="pt-2 border-t border-gray-100 flex justify-end">
                     <button 
                         onClick={() => setIsEditingEmail(true)} 
-                        className="text-[10px] font-black text-fresco hover:text-blue-800 uppercase tracking-tighter transition-all active:scale-95"
+                        className="text-[10px] font-black text-fresco hover:text-ink uppercase tracking-tighter transition-all active:scale-95"
                     >
                         Cambiar Correo
                     </button>
@@ -500,13 +500,13 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 
             {/* AVISO DE REENVÍO (SOLO SI ESTÁ PENDIENTE) */}
             {isPending && (
-                <div className="p-4 bg-amber-50/50 rounded-[1.5rem] border border-dashed border-amber-200 animate-in fade-in slide-in-from-top-2">
-                    <p className="text-[9px] text-amber-800 font-bold leading-tight uppercase tracking-tighter mb-3">
+                <div className="p-4 bg-brasa/10/50 rounded-[1.5rem] border border-dashed border-brasa/20 animate-in fade-in slide-in-from-top-2">
+                    <p className="text-[9px] text-ink font-bold leading-tight uppercase tracking-tighter mb-3">
                         Revisá tu casilla nueva para confirmar el cambio y activar el nuevo acceso.
                     </p>
                     <button 
                         onClick={handleResendEmail}
-                        className="text-[9px] font-black text-fresco uppercase underline decoration-2 underline-offset-4 hover:text-blue-800"
+                        className="text-[9px] font-black text-fresco uppercase underline decoration-2 underline-offset-4 hover:text-ink"
                     >
                         Reenviar link de confirmación
                     </button>
@@ -533,7 +533,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     </button>
                     <button 
                         onClick={() => setIsEditingEmail(false)} 
-                        className="p-4 bg-gray-100 text-gray-400 rounded-2xl hover:text-red-500 transition-colors"
+                        className="p-4 bg-gray-100 text-gray-400 rounded-2xl hover:text-alert transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -554,8 +554,8 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                       onClick={handleTogglePause} 
                       className={`w-full py-3 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${
                         restaurant.subscription_status === 'paused'
-                        ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                        : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                        ? 'bg-fresco/10 text-fresco hover:bg-fresco/10'
+                        : 'bg-brasa/10 text-brasa hover:bg-brasa/10'
                       }`}
                     >
                       {restaurant.subscription_status === 'paused' ? '▶️ Reanudar mi Plan' : '⏸️ Pausar mi Plan'}
@@ -563,7 +563,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 
                     <button 
                       onClick={handleCancelSubscription} 
-                      className="w-full py-3 text-[10px] font-black text-red-400 bg-white border border-red-50 rounded-xl hover:bg-red-50 transition tracking-widest uppercase"
+                      className="w-full py-3 text-[10px] font-black text-alert bg-white border border-alert/10 rounded-xl hover:bg-alert/10 transition tracking-widest uppercase"
                     >
                       ❌ Cancelar Suscripción
                     </button>
@@ -573,13 +573,13 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     <button onClick={handlePasswordReset} className="w-full py-3 text-[10px] font-black text-gray-500 bg-gray-50 rounded-xl hover:bg-gray-100 transition tracking-widest uppercase">
                         Restablecer Contraseña
                     </button>
-                    <button onClick={handleLogout} className="w-full py-3 text-[10px] font-black text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2 uppercase">
+                    <button onClick={handleLogout} className="w-full py-3 text-[10px] font-black text-alert bg-alert/10 rounded-xl hover:bg-alert/10 transition flex items-center justify-center gap-2 uppercase">
                         <LogOut size={16}/> Cerrar sesión
                     </button>
                 </div>
 
                 <div className="pt-4 border-t border-gray-50">
-                    <button onClick={handleDeleteAccount} className="w-full py-3 text-[10px] font-black text-red-400 hover:text-red-600 transition tracking-widest uppercase flex items-center justify-center gap-2">
+                    <button onClick={handleDeleteAccount} className="w-full py-3 text-[10px] font-black text-alert hover:text-alert transition tracking-widest uppercase flex items-center justify-center gap-2">
                         <Trash2 size={14} /> Eliminar Cuenta
                     </button>
                 </div>
@@ -609,7 +609,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     {restaurant.subscription_plan !== 'light' && restaurant.always_open && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-[2.5rem]">
                         <div className="bg-gray-900 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 border border-white/10 mx-6">
-                          <div className="bg-amber-500 p-2 rounded-xl text-black"><AlertTriangle size={20} /></div>
+                          <div className="bg-brasa p-2 rounded-xl text-black"><AlertTriangle size={20} /></div>
                           <div className="flex flex-col text-left">
                             <span className="text-xs font-black uppercase italic">Horarios Desactivados</span>
                             <span className="text-[10px] font-bold text-gray-400 uppercase">Desactivá el modo "Siempre Abierto" <br/>en el Inicio para editar.</span>
@@ -705,7 +705,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
             {restaurant.subscription_plan !== 'light' && (
               <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                  <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
                     <Clock size={24} />
                   </div>
                   <div>
@@ -725,12 +725,12 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                       type="time"
                       value={restaurant.cash_close_hour?.slice(0, 5) ?? '00:00'}
                       onChange={(e) => handleCashCloseHour(e.target.value)}
-                      className="w-full p-4 bg-gray-50 rounded-2xl text-lg font-black text-gray-900 text-center border-2 border-transparent focus:border-amber-400 outline-none transition-colors"
+                      className="w-full p-4 bg-gray-50 rounded-2xl text-lg font-black text-gray-900 text-center border-2 border-transparent focus:border-brasa outline-none transition-colors"
                     />
                   </div>
-                  <div className="flex-1 bg-amber-50 rounded-2xl p-4 border border-amber-100">
-                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Ejemplo</p>
-                    <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                  <div className="flex-1 bg-brasa/10 rounded-2xl p-4 border border-brasa/10">
+                    <p className="text-[10px] font-black text-ink uppercase tracking-widest mb-1">Ejemplo</p>
+                    <p className="text-xs text-brasa font-medium leading-relaxed">
                       Si el cierre es <strong>03:00</strong>, el resumen del "20 de julio" incluye ventas
                       desde las 03:00 del 20 hasta las 03:00 del 21. Útil para negocios nocturnos.
                     </p>
@@ -750,7 +750,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   <button
                     onClick={handleAutoCloseToggle}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
-                      restaurant.cash_auto_close_enabled ? 'bg-amber-500' : 'bg-gray-200'
+                      restaurant.cash_auto_close_enabled ? 'bg-brasa' : 'bg-gray-200'
                     }`}
                   >
                     <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -792,7 +792,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                       <div className="flex items-center gap-3">
                         {qzStatus === 'connecting' && <Loader2 size={18} className="text-gray-400 animate-spin" />}
-                        {qzStatus === 'connected'  && <Wifi size={18} className="text-emerald-500" />}
+                        {qzStatus === 'connected'  && <Wifi size={18} className="text-fresco" />}
                         {(qzStatus === 'error' || qzStatus === 'idle') && <WifiOff size={18} className="text-gray-400" />}
                         <div>
                           <p className="text-sm font-black text-gray-900">

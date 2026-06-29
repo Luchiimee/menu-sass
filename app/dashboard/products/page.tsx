@@ -486,7 +486,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
       {/* Se muestra si es Light, GO o si sos Admin (mientras no sea el plan Plus que es ilimitado) */}
 {(currentPlan === 'light' || currentPlan === 'go' || isAdmin) && currentPlan !== 'plus' && (
   <span className={`ml-2 px-2 py-0.5 rounded-md text-xs font-bold border ${
-      products.length >= maxProds ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500'
+      products.length >= maxProds ? 'bg-alert/10 text-alert border-alert/20' : 'bg-gray-100 text-gray-500'
   }`}>
       {products.length} / {maxProds}
   </span>
@@ -580,7 +580,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                         }}
                         className={`shrink-0 px-4 py-3 rounded-2xl border transition-all flex items-center gap-2 shadow-sm active:scale-95 ${
                             showBestSellers 
-                            ? 'bg-amber-50 border-amber-400 text-amber-700 font-black' 
+                            ? 'bg-brasa/10 border-brasa text-brasa font-black' 
                             : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
                         }`}
                     >
@@ -596,7 +596,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                         {/* Tooltip explicativo */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-5 bg-slate-900 text-white rounded-[2rem] opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 shadow-2xl z-[100] border border-white/10 text-left">
                             <p className="text-[10px] leading-relaxed font-medium">
-                                <b className="text-amber-400 block mb-1 uppercase tracking-widest text-[11px]">¿Cómo funciona?</b>
+                                <b className="text-brasa block mb-1 uppercase tracking-widest text-[11px]">¿Cómo funciona?</b>
                                 El sistema analizará tus pedidos reales. Una vez pasados **30 días** desde la activación, creará automáticamente la sección destacada para tus clientes.
                             </p>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
@@ -663,13 +663,13 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
             <img src={p.video_url.replace(/\.[^/.]+$/, ".jpg")} className={`w-full h-full object-cover ${isVideoDisabled ? 'blur-[2px] opacity-40' : 'opacity-80'}`} alt={p.name}/>
             <div className="absolute inset-0 flex items-center justify-center">
                 {isVideoDisabled ? (
-                    <AlertTriangle size={14} className="text-red-600 animate-pulse" />
+                    <AlertTriangle size={14} className="text-alert animate-pulse" />
                 ) : (
                     <Video size={12} className="text-white" />
                 )}
             </div>
             {isVideoDisabled && (
-                <div className="absolute -bottom-0.5 inset-x-0 bg-red-600 text-[6px] text-white font-black text-center py-0.5 uppercase">
+                <div className="absolute -bottom-0.5 inset-x-0 bg-alert text-[6px] text-white font-black text-center py-0.5 uppercase">
                     Error
                 </div>
             )}
@@ -710,7 +710,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                             </button>
                                             <button 
                                                 onClick={() => handleDeleteProduct(p.id)} 
-                                                className="hidden md:flex p-2.5 bg-red-50 text-red-500 rounded-xl"
+                                                className="hidden md:flex p-2.5 bg-alert/10 text-alert rounded-xl"
                                             >
                                                 <Trash2 size={18}/>
                                             </button>
@@ -763,9 +763,9 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         </div>
       ) : isVideoDisabled ? (
         /* PRIORIDAD 2: AVISO DE PLAN (Si el video está bloqueado por el plan) */
-        <div className="absolute inset-0 bg-red-600/20 flex flex-col items-center justify-center p-2 text-center z-10">
-          <AlertTriangle size={24} className="text-red-600 mb-1 drop-shadow-md" />
-          <p className="text-[8px] font-black text-red-700 uppercase leading-tight bg-white/90 px-2 py-1 rounded-lg shadow-sm">
+        <div className="absolute inset-0 bg-alert/20 flex flex-col items-center justify-center p-2 text-center z-10">
+          <AlertTriangle size={24} className="text-alert mb-1 drop-shadow-md" />
+          <p className="text-[8px] font-black text-alert uppercase leading-tight bg-white/90 px-2 py-1 rounded-lg shadow-sm">
             Video no disponible <br/> en Plan Light
           </p>
         </div>
@@ -786,7 +786,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     <button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="bg-white p-2 rounded-full shadow-lg text-fresco hover:scale-110 transition active:scale-95">
       <Edit2 size={12}/>
     </button>
-    <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95">
+    <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} className="bg-white p-2 rounded-full shadow-lg text-alert hover:scale-110 transition active:scale-95">
       <Trash2 size={12}/>
     </button>
   </div>
@@ -821,7 +821,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                     <td className="px-6 py-4 text-green-600 font-bold">+${e.price}</td>
                                     <td className="px-6 py-4 text-right flex justify-end gap-2">
                                         <button onClick={() => openEditExtra(e)} className="p-2 text-gray-400 hover:text-fresco"><Edit2 size={14}/></button>
-                                        <button onClick={() => handleDeleteExtra(e.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                                        <button onClick={() => handleDeleteExtra(e.id)} className="p-2 text-gray-400 hover:text-alert"><Trash2 size={14}/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -854,7 +854,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                             <td className="px-6 py-4 font-bold text-gray-700 uppercase tracking-tighter italic">{c.name}</td>
                             <td className="px-6 py-4 text-right flex justify-end gap-2">
                                 <button onClick={() => openEditCategoryModal(c)} className="p-2 text-gray-400 hover:text-fresco"><Edit2 size={14}/></button>
-                                <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                                <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-alert"><Trash2 size={14}/></button>
                             </td>
                         </tr>
                     ))}
@@ -873,12 +873,12 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
               {(currentPlan === 'light' || currentPlan === 'go' || isAdmin) && currentPlan !== 'plus' && (
     <div className="flex flex-col items-end mr-2">
         <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black ${products.length >= maxProds ? 'text-red-500' : 'text-gray-400'}`}>
+            <span className={`text-[10px] font-black ${products.length >= maxProds ? 'text-alert' : 'text-gray-400'}`}>
                 {products.length}/{maxProds}
             </span>
             <div className="w-16 h-1 bg-gray-100 rounded-full overflow-hidden">
                 <div 
-                    className={`h-full transition-all duration-500 ${products.length >= maxProds ? 'bg-red-500' : currentPlan === 'go' ? 'bg-fresco' : 'bg-fresco'}`}
+                    className={`h-full transition-all duration-500 ${products.length >= maxProds ? 'bg-alert' : currentPlan === 'go' ? 'bg-fresco' : 'bg-fresco'}`}
                     style={{ width: `${Math.min((products.length / maxProds) * 100, 100)}%` }}
                 />
             </div>
@@ -895,12 +895,12 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                       {/* 1. SECCIÓN DE FOTO O MENSAJE SEGÚN PLANTILLA */}
 
 {selectedTemplate && templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t)) ? (
-    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+    <div className="bg-brasa/10 border border-brasa/20 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
-            <ImageIcon className="text-amber-500" size={24} />
+            <ImageIcon className="text-brasa" size={24} />
         </div>
-        <h4 className="text-amber-800 font-bold text-sm uppercase tracking-tight">Diseño de Carga Rápida</h4>
-        <p className="text-amber-700/80 text-[11px] mt-2 leading-relaxed">
+        <h4 className="text-ink font-bold text-sm uppercase tracking-tight">Diseño de Carga Rápida</h4>
+        <p className="text-brasa/80 text-[11px] mt-2 leading-relaxed">
             La plantilla <b>{selectedTemplate.toUpperCase()}</b> es un diseño simplificado.<br/> 
             No utiliza imágenes para priorizar la velocidad de carga.
         </p>
@@ -920,10 +920,10 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         
         {isVideoDisabled ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                <div className="bg-red-50 text-red-600 p-3 rounded-2xl mb-2 shadow-xl border border-red-100">
+                <div className="bg-alert/10 text-alert p-3 rounded-2xl mb-2 shadow-xl border border-alert/10">
                     <AlertTriangle size={32} />
                 </div>
-                <h4 className="text-red-700 font-black text-xs uppercase tracking-tighter">Acción requerida</h4>
+                <h4 className="text-alert font-black text-xs uppercase tracking-tighter">Acción requerida</h4>
                 <p className="text-[10px] text-gray-500 font-bold max-w-[200px] mt-1">
                     Bajaste al <b>Plan Light</b>. Debes cambiar este video por una imagen o no se mostrará en tu catálogo.
                 </p>
@@ -1039,7 +1039,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         </div>
       ) : (
         formData.variations.map((v: any, index: number) => (
-          <div key={index} className={`flex items-center gap-2 p-2 rounded-xl border transition-all duration-300 ${v.is_featured ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-white border-slate-200'}`}>
+          <div key={index} className={`flex items-center gap-2 p-2 rounded-xl border transition-all duration-300 ${v.is_featured ? 'bg-brasa/10 border-brasa shadow-sm' : 'bg-white border-slate-200'}`}>
             
             {/* BOTÓN ESTRELLA: Para elegir precio principal */}
             <button
@@ -1051,7 +1051,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 }));
                 setFormData({...formData, variations: newVars});
               }}
-              className={`p-1.5 rounded-lg transition-all ${v.is_featured ? 'text-amber-500 scale-110' : 'text-slate-300 hover:text-amber-400'}`}
+              className={`p-1.5 rounded-lg transition-all ${v.is_featured ? 'text-brasa scale-110' : 'text-slate-300 hover:text-brasa'}`}
               title="Mostrar este precio en la carta"
             >
               <Star size={16} fill={v.is_featured ? "currentColor" : "none"} strokeWidth={2.5}/>
@@ -1090,7 +1090,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 const newVars = formData.variations.filter((_: any, i: number) => i !== index);
                 setFormData({...formData, variations: newVars});
               }}
-              className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+              className="p-2 text-slate-300 hover:text-alert transition-colors"
             >
               <X size={14}/>
             </button>
@@ -1193,7 +1193,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 handleDeleteProduct(editingId);
                 setShowModal(false); // Cerramos el modal después de borrar
             }} 
-            className="md:hidden p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition active:scale-95 flex items-center justify-center"
+            className="md:hidden p-4 bg-alert/10 text-alert rounded-2xl hover:bg-alert/10 transition active:scale-95 flex items-center justify-center"
             title="Eliminar producto"
         >
             <Trash2 size={20}/>
@@ -1275,7 +1275,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
       {toast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-4 animate-in fade-in slide-in-from-top-10 duration-500">
           <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 p-5 rounded-[2.5rem] shadow-2xl flex items-start gap-4">
-            <div className="bg-amber-400 p-2.5 rounded-2xl shadow-lg shrink-0 animate-pulse">
+            <div className="bg-brasa p-2.5 rounded-2xl shadow-lg shrink-0 animate-pulse">
               <Zap size={20} fill="white" className="text-white"/>
             </div>
             <div className="flex-1 pt-1 text-left">
@@ -1284,7 +1284,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
               </p>
               <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
                 {/* Barra de tiempo: se vacía en 6 segundos */}
-                <div className="h-full bg-amber-400 animate-progress-shrink" style={{ animationDuration: '6s' }} />
+                <div className="h-full bg-brasa animate-progress-shrink" style={{ animationDuration: '6s' }} />
               </div>
             </div>
             <button onClick={() => setToast(null)} className="text-white/40 hover:text-white p-1 transition-colors">

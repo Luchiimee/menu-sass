@@ -187,11 +187,11 @@ export default function ReservationsPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl lg:text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-          Agenda de Reservas <CalendarCheck size={32} className="text-amber-500"/>
+          Agenda de Reservas <CalendarCheck size={32} className="text-brasa"/>
         </h1>
 
         <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowManualModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg active:scale-95 transition-all">
+            <button onClick={() => setShowManualModal(true)} className="bg-fresco text-white px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg active:scale-95 transition-all">
                 <Plus size={16} strokeWidth={3}/> Carga Manual
             </button>
             <div className="flex bg-white p-1 rounded-xl border shadow-sm">
@@ -209,7 +209,7 @@ export default function ReservationsPage() {
       {todayReservations.length > 0 && (
           <section className="bg-zinc-900 p-5 rounded-[2.5rem] text-white shadow-2xl animate-in fade-in zoom-in-95">
              <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-amber-500 rounded-lg animate-pulse"><Clock size={18}/></div>
+                <div className="p-2 bg-brasa rounded-lg animate-pulse"><Clock size={18}/></div>
                 <h2 className="font-black text-xs uppercase italic tracking-widest">Hoy — {getArgentinaDate().split('-').reverse().join('/')}</h2>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -237,7 +237,7 @@ export default function ReservationsPage() {
           {/* 🚀 BOTÓN DE BLOQUEO: AHORA ARRIBA */}
           <button 
               onClick={toggleBlockDate}
-              className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg active:scale-95 ${blockedDates.includes(selectedDate) ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}
+              className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg active:scale-95 ${blockedDates.includes(selectedDate) ? 'bg-fresco text-white' : 'bg-alert text-white'}`}
           >
               {blockedDates.includes(selectedDate) ? '✅ Habilitar Reservas' : '🚫 Cerrar Reservas para este día'}
           </button>
@@ -282,7 +282,7 @@ return (
     onClick={() => setSelectedDate(dateStr)} 
     className={`relative aspect-square flex items-center justify-center rounded-xl text-xs font-black transition-all 
       ${isSelected ? 'bg-black text-white scale-110 shadow-lg z-10' : 
-        isToday ? 'bg-amber-50 text-amber-600 ring-2 ring-amber-500/30' : 
+        isToday ? 'bg-brasa/10 text-brasa ring-2 ring-brasa/30' : 
         'bg-gray-50 text-gray-500 hover:bg-white hover:shadow-md'}`}
   >
     {day.getDate()}
@@ -290,16 +290,16 @@ return (
     {/* ❌ LA FRANJA ROJA DE BLOQUEO (Tachado) */}
     {isBlocked && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[80%] h-[2px] bg-red-600 rotate-45 absolute rounded-full" />
-            <div className="w-[80%] h-[2px] bg-red-600 -rotate-45 absolute rounded-full" />
+            <div className="w-[80%] h-[2px] bg-alert rotate-45 absolute rounded-full" />
+            <div className="w-[80%] h-[2px] bg-alert -rotate-45 absolute rounded-full" />
         </div>
     )}
 
     {/* Puntitos de estado solo si NO está bloqueado */}
     {!isBlocked && (
         <div className="absolute -bottom-1 flex w-full justify-center gap-0.5 px-1">
-            {hasPending && <div className="h-1 flex-1 bg-amber-500 rounded-full" />}
-            {hasConfirmed && <div className="h-1 flex-1 bg-emerald-500 rounded-full" />}
+            {hasPending && <div className="h-1 flex-1 bg-brasa rounded-full" />}
+            {hasConfirmed && <div className="h-1 flex-1 bg-fresco rounded-full" />}
         </div>
     )}
   </button>
@@ -313,8 +313,8 @@ return (
         <div className={`${viewMode === 'split' ? 'lg:col-span-7 xl:col-span-8' : 'w-full'} space-y-12`}>
           <section className="space-y-4">
              <div className="flex items-center gap-2 px-3">
-                <BellRing size={16} className="text-amber-500 animate-bounce" />
-                <h3 className="text-[11px] font-black uppercase text-amber-600 tracking-[0.2em]">Pendientes Globales</h3>
+                <BellRing size={16} className="text-brasa animate-bounce" />
+                <h3 className="text-[11px] font-black uppercase text-brasa tracking-[0.2em]">Pendientes Globales</h3>
              </div>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {pendingInBox.map(res => (
@@ -325,8 +325,8 @@ return (
 
           <section className="space-y-4">
              <div className="flex items-center gap-2 px-3">
-                <CalendarRange size={16} className="text-emerald-500" />
-                <h3 className="text-[11px] font-black uppercase text-emerald-600 tracking-[0.2em]">Agenda Completa</h3>
+                <CalendarRange size={16} className="text-fresco" />
+                <h3 className="text-[11px] font-black uppercase text-fresco tracking-[0.2em]">Agenda Completa</h3>
              </div>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {allConfirmed.map(res => (
@@ -346,13 +346,13 @@ return (
                 <div className="flex justify-between items-start mb-8">
                     <div>
                         <h3 className="text-2xl font-black uppercase italic tracking-tighter">{selectedResDetail.customer_name} {selectedResDetail.customer_lastname}</h3>
-                        <p className="text-amber-500 font-bold text-[10px] uppercase tracking-widest">Información detallada</p>
+                        <p className="text-brasa font-bold text-[10px] uppercase tracking-widest">Información detallada</p>
                     </div>
                     <button onClick={() => setSelectedResDetail(null)} className="p-2 bg-gray-50 rounded-full"><X size={20}/></button>
                 </div>
                 <div className="space-y-6">
                     <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <Phone size={20} className="text-emerald-500" />
+                        <Phone size={20} className="text-fresco" />
                         <div>
                             <p className="text-[9px] font-black text-gray-400 uppercase">WhatsApp</p>
                             <p className="font-bold text-lg">{selectedResDetail.customer_phone}</p>
@@ -369,8 +369,8 @@ return (
                         </div>
                     </div>
                     {selectedResDetail.notes && (
-                        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                            <p className="text-[9px] font-black text-amber-600 uppercase mb-1">Descripción del Cliente</p>
+                        <div className="bg-brasa/10 p-4 rounded-2xl border border-brasa/10">
+                            <p className="text-[9px] font-black text-brasa uppercase mb-1">Descripción del Cliente</p>
                             <p className="text-sm italic font-bold">"{selectedResDetail.notes}"</p>
                         </div>
                     )}
@@ -389,12 +389,12 @@ return (
       {/* 2. Modal Mensaje Cliente */}
       {showClientMsgModal && (
         <div className="fixed inset-0 z-[1500] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 text-left">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 text-gray-900 border-4 border-amber-100">
+          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 text-gray-900 border-4 border-brasa/10">
             <div className="flex items-center gap-2 mb-6">
-                <MessageSquareText size={20} className="text-amber-500" />
+                <MessageSquareText size={20} className="text-brasa" />
                 <h3 className="text-xl font-black uppercase italic tracking-tighter">Mensaje del Cliente</h3>
             </div>
-            <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 italic font-bold text-gray-700 text-sm leading-relaxed">
+            <div className="bg-brasa/10/50 p-6 rounded-2xl border border-brasa/10 italic font-bold text-gray-700 text-sm leading-relaxed">
                "{clientMsgText}"
             </div>
             <button onClick={() => setShowClientMsgModal(false)} className="w-full mt-6 py-4 bg-zinc-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Cerrar Mensaje</button>
@@ -426,15 +426,15 @@ return (
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nombre" value={manualData.customer_name} onChange={e=>setManualData({...manualData, customer_name: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm focus:ring-2 ring-emerald-500" />
-                <input type="text" placeholder="Apellido" value={manualData.customer_lastname} onChange={e=>setManualData({...manualData, customer_lastname: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm focus:ring-2 ring-emerald-500" />
+                <input type="text" placeholder="Nombre" value={manualData.customer_name} onChange={e=>setManualData({...manualData, customer_name: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm focus:ring-2 ring-fresco" />
+                <input type="text" placeholder="Apellido" value={manualData.customer_lastname} onChange={e=>setManualData({...manualData, customer_lastname: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm focus:ring-2 ring-fresco" />
               </div>
               <input type="tel" placeholder="WhatsApp" value={manualData.customer_phone} onChange={e=>setManualData({...manualData, customer_phone: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm" />
               <div className="grid grid-cols-2 gap-3">
                 <input type="date" value={manualData.reservation_date} onChange={e=>setManualData({...manualData, reservation_date: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-xs" />
                 <input type="time" value={manualData.reservation_time} onChange={e=>setManualData({...manualData, reservation_time: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-xs" />
               </div>
-              <button onClick={handleManualReserve} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95">Ingresar Reserva</button>
+              <button onClick={handleManualReserve} className="w-full py-5 bg-fresco text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95">Ingresar Reserva</button>
             </div>
           </div>
         </div>
@@ -463,11 +463,11 @@ return (
 
 function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDelete, onShowClientMsg, onShowDetail, showDate = false, isTodayVariant = false }: any) {
   const statusConfig: any = {
-    'confirmada': { color: 'bg-emerald-500', label: 'CONFIRMADA', border: 'border-emerald-100' },
-    'pendiente': { color: 'bg-amber-500', label: 'PENDIENTE', border: 'border-amber-100' },
+    'confirmada': { color: 'bg-fresco', label: 'CONFIRMADA', border: 'border-fresco/10' },
+    'pendiente': { color: 'bg-brasa', label: 'PENDIENTE', border: 'border-brasa/10' },
     'suspendida': { color: 'bg-orange-500', label: 'SUSPENDIDA', border: 'border-orange-100' },
     'programada': { color: 'bg-fresco', label: 'REPROGRAMADA', border: 'border-[#E8F7F1]' },
-    'cancelada': { color: 'bg-red-500', label: 'CANCELADA', border: 'border-red-100' }
+    'cancelada': { color: 'bg-alert', label: 'CANCELADA', border: 'border-alert/10' }
   };
 
   const currentStatus = statusConfig[res.status] || statusConfig['pendiente'];
@@ -505,7 +505,7 @@ function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDele
 
          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {res.notes && (
-               <button onClick={() => onShowClientMsg(res.notes)} className="w-9 h-9 flex items-center justify-center bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 border border-amber-200">
+               <button onClick={() => onShowClientMsg(res.notes)} className="w-9 h-9 flex items-center justify-center bg-brasa/10 text-brasa rounded-xl hover:bg-brasa/10 border border-brasa/20">
                   <MessageSquareText size={18}/>
                </button>
             )}
@@ -521,7 +521,7 @@ function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDele
       <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
           {/* Si está pendiente, el primer botón es CONFIRMAR */}
           {res.status === 'pendiente' ? (
-              <button onClick={() => onStatusChange('confirmada')} className="py-2.5 rounded-xl bg-emerald-600 text-white font-black text-[9px] uppercase shadow-md active:scale-95 transition-all">Confirmar</button>
+              <button onClick={() => onStatusChange('confirmada')} className="py-2.5 rounded-xl bg-fresco text-white font-black text-[9px] uppercase shadow-md active:scale-95 transition-all">Confirmar</button>
           ) : (
               <button onClick={() => onReschedule()} className="py-2.5 rounded-xl bg-[#F0FAF6] text-fresco font-bold text-[9px] uppercase border border-[#E8F7F1]">Re-Prog.</button>
           )}
@@ -531,7 +531,7 @@ function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDele
               if (res.status === 'cancelada') { onDelete(); } 
               else { if(confirm("¿Cancelar reserva?")) onStatusChange('cancelada'); }
             }} 
-            className="py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-[9px] uppercase border border-red-100"
+            className="py-2.5 rounded-xl bg-alert/10 text-alert font-bold text-[9px] uppercase border border-alert/10"
           >
             {res.status === 'cancelada' ? 'Borrar' : 'Cancelar'}
           </button>
