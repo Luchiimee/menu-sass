@@ -1991,7 +1991,7 @@ case "spotlight":
                         </span>
                       )}
                       {myReservation.status === "programada" && (
-                        <span className="text-blue-500 ml-2">
+                        <span className="text-fresco ml-2">
                           📅 REPROGRAMADA
                         </span>
                       )}
@@ -2168,7 +2168,7 @@ case "spotlight":
 
             {/* CUERPO: LISTA DE VARIANTES */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1 no-scrollbar">
-              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-4">
+              <p className="text-[10px] font-black text-fresco uppercase tracking-[0.2em] mb-4">
                 Elegí las cantidades:
               </p>
 
@@ -2177,7 +2177,7 @@ case "spotlight":
                 return (
                   <div
                     key={idx}
-                    className={`flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${qty > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-gray-100 bg-gray-50"}`}
+                    className={`flex items-center justify-between p-4 rounded-[2rem] border-2 transition-all ${qty > 0 ? "border-fresco bg-[#F0FAF6]/50" : "border-gray-100 bg-gray-50"}`}
                   >
                     <div className="flex flex-col text-left">
                       <span
@@ -2186,7 +2186,7 @@ case "spotlight":
                         {v.label}
                       </span>
                       <span
-                        className={`font-bold text-xs ${qty > 0 ? "text-indigo-600" : "text-gray-400"}`}
+                        className={`font-bold text-xs ${qty > 0 ? "text-fresco" : "text-gray-400"}`}
                       >
                         {formatPrice(v.price)}
                       </span>
@@ -2200,7 +2200,7 @@ case "spotlight":
                             [idx]: Math.max(0, qty - 1),
                           })
                         }
-                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-lg transition-colors ${qty > 0 ? "text-indigo-600 bg-indigo-50" : "text-gray-300 cursor-not-allowed"}`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-lg transition-colors ${qty > 0 ? "text-fresco bg-[#F0FAF6]" : "text-gray-300 cursor-not-allowed"}`}
                       >
                         -
                       </button>
@@ -2216,7 +2216,7 @@ case "spotlight":
                             [idx]: qty + 1,
                           })
                         }
-                        className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-md active:scale-90"
+                        className="w-8 h-8 rounded-full bg-fresco text-white flex items-center justify-center font-black text-lg shadow-md active:scale-90"
                       >
                         +
                       </button>

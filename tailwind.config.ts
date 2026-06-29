@@ -9,6 +9,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        fresco: '#1BB179',
+        brasa: '#9A5532',
+        ink: '#15160E',
+        paper: '#F5F5EF',
+        surface: '#ECEBE3',
+        card: '#FFFFFF',
+        border: '#DEDDD3',
+        graphite: '#86877B',
+        alert: '#FF4D3D',
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":

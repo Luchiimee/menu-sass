@@ -826,17 +826,17 @@ const confirmReset = () => {
         {showWelcomeModal && (
           <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-pop-in">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-3">
-                <Sparkles size={22} className="text-indigo-600" />
+              <div className="w-12 h-12 rounded-xl bg-[#F0FAF6] flex items-center justify-center mb-3">
+                <Sparkles size={22} className="text-fresco" />
               </div>
               <h3 className="font-bold text-lg text-gray-900 mb-2">¡Bienvenido a Personalizar!</h3>
               <p className="text-sm text-gray-600 mb-3">
                 Acá podés personalizar tu menú: cambiar el banner, el logo, los textos de tu local.
               </p>
               <p className="text-sm text-gray-600 mb-6">
-                En la pestaña <span className="font-bold text-indigo-600">ESTILOS</span> podés cambiar todos los colores de tu menú (fondo, textos, botones, etc.)
+                En la pestaña <span className="font-bold text-fresco">ESTILOS</span> podés cambiar todos los colores de tu menú (fondo, textos, botones, etc.)
               </p>
-              <button onClick={handleCloseWelcomeModal} className="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+              <button onClick={handleCloseWelcomeModal} className="w-full py-3 rounded-xl font-bold text-sm bg-fresco text-white hover:bg-[#17A06D] transition-colors">
                 Entendido
               </button>
             </div>
@@ -892,7 +892,7 @@ const confirmReset = () => {
                     </div>
                     <div className="flex flex-col gap-3 w-full lg:w-auto">
                       <div className="flex gap-2">
-                        <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[11px] font-bold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm"><Palette size={14} /> Estilos</button>
+                        <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[11px] font-bold border border-indigo-200 text-fresco hover:bg-[#F0FAF6] transition-all shadow-sm"><Palette size={14} /> Estilos</button>
                         <button onClick={handleSave} disabled={loading} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-[11px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all"><Save size={14} /> Guardado</button>
                       </div>
                       <button onClick={() => setShowMobilePreview(true)} className="xl:hidden flex items-center justify-center gap-2 w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl">
@@ -912,7 +912,7 @@ const confirmReset = () => {
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-2 flex items-center gap-2"><div className="w-1 h-3 bg-indigo-600 rounded-full" /> Identidad del Local</div>
+                        <div className="text-[10px] font-black text-fresco uppercase tracking-widest ml-2 flex items-center gap-2"><div className="w-1 h-3 bg-fresco rounded-full" /> Identidad del Local</div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-6 justify-items-center">
                           <ColorBubble label="Fondo Web" value={data.bg_color} onChange={(v) => setData({ ...data, bg_color: v })} />
                           <ColorBubble label="Nombre Local" value={data.text_color} onChange={(v) => setData({ ...data, text_color: v })} />
@@ -951,7 +951,7 @@ const confirmReset = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                           {[{ label: 'Títulos y Precios', field: 'title_font' }, { label: 'Descripciones', field: 'desc_font' }, { label: 'Banner Promo', field: 'promo_font' }].map(({ label, field }) => (
                             <div key={field} className="space-y-2">
-                              <label className="text-[9px] font-black text-indigo-500 uppercase ml-2">{label}</label>
+                              <label className="text-[9px] font-black text-fresco uppercase ml-2">{label}</label>
                               <select value={(data as any)[field] || ''} onChange={(e) => { setData({ ...data, [field]: e.target.value }); setUnsavedChanges(true); }} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-black">
                                 <option value="Inter">Moderna (Inter)</option>
                                 <option value="Playfair Display">Elegante (Serif)</option>
@@ -973,7 +973,7 @@ const confirmReset = () => {
                       <button onClick={copyLink} className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-gray-500 transition-colors">
                         {copied ? <div className="flex items-center gap-1 text-green-600"><Check size={14} /><span className="text-[10px] font-bold">Copiado</span></div> : <Copy size={14} />}
                       </button>
-                      <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-blue-600 transition-colors"><ExternalLink size={14} /></a>
+                      <a href={`https://snappy.uno/${data.slug}`} target="_blank" rel="noopener noreferrer" className="px-3 border-l hover:bg-slate-100 flex items-center justify-center text-fresco transition-colors"><ExternalLink size={14} /></a>
                     </div>
                   </section>
 
@@ -1035,9 +1035,9 @@ const confirmReset = () => {
                 {/* 🚀 CONFIGURACIÓN DE BANNER Y MENÚS ESPECIALES */}
 {tConfig.showHeroEditor && (
   <section className="space-y-6 animate-in fade-in slide-in-from-top-2">
-    <div className="p-6 bg-indigo-50/50 border border-indigo-100 rounded-[2.5rem] space-y-6">
+    <div className="p-6 bg-[#F0FAF6]/50 border border-[#E8F7F1] rounded-[2.5rem] space-y-6">
       <h3 className="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
-        <Star size={14} className="fill-indigo-600 text-indigo-600" /> Producto en Banner (Hero)
+        <Star size={14} className="fill-fresco text-fresco" /> Producto en Banner (Hero)
       </h3>
       
       {/* 1. Datos Básicos del Plato Principal */}
@@ -1071,7 +1071,7 @@ const confirmReset = () => {
           <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Opciones de Bebida y Tamaño</label>
           <div className="flex gap-2">
             <input value={data.hero_drink_options || ''} onChange={(e) => { setData({ ...data, hero_drink_options: e.target.value }); setUnsavedChanges(true); }} className="flex-[2] p-3 border rounded-xl text-xs font-bold outline-none" placeholder="Coca, Sprite, Fanta..." />
-            <select value={data.hero_drink_size || '500cc'} onChange={(e) => { setData({ ...data, hero_drink_size: e.target.value }); setUnsavedChanges(true); }} className="flex-1 p-3 border rounded-xl text-[10px] font-black bg-indigo-50 text-indigo-600">
+            <select value={data.hero_drink_size || '500cc'} onChange={(e) => { setData({ ...data, hero_drink_size: e.target.value }); setUnsavedChanges(true); }} className="flex-1 p-3 border rounded-xl text-[10px] font-black bg-[#F0FAF6] text-fresco">
               <option value="250cc">250cc</option>
               <option value="500cc">500cc</option>
               <option value="1lts">1lts</option>
@@ -1088,7 +1088,7 @@ const confirmReset = () => {
       {/* 🍱 SECCIÓN: MENÚ SECUNDARIO / EJECUTIVO */}
       <div className="mt-8 p-6 bg-white border-2 border-dashed border-indigo-200 rounded-[2.5rem] space-y-6 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-600 rounded-2xl text-white shadow-lg"><Layers size={18} /></div>
+          <div className="p-2 bg-fresco rounded-2xl text-white shadow-lg"><Layers size={18} /></div>
           <div className="text-left">
             <h4 className="text-[12px] font-black text-indigo-950 uppercase tracking-tighter italic leading-none">Configurar Menú Secundario</h4>
             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Armá un combo fijo (Ej: Menú Ejecutivo)</p>
@@ -1113,14 +1113,14 @@ const confirmReset = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
           <div className="space-y-1.5 text-left">
-            <label className="text-[10px] font-black text-indigo-600 uppercase italic ml-1">1. Plato Principal</label>
+            <label className="text-[10px] font-black text-fresco uppercase italic ml-1">1. Plato Principal</label>
             <select value={data.secondary_menu_entrance_id || ''} onChange={(e) => { setData({ ...data, secondary_menu_entrance_id: e.target.value || null }); setUnsavedChanges(true); }} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none">
               <option value="">Elegir principal...</option>
               {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div className="space-y-1.5 text-left">
-            <label className="text-[10px] font-black text-indigo-600 uppercase italic ml-1">2. Postre Incluido</label>
+            <label className="text-[10px] font-black text-fresco uppercase italic ml-1">2. Postre Incluido</label>
             <select value={data.secondary_menu_dessert_id || ''} onChange={(e) => { setData({ ...data, secondary_menu_dessert_id: e.target.value || null }); setUnsavedChanges(true); }} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none">
               <option value="">Elegir postre...</option>
               {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1128,11 +1128,11 @@ const confirmReset = () => {
           </div>
         </div>
 
-        <div className="space-y-1.5 text-left p-4 bg-indigo-50/50 rounded-3xl border border-indigo-100">
-          <label className="text-[10px] font-black text-indigo-600 uppercase italic ml-1">3. Bebidas y Tamaño</label>
+        <div className="space-y-1.5 text-left p-4 bg-[#F0FAF6]/50 rounded-3xl border border-[#E8F7F1]">
+          <label className="text-[10px] font-black text-fresco uppercase italic ml-1">3. Bebidas y Tamaño</label>
           <div className="flex gap-2">
             <input value={data.secondary_menu_drink_options || ''} onChange={(e) => { setData({ ...data, secondary_menu_drink_options: e.target.value }); setUnsavedChanges(true); }} className="flex-[2] p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none" placeholder="Coca, Sprite, Agua..." />
-            <select value={data.secondary_menu_drink_size || '500cc'} onChange={(e) => { setData({ ...data, secondary_menu_drink_size: e.target.value }); setUnsavedChanges(true); }} className="flex-1 p-3 bg-white border border-dashed border-indigo-200 rounded-xl text-[10px] font-black text-indigo-600">
+            <select value={data.secondary_menu_drink_size || '500cc'} onChange={(e) => { setData({ ...data, secondary_menu_drink_size: e.target.value }); setUnsavedChanges(true); }} className="flex-1 p-3 bg-white border border-dashed border-indigo-200 rounded-xl text-[10px] font-black text-fresco">
               <option value="250cc">250cc</option>
               <option value="500cc">500cc</option>
               <option value="1lts">1 Litro</option>
@@ -1171,14 +1171,14 @@ const confirmReset = () => {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias (Mercado Pago)</label>
-                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-purple-50 text-purple-500 border-r"><CreditCard size={14} /></div><input value={data.alias_mp || ''} onChange={(e) => { setData({ ...data, alias_mp: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp" /></div>
+                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-purple-50 text-brasa border-r"><CreditCard size={14} /></div><input value={data.alias_mp || ''} onChange={(e) => { setData({ ...data, alias_mp: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp" /></div>
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
                     </div>
                   </section>
 
                   <DeliveryZonesConfig restaurantId={data.id} />
 
-                    <section className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <section className="p-5 bg-[#F0FAF6]/50 border border-[#E8F7F1] rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1266,10 +1266,10 @@ const confirmReset = () => {
 })()}
 
 {/* 📅 GESTIÓN DE TURNOS Y BLOQUES HORARIOS */}
-<section className="p-6 bg-white border-2 border-indigo-100 rounded-[2.5rem] space-y-6 shadow-sm">
+<section className="p-6 bg-white border-2 border-[#E8F7F1] rounded-[2.5rem] space-y-6 shadow-sm">
     <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg">
+            <div className="p-2.5 bg-fresco rounded-2xl text-white shadow-lg">
                 <Clock size={20} />
             </div>
             
@@ -1288,9 +1288,9 @@ const confirmReset = () => {
         </button>
     </div>
 {/* 🚀 LÍNEA 934: TEXTO INFORMATIVO DE FUNCIONAMIENTO */}
-<div className={`p-4 rounded-[1.5rem] border-2 transition-all duration-500 ${data.scheduled_delivery_enabled ? 'bg-indigo-50 border-indigo-100' : 'bg-gray-50 border-gray-100'}`}>
+<div className={`p-4 rounded-[1.5rem] border-2 transition-all duration-500 ${data.scheduled_delivery_enabled ? 'bg-[#F0FAF6] border-[#E8F7F1]' : 'bg-gray-50 border-gray-100'}`}>
     <div className="flex gap-3 text-left">
-        <div className={`p-1.5 rounded-full h-fit flex-shrink-0 ${data.scheduled_delivery_enabled ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+        <div className={`p-1.5 rounded-full h-fit flex-shrink-0 ${data.scheduled_delivery_enabled ? 'bg-fresco text-white' : 'bg-gray-200 text-gray-400'}`}>
             <HelpCircle size={14} />
         </div>
         <div>
@@ -1298,7 +1298,7 @@ const confirmReset = () => {
             <p className="text-[11px] font-bold text-gray-600 leading-snug">
                 {data.scheduled_delivery_enabled ? (
                     <span className="animate-in fade-in">
-                        <strong className="text-indigo-600 uppercase italic">Modo Agenda Activo:</strong> Tus clientes deberán elegir un turno específico para recibir o retirar su pedido.
+                        <strong className="text-fresco uppercase italic">Modo Agenda Activo:</strong> Tus clientes deberán elegir un turno específico para recibir o retirar su pedido.
                     </span>
                 ) : (
                     <span className="animate-in fade-in">
@@ -1317,14 +1317,14 @@ const confirmReset = () => {
     
     {/* 1. TURNOS CADA (INTERVALO) */}
     <div className="space-y-1.5 text-left">
-        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">Pedidos cada:</label>
+        <label className="text-[10px] font-black text-fresco uppercase ml-2 tracking-widest">Pedidos cada:</label>
         <select 
             value={data.scheduled_delivery_config.interval_minutes}
             onChange={(e) => {
                 setData({ ...data, scheduled_delivery_config: { ...data.scheduled_delivery_config, interval_minutes: Number(e.target.value) } });
                 setUnsavedChanges(true);
             }}
-            className="w-full p-3 bg-white border-none rounded-xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-3 bg-white border-none rounded-xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-fresco"
         >
             <option value={15}>15 minutos</option>
             <option value={30}>30 minutos</option>
@@ -1337,14 +1337,14 @@ const confirmReset = () => {
 
     {/* 2. PREPARACIÓN MÍNIMA (BUFFER) */}
     <div className="space-y-1.5 text-left">
-        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">Preparación mínima:</label>
+        <label className="text-[10px] font-black text-fresco uppercase ml-2 tracking-widest">Preparación mínima:</label>
         <select 
             value={data.scheduled_delivery_config.buffer_minutes}
             onChange={(e) => {
                 setData({ ...data, scheduled_delivery_config: { ...data.scheduled_delivery_config, buffer_minutes: Number(e.target.value) } });
                 setUnsavedChanges(true);
             }}
-            className="w-full p-3 bg-white border-none rounded-xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-3 bg-white border-none rounded-xl text-xs font-bold outline-none shadow-sm focus:ring-2 focus:ring-fresco"
         >
             <option value={0}>Sin tiempo de espera</option>
             <option value={15}>15 min de aviso</option>
@@ -1359,11 +1359,11 @@ const confirmReset = () => {
            
 
 {/* 📅 GENERADOR DE TURNOS DINÁMICO */}
-<div className="bg-indigo-50/50 p-6 rounded-[2.5rem] border border-indigo-100 space-y-6">
+<div className="bg-[#F0FAF6]/50 p-6 rounded-[2.5rem] border border-[#E8F7F1] space-y-6">
     
     {/* 1. SELECCIÓN DE HORARIO (Manda sobre los días) */}
     <div className="space-y-3">
-        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">1. Definí el horario:</label>
+        <label className="text-[10px] font-black text-fresco uppercase ml-2 tracking-widest">1. Definí el horario:</label>
         <div className="flex gap-3">
             <div className="flex-1 space-y-1">
                 <span className="text-[8px] font-black text-gray-400 uppercase ml-2">Desde</span>
@@ -1371,7 +1371,7 @@ const confirmReset = () => {
                     type="time" 
                     value={activeFrom}
                     onChange={(e) => setActiveFrom(e.target.value)}
-                    className="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" 
+                    className="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-fresco shadow-sm" 
                 />
             </div>
             <div className="flex-1 space-y-1">
@@ -1380,7 +1380,7 @@ const confirmReset = () => {
                     type="time" 
                     value={activeTo}
                     onChange={(e) => setActiveTo(e.target.value)}
-                    className="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" 
+                    className="w-full p-3 bg-white border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-fresco shadow-sm" 
                 />
             </div>
         </div>
@@ -1388,7 +1388,7 @@ const confirmReset = () => {
 
     {/* 2. SELECTOR DE DÍAS (Al tocar, se agrega) */}
     <div className="space-y-3">
-        <label className="text-[10px] font-black text-indigo-600 uppercase ml-2 tracking-widest">2. Tocá los días para asignar:</label>
+        <label className="text-[10px] font-black text-fresco uppercase ml-2 tracking-widest">2. Tocá los días para asignar:</label>
         <div className="flex flex-wrap gap-2">
             {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map((dia) => (
                 <button
@@ -1415,7 +1415,7 @@ const confirmReset = () => {
                         setUnsavedChanges(true);
                         toast.success(`Asignado al ${dia}`);
                     }}
-                    className="flex-1 min-w-[80px] py-3 bg-white border-2 border-gray-100 rounded-2xl font-black text-[10px] uppercase text-gray-400 hover:border-indigo-400 hover:text-indigo-600 transition-all active:scale-95 shadow-sm"
+                    className="flex-1 min-w-[80px] py-3 bg-white border-2 border-gray-100 rounded-2xl font-black text-[10px] uppercase text-gray-400 hover:border-indigo-400 hover:text-fresco transition-all active:scale-95 shadow-sm"
                 >
                     {dia.slice(0, 3)}
                 </button>
@@ -1427,7 +1427,7 @@ const confirmReset = () => {
     <button 
         type="button"
         onClick={() => { setActiveFrom(''); setActiveTo(''); }}
-        className="w-full py-3 bg-white border-2 border-dashed border-indigo-200 text-indigo-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 transition-all"
+        className="w-full py-3 bg-white border-2 border-dashed border-indigo-200 text-indigo-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-[#F0FAF6] transition-all"
     >
         Limpiar para nuevo horario
     </button>
@@ -1443,7 +1443,7 @@ const confirmReset = () => {
             <div className="flex flex-wrap gap-2 flex-1">
                 {data.scheduled_delivery_slots?.[dia]?.length > 0 ? (
                     data.scheduled_delivery_slots[dia].map((range: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-full shadow-md animate-in zoom-in">
+                        <div key={idx} className="flex items-center gap-2 bg-fresco text-white px-3 py-1.5 rounded-full shadow-md animate-in zoom-in">
                             <span className="text-[9px] font-black tracking-tighter">{range.from} - {range.to}</span>
                             <button 
                                 type="button" 
@@ -1479,7 +1479,7 @@ const confirmReset = () => {
                           {!templatesSinFoto.some(t => data.template_id?.toLowerCase().includes(t)) ? (
                             <div className="w-12 h-12 bg-white border border-dashed border-gray-200 rounded-lg flex items-center justify-center relative cursor-pointer flex-shrink-0 group">
                               <input type="file" accept="image/*" onChange={handleNewProdImage} className="absolute inset-0 opacity-0 cursor-pointer" />
-                              {newProd.image_url ? <img src={getOptimizedImageUrl(newProd.image_url, 150, 70)} className="w-full h-full object-cover rounded-lg" /> : <Plus size={16} className="text-gray-400 group-hover:text-violet-500 transition-colors" />}
+                              {newProd.image_url ? <img src={getOptimizedImageUrl(newProd.image_url, 150, 70)} className="w-full h-full object-cover rounded-lg" /> : <Plus size={16} className="text-gray-400 group-hover:text-fresco transition-colors" />}
                             </div>
                           ) : (
                             <button type="button" onClick={() => alert(`El diseño "${data.template_id.toUpperCase()}" no usa imágenes de productos.`)} className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-amber-100 transition-colors shadow-sm" title="¿Por qué no puedo subir fotos?">
@@ -1530,9 +1530,9 @@ const confirmReset = () => {
                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 text-left">
     
    {/* --- 🚀 EXPLICACIÓN PROFESIONAL PARA EL CLIENTE --- */}
-<section className="bg-white border-2 border-indigo-100 p-6 rounded-[2.5rem] space-y-5 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+<section className="bg-white border-2 border-[#E8F7F1] p-6 rounded-[2.5rem] space-y-5 shadow-sm animate-in fade-in zoom-in-95 duration-300">
     <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-100">
+        <div className="p-2.5 bg-fresco rounded-2xl text-white shadow-lg shadow-[#E8F7F1]">
             <Zap size={22} fill="white"/>
         </div>
         <div>
@@ -1548,15 +1548,15 @@ const confirmReset = () => {
         
         <div className="grid grid-cols-1 gap-2">
             <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-900">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"/>
+                <div className="w-1.5 h-1.5 rounded-full bg-fresco"/>
                 Centralizá WhatsApp, redes y tu menú en un solo lugar.
             </div>
             <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-900">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"/>
+                <div className="w-1.5 h-1.5 rounded-full bg-fresco"/>
                 Mantené el diseño y los colores de tu marca.
             </div>
             <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-900">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"/>
+                <div className="w-1.5 h-1.5 rounded-full bg-fresco"/>
                 Sin necesidad de crear cuentas en aplicaciones externas.
             </div>
         </div>
@@ -1577,9 +1577,9 @@ const confirmReset = () => {
 </section>
 
    {/* 2. SWITCH DE ACTIVACIÓN: CREA EL BOTÓN AUTOMÁTICAMENTE */}
-<section className="bg-indigo-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-indigo-100 flex justify-between items-center transition-all">
+<section className="bg-fresco p-6 rounded-[2.5rem] text-white shadow-xl shadow-[#E8F7F1] flex justify-between items-center transition-all">
     <div className="space-y-1">
-        <h3 className="font-black text-xs uppercase tracking-widest italic text-indigo-50">Activar SnappyLinks</h3>
+        <h3 className="font-black text-xs uppercase tracking-widest italic text-[#F0FAF6]">Activar SnappyLinks</h3>
         <p className="text-[10px] opacity-80 font-bold uppercase">
             {data.is_bio_active ? 'Página Online' : 'Página Pausada'}
         </p>
@@ -1628,8 +1628,8 @@ const confirmReset = () => {
             <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2 ml-2">
                 <ExternalLink size={14} /> Link para tus Redes Sociales
             </h3>
-          <div className="flex bg-white rounded-2xl border-2 border-indigo-500 overflow-hidden shadow-lg shadow-indigo-50">
-    <div className="bg-indigo-50 px-3 py-3 border-r border-indigo-100 text-indigo-600 text-xs flex items-center select-none font-black italic shrink-0">
+          <div className="flex bg-white rounded-2xl border-2 border-fresco overflow-hidden shadow-lg shadow-[#F0FAF6]">
+    <div className="bg-[#F0FAF6] px-3 py-3 border-r border-[#E8F7F1] text-fresco text-xs flex items-center select-none font-black italic shrink-0">
         snappy.uno/
     </div>
     <input 
@@ -1648,7 +1648,7 @@ const confirmReset = () => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }}
-        className="px-4 border-l bg-gray-50 hover:bg-indigo-50 text-indigo-600 transition-colors flex items-center gap-2 shrink-0" // 🚀 Agregamos shrink-0
+        className="px-4 border-l bg-gray-50 hover:bg-[#F0FAF6] text-fresco transition-colors flex items-center gap-2 shrink-0" // 🚀 Agregamos shrink-0
     >
         {copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
         <span className="text-[10px] font-black uppercase">{copied ? 'Copiado' : 'Copiar'}</span>
@@ -1663,7 +1663,7 @@ const confirmReset = () => {
             </h3>
             <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6">
                 <div className="relative group">
-                    <div className="w-20 h-20 rounded-full border-4 border-indigo-50 shadow-xl overflow-hidden bg-gray-50 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full border-4 border-[#F0FAF6] shadow-xl overflow-hidden bg-gray-50 flex items-center justify-center">
                         <img
                             src={getOptimizedImageUrl(data.snappylink_logo_url || data.logo_url || '/placeholder.png', 150, 75) as string}
                             className="w-full h-full object-cover"
@@ -1701,13 +1701,13 @@ const confirmReset = () => {
 <section className="space-y-4">
     <button 
         onClick={() => setShowBioDesigns(!showBioDesigns)} // Reutilizamos o creamos un state para este toggle
-        className="w-full flex justify-between items-center p-5 bg-indigo-50 border-2 border-indigo-100 rounded-[2.5rem] group shadow-sm hover:bg-indigo-100 transition-all"
+        className="w-full flex justify-between items-center p-5 bg-[#F0FAF6] border-2 border-[#E8F7F1] rounded-[2.5rem] group shadow-sm hover:bg-[#E8F7F1] transition-all"
     >
         <h3 className="font-black text-xs uppercase text-indigo-950 tracking-tighter italic flex items-center gap-3">
-            <Palette size={18} className="text-indigo-600"/> Diseño y Colores
+            <Palette size={18} className="text-fresco"/> Diseño y Colores
         </h3>
         <div className={`transition-transform duration-300 ${showBioDesigns ? 'rotate-180' : 'rotate-0'}`}>
-            <ChevronDown size={20} className="text-indigo-400 group-hover:text-indigo-600" />
+            <ChevronDown size={20} className="text-indigo-400 group-hover:text-fresco" />
         </div>
     </button>
 {showBioDesigns && (
@@ -1737,7 +1737,7 @@ const confirmReset = () => {
                         {/* Mockup de Celular Fiel al Diseño */}
                         <div className={`w-full aspect-[9/16] rounded-[1.5rem] border-2 transition-all overflow-hidden flex flex-col p-2.5 gap-1.5 shadow-sm relative ${
                             data.snappylink_template_id === temp.id 
-                            ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-indigo-100' 
+                            ? 'border-fresco ring-4 ring-[#F0FAF6] shadow-[#E8F7F1]' 
                             : 'border-gray-100 bg-white hover:border-indigo-300'
                         } ${temp.status === 'soon' ? 'opacity-40 grayscale' : ''}`}>
                             
@@ -1762,7 +1762,7 @@ const confirmReset = () => {
                                             key={b} 
                                             className={`w-full h-2.5 rounded-full border-2 transition-all ${
                                                 temp.id === 'bio-modern' 
-                                                    ? 'bg-white border-indigo-600/20 shadow-[2px_2px_0px_rgba(79,70,229,0.2)]' 
+                                                    ? 'bg-white border-fresco/20 shadow-[2px_2px_0px_rgba(79,70,229,0.2)]' 
                                                     : temp.id === 'bio-glass' 
                                                         ? 'bg-white/30 border-white shadow-sm' 
                                                         : 'bg-zinc-900 border-zinc-700 shadow-[2px_2px_0px_rgba(0,0,0,1)]'
@@ -1782,7 +1782,7 @@ const confirmReset = () => {
                             {/* Banner "Próximamente" para las bloqueadas */}
                             {temp.status === 'soon' && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px] z-10">
-                                    <div className="bg-indigo-600 text-white text-[6px] font-black uppercase tracking-tighter px-2 py-1 rounded-md shadow-xl transform -rotate-12 border border-white/20">
+                                    <div className="bg-fresco text-white text-[6px] font-black uppercase tracking-tighter px-2 py-1 rounded-md shadow-xl transform -rotate-12 border border-white/20">
                                         Soon
                                     </div>
                                 </div>
@@ -1792,7 +1792,7 @@ const confirmReset = () => {
                         {/* Nombre del diseño */}
                         <div className="text-center">
                             <p className={`text-[9px] font-black uppercase tracking-tighter leading-none ${
-                                data.snappylink_template_id === temp.id ? 'text-indigo-600' : 'text-gray-400'
+                                data.snappylink_template_id === temp.id ? 'text-fresco' : 'text-gray-400'
                             }`}>
                                 {temp.name}
                             </p>
@@ -1865,15 +1865,15 @@ const confirmReset = () => {
    {/* Botón principal del Toggle: Coloreado y prominente */}
    <button 
     onClick={() => setShowBioContent(!showBioContent)}
-    className="w-full flex justify-between items-center p-5 bg-indigo-50 border-2 border-indigo-100 rounded-[2.5rem] group shadow-sm hover:bg-indigo-100 transition-all animate-in fade-in"
+    className="w-full flex justify-between items-center p-5 bg-[#F0FAF6] border-2 border-[#E8F7F1] rounded-[2.5rem] group shadow-sm hover:bg-[#E8F7F1] transition-all animate-in fade-in"
    >
     <h3 className="font-black text-xs uppercase text-indigo-950 tracking-tighter italic flex items-center gap-3">
         {/* Icono de Store coloreado */}
-        <Store size={18} className="text-indigo-600"/> Contenido de tu Bio
+        <Store size={18} className="text-fresco"/> Contenido de tu Bio
     </h3>
     {/* Cambiado icono de PLUS a CHEVRON y coloreado/rotado */}
     <div className={`transition-transform duration-300 ${showBioContent ? 'rotate-180' : 'rotate-0'}`}>
-        <ChevronDown size={20} className="text-indigo-400 group-hover:text-indigo-600" />
+        <ChevronDown size={20} className="text-indigo-400 group-hover:text-fresco" />
     </div>
    </button>
 
@@ -1883,7 +1883,7 @@ const confirmReset = () => {
     <div className="xl:hidden mb-4">
         <button 
             onClick={() => setShowMobilePreview(true)} 
-            className="flex items-center justify-center gap-2 w-full py-4 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100"
+            className="flex items-center justify-center gap-2 w-full py-4 bg-fresco text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-[#17A06D] transition-all active:scale-95 shadow-xl shadow-[#E8F7F1]"
         >
             <Eye size={18} className="text-white" /> Mirá cómo va quedando
         </button>
@@ -1893,14 +1893,14 @@ const confirmReset = () => {
       {/* --- SECCIÓN TÍTULO + COLOR --- */}
       <div className="flex items-center gap-4">
         <div className="flex-1 space-y-1.5 text-left">
-          <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest">
+          <label className="text-[10px] font-black text-fresco uppercase ml-2 tracking-widest">
             Título de Bienvenida
           </label>
           <input 
             type="text"
             value={data.snappylink_title || ''} 
             onChange={(e) => { setData({ ...data, snappylink_title: e.target.value }); setUnsavedChanges(true); }}
-            className="w-full p-4 border border-gray-100 rounded-2xl text-xs font-bold outline-none bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
+            className="w-full p-4 border border-gray-100 rounded-2xl text-xs font-bold outline-none bg-gray-50 focus:bg-white focus:ring-2 focus:ring-fresco transition-all shadow-inner"
             placeholder="Ej: Bienvenidos a nuestras redes"
           />
         </div>
@@ -1923,7 +1923,7 @@ const confirmReset = () => {
           <textarea
             value={data.snappylink_bio || ''}
             onChange={(e) => { setData({ ...data, snappylink_bio: e.target.value }); setUnsavedChanges(true); }}
-            className="w-full p-4 border border-gray-100 rounded-2xl text-xs outline-none bg-gray-50 shadow-inner resize-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+            className="w-full p-4 border border-gray-100 rounded-2xl text-xs outline-none bg-gray-50 shadow-inner resize-none focus:ring-2 focus:ring-fresco transition-all font-medium"
             placeholder="Ej: Las mejores burgers. Pedí online acá 👇"
             rows={3}
           />
@@ -1945,7 +1945,7 @@ const confirmReset = () => {
       <div className="flex justify-between items-center px-2">
     <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
         <Layers size={14} /> Tus Botones 
-        <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] ${isLimitReached ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'}`}>
+        <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] ${isLimitReached ? 'bg-red-100 text-red-600' : 'bg-[#E8F7F1] text-fresco'}`}>
             {currentLinksCount} / {linkLimit === 100 ? '∞' : linkLimit}
         </span>
     </h3>
@@ -2010,7 +2010,7 @@ const confirmReset = () => {
                         setData({ ...data, snappylink_links: nextLinks });
                         setUnsavedChanges(true);
                     }}
-                    className="w-full p-2 border-b border-gray-100 text-[10px] text-blue-500 outline-none font-medium"
+                    className="w-full p-2 border-b border-gray-100 text-[10px] text-fresco outline-none font-medium"
                     placeholder="Pegá el link aquí"
                 />
             </div>
@@ -2044,7 +2044,7 @@ const confirmReset = () => {
               {/* 🚀 NUEVO BOTÓN: Mira cómo lo ven tus clientes (Versión PC) */}
               <button
                 onClick={() => setShowMobilePreview(true)}
-                className="z-20 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 border-2 border-white/10"
+                className="z-20 flex items-center gap-2 px-6 py-3 bg-fresco text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#17A06D] transition-all active:scale-95 border-2 border-white/10"
               >
                 <Eye size={16} /> Mira cómo lo ven tus clientes
               </button>

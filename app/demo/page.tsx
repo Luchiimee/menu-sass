@@ -376,7 +376,7 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
       
       {view === 'selector' ? (
         <div className="max-w-7xl mx-auto px-6 pt-32 pb-20">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold mb-8 hover:text-blue-600 transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold mb-8 hover:text-fresco transition-colors">
             <ArrowLeft size={16}/> Volver al inicio
           </Link>
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-4 leading-none italic">
@@ -409,14 +409,14 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
               { id: 'spotlight', label: 'Ideal Restaurante', icon: <ChefHat/>, template: 'spotlight', color: 'text-amber-600' },
               { id: 'classic', label: 'Ideal Pizzería', icon: <Pizza/>, template: 'classic', color: 'text-red-600' },
               { id: 'pop', label: 'Ideal Kiosco', icon: <Store/>, template: 'pop', color: 'text-pink-600' },
-              { id: 'visualgrid', label: 'Ideal Sushi', icon: <Fish/>, template: 'visualgrid', color: 'text-blue-600' },
+              { id: 'visualgrid', label: 'Ideal Sushi', icon: <Fish/>, template: 'visualgrid', color: 'text-fresco' },
               { id: 'minimal', label: 'Ideal Cafetería', icon: <Coffee/>, template: 'minimal', color: 'text-stone-800' },
             ].map((opt) => (
               <button key={opt.id} onClick={() => { setTemplate(opt.template); setView('menu'); setCart({}); }}
                 className="bg-white p-12 rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all group text-left">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-gray-50 ${opt.color} group-hover:scale-110 transition-transform`}>{opt.icon}</div>
                 <h3 className="font-black text-xl uppercase italic tracking-tighter mb-4">{opt.label}</h3>
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600 tracking-widest">Entrar Ahora <ArrowRight size={14}/></div>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-fresco tracking-widest">Entrar Ahora <ArrowRight size={14}/></div>
               </button>
             ))}
           </div>
@@ -529,13 +529,13 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
           <div className="flex items-center gap-2 mb-8 text-gray-900"><Store size={20}/><h3 className="text-lg font-black uppercase italic tracking-tighter">Información</h3></div>
           
           <div className="space-y-6">
-            <div className="flex gap-4"><MapPin className="text-blue-600"/><div className="text-sm font-bold text-gray-800">Calle 25 num. 1111</div></div>
-            <div className="flex gap-4"><Clock className="text-blue-600"/><div className="text-sm font-bold text-gray-800">Lun a Dom: 11:00 - 23:00</div></div>
-            <div className="flex gap-4"><Phone className="text-blue-600"/><div className="text-sm font-bold text-gray-800">1131694099</div></div>
+            <div className="flex gap-4"><MapPin className="text-fresco"/><div className="text-sm font-bold text-gray-800">Calle 25 num. 1111</div></div>
+            <div className="flex gap-4"><Clock className="text-fresco"/><div className="text-sm font-bold text-gray-800">Lun a Dom: 11:00 - 23:00</div></div>
+            <div className="flex gap-4"><Phone className="text-fresco"/><div className="text-sm font-bold text-gray-800">1131694099</div></div>
             
             <div className="pt-6 border-t flex gap-4">
-              <Instagram className="text-blue-600" strokeWidth={1.5} size={24}/>
-              <Facebook className="text-blue-600" strokeWidth={1.5} size={24}/>
+              <Instagram className="text-fresco" strokeWidth={1.5} size={24}/>
+              <Facebook className="text-fresco" strokeWidth={1.5} size={24}/>
             </div>
           </div>
           <button onClick={() => setShowInfo(false)} className="w-full mt-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest">Entendido</button>
@@ -912,7 +912,7 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
   <div className="absolute bottom-6 left-0 right-0 px-4 z-50 animate-in slide-in-from-bottom-10">
     <button 
       onClick={() => setIsCartOpen(true)} 
-      className={`w-full ${selectedPlan === 'plus' ? 'bg-black' : 'bg-blue-600'} text-white p-4 rounded-2xl flex justify-between items-center font-bold text-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-all hover:scale-[1.02]`}
+      className={`w-full ${selectedPlan === 'plus' ? 'bg-black' : 'bg-fresco'} text-white p-4 rounded-2xl flex justify-between items-center font-bold text-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-all hover:scale-[1.02]`}
     >
       <div className="flex items-center gap-3">
         <div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center">
@@ -1001,7 +1001,7 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
           disabled={isMesaDisabled}
           onClick={() => setMetodoEnvio(m)} 
           className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all relative
-            ${metodoEnvio === m ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}
+            ${metodoEnvio === m ? 'bg-white shadow-sm text-fresco' : 'text-gray-400'}
             ${isMesaDisabled ? 'opacity-30 grayscale cursor-not-allowed' : 'hover:bg-white/50'}
           `}
         >
@@ -1018,8 +1018,8 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
   </div>
   {metodoEnvio === 'delivery' && (
     <p className="text-[15px] font-bold text-gray-900 mt-2 ml-2 flex items-center gap-1 animate-in slide-in-from-top-1 duration-300">
-      <Bike size={12} className="text-blue-600"/> 
-      Costo de envío: <span className="text-blue-600">${COSTO_ENVIO}</span>
+      <Bike size={12} className="text-fresco"/> 
+      Costo de envío: <span className="text-fresco">${COSTO_ENVIO}</span>
     </p>
   )}
 
@@ -1065,25 +1065,25 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
                       <label className="text-[8px] font-black text-gray-400 uppercase ml-2">Medio de Pago</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={()=>setMetodoPago('efectivo')} className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-[10px] ${metodoPago === 'efectivo' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100'}`}><Wallet size={16}/> EFECTIVO</button>
-                        <button onClick={()=>setMetodoPago('transferencia')} className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-[10px] ${metodoPago === 'transferencia' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100'}`}><Landmark size={16}/> TRANSFERENCIA</button>
+                        <button onClick={()=>setMetodoPago('transferencia')} className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-[10px] ${metodoPago === 'transferencia' ? 'border-fresco bg-[#F0FAF6] text-[#17A06D]' : 'border-gray-100'}`}><Landmark size={16}/> TRANSFERENCIA</button>
                       </div>
                     </div>
                     {metodoPago === 'transferencia' && (
   <div className="space-y-2 mt-2">
     <div 
       onClick={handleCopyAlias} 
-      className={`p-4 rounded-xl border-2 flex justify-between items-center cursor-pointer transition-all ${copied ? 'border-blue-600 bg-blue-50' : 'border-gray-100 bg-white'}`}
+      className={`p-4 rounded-xl border-2 flex justify-between items-center cursor-pointer transition-all ${copied ? 'border-fresco bg-[#F0FAF6]' : 'border-gray-100 bg-white'}`}
     >
       <div className="text-left">
-        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">snappy.demo.mp</p>
+        <p className="text-[10px] font-black text-fresco uppercase tracking-widest">snappy.demo.mp</p>
         <p className="text-[9px] font-bold text-gray-400">Toca para copiar alias</p>
       </div>
-      {copied ? <CheckCircle2 size={18} className="text-blue-600" /> : <Copy size={18} className="text-gray-400" />}
+      {copied ? <CheckCircle2 size={18} className="text-fresco" /> : <Copy size={18} className="text-gray-400" />}
     </div>
 
     {/* EL MENSAJE QUE FALTABA */}
     {copied && (
-      <div className="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold animate-in fade-in slide-in-from-top-1 duration-300">
+      <div className="bg-fresco text-white px-4 py-2 rounded-lg text-[10px] font-bold animate-in fade-in slide-in-from-top-1 duration-300">
         ¡Alias copiado! No olvides enviarme el comprobante.
       </div>
     )}
@@ -1155,12 +1155,12 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
               )}
             </div>
           ) : (
-            <div className={`h-screen flex flex-col items-center justify-center p-10 text-center relative transition-colors duration-1000 ${status === 'pendiente' ? 'bg-yellow-50' : status === 'en_proceso' ? 'bg-orange-50' : status === 'en_camino' ? 'bg-blue-50' : 'bg-green-50'}`}>
+            <div className={`h-screen flex flex-col items-center justify-center p-10 text-center relative transition-colors duration-1000 ${status === 'pendiente' ? 'bg-yellow-50' : status === 'en_proceso' ? 'bg-orange-50' : status === 'en_camino' ? 'bg-[#F0FAF6]' : 'bg-green-50'}`}>
               <div className="relative z-10">
                 <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl border-[6px] border-white">
                     {status === 'pendiente' && <Clock size={40} className="text-yellow-600 animate-pulse"/>}
                     {status === 'en_proceso' && <ChefHat size={40} className="text-orange-600 animate-bounce"/>}
-                    {status === 'en_camino' && <Bike size={40} className="text-blue-600 animate-bounce"/>}
+                    {status === 'en_camino' && <Bike size={40} className="text-fresco animate-bounce"/>}
                     {status === 'completado' && <Check size={40} className="text-green-600 scale-125 transition-transform"/>}
                 </div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2 leading-none">
@@ -1200,11 +1200,11 @@ const formatPrice = (p: number) => new Intl.NumberFormat('es-AR', { style: 'curr
           </p>
           <span className="text-[9px] text-gray-400 block text-right mt-1">12:45</span>
         </div>
-        <div className="bg-blue-100 border border-blue-200 p-4 rounded-2xl mt-10">
+        <div className="bg-[#E8F7F1] border border-[#B8E8D4] p-4 rounded-2xl mt-10">
           <p className="text-blue-800 text-xs font-bold flex items-center gap-2">
             <HelpCircle size={14}/> ESTO TE LLEGARÁ A VOS
           </p>
-          <p className="text-blue-700 text-[10px] mt-1 leading-tight">
+          <p className="text-[#17A06D] text-[10px] mt-1 leading-tight">
             En el <b>Plan Light</b>, el cliente te envía este mensaje detallado para que vos lo gestiones manualmente.
           </p>
         </div>

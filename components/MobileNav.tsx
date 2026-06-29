@@ -101,7 +101,7 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
                   <div className="text-left">
                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Hola, {displayName.split(' ')[0]}!</p>
                      <p className="text-sm font-black text-slate-900 uppercase italic flex items-center gap-1">
-                       {displaySubtext} {displaySubtext?.includes('Plus') && <Zap size={14} className="text-blue-600 fill-current"/>}
+                       {displaySubtext} {displaySubtext?.includes('Plus') && <Zap size={14} className="text-fresco fill-current"/>}
                      </p>
                   </div>
                 </div>
@@ -153,9 +153,9 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
               {isAdmin && (
                 <div>
                   <p className="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 text-left">Administración</p>
-                  <Link href="/admin/snappy" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50 border border-indigo-100 active:scale-95 transition-all">
+                  <Link href="/admin/snappy" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 rounded-2xl bg-[#F0FAF6] border border-[#E8F7F1] active:scale-95 transition-all">
                     <div className="flex items-center gap-4">
-                      <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200"><ShieldCheck size={20} /></div>
+                      <div className="p-2 bg-fresco rounded-xl text-white shadow-lg shadow-indigo-200"><ShieldCheck size={20} /></div>
                       <span className="font-black text-indigo-900">Panel Snappy Admin</span>
                     </div>
                     <ChevronRight size={18} className="text-indigo-300" />
@@ -200,11 +200,11 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
         {/* BOTÓN "MÁS" (Hamburguesa) */}
         <button 
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className={`flex flex-col items-center justify-center w-full h-full transition-all duration-200 active:scale-90 relative ${isMenuOpen ? 'text-indigo-600' : 'text-slate-500'}`}
+          className={`flex flex-col items-center justify-center w-full h-full transition-all duration-200 active:scale-90 relative ${isMenuOpen ? 'text-fresco' : 'text-slate-500'}`}
         >
-          {isMenuOpen && <div className="absolute top-0 w-8 h-1 bg-indigo-600 rounded-b-full animate-in slide-in-from-top-1"></div>}
+          {isMenuOpen && <div className="absolute top-0 w-8 h-1 bg-fresco rounded-b-full animate-in slide-in-from-top-1"></div>}
           {isMenuOpen ? <X size={20} strokeWidth={3} /> : <Menu size={20} strokeWidth={2} className="text-slate-600" />}
-          <span className={`text-[9px] mt-1 font-black uppercase tracking-tighter ${isMenuOpen ? 'text-indigo-600' : 'text-slate-700 opacity-90'}`}>
+          <span className={`text-[9px] mt-1 font-black uppercase tracking-tighter ${isMenuOpen ? 'text-fresco' : 'text-slate-700 opacity-90'}`}>
             Más
           </span>
         </button>

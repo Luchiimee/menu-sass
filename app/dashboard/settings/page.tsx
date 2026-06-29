@@ -121,7 +121,7 @@ function SettingsContent() {
   const handlePasswordReset = async () => {
       if (!profile.email) return toast.error("No hay un correo asociado");
       const { error } = await supabase.auth.resetPasswordForEmail(profile.email, { 
-          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings/new-password` 
+          redirectTo: `${window.location.origin}/auth/callback?next=/new-password`
       });
       if (error) toast.error("Error al enviar el correo");
       else toast.success("¡Correo enviado! Revisá tu bandeja de entrada.");
@@ -453,7 +453,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
         <div className="space-y-6">
           <section className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
             <h2 className="font-bold text-xl mb-6 flex items-center gap-2">
-                <Lock size={20} className="text-blue-600" /> Seguridad
+                <Lock size={20} className="text-fresco" /> Seguridad
             </h2>
             
             <div className="space-y-6">
@@ -465,7 +465,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
             {/* CARD DE INFORMACIÓN DEL CORREO */}
             <div className="p-4 bg-gray-50 rounded-[1.5rem] border border-gray-100 flex flex-col gap-3 relative overflow-hidden group">
                 <div className="flex items-start gap-3 pr-2">
-                    <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600 shrink-0">
+                    <div className="bg-white p-2 rounded-xl shadow-sm text-fresco shrink-0">
                         <Mail size={16} />
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -491,7 +491,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                 <div className="pt-2 border-t border-gray-100 flex justify-end">
                     <button 
                         onClick={() => setIsEditingEmail(true)} 
-                        className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-tighter transition-all active:scale-95"
+                        className="text-[10px] font-black text-fresco hover:text-blue-800 uppercase tracking-tighter transition-all active:scale-95"
                     >
                         Cambiar Correo
                     </button>
@@ -506,7 +506,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     </p>
                     <button 
                         onClick={handleResendEmail}
-                        className="text-[9px] font-black text-blue-600 uppercase underline decoration-2 underline-offset-4 hover:text-blue-800"
+                        className="text-[9px] font-black text-fresco uppercase underline decoration-2 underline-offset-4 hover:text-blue-800"
                     >
                         Reenviar link de confirmación
                     </button>
@@ -521,7 +521,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     value={newEmail} 
                     onChange={(e) => setNewEmail(e.target.value)} 
                     placeholder="Nuevo correo electrónico" 
-                    className="w-full p-4 bg-white border-2 border-blue-500 rounded-2xl text-sm font-bold outline-none shadow-lg shadow-blue-50" 
+                    className="w-full p-4 bg-white border-2 border-fresco rounded-2xl text-sm font-bold outline-none shadow-lg shadow-[#F0FAF6]" 
                 />
                 <div className="flex gap-2">
                     <button 
@@ -806,7 +806,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                               href="https://qz.io/download/"
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[10px] text-blue-500 font-bold underline underline-offset-2"
+                              className="text-[10px] text-fresco font-bold underline underline-offset-2"
                             >
                               Descargar QZ Tray ↗
                             </a>

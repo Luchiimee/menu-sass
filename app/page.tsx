@@ -555,7 +555,7 @@ export default function LandingPage() {
   };
   const currentMode = seguimientoModes[activeMode];
   const badgeColors = [
-    'bg-blue-500/20 text-blue-400',
+    'bg-fresco/20 text-blue-400',
     'bg-yellow-500/20 text-yellow-400',
     'bg-orange-500/20 text-orange-400',
     'bg-green-500/20 text-green-400',
@@ -686,8 +686,8 @@ export default function LandingPage() {
         {
           title: "KIOSCOS",
           desc: "Vendé 24/7 sin estar pegado al teléfono.",
-          icon: <Store className="text-blue-500" />,
-          bg: "bg-blue-50",
+          icon: <Store className="text-fresco" />,
+          bg: "bg-[#F0FAF6]",
         },
         {
           title: "VERDULERÍAS",
@@ -737,8 +737,8 @@ export default function LandingPage() {
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-          <QrCode size={20} className="text-blue-500" />
+        <div className="w-10 h-10 bg-[#F0FAF6] rounded-2xl flex items-center justify-center mb-4">
+          <QrCode size={20} className="text-fresco" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Escaneán el QR y piden al instante</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
@@ -756,7 +756,7 @@ export default function LandingPage() {
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
         <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center mb-4">
-          <Percent size={20} className="text-purple-500" />
+          <Percent size={20} className="text-brasa" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Descuentos y cupones</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
@@ -869,11 +869,11 @@ export default function LandingPage() {
                     <span className="text-[9px] font-black text-white">$31.000</span>
                     <button className="mt-1 w-full py-1 rounded-lg bg-red-500/10 border border-red-500/40 text-[7px] font-black text-red-400 uppercase cursor-default">Abrir</button>
                   </div>
-                  <div className="bg-purple-500/5 border border-purple-500/40 rounded-xl p-2 flex flex-col gap-1">
+                  <div className="bg-brasa/5 border border-brasa/40 rounded-xl p-2 flex flex-col gap-1">
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
                     <span className="text-[7px] font-black text-purple-400 uppercase">Pago Pend.</span>
                     <span className="text-[9px] font-black text-white">$14.200</span>
-                    <button className="mt-1 w-full py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-[7px] font-black text-purple-400 uppercase cursor-default">Abrir</button>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-brasa/10 border border-brasa/30 text-[7px] font-black text-purple-400 uppercase cursor-default">Abrir</button>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
                     <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
@@ -896,7 +896,7 @@ export default function LandingPage() {
                   </div>
                   <p className="text-[10px] font-black text-white uppercase tracking-wide">Luciano</p>
                   <div className="flex gap-1.5 flex-wrap">
-                    <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 Delivery</span>
+                    <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 Delivery</span>
                     <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
                   </div>
                   <p className="text-[8px] text-gray-600">Av. San Martín 1234</p>
@@ -923,7 +923,7 @@ export default function LandingPage() {
                   </div>
                   <p className="text-[10px] font-black text-white uppercase tracking-wide">Carlos</p>
                   <div className="flex gap-1.5 flex-wrap">
-                    <span className="px-1.5 py-0.5 bg-purple-500/20 border border-purple-500/30 rounded text-[7px] font-black text-purple-400 uppercase">🪑 Mesa 4</span>
+                    <span className="px-1.5 py-0.5 bg-brasa/20 border border-brasa/30 rounded text-[7px] font-black text-purple-400 uppercase">🪑 Mesa 4</span>
                     <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
                   </div>
                   <p className="text-[8px] text-gray-500">x1 Bife de chorizo · $31.000</p>
@@ -997,7 +997,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">MARÍA</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x1 Pack snacks $6.000 · x2 Agua mineral $2.800 · x1 Chocolate $3.800</p>
@@ -1068,7 +1068,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">CAROLINA</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x500g Granola $4.200 · x250g Almendras $6.800 · x1kg Arroz integral $4.800</p>
@@ -1094,7 +1094,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">VALENTINA</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x1kg Semillas mix $8.600 · x500g Proteína $13.800</p>
@@ -1123,7 +1123,7 @@ export default function LandingPage() {
             <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm group hover:-translate-y-2 transition-all duration-300 hover:shadow-xl">
               <BarChart3
                 size={32}
-                className="text-violet-600 mb-6 group-hover:scale-110 transition-transform"
+                className="text-fresco mb-6 group-hover:scale-110 transition-transform"
               />
               <h3 className="text-xl font-bold mb-4 text-gray-900">
                 Caja y Métricas
@@ -1142,14 +1142,14 @@ export default function LandingPage() {
                 />
                 <div
                   onClick={handleCopyAlias}
-                  className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-violet-50 transition relative group/alias"
+                  className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-[#F0FAF6] transition relative group/alias"
                 >
                   <span className="text-[10px] font-black text-gray-600 uppercase tracking-wider">
                     luciano.mp
                   </span>
                   <Copy
                     size={12}
-                    className="text-gray-400 group-hover/alias:text-violet-600"
+                    className="text-gray-400 group-hover/alias:text-fresco"
                   />
                   {aliasCopied && (
                     <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded shadow-xl font-bold">
@@ -1170,7 +1170,7 @@ export default function LandingPage() {
             <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm group hover:-translate-y-2 transition-all duration-300 hover:shadow-xl">
               <QrCode
                 size={32}
-                className="text-blue-600 mb-6 group-hover:scale-110 transition-transform"
+                className="text-fresco mb-6 group-hover:scale-110 transition-transform"
               />
               <h3 className="text-xl font-bold mb-4 text-gray-900">
                 QR por Mesa
@@ -1212,7 +1212,7 @@ export default function LandingPage() {
             <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm group hover:-translate-y-2 transition-all duration-300 hover:shadow-xl">
               <Globe
                 size={32}
-                className="text-blue-600 mb-6 group-hover:scale-110 transition-transform"
+                className="text-fresco mb-6 group-hover:scale-110 transition-transform"
               />
               <h3 className="text-xl font-bold mb-4 text-gray-900">
                 Link para Redes
@@ -1538,9 +1538,9 @@ export default function LandingPage() {
       </div>
 
       {/* Plan 2: GO */}
-      <div className="bg-white border-2 border-blue-500 rounded-[35px] p-8 transition flex flex-col shadow-lg relative z-20">
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-black px-4 py-1 rounded-full uppercase whitespace-nowrap">Ideal Crecimiento</div>
-        <h3 className="text-lg font-bold text-blue-600 mb-1">GO</h3>
+      <div className="bg-white border-2 border-fresco rounded-[35px] p-8 transition flex flex-col shadow-lg relative z-20">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-fresco text-white text-[10px] font-black px-4 py-1 rounded-full uppercase whitespace-nowrap">Ideal Crecimiento</div>
+        <h3 className="text-lg font-bold text-fresco mb-1">GO</h3>
         <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
         <div className="mb-6">
           <span className="line-through text-gray-400 text-sm font-medium">$28.600</span>
@@ -1551,56 +1551,56 @@ export default function LandingPage() {
         </div>
         <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
             <span><b>Hasta 60 Productos</b></span>
           </li>
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
             <span>Sube <b>Imágenes o Videos</b> 🎥</span>
           </li>
           <li className="flex items-start gap-3 text-left group relative cursor-help">
-    <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+    <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
     <div className="flex items-center gap-1.5">
       <span><b>Snapplink:</b> Hasta 4 enlaces</span>
-      <HelpCircle size={13} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+      <HelpCircle size={13} className="text-gray-400 group-hover:text-fresco transition-colors" />
       
       <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-        <p className="font-black uppercase text-blue-600 mb-1">Bio-Link</p>
+        <p className="font-black uppercase text-fresco mb-1">Bio-Link</p>
         Un solo link para tu biografía que contiene botones para tus enlaces más importantes (<b>Menú, WhatsApp y Redes</b>). <br/><i>Límite: 4 botones.</i>
       </div>
     </div>
   </li>
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
             <span>Pedidos al <b>Panel o WhatsApp</b></span>
           </li>
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
             <span><b>Seguimiento en vivo</b> (Dueño y Cliente)</span>
           </li>
          <li className="flex items-start gap-3 text-left group relative cursor-help">
-  <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/> 
+  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
   <div className="flex items-center gap-1.5">
     <span><b>Descuentos automáticos</b> por monto</span>
-    <HelpCircle size={13} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+    <HelpCircle size={13} className="text-gray-400 group-hover:text-fresco transition-colors" />
     
     {/* TOOLTIP EXPLICATIVO */}
     <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-      <p className="font-black uppercase text-blue-600 mb-1">Ventas inteligentes</p>
+      <p className="font-black uppercase text-fresco mb-1">Ventas inteligentes</p>
       Puedes crear reglas automáticas: por ejemplo, si superan cierto monto el <b>envío es gratis</b> o se <b>descuenta un monto/porcentaje</b> del total. Una experiencia de compra superior para tu cliente.
     </div>
   </div>
 </li>
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/>
+            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
             <span>Gestión de Cupones</span>
           </li>
           <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-blue-500 flex-shrink-0 mt-0.5"/>
+            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
             <span><b>Comandas</b> e Impresión de Tickets</span>
           </li>
         </ul>
-        <Link href="/login" className="block w-full py-3 rounded-xl bg-blue-500 text-white text-center font-bold hover:bg-blue-600 transition text-sm">Prueba 14 días gratis</Link>
+        <Link href="/login" className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco transition text-sm">Prueba 14 días gratis</Link>
       </div>
 
  
@@ -1708,7 +1708,7 @@ export default function LandingPage() {
         
         {/* TOOLTIP EXPLICATIVO */}
         <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-          <p className="font-black uppercase text-blue-600 mb-1">Cobros Automatizados</p>
+          <p className="font-black uppercase text-fresco mb-1">Cobros Automatizados</p>
           Vinculá tu cuenta de <b>Mercado Pago o Ualá</b> para que tus clientes paguen directamente desde tu catálogo digital. Cobros rápidos, seguros y automáticos.
         </div>
       </div>

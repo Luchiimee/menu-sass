@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
 
         <div className="pt-10 border-t border-gray-100">
           <p className="font-bold text-gray-900">Contacto</p>
-          <p>Si tienes dudas sobre esta política, puedes escribirnos a: <span className="text-blue-600">snappyuno25@gmail.com</span></p>
+          <p>Si tienes dudas sobre esta política, puedes escribirnos a: <span className="text-fresco">snappyuno25@gmail.com</span></p>
         </div>
       </section>
 

@@ -450,7 +450,7 @@ return (
               <input type="time" value={rescheduleData.time} onChange={e => setRescheduleData({...rescheduleData, time: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm" />
               <div className="flex gap-2">
                 <button onClick={() => setShowRescheduleModal(false)} className="flex-1 py-4 bg-gray-100 rounded-2xl font-black uppercase text-[10px]">Cancelar</button>
-                <button onClick={confirmReschedule} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg">Confirmar</button>
+                <button onClick={confirmReschedule} className="flex-[2] py-4 bg-fresco text-white rounded-2xl font-black uppercase text-[10px] shadow-lg">Confirmar</button>
               </div>
             </div>
           </div>
@@ -466,7 +466,7 @@ function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDele
     'confirmada': { color: 'bg-emerald-500', label: 'CONFIRMADA', border: 'border-emerald-100' },
     'pendiente': { color: 'bg-amber-500', label: 'PENDIENTE', border: 'border-amber-100' },
     'suspendida': { color: 'bg-orange-500', label: 'SUSPENDIDA', border: 'border-orange-100' },
-    'programada': { color: 'bg-blue-500', label: 'REPROGRAMADA', border: 'border-blue-100' },
+    'programada': { color: 'bg-fresco', label: 'REPROGRAMADA', border: 'border-[#E8F7F1]' },
     'cancelada': { color: 'bg-red-500', label: 'CANCELADA', border: 'border-red-100' }
   };
 
@@ -523,7 +523,7 @@ function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDele
           {res.status === 'pendiente' ? (
               <button onClick={() => onStatusChange('confirmada')} className="py-2.5 rounded-xl bg-emerald-600 text-white font-black text-[9px] uppercase shadow-md active:scale-95 transition-all">Confirmar</button>
           ) : (
-              <button onClick={() => onReschedule()} className="py-2.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-[9px] uppercase border border-blue-100">Re-Prog.</button>
+              <button onClick={() => onReschedule()} className="py-2.5 rounded-xl bg-[#F0FAF6] text-fresco font-bold text-[9px] uppercase border border-[#E8F7F1]">Re-Prog.</button>
           )}
 
           <button 

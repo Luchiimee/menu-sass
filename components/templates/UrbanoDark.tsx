@@ -185,15 +185,15 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
                     {selectedProduct.variations.map((v: any, idx: number) => {
                       const qty = variationsQuantities[idx] || 0;
                       return (
-                        <div key={idx} className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${qty > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-gray-100 bg-gray-50"}`}>
+                        <div key={idx} className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${qty > 0 ? "border-fresco bg-[#F0FAF6]/50" : "border-gray-100 bg-gray-50"}`}>
                           <div className="flex flex-col text-left">
                             <span className={`font-black text-sm uppercase ${qty > 0 ? "text-indigo-900" : "text-gray-500"}`}>{v.label}</span>
-                            <span className={`font-bold text-xs ${qty > 0 ? "text-indigo-600" : "text-gray-400"}`}>{formatPrice(v.price)}</span>
+                            <span className={`font-bold text-xs ${qty > 0 ? "text-fresco" : "text-gray-400"}`}>{formatPrice(v.price)}</span>
                           </div>
                           <div className="flex items-center gap-4 bg-white rounded-full p-1 shadow-sm border border-gray-100">
                             <button onClick={() => setVariationsQuantities({ ...variationsQuantities, [idx]: Math.max(0, qty - 1) })} className="w-8 h-8 rounded-full text-gray-300">-</button>
                             <span className="font-black text-sm">{qty}</span>
-                            <button onClick={() => setVariationsQuantities({ ...variationsQuantities, [idx]: qty + 1 })} className="w-8 h-8 rounded-full bg-indigo-600 text-white">+</button>
+                            <button onClick={() => setVariationsQuantities({ ...variationsQuantities, [idx]: qty + 1 })} className="w-8 h-8 rounded-full bg-fresco text-white">+</button>
                           </div>
                         </div>
                       );
