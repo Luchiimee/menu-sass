@@ -381,10 +381,10 @@ const handleCallWaiter = async () => {
 
         const trackingBadge = ({
             pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
-            recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido recibido' },
+            recibido:   { cls: 'bg-[#E8F7F1] text-[#17A06D]', label: 'Pedido recibido' },
             en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Preparando tu pedido' },
-            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: metodoEnvio === 'retiro' ? 'Listo para retirar 🏪' : 'En camino 🛵' },
-            entregado:  { cls: 'bg-blue-100 text-blue-700',     label: 'Entregado ✅' },
+            en_camino:  { cls: 'bg-[#E8F7F1] text-[#17A06D]',     label: metodoEnvio === 'retiro' ? 'Listo para retirar 🏪' : 'En camino 🛵' },
+            entregado:  { cls: 'bg-[#E8F7F1] text-[#17A06D]',     label: 'Entregado ✅' },
             completado: { cls: 'bg-green-100 text-green-700',   label: 'Completado' },
             cancelado:  { cls: 'bg-red-100 text-red-700',       label: 'Pedido cancelado ❌' },
         } as any)[orderStatus] ?? { cls: 'bg-amber-100 text-amber-700', label: 'Confirmando...' };
@@ -402,9 +402,9 @@ const handleCallWaiter = async () => {
 
         const mesaBadge = ({
             pendiente:  { cls: 'bg-amber-100 text-amber-700',   label: 'Confirmando...' },
-            recibido:   { cls: 'bg-indigo-100 text-indigo-700', label: 'Pedido confirmado ✅' },
+            recibido:   { cls: 'bg-[#E8F7F1] text-[#17A06D]', label: 'Pedido confirmado ✅' },
             en_proceso: { cls: 'bg-orange-100 text-orange-700', label: 'Cocinando 🔥' },
-            en_camino:  { cls: 'bg-blue-100 text-blue-700',     label: '¡Tu plato está listo! Enseguida lo llevamos a tu mesa 🍽️' },
+            en_camino:  { cls: 'bg-[#E8F7F1] text-[#17A06D]',     label: '¡Tu plato está listo! Enseguida lo llevamos a tu mesa 🍽️' },
             entregado:  { cls: 'bg-green-100 text-green-700',   label: 'Entregado en mesa' },
             completado: { cls: 'bg-green-100 text-green-700',   label: 'Gracias por tu visita' },
             cancelado:  { cls: 'bg-red-100 text-red-700',       label: 'Pedido cancelado ❌' },
@@ -470,7 +470,7 @@ const handleCallWaiter = async () => {
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
                         {isMesa && (
-                            <div className="bg-indigo-600 text-white rounded-3xl p-5 m6 text-left shadow-lg animate-in zoom-in">
+                            <div className="bg-fresco text-white rounded-3xl p-5 m6 text-left shadow-lg animate-in zoom-in">
                                 <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">{displayTableLabel(nroMesa)}</p>
                                 <h4 className="text-base font-black leading-tight">{tableStatusText[orderStatus] || 'Procesando...'}</h4>
                             </div>
@@ -551,7 +551,7 @@ const handleCallWaiter = async () => {
                                         <p className="text-purple-700 font-black text-[13px] mb-3">Pago por transferencia</p>
                                         <div
                                             onClick={handleCopyAlias}
-                                            className={`flex justify-between items-center cursor-pointer p-3 rounded-[12px] transition-all border-2 ${copied ? 'bg-green-600 border-green-600' : 'bg-blue-50 border-blue-200 active:scale-95'}`}
+                                            className={`flex justify-between items-center cursor-pointer p-3 rounded-[12px] transition-all border-2 ${copied ? 'bg-green-600 border-green-600' : 'bg-[#F0FAF6] border-[#B8E8D4] active:scale-95'}`}
                                         >
                                             <div className={copied ? 'text-white' : 'text-blue-900'}>
                                                 <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
@@ -561,7 +561,7 @@ const handleCallWaiter = async () => {
                                             </div>
                                             {copied ? <Check size={18} className="text-white shrink-0" /> : <Copy size={18} className="text-blue-400 shrink-0" />}
                                         </div>
-                                        <p className="text-[11px] text-purple-600 text-center mt-2 leading-snug">
+                                        <p className="text-[11px] text-brasa text-center mt-2 leading-snug">
                                             Envianos el comprobante por WhatsApp o esperá a que confirmemos el ingreso manualmente.
                                         </p>
                                         <button
@@ -662,7 +662,7 @@ const handleCallWaiter = async () => {
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
         {/* LLAMAR MOZO: Siempre visible */}
-        <button onClick={handleCallWaiter} className="w-full bg-indigo-50 border border-indigo-200 text-indigo-700 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+        <button onClick={handleCallWaiter} className="w-full bg-[#F0FAF6] border border-indigo-200 text-[#17A06D] py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
             <Bell size={18} /> Llamar Mozo
         </button>
 
@@ -695,12 +695,12 @@ const handleCallWaiter = async () => {
                         <div className="flex items-center gap-3"><Wallet className="text-green-600" /> Efectivo</div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
-                    <button onClick={() => handleNotificarPagoMesa('tarjeta')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-blue-500 transition-all">
-                        <div className="flex items-center gap-3"><CreditCard className="text-blue-600" /> Tarjeta (Débito/Crédito)</div>
+                    <button onClick={() => handleNotificarPagoMesa('tarjeta')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-fresco transition-all">
+                        <div className="flex items-center gap-3"><CreditCard className="text-fresco" /> Tarjeta (Débito/Crédito)</div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
-                    <button onClick={() => setPasoPago('transferencia')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-purple-500 transition-all">
-                        <div className="flex items-center gap-3"><Landmark className="text-purple-600" /> Transferencia</div>
+                    <button onClick={() => setPasoPago('transferencia')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-brasa transition-all">
+                        <div className="flex items-center gap-3"><Landmark className="text-brasa" /> Transferencia</div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
                 </div>
@@ -712,7 +712,7 @@ const handleCallWaiter = async () => {
         {pasoPago === 'transferencia' && (
             <div className="space-y-4 animate-in zoom-in-95">
                 <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200">
-                    <p className="text-[9px] font-black text-purple-600 uppercase mb-1">Copiá nuestro Alias</p>
+                    <p className="text-[9px] font-black text-brasa uppercase mb-1">Copiá nuestro Alias</p>
                     <div onClick={handleCopyAlias} className="flex justify-between items-center cursor-pointer">
                         <span className="font-black text-purple-900">{aliasMp || 'Configurá tu Alias'}</span>
                         <Copy size={16} className="text-purple-400" />
@@ -725,7 +725,7 @@ const handleCallWaiter = async () => {
                         type="text" 
                         value={nombreApellidoPago}
                         onChange={(e) => setNombreApellidoPago(e.target.value)}
-                        className="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-purple-500 font-bold text-sm"
+                        className="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-brasa font-bold text-sm"
                         placeholder="Ej: Juan Pérez"
                     />
                 </div>
@@ -733,7 +733,7 @@ const handleCallWaiter = async () => {
                 <button 
                     disabled={!nombreApellidoPago.trim()}
                     onClick={() => handleNotificarPagoMesa('transferencia')}
-                    className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg disabled:opacity-50"
+                    className="w-full bg-brasa text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg disabled:opacity-50"
                 >
                     Ya transferí
                 </button>
@@ -770,7 +770,7 @@ const handleCallWaiter = async () => {
                         {metodoPago === 'transferencia' ? (
                             <div className="space-y-4">
                                 <div className="bg-white border-2 border-purple-100 p-8 rounded-[2.5rem] text-center shadow-xl">
-                                    <Loader2 className="animate-spin text-purple-600 mx-auto mb-4" size={40} />
+                                    <Loader2 className="animate-spin text-brasa mx-auto mb-4" size={40} />
                                     <h4 className="text-sm font-black text-gray-900 uppercase italic mb-2">Revisando Transferencia</h4>
                                     <p className="text-[11px] text-gray-500 font-medium leading-relaxed px-4">
                                         Ya avisamos al local. Aguardá un momento mientras confirman el ingreso de la transferencia.
@@ -1182,8 +1182,8 @@ return (
                 <div className="bg-white rounded-[20px] border border-slate-200 p-[18px] mb-3 shadow-sm space-y-4">
     {/* MENSAJE DE AYUDA (Solo envío/retiro) */}
     {metodoEnvio !== 'mesa' && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-[10px] p-2">
-          <p className="text-[11px] font-bold text-indigo-600 leading-tight">
+        <div className="bg-[#F0FAF6] border border-[#E8F7F1] rounded-[10px] p-2">
+          <p className="text-[11px] font-bold text-fresco leading-tight">
             * Pedimos apellido para identificar tu transferencia más rápido en nuestra cuenta.
           </p>
         </div>
@@ -1243,7 +1243,7 @@ return (
                                 type="button"
                                 onClick={handleDetectLocation}
                                 disabled={detectingLocation}
-                                className="bg-blue-50 border border-blue-200 text-blue-600 rounded-xl py-2 px-4 flex items-center gap-2 w-full justify-center font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all"
+                                className="bg-[#F0FAF6] border border-[#B8E8D4] text-fresco rounded-xl py-2 px-4 flex items-center gap-2 w-full justify-center font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all"
                               >
                                 {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
                                 Calcular envío
@@ -1302,9 +1302,9 @@ return (
                 </div>
 {/* 📅 SECCIÓN DE TURNOS (SÓLO APARECE SI ESTÁ ACTIVADO) */}
       {metodoEnvio !== 'mesa' && scheduled_delivery_enabled && (planType !== 'light' || isAdmin) && (
-        <div className="space-y-4 p-6 bg-indigo-50/40 rounded-[2.5rem] border border-indigo-100/50 mb-6 animate-in slide-in-from-top-4">
+        <div className="space-y-4 p-6 bg-[#F0FAF6]/40 rounded-[2.5rem] border border-[#E8F7F1]/50 mb-6 animate-in slide-in-from-top-4">
             <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+                <div className="w-8 h-8 rounded-full bg-fresco text-white flex items-center justify-center shadow-lg shadow-indigo-200">
                     <Clock size={16} strokeWidth={2.5} />
                 </div>
                 <div className="text-left">
@@ -1347,7 +1347,7 @@ return (
 
                     if (availableBlocks.length === 0) {
                         return (
-                            <div className="w-full py-6 text-center bg-white/40 rounded-2xl border-2 border-dashed border-indigo-100">
+                            <div className="w-full py-6 text-center bg-white/40 rounded-2xl border-2 border-dashed border-[#E8F7F1]">
                                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic text-center">
                                     No hay más turnos <br/> disponibles por hoy
                                 </p>
@@ -1362,7 +1362,7 @@ return (
                             onClick={() => setSelectedSlot(time)}
                             className={`px-4 py-2.5 rounded-2xl border-2 text-[11px] font-black transition-all ${
                                 selectedSlot === time 
-                                ? 'border-indigo-600 bg-white text-indigo-600 shadow-md scale-105' 
+                                ? 'border-fresco bg-white text-fresco shadow-md scale-105' 
                                 : 'border-white bg-white/40 text-gray-400'
                             }`}
                         >
@@ -1396,7 +1396,7 @@ return (
     onClick={() => setMetodoPago('transferencia')}
     className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
         metodoPago === 'transferencia'
-        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+        ? 'border-fresco bg-[#F0FAF6] text-[#17A06D] shadow-md'
         : 'border-slate-200 text-slate-600 bg-white'
     }`}
 >
@@ -1408,7 +1408,7 @@ return (
                             <div className="space-y-2">
                                 <div 
                                     onClick={handleCopyAlias} 
-                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-green-600 border-green-600 shadow-lg scale-[1.02]' : 'bg-blue-50 border-blue-200 shadow-sm active:scale-95'}`}
+                                    className={`p-4 rounded-2xl flex justify-between items-center cursor-pointer transition-all border-2 ${copied ? 'bg-green-600 border-green-600 shadow-lg scale-[1.02]' : 'bg-[#F0FAF6] border-[#B8E8D4] shadow-sm active:scale-95'}`}
                                 >
                                     <div className={copied ? 'text-white' : 'text-blue-900'}>
                                         <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
@@ -1420,8 +1420,8 @@ return (
                                 </div>
                                 
                                 {copied && (
-                                    <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-blue-100 shadow-sm">
-                                        <MessageSquare size={16} className="text-blue-500" />
+                                    <div className="bg-[#F0FAF6] text-blue-800 px-4 py-3 rounded-2xl text-[11px] font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 border border-[#E8F7F1] shadow-sm">
+                                        <MessageSquare size={16} className="text-fresco" />
                                         <span>¡Alias copiado! Enviame el comprobante luego de enviar el pedido.</span>
                                     </div>
                                 )}

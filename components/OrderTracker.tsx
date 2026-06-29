@@ -71,23 +71,23 @@ useEffect(() => {
     const stepsConfig: any = {
         gastronomico: [
             { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
-            { id: 'recibido', label: '¡Pedido Tomado! ✅', subLabel: 'Enseguida lo preparamos', icon: Check, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+            { id: 'recibido', label: '¡Pedido Tomado! ✅', subLabel: 'Enseguida lo preparamos', icon: Check, color: 'bg-fresco', textColor: 'text-fresco' },
             { id: 'en_proceso', label: 'Cocinando 🔥', subLabel: '¡El fuego está prendido!', icon: ChefHat, color: 'bg-orange-500', textColor: 'text-orange-600' },
-            { id: 'en_camino', label: 'En Camino 🛵', subLabel: 'Tu pedido está llegando', icon: Bike, color: 'bg-blue-600', textColor: 'text-blue-600' },
+            { id: 'en_camino', label: 'En Camino 🛵', subLabel: 'Tu pedido está llegando', icon: Bike, color: 'bg-fresco', textColor: 'text-fresco' },
             { id: 'completado', label: '¡Disfrutalo! 🎉', subLabel: 'Pedido entregado con éxito', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ],
         mesa: [
             { id: 'pendiente', label: 'Enviado', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
             { id: 'en_proceso', label: 'En cocina', subLabel: 'Tu pedido está siendo preparado', icon: ChefHat, color: 'bg-orange-500', textColor: 'text-orange-600' },
-            { id: 'entregado', label: 'Entregado', subLabel: 'Tu pedido fue entregado en tu mesa', icon: Zap, color: 'bg-blue-500', textColor: 'text-blue-600' },
+            { id: 'entregado', label: 'Entregado', subLabel: 'Tu pedido fue entregado en tu mesa', icon: Zap, color: 'bg-fresco', textColor: 'text-fresco' },
             { id: 'completado', label: 'Gracias por tu visita', subLabel: 'Gracias por tu visita', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ],
       retiro: [
             { id: 'pendiente', label: 'Confirmando...', subLabel: 'El local está revisando tu pedido', icon: Clock, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
-            { id: 'recibido', label: '¡Pedido Tomado! ✅', subLabel: 'Enseguida lo preparamos', icon: Check, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+            { id: 'recibido', label: '¡Pedido Tomado! ✅', subLabel: 'Enseguida lo preparamos', icon: Check, color: 'bg-fresco', textColor: 'text-fresco' },
             { id: 'en_proceso', label: 'Cocinando 🔥', subLabel: '¡El fuego está prendido!', icon: ChefHat, color: 'bg-orange-500', textColor: 'text-orange-600' },
             // 🚀 CAMBIO AQUÍ: Texto específico para retiro
-            { id: 'en_camino', label: '¡Pedido Listo! 🛍️', subLabel: 'Tu pedido está listo para retirar', icon: ShoppingBag, color: 'bg-blue-600', textColor: 'text-blue-600' },
+            { id: 'en_camino', label: '¡Pedido Listo! 🛍️', subLabel: 'Tu pedido está listo para retirar', icon: ShoppingBag, color: 'bg-fresco', textColor: 'text-fresco' },
             { id: 'completado', label: '¡Entregado! ✨', subLabel: 'Gracias por tu visita', icon: Check, color: 'bg-green-600', textColor: 'text-green-600' },
         ]
     };
@@ -124,7 +124,7 @@ const isTransfer = paymentMethod === 'transferencia';
     <div className="mb-6 w-full px-4 animate-in slide-in-from-top-4 duration-500">
         <div className="bg-purple-50 border-2 border-purple-200 p-5 rounded-[2.5rem] shadow-xl">
             <div className="flex flex-col items-center text-center gap-3">
-                <div className="bg-purple-600 text-white p-2.5 rounded-2xl shadow-lg">
+                <div className="bg-brasa text-white p-2.5 rounded-2xl shadow-lg">
                     <CreditCard size={20} strokeWidth={2.5} />
                 </div>
                 <div className="space-y-1">
@@ -152,12 +152,12 @@ const isTransfer = paymentMethod === 'transferencia';
                 {/* 🚀 CARTEL DE AGUENDA (Solo si es programado y está en espera) */}
                 {showAgendaNotice && (
                     <div className="mb-6 w-full px-4 animate-in fade-in zoom-in duration-500">
-                        <div className="bg-indigo-50 border-2 border-indigo-100 p-4 rounded-[2rem] flex flex-col items-center gap-2 shadow-sm">
-                            <div className="bg-indigo-600 text-white p-2 rounded-full shadow-lg">
+                        <div className="bg-[#F0FAF6] border-2 border-[#E8F7F1] p-4 rounded-[2rem] flex flex-col items-center gap-2 shadow-sm">
+                            <div className="bg-fresco text-white p-2 rounded-full shadow-lg">
                                 <CalendarCheck size={18} strokeWidth={2.5} />
                             </div>
                             <div className="text-center">
-    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.1em] italic">
+    <p className="text-[10px] font-black text-fresco uppercase tracking-[0.1em] italic">
     {showPaymentCard ? 'Pedido en Espera' : 'Pedido Agendado'}
 </p>
     <p className="text-[11px] font-bold text-indigo-950 leading-tight">

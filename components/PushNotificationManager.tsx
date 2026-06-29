@@ -149,7 +149,7 @@ new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
                 <p className="text-xs text-gray-600 mb-4">Para recibir notificaciones, instalá la app:</p>
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                    <div className="bg-blue-100 p-1.5 rounded-lg"><Share size={16} className="text-blue-600" /></div>
+                    <div className="bg-[#E8F7F1] p-1.5 rounded-lg"><Share size={16} className="text-fresco" /></div>
                     <div>
                       <p className="font-bold text-xs text-gray-900">1. Tocá Compartir</p>
                       <p className="text-[10px] text-gray-500">Ícono de cuadrado con flecha</p>
@@ -228,7 +228,7 @@ new Audio('/pedido.mp3').play().catch(() => console.log("Audio desbloqueado"));
               <p className="text-xs text-gray-600 mb-4">Para recibir notificaciones, instalá la app:</p>
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                  <div className="bg-blue-100 p-1.5 rounded-lg"><Share size={16} className="text-blue-600" /></div>
+                  <div className="bg-[#E8F7F1] p-1.5 rounded-lg"><Share size={16} className="text-fresco" /></div>
                   <div>
                     <p className="font-bold text-xs text-gray-900">1. Tocá Compartir</p>
                     <p className="text-[10px] text-gray-500">Ícono de cuadrado con flecha</p>

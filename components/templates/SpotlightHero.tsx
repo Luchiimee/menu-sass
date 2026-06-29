@@ -276,10 +276,10 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
               {restaurant.secondary_menu_name && (
                 <section className="space-y-3 pb-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
+                    <div className="w-1.5 h-4 bg-fresco rounded-full"></div>
                     <h4 className="font-black text-[10px] uppercase tracking-widest text-gray-400">Opción B: {restaurant.secondary_menu_name}</h4>
                   </div>
-                  <div className="p-5 bg-indigo-50/30 border-2 border-dashed border-indigo-100 rounded-[2.5rem] relative">
+                  <div className="p-5 bg-[#F0FAF6]/30 border-2 border-dashed border-[#E8F7F1] rounded-[2.5rem] relative">
                     <div className="flex justify-between items-start">
                       <div className="text-left flex-1 pr-4">
                         <h3 className="text-lg font-black uppercase text-indigo-900 leading-none">{restaurant.secondary_menu_name}</h3>
@@ -291,7 +291,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
                         </div>
                         <div className="text-lg font-black text-indigo-900 mt-4">{formatPrice(restaurant.secondary_menu_price)}</div>
                       </div>
-                      <button onClick={() => handleQuickAdd(secPrincipal, 'B')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isAddedB ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white active:scale-90'}`}>
+                      <button onClick={() => handleQuickAdd(secPrincipal, 'B')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isAddedB ? 'bg-emerald-500 text-white' : 'bg-fresco text-white active:scale-90'}`}>
                         {isAddedB ? <Check size={24} strokeWidth={4} /> : <Plus size={24} strokeWidth={3} />}
                       </button>
                     </div>

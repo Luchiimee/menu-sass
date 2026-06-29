@@ -114,7 +114,7 @@ export default function AdminSnappyPage() {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
-      <Loader2 className="animate-spin text-blue-600" size={40} />
+      <Loader2 className="animate-spin text-fresco" size={40} />
     </div>
   );
 
@@ -129,7 +129,7 @@ export default function AdminSnappyPage() {
           </Link>
           <div>
             <h1 className="text-xl font-black italic tracking-tighter text-gray-900 leading-none">
-              SNAPPY <span className="text-blue-600">COMMAND</span>
+              SNAPPY <span className="text-fresco">COMMAND</span>
             </h1>
             <p className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">BI & Analytics</p>
           </div>
@@ -165,7 +165,7 @@ export default function AdminSnappyPage() {
 
         <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm text-zinc-900">
           <p className="text-gray-400 text-[9px] font-black uppercase mb-1 tracking-widest">Conversión</p>
-          <span className="text-xl font-black text-blue-600 italic tracking-tighter">{conversionRate}%</span>
+          <span className="text-xl font-black text-fresco italic tracking-tighter">{conversionRate}%</span>
           <p className="text-[8px] text-gray-400 font-bold mt-2 uppercase">Trial a Pago</p>
         </div>
 
@@ -206,7 +206,7 @@ export default function AdminSnappyPage() {
                 const isDeleting = deletingId === item.profile.id;
 
                 return (
-                  <tr key={item.profile.id} className="hover:bg-blue-50/10 transition-all">
+                  <tr key={item.profile.id} className="hover:bg-[#F0FAF6]/10 transition-all">
                     
                     {/* CLIENTE */}
                     <td className="px-6 py-4">
@@ -215,7 +215,7 @@ export default function AdminSnappyPage() {
                           {item.profile.first_name || 'Nuevo'}
                         </span>
                         <span className="text-[10px] text-gray-400 truncate w-36">{item.profile.email}</span>
-                        <span className="text-[8px] font-bold text-blue-500 uppercase">{item.diffDays} días</span>
+                        <span className="text-[8px] font-bold text-fresco uppercase">{item.diffDays} días</span>
                       </div>
                     </td>
 
@@ -240,9 +240,9 @@ export default function AdminSnappyPage() {
                         <a
                           href={`https://snappy.uno/${item.restaurant.slug}`}
                           target="_blank"
-                          className="flex items-center gap-1 text-[10px] font-bold text-gray-800 hover:text-blue-600 truncate underline decoration-gray-100"
+                          className="flex items-center gap-1 text-[10px] font-bold text-gray-800 hover:text-fresco truncate underline decoration-gray-100"
                         >
-                          <Globe size={12} className="text-blue-500"/> /{item.restaurant.slug}
+                          <Globe size={12} className="text-fresco"/> /{item.restaurant.slug}
                         </a>
                       ) : (
                         <span className="text-[9px] text-gray-300 font-bold uppercase">Sin Menú</span>
@@ -263,8 +263,8 @@ export default function AdminSnappyPage() {
                     {/* PLAN */}
                     <td className="px-4 py-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase italic ${
-                        currentPlan === 'plus' ? 'bg-blue-600 text-white' : 
-                        currentPlan === 'go' ? 'bg-purple-600 text-white' : 
+                        currentPlan === 'plus' ? 'bg-fresco text-white' : 
+                        currentPlan === 'go' ? 'bg-brasa text-white' : 
                         'bg-zinc-100 text-zinc-500'
                       }`}>
                         {currentPlan || 'Light'}

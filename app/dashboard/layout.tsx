@@ -230,12 +230,12 @@ const menuItems = [
 
         {/* 2. BANNER DE TRIAL EXPIRANDO */}
         {showTrialWarning && (
-          <div className="bg-indigo-600 text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
+          <div className="bg-fresco text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
             <div className="flex items-center gap-2">
               <Clock size={16}/>
               <span>¡Atención! Te quedan <span className="underline">{daysLeft} días</span> de prueba gratis.</span>
             </div>
-            <Link href="/dashboard/plan" className="bg-white text-indigo-600 px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-indigo-50 transition shadow-sm">Configurar Pago 💳</Link>
+            <Link href="/dashboard/plan" className="bg-white text-fresco px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-[#F0FAF6] transition shadow-sm">Configurar Pago 💳</Link>
           </div>
         )}
 
@@ -273,7 +273,7 @@ const menuItems = [
           {!isCollapsed && (
             <div className="flex flex-col overflow-hidden flex-1 min-w-0">
                 <h2 className="font-bold text-sm leading-tight truncate capitalize text-gray-900">{restaurant.name}</h2>
-                <p className={`text-[9px] font-black uppercase tracking-tighter mt-0.5 ${restaurant.plan === 'plus' ? 'text-emerald-600' : 'text-blue-600'}`}>
+                <p className={`text-[9px] font-black uppercase tracking-tighter mt-0.5 ${restaurant.plan === 'plus' ? 'text-emerald-600' : 'text-fresco'}`}>
                     {restaurant.plan ? `Plan ${restaurant.plan}` : 'Sin Activar'}
                 </p>
             </div>
@@ -396,9 +396,9 @@ const menuItems = [
       {/* MODAL DE UPGRADE SECCIONES BLOQUEADAS */}
       {showUpgradeModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-indigo-50 max-w-sm w-full text-center animate-in zoom-in-95">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-[#F0FAF6] max-w-sm w-full text-center animate-in zoom-in-95">
             <button onClick={() => setShowUpgradeModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
-          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm ${isTrialExpired ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-600'}`}>
+          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm ${isTrialExpired ? 'bg-red-50 text-red-500' : 'bg-[#F0FAF6] text-fresco'}`}>
   {isTrialExpired ? <AlertTriangle size={40} /> : <Zap size={40} fill="currentColor" />}
 </div>
             <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Sección Pro</h2>
@@ -414,9 +414,9 @@ const menuItems = [
       {/* Modal Próximamente — Rentabilidad */}
       {showRentabilidadModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-indigo-50 max-w-sm w-full text-center animate-in zoom-in-95 relative">
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-[#F0FAF6] max-w-sm w-full text-center animate-in zoom-in-95 relative">
             <button onClick={() => setShowRentabilidadModal(false)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
-            <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <div className="w-20 h-20 bg-[#F0FAF6] text-fresco rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
               <TrendingUp size={40} />
             </div>
             <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Próximamente</h2>

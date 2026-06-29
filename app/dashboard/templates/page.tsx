@@ -467,7 +467,7 @@ const finalTemplates = TEMPLATES.filter(t =>
           <button
             key={key}
             onClick={() => setBusinessFilter(key)}
-            className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${businessFilter === key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+            className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${businessFilter === key ? 'bg-fresco text-white border-fresco' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
           >
             {label}
           </button>
@@ -562,7 +562,7 @@ export default function GalleryPage() {
   return (
     <Suspense fallback={
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[300]">
-        <Loader2 className="animate-spin text-indigo-600 mb-4" size={40}/>
+        <Loader2 className="animate-spin text-fresco mb-4" size={40}/>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Preparando diseños...</p>
       </div>
     }>

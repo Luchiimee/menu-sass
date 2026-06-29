@@ -46,7 +46,7 @@ const PLANS = [
     tagline: 'Más potencia',
     price: 22000,
     originalPrice: 28600,
-    accent: 'border-blue-500',
+    accent: 'border-fresco',
     badge: 'POPULAR',
     features: [
       { text: '60 Productos', included: true },
@@ -457,7 +457,7 @@ function PlanContent() {
             <p className="text-xs text-gray-400 font-bold mt-2 uppercase tracking-widest">Gestión de suscripción y facturación</p>
           </div>
           {trialDay < 14 && (
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-tighter border border-indigo-100">
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-[#F0FAF6] text-fresco rounded-full text-[10px] font-black uppercase tracking-tighter border border-[#E8F7F1]">
               <Clock size={12} /> Día {trialDay} de 14 gratis
             </span>
           )}
@@ -467,7 +467,7 @@ function PlanContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <section className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <User size={18} className="text-blue-600" />
+              <User size={18} className="text-fresco" />
               <h2 className="font-bold text-lg text-gray-900 uppercase italic tracking-tighter">Mis Datos</h2>
             </div>
             <div className="space-y-4">
@@ -523,7 +523,7 @@ function PlanContent() {
                       Plan {restaurant.subscription_plan}
                       {isActive && <Check size={16} className="text-emerald-500" />}
                     </p>
-                    {isTrialing && !inGracePeriod && <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span></p>}
+                    {isTrialing && !inGracePeriod && <p className="text-[11px] text-fresco font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span></p>}
                     {isCancelled && !inGracePeriod && (
                       <div className="mt-2 p-3 bg-amber-50 rounded-2xl border border-amber-100">
                         <p className="text-[10px] text-amber-700 font-black uppercase">Cancelada. Re-suscribite antes del <span className="underline">{getChargeDate()}</span>.</p>
@@ -538,8 +538,8 @@ function PlanContent() {
                   </div>
 
                   {inGracePeriod && (
-                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                      <p className="text-[10px] text-blue-700 font-black uppercase leading-relaxed">
+                    <div className="p-4 bg-[#F0FAF6] rounded-2xl border border-[#E8F7F1]">
+                      <p className="text-[10px] text-[#17A06D] font-black uppercase leading-relaxed">
                         Tu período activo es hasta el <span className="underline">{graceUntilFormatted}</span>.
                         A partir de esa fecha vas a poder cargar tu tarjeta para activar tu suscripción mensual.
                         El primer cobro será inmediato y luego se renueva todos los meses.
@@ -598,7 +598,7 @@ function PlanContent() {
                 </div>
               ) : (
                 <div className="py-12 border-2 border-dashed border-gray-50 rounded-[2rem] text-center">
-                  <p className="text-[10px] font-black text-indigo-500 uppercase italic">Elegí un plan para comenzar tus 14 días gratis</p>
+                  <p className="text-[10px] font-black text-fresco uppercase italic">Elegí un plan para comenzar tus 14 días gratis</p>
                 </div>
               )}
             </div>
@@ -619,7 +619,7 @@ function PlanContent() {
               const needsPayment = isCurrent && (isTrialing || isCancelled);
 
               const borderColor = isCurrent
-                ? plan.id === 'light' ? 'border-gray-900' : plan.id === 'go' ? 'border-blue-500' : 'border-emerald-500'
+                ? plan.id === 'light' ? 'border-gray-900' : plan.id === 'go' ? 'border-fresco' : 'border-emerald-500'
                 : 'border-gray-100';
 
               return (
@@ -630,7 +630,7 @@ function PlanContent() {
                     </span>
                   )}
                   {plan.badge && !isCurrent && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-fresco text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
                       {plan.badge}
                     </span>
                   )}
@@ -670,7 +670,7 @@ function PlanContent() {
                     </button>
                   )}
                   {isCurrent && needsPayment && inGracePeriod && (
-                    <div className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl text-[9px] font-black uppercase tracking-widest text-center border border-blue-100 px-2 leading-relaxed">
+                    <div className="w-full py-3 bg-[#F0FAF6] text-fresco rounded-xl text-[9px] font-black uppercase tracking-widest text-center border border-[#E8F7F1] px-2 leading-relaxed">
                       Disponible desde el {graceUntilFormatted}
                     </div>
                   )}
@@ -703,7 +703,7 @@ function PlanContent() {
           {/* MAX — Coming soon */}
           <div className="mt-4 border-2 border-dashed border-gray-100 bg-gray-50/50 rounded-[1.5rem] p-6 flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-black text-purple-500 uppercase tracking-widest">Próximamente</p>
+              <p className="text-[9px] font-black text-brasa uppercase tracking-widest">Próximamente</p>
               <h3 className="text-xl font-black text-gray-400 italic tracking-tighter mt-0.5">Max <span className="text-sm text-gray-300 font-bold blur-sm">$XX.XXX</span></h3>
               <p className="text-[10px] text-gray-400 font-bold mt-1">4 sucursales · Billeteras virtuales · Escalabilidad total</p>
             </div>

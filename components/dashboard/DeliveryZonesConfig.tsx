@@ -200,7 +200,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
         <button
           onClick={() => setZonesEnabled((v) => !v)}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
-            zonesEnabled ? 'bg-blue-600' : 'bg-gray-200'
+            zonesEnabled ? 'bg-fresco' : 'bg-gray-200'
           }`}
         >
           <span
@@ -229,7 +229,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                   onChange={(e) => setAddressInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleGeocode(); }}
                   placeholder="Av. Corrientes, Buenos Aires..."
-                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-colors"
+                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-fresco transition-colors"
                 />
               </div>
               <button
@@ -255,7 +255,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
               value={addressNumber}
               onChange={(e) => setAddressNumber(e.target.value)}
               placeholder="Número (ej: 1234)"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-fresco transition-colors"
             />
             <p className="text-[10px] text-gray-400 ml-1 font-medium">
               También podés arrastrar el pin en el mapa para ajustar la posición exacta
@@ -276,16 +276,16 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
           {/* Configuración de zonas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Zona 1 */}
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 space-y-4">
+            <div className="bg-[#F0FAF6] border border-[#E8F7F1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-600" />
-                <p className="text-xs font-black text-blue-700 uppercase tracking-widest">Zona 1</p>
+                <div className="w-3 h-3 rounded-full bg-fresco" />
+                <p className="text-xs font-black text-[#17A06D] uppercase tracking-widest">Zona 1</p>
               </div>
 
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Radio</span>
-                  <span className="text-sm font-black text-blue-700">{zone1Km.toFixed(1)} km</span>
+                  <span className="text-sm font-black text-[#17A06D]">{zone1Km.toFixed(1)} km</span>
                 </div>
                 <input
                   type="range"
@@ -298,7 +298,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                     setZone1Km(v);
                     if (zone2Km <= v) setZone2Km(v + 0.5);
                   }}
-                  className="w-full accent-blue-600"
+                  className="w-full accent-fresco"
                 />
                 <div className="flex justify-between text-[9px] text-gray-300 font-bold mt-0.5">
                   <span>0.5 km</span>
@@ -317,7 +317,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                     value={zone1Cost}
                     onChange={(e) => setZone1Cost(e.target.value)}
                     placeholder="0"
-                    className="w-full pl-7 pr-4 py-3 bg-white border border-blue-100 rounded-xl text-sm font-black outline-none focus:border-blue-400 transition-colors"
+                    className="w-full pl-7 pr-4 py-3 bg-white border border-[#E8F7F1] rounded-xl text-sm font-black outline-none focus:border-blue-400 transition-colors"
                   />
                 </div>
               </div>

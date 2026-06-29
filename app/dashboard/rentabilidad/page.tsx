@@ -286,7 +286,7 @@ export default function RentabilidadPage() {
           >
             Cargar Costos
             {missingCostCount > 0 && (
-              <span className="bg-amber-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="bg-fresco text-[#0C2D1F] text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
                 {missingCostCount > 9 ? '9+' : missingCostCount}
               </span>
             )}
@@ -325,12 +325,12 @@ export default function RentabilidadPage() {
 
             {/* SUMMARY CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded-3xl border-2 border-violet-100 shadow-sm">
-                <p className="text-xs font-bold text-violet-600 uppercase mb-1">Facturación</p>
+              <div className="bg-white p-6 rounded-3xl border-2 border-[#E8F7F1] shadow-sm">
+                <p className="text-xs font-bold text-fresco uppercase mb-1">Facturación</p>
                 <p className="text-4xl font-black text-gray-900">{fp(summary.totalRevenue)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Total vendido en el período</p>
               </div>
-              <div className="bg-white p-6 rounded-3xl border-2 border-red-100 shadow-sm">
+              <div className="bg-white p-6 rounded-3xl border border-[#DEDDD3] shadow-sm">
                 <p className="text-xs font-bold text-red-500 uppercase mb-1">Costo total</p>
                 <p className="text-4xl font-black text-gray-900">{fp(summary.totalCost)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Solo productos con costo cargado</p>
@@ -352,7 +352,7 @@ export default function RentabilidadPage() {
                   </p>
                   <p className="text-[10px] text-gray-500 font-medium mt-2 max-w-xs">
                     No incluye productos sin costo cargado —{' '}
-                    <button onClick={() => setTab('costos')} className="text-amber-400 underline font-bold">
+                    <button onClick={() => setTab('costos')} className="text-fresco underline font-bold">
                       completalos en Cargar Costos
                     </button>{' '}
                     para un número más preciso.
@@ -420,7 +420,7 @@ export default function RentabilidadPage() {
                             <td className="px-6 py-4 text-right text-sm font-bold text-red-500">{fp(p.cost)}</td>
                             <td className={`px-6 py-4 text-right font-black text-sm ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fp(profit)}</td>
                             <td className="px-6 py-4 text-right">
-                              <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${margin >= 50 ? 'bg-emerald-100 text-emerald-700' : margin >= 25 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
+                              <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${margin >= 50 ? 'bg-emerald-100 text-emerald-700' : margin >= 25 ? 'bg-[#F5F5EF] text-graphite' : 'bg-red-100 text-red-600'}`}>
                                 {Math.round(margin)}%
                               </span>
                             </td>
@@ -437,7 +437,7 @@ export default function RentabilidadPage() {
             {withoutCost.length > 0 && (
               <div className="bg-white rounded-3xl border border-dashed border-gray-200 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 bg-gray-50/30 flex items-center gap-3">
-                  <AlertCircle size={18} className="text-amber-500 shrink-0" />
+                  <AlertCircle size={18} className="text-graphite shrink-0" />
                   <div>
                     <p className="font-bold text-sm text-gray-700">Sin costo cargado</p>
                     <p className="text-[10px] text-gray-400 font-medium">
@@ -489,12 +489,12 @@ export default function RentabilidadPage() {
         {tab === 'costos' && (
           <div className="space-y-4">
             {/* Banner de estado */}
-            <div className={`rounded-3xl p-5 flex items-center gap-4 ${missingCostCount === 0 ? 'bg-emerald-50 border-2 border-emerald-100' : 'bg-amber-50 border-2 border-amber-100'}`}>
+            <div className={`rounded-3xl p-5 flex items-center gap-4 ${missingCostCount === 0 ? 'bg-emerald-50 border-2 border-emerald-100' : 'bg-[#F5F5EF] border border-[#DEDDD3]'}`}>
               {missingCostCount === 0
                 ? <CheckCircle2 size={22} className="text-emerald-500 shrink-0" />
-                : <AlertCircle size={22} className="text-amber-500 shrink-0" />
+                : <AlertCircle size={22} className="text-graphite shrink-0" />
               }
-              <p className={`text-sm font-bold ${missingCostCount === 0 ? 'text-emerald-800' : 'text-amber-800'}`}>
+              <p className={`text-sm font-bold ${missingCostCount === 0 ? 'text-emerald-800' : 'text-graphite'}`}>
                 {missingCostCount === 0
                   ? 'Todos los productos tienen costo cargado — el reporte de margen es completo.'
                   : `${missingCostCount} ${missingCostCount === 1 ? 'producto sin costo' : 'productos sin costo'} — completá los que faltan para un reporte completo.`
@@ -520,14 +520,14 @@ export default function RentabilidadPage() {
                     : null;
 
                   return (
-                    <div key={p.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${hasCost ? 'bg-white' : 'bg-amber-50/30'}`}>
+                    <div key={p.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${hasCost ? 'bg-white' : 'bg-[#F5F5EF]/30'}`}>
                       {/* Status dot */}
                       <div className="shrink-0">
                         {justSaved
                           ? <CheckCircle2 size={18} className="text-emerald-500" />
                           : hasCost
                             ? <CheckCircle2 size={18} className="text-emerald-400" />
-                            : <div className="w-[18px] h-[18px] rounded-full border-2 border-amber-300 bg-amber-50" />
+                            : <div className="w-[18px] h-[18px] rounded-full border-2 border-[#DEDDD3] bg-[#F5F5EF]" />
                         }
                       </div>
 
@@ -541,7 +541,7 @@ export default function RentabilidadPage() {
                       {margin !== null && (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 ${
                           margin >= 50 ? 'bg-emerald-100 text-emerald-700' :
-                          margin >= 25 ? 'bg-amber-100 text-amber-700' :
+                          margin >= 25 ? 'bg-[#F5F5EF] text-graphite' :
                           'bg-red-100 text-red-600'
                         }`}>
                           {margin}% margen
@@ -563,7 +563,7 @@ export default function RentabilidadPage() {
                           className={`w-full pl-7 pr-3 py-2 rounded-xl text-sm font-bold outline-none transition-all border ${
                             hasCost
                               ? 'bg-gray-50 border-gray-200 focus:border-emerald-400 focus:bg-white'
-                              : 'bg-amber-50 border-amber-200 focus:border-amber-400 focus:bg-white'
+                              : 'bg-[#F5F5EF] border-[#DEDDD3] focus:border-fresco focus:bg-white'
                           }`}
                         />
                         {isSaving && (

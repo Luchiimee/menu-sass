@@ -241,7 +241,7 @@ export default function AlternaPro({
               <p className="text-[11px] text-gray-500 mt-2 font-medium leading-relaxed">{restaurant.selectedProduct.description}</p>
               
               <div className="mt-8 space-y-3">
-                <p className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-1">Elegí cantidad:</p>
+                <p className="text-[10px] font-black uppercase text-fresco tracking-widest ml-1">Elegí cantidad:</p>
                 {(restaurant.selectedProduct.variations?.length > 0 ? restaurant.selectedProduct.variations : [{ label: 'principal', price: restaurant.selectedProduct.price }]).map((v: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-4 rounded-3xl bg-gray-50 border border-gray-100">
                     <div className="flex flex-col">
@@ -251,7 +251,7 @@ export default function AlternaPro({
                     <div className="flex items-center gap-4 bg-white px-2 py-1.5 rounded-2xl shadow-sm border border-gray-100">
                       <button onClick={() => handleUpdateCount(v.label, -1)} className="text-red-500 active:scale-75"><Minus size={16} /></button>
                       <span className="font-black text-sm w-4 text-center">{variationCounts[v.label] || 0}</span>
-                      <button onClick={() => handleUpdateCount(v.label, 1)} className="text-indigo-600 active:scale-75"><Plus size={16} /></button>
+                      <button onClick={() => handleUpdateCount(v.label, 1)} className="text-fresco active:scale-75"><Plus size={16} /></button>
                     </div>
                   </div>
                 ))}

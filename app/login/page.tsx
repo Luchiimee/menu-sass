@@ -98,7 +98,7 @@ export default function LoginPage() {
     try {
         const origin = typeof window !== 'undefined' ? window.location.origin : ''
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${origin}/auth/callback?next=/dashboard/settings`,
+            redirectTo: `${origin}/auth/callback?next=/new-password`,
         })
         if (error) throw error
         setMessage("¡Te enviamos un correo para recuperar tu contraseña!")

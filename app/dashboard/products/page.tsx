@@ -451,7 +451,7 @@ const handleDeleteCategory = async (id: string) => {
 
 if (loading) return (
   <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[200]">
-    <Loader2 className="animate-spin text-violet-600 mb-4" size={40}/>
+    <Loader2 className="animate-spin text-fresco mb-4" size={40}/>
     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 animate-pulse">Cargando catálogo...</p>
   </div>
 );
@@ -464,12 +464,12 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         
         {isLocked && (
             <div className="absolute inset-0 z-50 backdrop-blur-md bg-white/60 flex items-center justify-center rounded-3xl overflow-hidden p-4">
-                <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-violet-100">
-                    <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-violet-100 text-violet-600">
+                <div className="bg-white shadow-2xl p-8 rounded-3xl max-w-md w-full text-center border border-[#E8F7F1]">
+                    <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-[#E8F7F1] text-fresco">
                         <Store size={32} />
                     </div>
                     <h2 className="text-2xl font-bold mb-3 text-gray-800">Comienza a Vender</h2>
-                    <Link href="/dashboard/settings" className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-violet-600 text-white hover:bg-violet-700 transition shadow-lg shadow-violet-200">
+                    <Link href="/dashboard/settings" className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg shadow-[#B8E8D4]">
                         Ver Planes <Zap size={20}/>
                     </Link>
                 </div>
@@ -480,7 +480,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div>
       <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 tracking-tight">
-        <span className="p-2 bg-violet-100 text-violet-600 rounded-lg"><UtensilsCrossed size={24}/></span>
+        <span className="p-2 bg-[#E8F7F1] text-fresco rounded-lg"><UtensilsCrossed size={24}/></span>
         Menú Digital
         
       {/* Se muestra si es Light, GO o si sos Admin (mientras no sea el plan Plus que es ilimitado) */}
@@ -499,7 +499,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest shadow-sm ${
           businessType === 'fraccionado' 
           ? 'bg-cyan-50 border-cyan-100 text-cyan-700' 
-          : 'bg-violet-50 border-violet-100 text-violet-700'
+          : 'bg-[#F0FAF6] border-[#E8F7F1] text-[#17A06D]'
         }`}>
           <Check size={12} strokeWidth={3}/>
           Catálogo adaptado para: {businessType === 'fraccionado' ? 'Venta por Peso / Fraccionado' : 'Venta por Unidad'}
@@ -511,10 +511,10 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     {/* NAVEGACIÓN DE TABS */}
 {/* NAVEGACIÓN DE TABS */}
 <div className="bg-gray-100 p-1.5 rounded-xl inline-flex self-start md:self-auto shadow-inner">
-  <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+  <button onClick={() => setActiveTab('products')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white text-[#17A06D] shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
     <UtensilsCrossed size={16} className="inline mr-2"/> Mis Productos
   </button>
-  <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+  <button onClick={() => setActiveTab('extras')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'extras' ? 'bg-white text-[#17A06D] shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
     <Layers size={16} className="inline mr-2"/> Adicionales
   </button>
   
@@ -523,7 +523,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     TODO: HeladeriaSoft (icecream-v1) no tiene render de categorías todavía —
     excluida temporalmente hasta implementar. NO es decisión de diseño, es deuda pendiente. */}
 {selectedTemplate !== 'icecream-v1' && (
-  <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-violet-700 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
+  <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-[#17A06D] shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
       <List size={16} className="inline mr-2"/> Categorías
   </button>
 )}
@@ -542,7 +542,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
                 <input 
                     placeholder="Buscar producto..." 
-                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-violet-500 transition shadow-sm"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-fresco transition shadow-sm"
                 />
             </div>
 
@@ -590,7 +590,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
 
                     {/* Icono de Info con gris fuerte */}
                     <div className="group relative hidden sm:block">
-                        <div className="p-2 text-slate-800 hover:text-violet-600 cursor-help transition-colors">
+                        <div className="p-2 text-slate-800 hover:text-fresco cursor-help transition-colors">
                             <Info size={18} strokeWidth={2.5} />
                         </div>
                         {/* Tooltip explicativo */}
@@ -609,10 +609,10 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         {/* Botones de Vista y Nuevo Producto */}
         <div className="flex items-center gap-3">
             <div className="bg-white border border-gray-200 rounded-2xl p-1 flex items-center shadow-sm">
-                <button onClick={() => changeView('list')} className={`p-2 rounded-xl ${view === 'list' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><List size={20}/></button>
-                <button onClick={() => changeView('grid')} className={`p-2 rounded-xl ${view === 'grid' ? 'bg-violet-50 text-violet-700' : 'text-gray-400'}`}><LayoutGrid size={20}/></button>
+                <button onClick={() => changeView('list')} className={`p-2 rounded-xl ${view === 'list' ? 'bg-[#F0FAF6] text-[#17A06D]' : 'text-gray-400'}`}><List size={20}/></button>
+                <button onClick={() => changeView('grid')} className={`p-2 rounded-xl ${view === 'grid' ? 'bg-[#F0FAF6] text-[#17A06D]' : 'text-gray-400'}`}><LayoutGrid size={20}/></button>
             </div>
-            <button onClick={openCreateModal} className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
+            <button onClick={openCreateModal} className="bg-fresco text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#17A06D] transition shadow-lg active:scale-95">
                 <Plus size={20}/> <span className="hidden lg:inline">Nuevo Producto</span>
             </button>
         </div>
@@ -622,7 +622,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         {/* --- BOTÓN PARA ADICIONALES (Mantenido) --- */}
         {activeTab === 'extras' && (
           <div className="flex justify-end w-full animate-in fade-in duration-300">
-            <button onClick={openCreateExtra} className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-violet-700 transition shadow-lg active:scale-95">
+            <button onClick={openCreateExtra} className="bg-fresco text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#17A06D] transition shadow-lg active:scale-95">
               <Plus size={20}/> Crear Adicional
             </button>
           </div>
@@ -692,7 +692,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                     </td>
 
                                     <td className="px-6 py-4">
-                                        <p className="font-black text-violet-600 whitespace-nowrap text-xs bg-violet-50 px-2 py-1 rounded-lg w-fit">
+                                        <p className="font-black text-fresco whitespace-nowrap text-xs bg-[#F0FAF6] px-2 py-1 rounded-lg w-fit">
                                             {p.variations && p.variations.length > 0
                                                 ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
                                                 : `$ ${p.price || 0}`}
@@ -704,7 +704,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                         <div className="flex justify-end gap-2">
                                             <button 
                                                 onClick={() => openEditModal(p)} 
-                                                className="p-2.5 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-transform shadow-sm"
+                                                className="p-2.5 bg-[#F0FAF6] text-fresco rounded-xl active:scale-90 transition-transform shadow-sm"
                                             >
                                                 <Edit2 size={18}/>
                                             </button>
@@ -783,7 +783,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
   
   {/* BOTONES DE ACCIÓN (Lápiz/Tacho) - Siempre al frente con z-20 */}
   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-    <button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="bg-white p-2 rounded-full shadow-lg text-blue-500 hover:scale-110 transition active:scale-95">
+    <button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="bg-white p-2 rounded-full shadow-lg text-fresco hover:scale-110 transition active:scale-95">
       <Edit2 size={12}/>
     </button>
     <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(p.id); }} className="bg-white p-2 rounded-full shadow-lg text-red-500 hover:scale-110 transition active:scale-95">
@@ -793,7 +793,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
 </div>
                             <div className="p-3">
                                 <p className="font-bold text-sm truncate uppercase text-slate-800">{p.name}</p>
-                                <p className="font-black text-violet-600 text-sm mt-1">
+                                <p className="font-black text-fresco text-sm mt-1">
                                     {p.variations && p.variations.length > 0
                                         ? `$ ${p.variations.find((v: any) => v.label.toUpperCase() === '1KG')?.price || p.variations[0].price}`
                                         : `$ ${p.price || 0}`}
@@ -820,7 +820,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                     <td className="px-6 py-4 font-medium">{e.name}</td>
                                     <td className="px-6 py-4 text-green-600 font-bold">+${e.price}</td>
                                     <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                        <button onClick={() => openEditExtra(e)} className="p-2 text-gray-400 hover:text-blue-500"><Edit2 size={14}/></button>
+                                        <button onClick={() => openEditExtra(e)} className="p-2 text-gray-400 hover:text-fresco"><Edit2 size={14}/></button>
                                         <button onClick={() => handleDeleteExtra(e.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
                                     </td>
                                 </tr>
@@ -843,7 +843,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                     <h3 className="font-bold text-gray-900">Mis Categorías</h3>
                     <p className="text-xs text-gray-400">Organiza tu menú por secciones (Burgers, Bebidas, etc.)</p>
                 </div>
-                <button onClick={openNewCategoryModal} className="bg-violet-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-violet-700 transition shadow-lg">
+                <button onClick={openNewCategoryModal} className="bg-fresco text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-[#17A06D] transition shadow-lg">
                     <Plus size={16} className="inline mr-1"/> Nueva Categoría
                 </button>
             </div>
@@ -853,7 +853,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                         <tr key={c.id} className="hover:bg-gray-50 transition">
                             <td className="px-6 py-4 font-bold text-gray-700 uppercase tracking-tighter italic">{c.name}</td>
                             <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                <button onClick={() => openEditCategoryModal(c)} className="p-2 text-gray-400 hover:text-blue-500"><Edit2 size={14}/></button>
+                                <button onClick={() => openEditCategoryModal(c)} className="p-2 text-gray-400 hover:text-fresco"><Edit2 size={14}/></button>
                                 <button onClick={() => handleDeleteCategory(c.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
                             </td>
                         </tr>
@@ -878,7 +878,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
             </span>
             <div className="w-16 h-1 bg-gray-100 rounded-full overflow-hidden">
                 <div 
-                    className={`h-full transition-all duration-500 ${products.length >= maxProds ? 'bg-red-500' : currentPlan === 'go' ? 'bg-blue-500' : 'bg-violet-500'}`}
+                    className={`h-full transition-all duration-500 ${products.length >= maxProds ? 'bg-red-500' : currentPlan === 'go' ? 'bg-fresco' : 'bg-fresco'}`}
                     style={{ width: `${Math.min((products.length / maxProds) * 100, 100)}%` }}
                 />
             </div>
@@ -907,12 +907,12 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     </div>
 ) : (
     <div className="flex justify-center animate-in fade-in zoom-in-95 duration-200">
-        <label className={`relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-all group overflow-hidden ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <label className={`relative w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-[#F0FAF6] hover:border-[#8DD9BC] transition-all group overflow-hidden ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
             
             {uploading ? (
                 <div className="flex flex-col items-center">
-                    <Loader2 className="animate-spin text-violet-500 mb-2" size={30} />
-                    <span className="text-xs font-bold text-violet-700">Subiendo archivo...</span>
+                    <Loader2 className="animate-spin text-fresco mb-2" size={30} />
+                    <span className="text-xs font-bold text-[#17A06D]">Subiendo archivo...</span>
                 </div>
            ) : formData.video_url ? (
     <>
@@ -950,10 +950,10 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
                         
                         {/* La cápsula de iconos */}
-                        <div className="bg-white px-4 py-2 rounded-full shadow-sm inline-flex items-center justify-center mb-3 border border-violet-50 group-hover:scale-110 transition-transform duration-300">
-                            <div className="flex items-center gap-2.5 text-violet-500">
+                        <div className="bg-white px-4 py-2 rounded-full shadow-sm inline-flex items-center justify-center mb-3 border border-[#F0FAF6] group-hover:scale-110 transition-transform duration-300">
+                            <div className="flex items-center gap-2.5 text-fresco">
                                 <ImageIcon size={18}/>
-                                <div className="w-[1px] h-4 bg-violet-100"></div>
+                                <div className="w-[1px] h-4 bg-[#E8F7F1]"></div>
                                 <Video size={18}/>
                             </div>
                         </div>
@@ -982,7 +982,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     <div>
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Nombre del Producto</label>
         <div className="relative">
-            <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="Ej: Pizza Napolitana"/>
+            <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-fresco transition-all" placeholder="Ej: Pizza Napolitana"/>
             <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
         </div>
     </div>
@@ -996,14 +996,14 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     <button
       type="button"
       onClick={() => setFormData({ ...formData, sale_type: 'unidad' })}
-      className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${formData.sale_type === 'unidad' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-400'}`}
+      className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${formData.sale_type === 'unidad' ? 'bg-white text-fresco shadow-sm' : 'text-gray-400'}`}
     >
       Por Unidad
     </button>
     <button
       type="button"
       onClick={() => setFormData({ ...formData, sale_type: 'peso' })}
-      className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${formData.sale_type === 'peso' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-400'}`}
+      className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${formData.sale_type === 'peso' ? 'bg-white text-fresco shadow-sm' : 'text-gray-400'}`}
     >
       Por Peso
     </button>
@@ -1016,7 +1016,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     <div className="flex items-center justify-between mb-2">
       <div>
         <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-          <Layers size={14} className="text-violet-500"/> Opciones de Venta
+          <Layers size={14} className="text-fresco"/> Opciones de Venta
         </label>
         <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Marcá con la ⭐ el precio a mostrar</p>
       </div>
@@ -1066,7 +1066,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 newVars[index].label = e.target.value;
                 setFormData({...formData, variations: newVars});
               }}
-              className="flex-1 bg-slate-50 p-2 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-violet-200"
+              className="flex-1 bg-slate-50 p-2 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-[#B8E8D4]"
             />
 
             <div className="w-24 relative">
@@ -1104,7 +1104,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
   <div>
     <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Precio</label>
     <div className="relative">
-      <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all" placeholder="0"/>
+      <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-fresco transition-all" placeholder="0"/>
       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
     </div>
   </div>
@@ -1116,7 +1116,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
             <textarea 
                 value={formData.description} 
                 onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all min-h-[80px] resize-none" 
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-fresco transition-all min-h-[80px] resize-none" 
                 placeholder="Ingredientes, tamaño..."
             />
             <AlignLeft className="absolute left-3 top-4 text-gray-400" size={18}/>
@@ -1134,7 +1134,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
             <select 
                 value={formData.category_id || ''} 
                 onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-violet-500 transition-all appearance-none cursor-pointer"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-fresco transition-all appearance-none cursor-pointer"
             >
                 <option value="">Seleccionar categoría...</option>
                 {categories.filter(c => c.name.toLowerCase() !== 'general').map(cat => (
@@ -1152,7 +1152,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                         {/* 3. SECCIÓN DE ADICIONALES (EXTRAS) */}
                         <div className="pt-2 border-t border-gray-50">
                             <label className="text-xs font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">
-                                <span className="bg-violet-100 p-1 rounded text-violet-600"><Layers size={14}/></span> 
+                                <span className="bg-[#E8F7F1] p-1 rounded text-fresco"><Layers size={14}/></span> 
                                 Adicionales Disponibles
                             </label>
                             
@@ -1164,11 +1164,11 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                             <div 
                                                 key={extra.id} 
                                                 onClick={() => toggleExtra(extra.id)} 
-                                                className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 flex items-center justify-between group ${isSelected ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white border-gray-200 text-gray-600 hover:border-violet-300 hover:bg-violet-50'}`}
+                                                className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 flex items-center justify-between group ${isSelected ? 'bg-fresco border-fresco text-white shadow-lg shadow-[#B8E8D4]' : 'bg-white border-gray-200 text-gray-600 hover:border-[#8DD9BC] hover:bg-[#F0FAF6]'}`}
                                             >
                                                 <div className="flex flex-col overflow-hidden text-left">
                                                     <span className="font-bold text-sm truncate">{extra.name}</span>
-                                                    <span className={`text-xs ${isSelected ? 'text-violet-200' : 'text-gray-400'}`}>+${extra.price}</span>
+                                                    <span className={`text-xs ${isSelected ? 'text-[#B8E8D4]' : 'text-gray-400'}`}>+${extra.price}</span>
                                                 </div>
                                                 {isSelected ? <Check size={14} strokeWidth={3}/> : <div className="w-4 h-4 rounded-full border-2 border-gray-200"></div>}
                                             </div>
@@ -1178,7 +1178,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                             ) : (
                                 <div className="text-center p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                                     <p className="text-sm text-gray-500 mb-2">No tienes adicionales creados.</p>
-                                    <button onClick={() => {setShowModal(false); setActiveTab('extras');}} className="text-violet-600 text-sm font-bold hover:underline">Ir a crear Extras</button>
+                                    <button onClick={() => {setShowModal(false); setActiveTab('extras');}} className="text-fresco text-sm font-bold hover:underline">Ir a crear Extras</button>
                                 </div>
                             )}
                         </div>
@@ -1201,7 +1201,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
     )}
 
     {/* BOTÓN GUARDAR (Agregamos 'flex-1' para que ocupe el resto del espacio) */}
-    <button onClick={handleSaveProduct} disabled={saving} className="flex-1 bg-violet-600 text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-violet-700 transition active:scale-[0.98] disabled:opacity-50 shadow-xl">
+    <button onClick={handleSaveProduct} disabled={saving} className="flex-1 bg-fresco text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-[#17A06D] transition active:scale-[0.98] disabled:opacity-50 shadow-xl">
         {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={20}/> Guardar Cambios</>}
     </button>
 </div>
@@ -1218,11 +1218,11 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                         <button onClick={() => setShowExtraModal(false)}><X size={20} className="text-gray-400"/></button>
                     </div>
                     <div className="p-6 space-y-4">
-                        <input value={extraFormData.name} onChange={(e) => setExtraFormData({...extraFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition" placeholder="Nombre (Ej: Queso Extra)"/>
-                        <input type="number" value={extraFormData.price} onChange={(e) => setExtraFormData({...extraFormData, price: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition" placeholder="Precio adicional"/>
+                        <input value={extraFormData.name} onChange={(e) => setExtraFormData({...extraFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-fresco transition" placeholder="Nombre (Ej: Queso Extra)"/>
+                        <input type="number" value={extraFormData.price} onChange={(e) => setExtraFormData({...extraFormData, price: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-fresco transition" placeholder="Precio adicional"/>
                     </div>
                     <div className="p-6 border-t bg-gray-50">
-                        <button onClick={handleSaveExtra} disabled={saving} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-violet-700 shadow-lg">
+                        <button onClick={handleSaveExtra} disabled={saving} className="w-full bg-fresco text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-[#17A06D] shadow-lg">
                             {saving ? <Loader2 className="animate-spin" size={20}/> : <Save size={18}/>} Guardar Extra
                         </button>
                     </div>
@@ -1241,7 +1241,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 <input
                     value={categoryFormData.name}
                     onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-violet-500 transition"
+                    className="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-fresco transition"
                     placeholder="Ej: Hamburguesas, Bebidas..."
                 />
                 {CATEGORY_IMAGE_TEMPLATES.includes(selectedTemplate || '') && (
@@ -1253,7 +1253,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                                 <button onClick={() => setCategoryFormData({...categoryFormData, image_url: ''})} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5"><X size={14}/></button>
                             </div>
                         ) : (
-                            <label className="w-full h-28 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 cursor-pointer hover:border-violet-400 transition">
+                            <label className="w-full h-28 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 cursor-pointer hover:border-[#5ECBA1] transition">
                                 {uploadingCategoryImage ? <Loader2 className="animate-spin" size={20}/> : <ImageIcon size={20}/>}
                                 <span className="text-xs font-bold">{uploadingCategoryImage ? 'Subiendo...' : 'Subir imagen'}</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={handleCategoryImageUpload} disabled={uploadingCategoryImage} />
@@ -1263,7 +1263,7 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 )}
             </div>
             <div className="p-6 border-t bg-gray-50">
-                <button onClick={handleSaveCategory} disabled={saving} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-violet-700 shadow-lg">
+                <button onClick={handleSaveCategory} disabled={saving} className="w-full bg-fresco text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 transition hover:bg-[#17A06D] shadow-lg">
                     {saving ? <Loader2 className="animate-spin" size={20}/> : <Save size={18}/>} {editingCategoryId ? 'Guardar Cambios' : 'Guardar Categoría'}
                 </button>
             </div>

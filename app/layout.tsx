@@ -1,13 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display, Patrick_Hand, Lato } from "next/font/google";
+import { Space_Grotesk, Hanken_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700"], variable: "--font-playfair" });
-const patrickHand = Patrick_Hand({ subsets: ["latin"], weight: ["400"], variable: "--font-patrick" });
-const lato = Lato({ subsets: ["latin"], weight: ["400", "700", "900"], variable: "--font-lato" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400","500","600","700"], variable: "--font-space-grotesk" });
+const hankenGrotesk = Hanken_Grotesk({ subsets: ["latin"], weight: ["400","500","600","700"], variable: "--font-hanken-grotesk" });
+const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400","700"], variable: "--font-space-mono" });
 
 export const metadata: Metadata = {
   title: "Snappy | Tu Menú Digital",
@@ -39,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${inter.variable} ${playfair.variable} ${patrickHand.variable} ${lato.variable}`}>
+    <html lang="es" className={`${spaceGrotesk.variable} ${hankenGrotesk.variable} ${spaceMono.variable}`}>
       <head>
         {/* --- FIX ANTIBARRAS iOS (Dentro del Head y corregido) --- */}
         <Script id="ios-pwa-fix" strategy="beforeInteractive">
@@ -85,7 +84,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={inter.className}>
+      <body>
         <noscript>
           <img
             height="1" width="1" style={{ display: 'none' }}

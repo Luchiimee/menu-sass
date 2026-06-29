@@ -3,9 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --font-playfair: 'Playfair Display', serif;
-  --font-patrick: 'Patrick Hand', cursive;
-  --font-lato: 'Lato', sans-serif;
+  --font-display: var(--font-space-grotesk);
+  --font-body: var(--font-hanken-grotesk);
+  --font-mono: var(--font-space-mono);
+
+  --color-fresco: #1BB179;
+  --color-brasa: #9A5532;
+  --color-ink: #15160E;
+  --color-paper: #F5F5EF;
+  --color-surface: #ECEBE3;
+  --color-card: #FFFFFF;
+  --color-border: #DEDDD3;
+  --color-graphite: #86877B;
+  --color-alert: #FF4D3D;
 }
 
 /* Estilos extra para que parezca una App nativa */

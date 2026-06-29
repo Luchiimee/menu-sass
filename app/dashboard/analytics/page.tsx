@@ -267,13 +267,13 @@ export default function AnalyticsPage() {
             <button onClick={() => router.push('/dashboard')} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
               <X size={20} className="text-gray-500" />
             </button>
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5 text-blue-600">
+            <div className="mx-auto w-16 h-16 bg-[#E8F7F1] rounded-full flex items-center justify-center mb-5 text-fresco">
               <Calculator size={32} />
             </div>
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Control de Caja</h2>
             <p className="text-gray-500 mb-8 text-sm font-medium">Las métricas y arqueo de caja son exclusivos del <b>Plan Plus</b>.</p>
             <div className="flex flex-col gap-3">
-              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
                 Actualizar a Plus <Zap size={18} fill="currentColor" />
               </Link>
               <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
@@ -296,7 +296,7 @@ export default function AnalyticsPage() {
                 setSelectedDate(d.toISOString().split('T')[0]);
               }} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ChevronLeft /></button>
               <div className="flex items-center gap-2 font-bold text-gray-800 cursor-pointer hover:bg-gray-50 px-3 py-1 rounded-xl transition-all relative" onClick={() => dateInputRef.current?.showPicker()}>
-                <CalendarIcon size={20} className="text-violet-600" />
+                <CalendarIcon size={20} className="text-fresco" />
                 <span className="text-lg">{fd(selectedDate)}</span>
                 <input ref={dateInputRef} type="date" className="absolute opacity-0 pointer-events-none" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
               </div>
@@ -365,45 +365,43 @@ export default function AnalyticsPage() {
           <>
             {/* TOP CARDS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <div className="bg-white p-5 md:p-6 rounded-3xl border-2 border-green-100 shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Banknote size={80} className="text-green-600" /></div>
-                <p className="text-xs font-bold text-green-600 uppercase mb-1 flex items-center gap-1"><ArrowDownRight size={14} /> Efectivo</p>
-                <p className="text-3xl md:text-4xl font-black text-gray-900">{fp(liveSummary.byPaymentMethod.efectivo + liveSummary.openingBalance)}</p>
+              <div className="bg-white p-5 md:p-6 rounded-3xl border border-[#DEDDD3] shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Banknote size={80} className="text-graphite" /></div>
+                <p className="text-xs font-bold text-graphite uppercase mb-1 flex items-center gap-1"><ArrowDownRight size={14} /> Efectivo</p>
+                <p className="text-3xl md:text-4xl font-black text-ink">{fp(liveSummary.byPaymentMethod.efectivo + liveSummary.openingBalance)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Ventas efectivo + inicio de caja</p>
               </div>
-              <div className="bg-white p-5 md:p-6 rounded-3xl border-2 border-blue-100 shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><CreditCard size={80} className="text-blue-600" /></div>
-                <p className="text-xs font-bold text-blue-600 uppercase mb-1 flex items-center gap-1"><ArrowUpRight size={14} /> Digital</p>
-                <p className="text-3xl md:text-4xl font-black text-gray-900">{fp(liveSummary.byPaymentMethod.tarjeta + liveSummary.byPaymentMethod.transferencia)}</p>
+              <div className="bg-white p-5 md:p-6 rounded-3xl border border-[#DEDDD3] shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><CreditCard size={80} className="text-graphite" /></div>
+                <p className="text-xs font-bold text-graphite uppercase mb-1 flex items-center gap-1"><ArrowUpRight size={14} /> Digital</p>
+                <p className="text-3xl md:text-4xl font-black text-ink">{fp(liveSummary.byPaymentMethod.tarjeta + liveSummary.byPaymentMethod.transferencia)}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Transferencias y tarjetas</p>
               </div>
-              <div className="bg-violet-600 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-violet-100 flex flex-col justify-center">
-                <p className="text-xs font-bold text-violet-200 uppercase mb-1">Total Vendido</p>
-                <p className="text-3xl md:text-4xl font-black">{fp(liveSummary.totalSales)}</p>
-                <div className="mt-2 flex items-center gap-1 text-[10px] text-violet-100">
+              <div className="bg-fresco p-5 md:p-6 rounded-3xl shadow-xl shadow-[#E8F7F1] flex flex-col justify-center">
+                <p className="text-xs font-bold text-[#0C2D1F]/70 uppercase mb-1">Total Vendido</p>
+                <p className="text-3xl md:text-4xl font-black text-[#0C2D1F]">{fp(liveSummary.totalSales)}</p>
+                <div className="mt-2 flex items-center gap-1 text-[10px] text-[#0C2D1F]/60">
                   <CheckCircle2 size={12} /> {liveSummary.orderCount} {liveSummary.orderCount === 1 ? 'operación' : 'operaciones'}
                 </div>
               </div>
               {/* 4ta card: NETO — placeholder si abierto, valor real si cerrado */}
-              <div className={`p-5 md:p-6 rounded-3xl shadow-sm flex flex-col justify-center ${
+              <div className={`p-5 md:p-6 rounded-3xl flex flex-col justify-center bg-ink ${
                 isShiftOpen
-                  ? 'bg-gray-50 border-2 border-dashed border-gray-200'
-                  : liveSummary.netProfit >= 0
-                    ? 'bg-green-600 shadow-xl shadow-green-100'
-                    : 'bg-red-500 shadow-xl shadow-red-100'
+                  ? 'border-2 border-dashed border-graphite/30'
+                  : 'shadow-xl shadow-ink/20'
               }`}>
-                <p className={`text-xs font-bold uppercase mb-1 ${isShiftOpen ? 'text-gray-400' : 'text-white/80'}`}>
+                <p className="text-xs font-bold text-graphite uppercase mb-1">
                   Neto
                 </p>
                 {isShiftOpen ? (
                   <>
-                    <p className="text-3xl md:text-4xl font-black text-gray-300">—</p>
-                    <p className="text-[10px] text-gray-400 mt-2 font-medium">Disponible al cerrar</p>
+                    <p className="text-3xl md:text-4xl font-black text-paper/30">—</p>
+                    <p className="text-[10px] text-graphite mt-2 font-medium">Disponible al cerrar</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-3xl md:text-4xl font-black text-white">{fp(liveSummary.netProfit)}</p>
-                    <p className="text-[10px] text-white/70 mt-2 font-medium">Ventas − gastos − delivery</p>
+                    <p className="text-3xl md:text-4xl font-black text-paper">{fp(liveSummary.netProfit)}</p>
+                    <p className="text-[10px] text-graphite mt-2 font-medium">Ventas − gastos − delivery</p>
                   </>
                 )}
               </div>
@@ -485,8 +483,8 @@ export default function AnalyticsPage() {
                   <div className="space-y-2">
                     {[
                       { key: 'efectivo',       label: 'Efectivo',       color: 'text-green-600' },
-                      { key: 'tarjeta',         label: 'Tarjeta',        color: 'text-blue-600' },
-                      { key: 'transferencia',   label: 'Transferencia',  color: 'text-purple-600' },
+                      { key: 'tarjeta',         label: 'Tarjeta',        color: 'text-fresco' },
+                      { key: 'transferencia',   label: 'Transferencia',  color: 'text-brasa' },
                     ].map(({ key, label, color }) => (
                       <div key={key} className="flex justify-between items-center py-1.5">
                         <span className={`text-xs font-black uppercase ${color}`}>{label}</span>
@@ -616,7 +614,7 @@ export default function AnalyticsPage() {
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${
                             o.payment_method === 'efectivo' ? 'bg-green-100 text-green-700' :
-                            o.payment_method === 'tarjeta'  ? 'bg-blue-100 text-blue-700' :
+                            o.payment_method === 'tarjeta'  ? 'bg-[#E8F7F1] text-[#17A06D]' :
                             'bg-purple-100 text-purple-700'
                           }`}>{o.payment_method}</span>
                         </td>
@@ -680,24 +678,24 @@ export default function AnalyticsPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Concepto</label>
-                <input type="text" value={saleData.concept} onChange={(e) => setSaleData({ ...saleData, concept: e.target.value })} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold outline-none focus:ring-2 ring-violet-500 transition-all" placeholder="Ej: 2 Burgers con Papas" />
+                <input type="text" value={saleData.concept} onChange={(e) => setSaleData({ ...saleData, concept: e.target.value })} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold outline-none focus:ring-2 ring-fresco transition-all" placeholder="Ej: 2 Burgers con Papas" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Monto Total</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">$</span>
-                  <input type="number" value={saleData.total} onChange={(e) => setSaleData({ ...saleData, total: e.target.value })} className="w-full pl-8 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-2xl font-black outline-none focus:ring-2 ring-violet-500 transition-all" placeholder="0" />
+                  <input type="number" value={saleData.total} onChange={(e) => setSaleData({ ...saleData, total: e.target.value })} className="w-full pl-8 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-2xl font-black outline-none focus:ring-2 ring-fresco transition-all" placeholder="0" />
                 </div>
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Medio de Pago</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[{ v: 'efectivo', l: 'Efectivo' }, { v: 'transferencia', l: 'Transf.' }, { v: 'tarjeta', l: 'Tarjeta' }].map(({ v, l }) => (
-                    <button key={v} onClick={() => setSaleData({ ...saleData, method: v })} className={`py-3 rounded-xl border-2 font-bold text-xs transition-all ${saleData.method === v ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-400'}`}>{l}</button>
+                    <button key={v} onClick={() => setSaleData({ ...saleData, method: v })} className={`py-3 rounded-xl border-2 font-bold text-xs transition-all ${saleData.method === v ? 'border-fresco bg-[#F0FAF6] text-[#17A06D]' : 'border-gray-100 text-gray-400'}`}>{l}</button>
                   ))}
                 </div>
               </div>
-              <button onClick={handleManualSale} disabled={saving} className="w-full bg-violet-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-violet-700 transition-all shadow-lg shadow-violet-100 mt-4 active:scale-95 disabled:opacity-50">
+              <button onClick={handleManualSale} disabled={saving} className="w-full bg-fresco text-white py-4 rounded-2xl font-bold text-lg hover:bg-[#17A06D] transition-all shadow-lg shadow-[#E8F7F1] mt-4 active:scale-95 disabled:opacity-50">
                 {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Confirmar Venta'}
               </button>
             </div>

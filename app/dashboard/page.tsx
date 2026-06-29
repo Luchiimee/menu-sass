@@ -195,7 +195,7 @@ useEffect(() => {
   const getStatusBadge = (status: string) => {
     switch(status) {
         case 'pendiente': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>;
-        case 'en_proceso': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><ChefHat size={12}/> Cocina</span>;
+        case 'en_proceso': return <span className="bg-[#E8F7F1] text-blue-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><ChefHat size={12}/> Cocina</span>;
         case 'completado': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><CheckCircle size={12}/> Listo</span>;
         case 'cancelado': return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><XCircle size={12}/> Cancel</span>;
         default: return null;
@@ -323,9 +323,9 @@ const PhoneWarningBanner = () => {
         </div>
 
         {/* 2. BLOQUE DE SEGURIDAD (LO QUE HABÍAMOS SACADO) */}
-        <div className="bg-blue-50 border border-blue-100 p-5 rounded-[2rem] max-w-4xl mx-auto shadow-sm">
+        <div className="bg-[#F0FAF6] border border-[#E8F7F1] p-5 rounded-[2rem] max-w-4xl mx-auto shadow-sm">
             <div className="flex flex-col md:flex-row items-center gap-6 text-left">
-                <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-200 shrink-0">
+                <div className="bg-fresco text-white p-3 rounded-2xl shadow-lg shadow-[#B8E8D4] shrink-0">
                     <ShieldCheck size={28}/>
                 </div>
                 <div className="space-y-1">
@@ -356,26 +356,26 @@ const PhoneWarningBanner = () => {
                    <b>Ideal para:</b> Emprendimientos pequeños. <br/> 
                    20 productos, fotos y pedidos directos a tu WhatsApp.
                 </p>
-                <span className="mt-4 text-[9px] font-black uppercase text-blue-600 group-hover:underline">Elegir este plan →</span>
+                <span className="mt-4 text-[9px] font-black uppercase text-fresco group-hover:underline">Elegir este plan →</span>
             </Link>
 
             {/* PLAN GO: El Profesional */}
-            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-blue-50 border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-blue-600 transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
-                <div className="absolute top-0 right-0 bg-blue-600 text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">EL MÁS ELEGIDO</div>
-                <div className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-[#F0FAF6] border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-fresco transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
+                <div className="absolute top-0 right-0 bg-fresco text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">EL MÁS ELEGIDO</div>
+                <div className="w-10 h-10 bg-fresco text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#B8E8D4]">
                     <Zap size={20} fill="currentColor" />
                 </div>
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1">Profesional</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-fresco mb-1">Profesional</h3>
                 <p className="text-2xl font-black text-gray-900">Plan GO</p>
-                <div className="my-3 py-2 border-y border-blue-100">
+                <div className="my-3 py-2 border-y border-[#E8F7F1]">
                     <span className="line-through text-gray-400 text-xs font-medium block">$28.600</span>
-                    <p className="text-xl font-black text-blue-600">$22.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <p className="text-xl font-black text-fresco">$22.000 <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-blue-900 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Negocios que crecen. <br/> 
                    60 productos, **videos animado**, cupones y monitor de pedidos.
                 </p>
-                <span className="mt-4 text-[9px] font-black uppercase text-blue-600 group-hover:underline">Elegir este plan →</span>
+                <span className="mt-4 text-[9px] font-black uppercase text-fresco group-hover:underline">Elegir este plan →</span>
             </Link>
 
             {/* PLAN PLUS: Gestión Física */}
@@ -451,7 +451,7 @@ const PhoneWarningBanner = () => {
               <button onClick={handleDownloadQrPdf} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white/10 text-white border border-white/10 px-6 py-3 rounded-2xl text-xs font-black uppercase hover:bg-white/20 transition">
                 <QrCode size={16}/> QR PDF
               </button>
-              <button onClick={openStoreInBrowser} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase hover:bg-blue-700 transition">
+              <button onClick={openStoreInBrowser} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-fresco text-white px-6 py-3 rounded-2xl text-xs font-black uppercase hover:bg-[#17A06D] transition">
                 <ExternalLink size={16}/> Abrir
               </button>
             </div>
@@ -576,28 +576,28 @@ const PhoneWarningBanner = () => {
   )}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-left">
-                <Crown size={20} className="text-purple-500 fill-purple-500" />
+                <Crown size={20} className="text-brasa fill-brasa" />
                 <h3 className="font-black text-xs text-gray-900 uppercase tracking-tighter">Gestión de Cupones</h3>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
               <div className="flex flex-col gap-1 min-w-0 text-left">
                 <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Código</label>
-                <input type="text" placeholder="EJ: VERANO20" value={newCoupon.code} onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-purple-500" />
+                <input type="text" placeholder="EJ: VERANO20" value={newCoupon.code} onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase text-gray-900 outline-none focus:border-brasa" />
               </div>
               <div className="flex flex-col gap-1 min-w-0 text-left">
                 <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Dcto %</label>
-                <input type="number" placeholder="20" value={newCoupon.discount} onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-purple-500" />
+                <input type="number" placeholder="20" value={newCoupon.discount} onChange={(e) => setNewCoupon({...newCoupon, discount: Number(e.target.value)})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-xs font-black text-gray-900 outline-none focus:border-brasa" />
               </div>
               <div className="flex flex-col gap-1 min-w-0 text-left">
                 <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Desde</label>
-                <input type="date" value={newCoupon.startDate} onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" />
+                <input type="date" value={newCoupon.startDate} onChange={(e) => setNewCoupon({...newCoupon, startDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-brasa" />
               </div>
               <div className="flex flex-col gap-1 min-w-0 text-left">
                 <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
-                <input type="date" value={newCoupon.endDate} onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-purple-500" />
+                <input type="date" value={newCoupon.endDate} onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-brasa" />
               </div>
-              <button onClick={handleCreateCoupon} className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all">
+              <button onClick={handleCreateCoupon} className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-brasa text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all">
                 <Plus size={16} /> Crear Cupón
               </button>
             </div>
@@ -615,7 +615,7 @@ const PhoneWarningBanner = () => {
                   {coupons.map((c) => (
                     <tr key={c.id} className="group hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-2 font-black text-xs text-gray-900 italic">{c.code}</td>
-                      <td className="py-4 px-2 text-purple-600 font-black text-xs">-{c.discount_percent}%</td>
+                      <td className="py-4 px-2 text-brasa font-black text-xs">-{c.discount_percent}%</td>
                       <td className="py-4 px-2 text-[9px] text-gray-500 font-bold uppercase">{new Date(c.starts_at).toLocaleDateString()} al {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '∞'}</td>
                       <td className="py-4 px-2 text-right">
                         <button onClick={() => handleDeleteClick(c.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
@@ -674,7 +674,7 @@ const PhoneWarningBanner = () => {
         ) : ( 
         <div className="mt-10 bg-white border border-gray-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
               <div className="flex items-center gap-4 text-left">
-                  <div className="bg-blue-50 p-4 rounded-3xl text-blue-600">
+                  <div className="bg-[#F0FAF6] p-4 rounded-3xl text-fresco">
                       <Lock size={28}/>
                   </div>
                  <div>
@@ -745,7 +745,7 @@ const PhoneWarningBanner = () => {
     <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
       
       {/* Decoración de fondo */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50 rounded-full opacity-50 blur-3xl"></div>
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#F0FAF6] rounded-full opacity-50 blur-3xl"></div>
       
       <div className="relative z-10">
         <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
@@ -758,13 +758,13 @@ const PhoneWarningBanner = () => {
         
         <p className="text-gray-500 text-xs mb-8 font-medium leading-relaxed px-2">
           {upgradeModalInfo.desc} <br/><br/>
-          Subí al <span className="text-blue-600 font-black">Plan {upgradeModalInfo.plan}</span> para desbloquear esta y muchas funciones más.
+          Subí al <span className="text-fresco font-black">Plan {upgradeModalInfo.plan}</span> para desbloquear esta y muchas funciones más.
         </p>
 
         <div className="flex flex-col gap-3">
           <Link 
             href="/dashboard/plan"
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-fresco text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[#B8E8D4] hover:bg-[#17A06D] transition-all flex items-center justify-center gap-2"
           >
             Ver Planes <Zap size={14} fill="currentColor" />
           </Link>

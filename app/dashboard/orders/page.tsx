@@ -112,7 +112,7 @@ const getStatusBadge = (status: string, orderType?: string) => {
         case "en_proceso":
             return <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">{isRetail ? <ShoppingBag size={10} /> : <ChefHat size={10} />} {isRetail ? 'Preparando' : 'Cocina'}</span>;
         case "en_camino":
-            return <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : isRetail ? 'Pedido Enviado' : 'En camino'}</span>;
+            return <span className="bg-[#E8F7F1] text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : isRetail ? 'Pedido Enviado' : 'En camino'}</span>;
         case "entregado":
         case "completado":
             return <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Check size={10} /> {isRetail ? 'Entregado' : 'Finalizado'}</span>;
@@ -642,7 +642,7 @@ useEffect(() => {
     
     return (
       <div className="p-10 flex justify-center items-center min-h-screen">
-        <Loader2 className="animate-spin text-blue-600" />
+        <Loader2 className="animate-spin text-fresco" />
       </div>
     );
   }
@@ -661,13 +661,13 @@ useEffect(() => {
             >
               <X size={20} className="text-gray-500" />
             </button>
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5 text-blue-600">
+            <div className="mx-auto w-16 h-16 bg-[#E8F7F1] rounded-full flex items-center justify-center mb-5 text-fresco">
               <Zap size={32} fill="currentColor" />
             </div>
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic">Gestor de Pedidos</h2>
            <p className="text-gray-500 mb-8 text-sm">El panel de pedidos en tiempo real está disponible desde el <b>Plan GO</b>.</p>
 <div className="flex flex-col gap-3">
-   <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg uppercase text-xs tracking-widest text-center no-underline">
+   <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg uppercase text-xs tracking-widest text-center no-underline">
       Actualizar a GO <Zap size={18} fill="currentColor" className="inline ml-1" />
    </Link>
                <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600">
@@ -729,13 +729,13 @@ useEffect(() => {
 
     {/* CONTENEDOR RELATIVO (Solo para el input y los iconos) */}
     <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-fresco transition-colors" size={20} />
         <input 
             type="text"
             placeholder="Buscar pedido..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-sm font-bold outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400 text-gray-900"
+            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-sm font-bold outline-none focus:ring-4 focus:ring-fresco/10 focus:border-fresco transition-all shadow-sm placeholder:text-gray-400 text-gray-900"
         />
         {searchTerm && (
             <button 
@@ -754,11 +754,11 @@ useEffect(() => {
             <div className="flex flex-col lg:flex-row gap-3">
                 <div className="flex-1 flex items-center justify-between bg-white p-2 rounded-[1.5rem] border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl">
-                        <button onClick={() => setSelectedDate(getArgentinaDate())} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === getArgentinaDate() ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Hoy</button>
-                        <button onClick={() => setSelectedDate(getArgentinaDate(-1))} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === getArgentinaDate(-1) ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Ayer</button>
+                        <button onClick={() => setSelectedDate(getArgentinaDate())} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === getArgentinaDate() ? 'bg-white shadow-sm text-fresco' : 'text-gray-400'}`}>Hoy</button>
+                        <button onClick={() => setSelectedDate(getArgentinaDate(-1))} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedDate === getArgentinaDate(-1) ? 'bg-white shadow-sm text-fresco' : 'text-gray-400'}`}>Ayer</button>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button onClick={() => dateInputRef.current?.showPicker()} className="p-2.5 bg-gray-50 text-gray-400 rounded-xl border border-gray-100 hover:text-blue-600 transition-colors">
+                        <button onClick={() => dateInputRef.current?.showPicker()} className="p-2.5 bg-gray-50 text-gray-400 rounded-xl border border-gray-100 hover:text-fresco transition-colors">
                             <CalendarIcon size={18} />
                         </button>
                         <div className="flex flex-col items-end pr-2">
@@ -801,7 +801,7 @@ useEffect(() => {
                   onClick={() => setShowTables(!showTables)}
                   className="flex items-center gap-2 hover:opacity-80 transition-all"
                 >
-                  <div className="p-1.5 rounded-xl bg-blue-600 text-white shadow-sm">
+                  <div className="p-1.5 rounded-xl bg-fresco text-white shadow-sm">
                     <Store size={15} />
                   </div>
                   <div className="flex flex-col items-start text-left">
@@ -815,7 +815,7 @@ useEffect(() => {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="p-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all"
+                    className="p-1.5 rounded-xl bg-fresco text-white hover:bg-[#17A06D] transition-all"
                     title="Nueva mesa"
                   >
                     <Plus size={14} />
@@ -845,14 +845,14 @@ useEffect(() => {
                             className={`relative rounded-2xl border-2 flex flex-col shadow-sm group cursor-pointer active:scale-[0.98] transition-all ${
                               isCalling ? 'animate-table-call ring-4 ring-red-500/50' :
                               isPendingAcceptance ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-300 animate-pulse' :
-                              isWaitingPayment ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100' :
+                              isWaitingPayment ? 'border-brasa bg-purple-50 ring-2 ring-purple-100' :
                               isOccupied ? 'border-orange-300 bg-white' :
                               'border-gray-100 bg-white'
                             }`}
                           >
                             {/* Editar / borrar */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1 bg-white shadow-md rounded-full text-blue-500 hover:bg-blue-50"><Pencil size={9} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1 bg-white shadow-md rounded-full text-fresco hover:bg-[#F0FAF6]"><Pencil size={9} /></button>
                               <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1 bg-white shadow-md rounded-full text-red-400 hover:bg-red-50"><Trash2 size={9} /></button>
                             </div>
 
@@ -872,7 +872,7 @@ useEffect(() => {
 
                             {/* Badge pago pendiente */}
                             {isWaitingPayment && !isCalling && (
-                              <div className="absolute -top-2.5 left-2 bg-purple-600 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-pulse z-20">
+                              <div className="absolute -top-2.5 left-2 bg-brasa text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-pulse z-20">
                                 {paymentMethod === 'transferencia' ? 'Transf.' : 'Cobrar'}
                               </div>
                             )}
@@ -899,7 +899,7 @@ useEffect(() => {
                               <p className={`text-[8px] font-black uppercase tracking-widest ${
                                 isCalling ? 'text-white/80' :
                                 isPendingAcceptance ? 'text-amber-600' :
-                                isWaitingPayment ? 'text-purple-500' :
+                                isWaitingPayment ? 'text-brasa' :
                                 isOccupied ? 'text-orange-400' :
                                 'text-gray-300'
                               }`}>
@@ -915,7 +915,7 @@ useEffect(() => {
                                 className={`w-full py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-95 transition-all ${
                                   isCalling ? 'bg-white text-gray-900' :
                                   isPendingAcceptance ? 'bg-amber-500 text-white' :
-                                  isWaitingPayment ? 'bg-purple-600 text-white' :
+                                  isWaitingPayment ? 'bg-brasa text-white' :
                                   isOccupied ? 'bg-gray-900 text-white' :
                                   'bg-gray-100 text-gray-600'
                                 }`}
@@ -929,7 +929,7 @@ useEffect(() => {
                       {availableTables.length === 0 && (
                         <div className="col-span-2 py-8 text-center border-2 border-dashed border-gray-50 rounded-2xl">
                           <p className="text-[10px] font-black text-gray-300 uppercase italic">Sin mesas configuradas</p>
-                          <button onClick={() => setIsModalOpen(true)} className="mt-2 text-[9px] font-black text-blue-600 uppercase">+ Nueva Mesa</button>
+                          <button onClick={() => setIsModalOpen(true)} className="mt-2 text-[9px] font-black text-fresco uppercase">+ Nueva Mesa</button>
                         </div>
                       )}
                     </div>
@@ -968,7 +968,7 @@ useEffect(() => {
     return name.includes(term) || id.includes(term) || cleanId.includes(term);
   })
   .map((order) => (
-                    <div key={order.id} id={`order-${order.id}`} className={`p-4 rounded-3xl transition-all duration-500 border-2 ${highlightedId === order.id ? 'border-blue-600 bg-blue-50 ring-4 ring-blue-100 scale-[1.02]' : 'border-white bg-white shadow-sm'}`}>
+                    <div key={order.id} id={`order-${order.id}`} className={`p-4 rounded-3xl transition-all duration-500 border-2 ${highlightedId === order.id ? 'border-fresco bg-[#F0FAF6] ring-4 ring-[#E8F7F1] scale-[1.02]' : 'border-white bg-white shadow-sm'}`}>
                         <div className="flex justify-between items-start mb-4 border-b border-gray-50 pb-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
@@ -984,7 +984,7 @@ useEffect(() => {
 
     {/* WhatsApp más visible con estilo de botón suave */}
    {order.customer_phone && (
-        <div className="flex items-center gap-1 text-[10px] font-black text-blue-600 bg-blue-50 w-fit px-2 py-1 rounded-lg border border-blue-100 shadow-sm mt-1">
+        <div className="flex items-center gap-1 text-[10px] font-black text-fresco bg-[#F0FAF6] w-fit px-2 py-1 rounded-lg border border-[#E8F7F1] shadow-sm mt-1">
             <Phone size={10} strokeWidth={3} /> 
             <span>{order.customer_phone}</span>
         </div>
@@ -995,7 +995,7 @@ useEffect(() => {
                                     <div className="flex items-center gap-1 text-[10px] font-black text-orange-600 bg-orange-50 w-fit px-2 py-0.5 rounded-md mt-1 border border-orange-100"><MapPin size={10} strokeWidth={3} /> {order.address}</div>
                                 )}
                                 <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest mt-2">
-                                    <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${order.order_type === 'mesa' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                    <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${order.order_type === 'mesa' ? 'bg-brasa text-white' : 'bg-gray-100 text-gray-500'}`}>
                                         {order.order_type === "delivery" ? <Bike size={12} /> : order.order_type === "retiro" ? <Store size={12} /> : <MapPin size={12} />}
                                         {order.order_type === 'mesa' ? displayTableLabel(order.table_number, true) : order.order_type}
                                     </span>
@@ -1006,7 +1006,7 @@ useEffect(() => {
 {order.order_type !== 'mesa' && (
     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border mt-2 w-fit transition-all ${
         order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato'
-        ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-100 animate-in zoom-in' // Resaltado si es para más tarde
+        ? 'bg-fresco border-indigo-400 text-white shadow-lg shadow-[#E8F7F1] animate-in zoom-in' // Resaltado si es para más tarde
         : 'bg-slate-100 border-slate-200 text-slate-500' // Estilo neutro si es inmediato
     }`}>
         {order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato' 
@@ -1037,7 +1037,7 @@ useEffect(() => {
                             {order.items?.map((item: any, i: number) => (
                                 <div key={i} className="border-b border-gray-50 pb-2 last:border-0">
                                     <div className="flex justify-between text-xs font-bold">
-                                        <span className="text-gray-800"><span className="text-blue-600">x{item.quantity}</span> {item.name}</span>
+                                        <span className="text-gray-800"><span className="text-fresco">x{item.quantity}</span> {item.name}</span>
                                         <span className="font-black text-gray-900">${item.price * item.quantity}</span>
                                     </div>
                                     {item.extrasList?.map((extra: any, j: number) => (
@@ -1086,8 +1086,8 @@ useEffect(() => {
     {/* 🚀 LÓGICA DE SEPARACIÓN: MESA vs DELIVERY */}
     {order.order_type === 'mesa' ? (
         /* 🍽️ SI ES MESA: No mostramos botones de flujo, solo info */
-        <div className="py-3 px-4 bg-indigo-50 rounded-xl border border-indigo-100 text-center animate-in fade-in">
-            <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+        <div className="py-3 px-4 bg-[#F0FAF6] rounded-xl border border-[#E8F7F1] text-center animate-in fade-in">
+            <p className="text-[9px] font-black text-fresco uppercase tracking-widest leading-none">
                 Gestionado desde panel de salón
             </p>
         </div>
@@ -1104,7 +1104,7 @@ useEffect(() => {
             {order.status === "pendiente" && (
                 <div className="flex gap-2">
                     <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
-                    <button onClick={() => { updateStatus(order.id, "recibido"); if (thermalPrintingEnabled) { handleThermalPrint(order); } }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
+                    <button onClick={() => { updateStatus(order.id, "recibido"); if (thermalPrintingEnabled) { handleThermalPrint(order); } }} className="bg-fresco text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
                         <Check size={14} /> Tomar Pedido
                     </button>
                 </div>
@@ -1118,7 +1118,7 @@ useEffect(() => {
 {order.status === "en_proceso" && (
     <button 
         onClick={() => updateStatus(order.id, "en_camino")} 
-        className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase animate-in zoom-in text-center"
+        className="w-full bg-fresco text-white px-6 py-3 rounded-xl text-xs font-black uppercase animate-in zoom-in text-center"
     >
         {/* 🚀 CAMBIO DE TEXTO SEGÚN TIPO */}
         {order.order_type === 'retiro' ? 'Notificar: Pedido Listo' : 'Enviar Pedido'}
@@ -1162,13 +1162,13 @@ useEffect(() => {
               <div className="space-y-5">
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de la Mesa *</label>
-                  <input type="text" placeholder="Ej: Mesa 1" value={newTableName} onChange={(e) => setNewTableName(e.target.value)} className="w-full mt-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-900 focus:border-blue-600 outline-none" />
+                  <input type="text" placeholder="Ej: Mesa 1" value={newTableName} onChange={(e) => setNewTableName(e.target.value)} className="w-full mt-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-900 focus:border-fresco outline-none" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción (Opcional)</label>
-                  <input type="text" placeholder="Ej: Planta alta" value={newTableDesc} onChange={(e) => setNewTableDesc(e.target.value)} className="w-full mt-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-900 focus:border-blue-600 outline-none" />
+                  <input type="text" placeholder="Ej: Planta alta" value={newTableDesc} onChange={(e) => setNewTableDesc(e.target.value)} className="w-full mt-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-900 focus:border-fresco outline-none" />
                 </div>
-                <button onClick={saveTable} disabled={isCreatingTable} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                <button onClick={saveTable} disabled={isCreatingTable} className="w-full py-4 bg-fresco text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-[#17A06D] disabled:opacity-50 flex items-center justify-center gap-2">
                   {isCreatingTable ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
                   {isCreatingTable ? 'Guardando...' : 'Confirmar'}
                 </button>
@@ -1183,7 +1183,7 @@ useEffect(() => {
           <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
             
             {/* Decoración de fondo */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50 rounded-full opacity-50 blur-3xl"></div>
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#F0FAF6] rounded-full opacity-50 blur-3xl"></div>
             
             <div className="relative z-10">
               <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
@@ -1196,13 +1196,13 @@ useEffect(() => {
               
               <p className="text-gray-500 text-xs mb-8 font-medium leading-relaxed px-2 text-center">
                 {upgradeModalInfo.desc} <br/><br/>
-                Subí al <span className="text-blue-600 font-black">Plan {upgradeModalInfo.plan}</span> para desbloquear esta y muchas funciones más.
+                Subí al <span className="text-fresco font-black">Plan {upgradeModalInfo.plan}</span> para desbloquear esta y muchas funciones más.
               </p>
 
               <div className="flex flex-col gap-3">
                 <Link 
                   href="/dashboard/settings?focus=phone" 
-                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 no-underline"
+                  className="w-full bg-fresco text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[#B8E8D4] hover:bg-[#17A06D] transition-all flex items-center justify-center gap-2 no-underline"
                 >
                   Ver Planes <Zap size={14} fill="currentColor" />
                 </Link>
@@ -1225,7 +1225,7 @@ useEffect(() => {
             {/* Header del Modal */}
             <div className="p-8 border-b flex justify-between items-center bg-gray-50/50">
                <div>
-    <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+    <span className="bg-fresco text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
         {selectedTableForDetail.name}
     </span>
     {selectedTableForDetail.activeOrder ? (
@@ -1233,7 +1233,7 @@ useEffect(() => {
         <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 mt-2">
             {selectedTableForDetail.activeOrder.customer_name}
         </h3>
-        <p className="text-blue-600 font-bold text-xs flex items-center gap-1 mt-1">
+        <p className="text-fresco font-bold text-xs flex items-center gap-1 mt-1">
             <Phone size={12} strokeWidth={3}/> {selectedTableForDetail.activeOrder.customer_phone}
         </p>
       </>
@@ -1300,13 +1300,13 @@ useEffect(() => {
                 {selectedTableForDetail.activeOrder && (
                   <>
                 {selectedTableForDetail.activeOrder.payment_status === 'esperando_confirmacion' && (
-                    <div className="bg-purple-600 text-white p-5 rounded-3xl shadow-xl animate-in zoom-in mb-6">
+                    <div className="bg-brasa text-white p-5 rounded-3xl shadow-xl animate-in zoom-in mb-6">
                         <div className="flex items-center gap-3 mb-2">
                             <Wallet size={24} />
                             <h4 className="font-black uppercase italic tracking-tighter">Confirmación de Pago</h4>
                         </div>
                         <p className="text-[11px] font-bold opacity-90 leading-tight">
-                            El cliente indica que desea pagar por: <span className="bg-white text-purple-600 px-2 py-0.5 rounded ml-1">{selectedTableForDetail.activeOrder.payment_method?.toUpperCase()}</span>
+                            El cliente indica que desea pagar por: <span className="bg-white text-brasa px-2 py-0.5 rounded ml-1">{selectedTableForDetail.activeOrder.payment_method?.toUpperCase()}</span>
                         </p>
 
                         {selectedTableForDetail.activeOrder.payment_method === 'transferencia' && (
@@ -1323,7 +1323,7 @@ useEffect(() => {
                         <div key={i} className="flex justify-between items-center bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm">
                             <div className="flex flex-col">
                                 <span className="text-sm font-black text-gray-800 leading-none mb-1">{item.name}</span>
-                                <span className="text-[10px] font-bold text-blue-600 uppercase">Cantidad: {item.quantity}</span>
+                                <span className="text-[10px] font-bold text-fresco uppercase">Cantidad: {item.quantity}</span>
                             </div>
                             <span className="text-sm font-black text-gray-900">${item.price * item.quantity}</span>
                         </div>
@@ -1337,7 +1337,7 @@ useEffect(() => {
                         /* 1. BOTÓN PRINCIPAL (Lo primero que se ve) */
                         <button 
                             onClick={() => setShowAddTools(true)}
-                            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
+                            className="w-full py-4 bg-fresco text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-[#17A06D] shadow-lg shadow-[#B8E8D4] transition-all active:scale-95"
                         >
                             <Plus size={18} strokeWidth={3} /> Agregar al pedido
                         </button>
@@ -1345,13 +1345,13 @@ useEffect(() => {
                         /* 2. PANEL DESPLEGADO */
                         <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center justify-between">
-                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Añadir nuevos items</p>
+                                <p className="text-[10px] font-black text-fresco uppercase tracking-widest">Añadir nuevos items</p>
                                 <button onClick={() => { setShowAddTools(false); setIsManualMode(false); }} className="p-1 text-gray-400 hover:text-red-500"><X size={16} /></button>
                             </div>
 
                             {/* SELECTOR: LISTA O MANUAL */}
                             <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
-                                <button onClick={() => setIsManualMode(false)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${!isManualMode ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}>Mis Productos</button>
+                                <button onClick={() => setIsManualMode(false)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${!isManualMode ? 'bg-white shadow-sm text-fresco' : 'text-gray-400'}`}>Mis Productos</button>
                                 <button onClick={() => setIsManualMode(true)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${isManualMode ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400'}`}>Carga Manual</button>
                             </div>
 
@@ -1380,7 +1380,7 @@ useEffect(() => {
                                         <input 
                                             type="text" placeholder="Buscar mi producto..." 
                                             value={productSearch} onChange={(e) => setProductSearch(e.target.value)}
-                                            className="w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border-none text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            className="w-full pl-9 pr-4 py-3 bg-gray-50 rounded-xl border-none text-xs font-bold outline-none focus:ring-2 focus:ring-fresco/20"
                                         />
                                     </div>
                                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
@@ -1391,15 +1391,15 @@ useEffect(() => {
                                                     key={prod.id}
                                                     onClick={() => addItemToOrder(selectedTableForDetail.activeOrder, { name: prod.name, price: Number(prod.price) })}
                                                     disabled={isAddingItem}
-                                                    className="flex justify-between items-center p-4 bg-white hover:bg-blue-600 hover:text-white group rounded-2xl border border-gray-100 transition-all text-left shadow-sm active:scale-95"
+                                                    className="flex justify-between items-center p-4 bg-white hover:bg-fresco hover:text-white group rounded-2xl border border-gray-100 transition-all text-left shadow-sm active:scale-95"
                                                 >
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-black uppercase tracking-tight">{prod.name}</span>
-                                                        <span className="text-[8px] font-bold text-gray-400 group-hover:text-blue-100 uppercase italic line-clamp-1">{prod.description}</span>
+                                                        <span className="text-[8px] font-bold text-gray-400 group-hover:text-[#E8F7F1] uppercase italic line-clamp-1">{prod.description}</span>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-[11px] font-black text-blue-600 group-hover:text-white">${prod.price}</span>
-                                                        <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg group-hover:bg-white/20 group-hover:text-white"><Plus size={14} strokeWidth={4}/></div>
+                                                        <span className="text-[11px] font-black text-fresco group-hover:text-white">${prod.price}</span>
+                                                        <div className="bg-[#F0FAF6] text-fresco p-1.5 rounded-lg group-hover:bg-white/20 group-hover:text-white"><Plus size={14} strokeWidth={4}/></div>
                                                     </div>
                                                 </button>
                                             ))
@@ -1407,7 +1407,7 @@ useEffect(() => {
                                         {allProducts.length > 0 && allProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
                                             <div className="text-center py-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase">No encontramos "{productSearch}"</p>
-                                                <button onClick={() => setIsManualMode(true)} className="mt-2 text-[9px] font-black text-blue-600 uppercase underline">Crear item manual</button>
+                                                <button onClick={() => setIsManualMode(true)} className="mt-2 text-[9px] font-black text-fresco uppercase underline">Crear item manual</button>
                                             </div>
                                         )}
                                     </div>
@@ -1508,8 +1508,8 @@ useEffect(() => {
             
             <div className="space-y-4">
                 <div>
-                    <label className="text-[9px] font-black text-blue-600 uppercase ml-2">Nombre del Cliente *</label>
-                    <input type="text" placeholder="Ej: Juan Pérez" value={resData.name} onChange={e => setResData({...resData, name: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-blue-600" />
+                    <label className="text-[9px] font-black text-fresco uppercase ml-2">Nombre del Cliente *</label>
+                    <input type="text" placeholder="Ej: Juan Pérez" value={resData.name} onChange={e => setResData({...resData, name: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-fresco" />
                 </div>
 
                 <div className="flex gap-2">
@@ -1524,7 +1524,7 @@ useEffect(() => {
                 </div>
 
                 <div>
-                    <label className="text-[9px] font-black text-blue-600 uppercase ml-2">Cantidad de Personas *</label>
+                    <label className="text-[9px] font-black text-fresco uppercase ml-2">Cantidad de Personas *</label>
                     <input type="number" placeholder="Ej: 4" value={resData.guests} onChange={e => setResData({...resData, guests: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold text-sm outline-none" />
                 </div>
 
@@ -1538,7 +1538,7 @@ useEffect(() => {
                     <button 
                         onClick={saveReservation} 
                         disabled={!resData.name || !resData.guests}
-                        className={`flex-[2] py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all ${(!resData.name || !resData.guests) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white active:scale-95'}`}
+                        className={`flex-[2] py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all ${(!resData.name || !resData.guests) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-fresco text-white active:scale-95'}`}
                     >
                         {resTable?.status === 'reservada' ? 'Actualizar' : 'Confirmar Reserva'}
                     </button>
