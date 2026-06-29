@@ -854,6 +854,26 @@ const handleCallWaiter = async () => {
     ? `${direccionCalle} (entre ${direccionEntreCalles})`
     : direccionCalle;
 
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`,
+      );
+      const data = await res.json();
+      if (!data.results?.[0]) return '';
+      const comps = data.results[0].address_components;
+      const get = (type: string) => comps.find((c: any) => c.types.includes(type))?.long_name || '';
+      const route = get('route');
+      const number = get('street_number');
+      const city = get('locality') || get('sublocality') || get('administrative_area_level_2');
+      const street = [route, number].filter(Boolean).join(' ');
+      return city ? `${street}, ${city}` : street;
+    } catch {
+      return '';
+    }
+  };
+
   const handleDetectLocation = async () => {
     setDetectingLocation(true);
     setClientCoords(null);
@@ -881,8 +901,11 @@ const handleCallWaiter = async () => {
     if (!navigator.geolocation) { await tryNominatim(); return; }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setClientCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setClientCoords({ lat: latitude, lng: longitude });
+        const addr = await reverseGeocode(latitude, longitude);
+        if (addr) setDireccionCalle(addr);
         setDetectingLocation(false);
       },
       tryNominatim,
@@ -978,7 +1001,9 @@ if (telCliente.trim()) {
         mensaje += `⏰ *Horario:* ${infoHorario}\n`;
     }
 
-        if (metodoEnvio === 'delivery') mensaje += `📍 *Dirección:* ${direccionCompleta}\n`;
+        if (metodoEnvio === 'delivery') {
+          mensaje += `📍 *Dirección:* ${direccionCompleta}\n`;
+        }
         if (metodoEnvio === 'mesa') mensaje += `🍽️ *${displayTableLabel(nroMesa)}*\n`;
         mensaje += `💳 *Pago:* ${metodoPago.toUpperCase()}\n\n*Pedido:*\n`;
         
@@ -1212,59 +1237,40 @@ return (
                     )}
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                            {/* Costo de envío — muestra "A calcular" cuando las zonas están activas y sin coords */}
-                            <div className="flex justify-between items-center px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
-                              <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
-                              <span className="font-black text-[18px] text-green-700">
-                                {deliveryZonesEnabled && zoneStatus === 'calculating' ? 'A calcular' : formatPrice(envio)}
-                              </span>
-                            </div>
+                            {/* Costo de envío */}
+                            {deliveryZonesEnabled && zoneStatus === 'calculating' ? (
+                              <button
+                                type="button"
+                                onClick={handleDetectLocation}
+                                disabled={detectingLocation}
+                                className="bg-blue-50 border border-blue-200 text-blue-600 rounded-xl py-2 px-4 flex items-center gap-2 w-full justify-center font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all"
+                              >
+                                {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                                Calcular envío
+                              </button>
+                            ) : (
+                              <div className="px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
+                                  <span className="font-black text-[18px] text-green-700">{formatPrice(envio)}</span>
+                                </div>
+                                {deliveryZonesEnabled && (
+                                  <p className="text-[10px] text-green-600 mt-0.5">Precio según distancia al local</p>
+                                )}
+                              </div>
+                            )}
                             {/* Calle y número — obligatorio */}
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Calle y número *</label>
                             <input type="text" placeholder="Ej: Calle 28 N° 1112" value={direccionCalle} onChange={(e)=>setDireccionCalle(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            <p className="text-[10px] text-gray-400 ml-2">Podés editar el número si no es correcto</p>
                             {/* Entre calles — opcional */}
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mt-1 block">Entre calles <span className="font-medium normal-case text-gray-300">(opcional)</span></label>
                             <input type="text" placeholder="Ej: Entre 29 y 31" value={direccionEntreCalles} onChange={(e)=>setDireccionEntreCalles(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
-                            {/* Selector de zona — solo cuando zonas están habilitadas */}
-                            {deliveryZonesEnabled && (
-                              <div className="space-y-2 pt-1">
-                                <button
-                                  type="button"
-                                  onClick={handleDetectLocation}
-                                  disabled={detectingLocation}
-                                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all disabled:opacity-40 active:scale-95 ${
-                                    clientCoords || forcedZone
-                                      ? 'border-2 border-dashed border-gray-300 text-gray-400'
-                                      : 'border-2 border-green-600 text-green-600 hover:bg-green-50'
-                                  }`}
-                                >
-                                  {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                                  Usar mi ubicación para calcular el envío
-                                </button>
-                                {zoneStatus === 'zone1' && (
-                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-2xl border border-green-200">
-                                    <Check size={14} className="text-green-600 shrink-0" />
-                                    <span className="text-[11px] font-black text-green-700">Zona 1 — {formatPrice(deliveryZone1Cost)}</span>
-                                  </div>
-                                )}
-                                {zoneStatus === 'zone2' && (
-                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 rounded-2xl border border-green-200">
-                                    <Check size={14} className="text-green-600 shrink-0" />
-                                    <span className="text-[11px] font-black text-green-700">Zona 2 — {formatPrice(deliveryZone2Cost)}</span>
-                                  </div>
-                                )}
-                                {zoneStatus === 'outside' && (
-                                  <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 rounded-2xl border border-red-200">
-                                    <XCircle size={14} className="text-red-500 shrink-0" />
-                                    <span className="text-[11px] font-black text-red-600">Lo sentimos, no llegamos a tu zona</span>
-                                  </div>
-                                )}
-                                {zoneStatus === 'calculating' && (
-                                  <div className="px-4 py-2.5 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                    <span className="text-[11px] font-bold text-gray-400">Calculá el costo según tu ubicación</span>
-                                    <p className="text-[10px] font-bold text-gray-400 mt-1">Calculá el costo de envío antes de confirmar</p>
-                                  </div>
-                                )}
+                            {/* Feedback de error de zona */}
+                            {deliveryZonesEnabled && zoneStatus === 'outside' && (
+                              <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 rounded-2xl border border-red-200">
+                                <XCircle size={14} className="text-red-500 shrink-0" />
+                                <span className="text-[11px] font-black text-red-600">Lo sentimos, no llegamos a tu zona</span>
                               </div>
                             )}
                         </div>

@@ -54,8 +54,8 @@ export default function DeliveryMapInner({ lat, lng, zone1Km, zone2Km, onPositio
       scrollWheelZoom={false}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       <MapRecenter lat={lat} lng={lng} />
 

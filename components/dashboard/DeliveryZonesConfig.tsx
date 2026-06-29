@@ -42,6 +42,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [resolvedAddress, setResolvedAddress] = useState('');
 
   // Cargar valores actuales de la DB
   useEffect(() => {
@@ -69,6 +70,19 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`,
+      );
+      const data = await res.json();
+      setResolvedAddress(data.results?.[0]?.formatted_address || '');
+    } catch {
+      setResolvedAddress('');
+    }
+  };
+
   // Geocodificación con Nominatim (OpenStreetMap, gratuito, sin API key)
   const handleGeocode = async () => {
     if (!addressInput.trim()) return;
@@ -80,8 +94,11 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
       );
       const data = await res.json();
       if (data.length > 0) {
-        setLat(parseFloat(data[0].lat));
-        setLng(parseFloat(data[0].lon));
+        const newLat = parseFloat(data[0].lat);
+        const newLng = parseFloat(data[0].lon);
+        setLat(newLat);
+        setLng(newLng);
+        reverseGeocode(newLat, newLng);
       } else {
         toast.error('No se encontró la dirección. Probá con una más detallada.');
       }
@@ -100,11 +117,13 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
+        const { latitude, longitude } = pos.coords;
+        setLat(latitude);
+        setLng(longitude);
+        reverseGeocode(latitude, longitude);
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`,
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
             { headers: { 'Accept-Language': 'es' } },
           );
           const data = await res.json();
@@ -238,6 +257,13 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
             />
           </div>
 
+          {/* Dirección resuelta (debug Nominatim) */}
+          {resolvedAddress && (
+            <p className="text-[10px] text-gray-400 font-medium px-1">
+              <span className="font-black text-gray-500">📍 Nominatim:</span> {resolvedAddress}
+            </p>
+          )}
+
           {/* Configuración de zonas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Zona 1 */}
@@ -250,22 +276,23 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Radio</span>
-                  <span className="text-sm font-black text-blue-700">{zone1Km} km</span>
+                  <span className="text-sm font-black text-blue-700">{zone1Km.toFixed(1)} km</span>
                 </div>
                 <input
                   type="range"
-                  min={1}
+                  min={0.5}
                   max={15}
+                  step={0.5}
                   value={zone1Km}
                   onChange={(e) => {
                     const v = Number(e.target.value);
                     setZone1Km(v);
-                    if (zone2Km <= v) setZone2Km(v + 1);
+                    if (zone2Km <= v) setZone2Km(v + 0.5);
                   }}
                   className="w-full accent-blue-600"
                 />
                 <div className="flex justify-between text-[9px] text-gray-300 font-bold mt-0.5">
-                  <span>1 km</span>
+                  <span>0.5 km</span>
                   <span>15 km</span>
                 </div>
               </div>
@@ -297,18 +324,19 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Radio</span>
-                  <span className="text-sm font-black text-amber-700">{zone2Km} km</span>
+                  <span className="text-sm font-black text-amber-700">{zone2Km.toFixed(1)} km</span>
                 </div>
                 <input
                   type="range"
-                  min={zone1Km + 1}
+                  min={zone1Km + 0.5}
                   max={30}
+                  step={0.5}
                   value={zone2Km}
                   onChange={(e) => setZone2Km(Number(e.target.value))}
                   className="w-full accent-amber-500"
                 />
                 <div className="flex justify-between text-[9px] text-gray-300 font-bold mt-0.5">
-                  <span>{zone1Km + 1} km</span>
+                  <span>{(zone1Km + 0.5).toFixed(1)} km</span>
                   <span>30 km</span>
                 </div>
               </div>
