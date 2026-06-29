@@ -4,61 +4,61 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const code       = searchParams.get('code')
+  const token_hash = searchParams.get('token_hash')
+  const type       = searchParams.get('type')
+  const next       = searchParams.get('next') ?? '/dashboard'
 
-  
-  if (code) {
-    const cookieStore = await cookies()
+  const cookieStore = await cookies()
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          // 🛡️ AGREGAMOS TRY/CATCH AQUÍ:
-          set(name: string, value: string, options: CookieOptions) {
-            try {
-              cookieStore.set({ name, value, ...options })
-            } catch (error) {
-              // Si falla es normal en ciertos entornos de servidor, 
-              // el Middleware se encargará del resto.
-            }
-          },
-          remove(name: string, options: CookieOptions) {
-            try {
-              cookieStore.set({ name, value: '', ...options })
-            } catch (error) {
-              // Lo mismo aquí para el borrado.
-            }
-          },
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-      }
-    )
+        set(name: string, value: string, options: CookieOptions) {
+          try { cookieStore.set({ name, value, ...options }) } catch {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try { cookieStore.set({ name, value: '', ...options }) } catch {}
+        },
+      },
+    }
+  )
 
+  // Flujo PKCE — OAuth / magic link
+  if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-
     if (!error) {
-      const redirectUrl = `${origin}${next}`;
-      
+      const redirectUrl = `${origin}${next}`
       return new NextResponse(
         `<html>
           <head>
             <script>
-              // 🚀 SUBIMOS A 100ms: Para darle tiempo a Chrome/iOS 
-              // de guardar esa cookie GIGANTE de Google.
               setTimeout(function() {
                 window.location.replace("${redirectUrl}");
-              }, 100); 
+              }, 100);
             </script>
           </head>
           <body style="background: #000;"></body>
         </html>`,
         { headers: { 'Content-Type': 'text/html' } }
-      );
+      )
+    }
+  }
+
+  // Flujo OTP — reset de contraseña (type=recovery) y confirmación de email
+  if (token_hash && type) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash,
+      type: type as 'recovery' | 'email' | 'signup' | 'invite' | 'magiclink' | 'email_change',
+    })
+    if (!error) {
+      const destination = type === 'recovery' ? '/new-password' : next
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 
