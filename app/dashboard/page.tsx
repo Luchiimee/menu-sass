@@ -195,9 +195,9 @@ useEffect(() => {
   const getStatusBadge = (status: string) => {
     switch(status) {
         case 'pendiente': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><Clock size={12}/> Pendiente</span>;
-        case 'en_proceso': return <span className="bg-[#E8F7F1] text-blue-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><ChefHat size={12}/> Cocina</span>;
+        case 'en_proceso': return <span className="bg-[#E8F7F1] text-ink text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><ChefHat size={12}/> Cocina</span>;
         case 'completado': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><CheckCircle size={12}/> Listo</span>;
-        case 'cancelado': return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><XCircle size={12}/> Cancel</span>;
+        case 'cancelado': return <span className="bg-alert/10 text-ink text-xs px-2 py-1 rounded-full font-bold flex w-fit items-center gap-1"><XCircle size={12}/> Cancel</span>;
         default: return null;
     }
   };
@@ -283,19 +283,19 @@ const PhoneWarningBanner = () => {
 
     return (
       <div className="max-w-4xl mx-auto mb-6 animate-in slide-in-from-top-4 duration-500">
-        <div className="bg-amber-50 border-2 border-dashed border-amber-200 p-4 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-brasa/10 border-2 border-dashed border-brasa/20 p-4 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-left">
-            <div className="bg-amber-500 text-white p-2 rounded-xl shadow-lg shadow-amber-200">
+            <div className="bg-brasa text-white p-2 rounded-xl shadow-lg shadow-brasa/20">
               <AlertCircle size={20} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase text-amber-800 tracking-tight">Falta información de contacto</p>
-              <p className="text-[9px] text-amber-600 font-bold uppercase tracking-widest">Completá tu número de WhatsApp para terminar tu registro y recibir novedades.</p>
+              <p className="text-[10px] font-black uppercase text-ink tracking-tight">Falta información de contacto</p>
+              <p className="text-[9px] text-brasa font-bold uppercase tracking-widest">Completá tu número de WhatsApp para terminar tu registro y recibir novedades.</p>
             </div>
           </div>
           <Link 
             href="/dashboard/plan?requirePhone=true" 
-            className="bg-amber-500 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-amber-600 transition-all shadow-md active:scale-95"
+            className="bg-brasa text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-brasa transition-all shadow-md active:scale-95"
           >
             Cargar Teléfono
           </Link>
@@ -329,8 +329,8 @@ const PhoneWarningBanner = () => {
                     <ShieldCheck size={28}/>
                 </div>
                 <div className="space-y-1">
-                    <h3 className="font-black text-blue-900 text-lg leading-tight">Probá gratis por 14 días con total tranquilidad</h3>
-                    <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                    <h3 className="font-black text-ink text-lg leading-tight">Probá gratis por 14 días con total tranquilidad</h3>
+                    <p className="text-xs text-ink font-medium leading-relaxed">
                         Podés configurar tu pago ahora y el primer débito se hará **recién en 14 días**. 
                         Si decidís no seguir, podés dar de baja el plan en **cualquier momento** desde configuración sin cargos.
                     </p>
@@ -360,7 +360,7 @@ const PhoneWarningBanner = () => {
             </Link>
 
             {/* PLAN GO: El Profesional */}
-            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-[#F0FAF6] border-2 border-blue-400 p-6 rounded-[2.5rem] hover:border-fresco transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
+            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-[#F0FAF6] border-2 border-fresco p-6 rounded-[2.5rem] hover:border-fresco transition-all flex flex-col text-center shadow-md hover:shadow-2xl relative overflow-hidden no-underline">
                 <div className="absolute top-0 right-0 bg-fresco text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">EL MÁS ELEGIDO</div>
                 <div className="w-10 h-10 bg-fresco text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#B8E8D4]">
                     <Zap size={20} fill="currentColor" />
@@ -371,7 +371,7 @@ const PhoneWarningBanner = () => {
                     <span className="line-through text-gray-400 text-xs font-medium block">$28.600</span>
                     <p className="text-xl font-black text-fresco">$22.000 <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
-                <p className="text-[10px] text-blue-900 font-medium leading-relaxed flex-1">
+                <p className="text-[10px] text-ink font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Negocios que crecen. <br/> 
                    60 productos, **videos animado**, cupones y monitor de pedidos.
                 </p>
@@ -379,11 +379,11 @@ const PhoneWarningBanner = () => {
             </Link>
 
             {/* PLAN PLUS: Gestión Física */}
-            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"}className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-emerald-500 transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
-                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+            <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"}className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-fresco transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
+                <div className="w-10 h-10 bg-fresco/10 text-fresco rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-fresco group-hover:text-white transition-colors">
                     <Crown size={20} />
                 </div>
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-1">Locales Físicos</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-fresco mb-1">Locales Físicos</h3>
                 <p className="text-2xl font-black text-gray-900">Plus</p>
                 <div className="my-3 py-2 border-y border-gray-50">
                     <span className="line-through text-gray-400 text-xs font-medium block">$45.500</span>
@@ -393,7 +393,7 @@ const PhoneWarningBanner = () => {
                    <b>Ideal para:</b> Salones y locales. <br/> 
                    Productos ilimitados, impresión de tickets y gestión de mesas.
                 </p>
-                <span className="mt-4 text-[9px] font-black uppercase text-emerald-600 group-hover:underline">Elegir este plan →</span>
+                <span className="mt-4 text-[9px] font-black uppercase text-fresco group-hover:underline">Elegir este plan →</span>
             </Link>
 
             {/* PLAN MAX: Premium */}
@@ -499,10 +499,10 @@ const PhoneWarningBanner = () => {
 
             {/* --- CARD: ESTADO DEL LOCAL (FIXED) --- */}
             <div className="bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden relative group">
-              <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors duration-500 ${alwaysOpen ? 'bg-green-500' : 'bg-amber-500'}`} />
+              <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors duration-500 ${alwaysOpen ? 'bg-green-500' : 'bg-brasa'}`} />
               <div className="flex items-center justify-between mb-4">
                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl transition-colors ${alwaysOpen ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
+                    <div className={`p-2 rounded-xl transition-colors ${alwaysOpen ? 'bg-green-50 text-green-600' : 'bg-brasa/10 text-brasa'}`}>
                       <Clock size={20} />
                     </div>
                     <div className="text-left">
@@ -531,7 +531,7 @@ const PhoneWarningBanner = () => {
   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${alwaysOpen && !isLight ? 'translate-x-6' : 'translate-x-1'}`} />
   {isLight && <div className="absolute right-1.5 text-gray-500"><Lock size={10} strokeWidth={3} /></div>}
 </button>
-                    <span className={`text-[8px] font-black uppercase ${alwaysOpen ? 'text-green-600' : 'text-amber-600'}`}>
+                    <span className={`text-[8px] font-black uppercase ${alwaysOpen ? 'text-green-600' : 'text-brasa'}`}>
                       {alwaysOpen ? 'Manual' : 'Automático'}
                     </span>
                  </div>
@@ -597,7 +597,7 @@ const PhoneWarningBanner = () => {
                 <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Hasta</label>
                 <input type="date" value={newCoupon.endDate} onChange={(e) => setNewCoupon({...newCoupon, endDate: e.target.value})} className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl text-[10px] font-black text-gray-900 outline-none focus:border-brasa" />
               </div>
-              <button onClick={handleCreateCoupon} className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-brasa text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-700 active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all">
+              <button onClick={handleCreateCoupon} className="col-span-1 sm:col-span-2 md:col-span-4 w-full py-4 bg-brasa text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-brasa active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all">
                 <Plus size={16} /> Crear Cupón
               </button>
             </div>
@@ -618,7 +618,7 @@ const PhoneWarningBanner = () => {
                       <td className="py-4 px-2 text-brasa font-black text-xs">-{c.discount_percent}%</td>
                       <td className="py-4 px-2 text-[9px] text-gray-500 font-bold uppercase">{new Date(c.starts_at).toLocaleDateString()} al {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '∞'}</td>
                       <td className="py-4 px-2 text-right">
-                        <button onClick={() => handleDeleteClick(c.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
+                        <button onClick={() => handleDeleteClick(c.id)} className="p-2 text-gray-300 hover:text-alert transition-colors">
                           <Trash2 size={16} />
                         </button>
                       </td>
@@ -694,8 +694,8 @@ const PhoneWarningBanner = () => {
       {/* 1. Modal de Suspensión (isLocked) */}
       {isLocked && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white/90 backdrop-blur-xl p-10 rounded-[3.5rem] shadow-2xl border border-red-100 text-center max-w-xs animate-in zoom-in-95 duration-500">
-            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+          <div className="bg-white/90 backdrop-blur-xl p-10 rounded-[3.5rem] shadow-2xl border border-alert/10 text-center max-w-xs animate-in zoom-in-95 duration-500">
+            <div className="w-20 h-20 bg-alert/10 text-alert rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
               <Lock size={40} />
             </div>
             <h3 className="text-2xl font-black uppercase italic tracking-tighter text-gray-900 leading-none">Panel Suspendido</h3>
@@ -704,7 +704,7 @@ const PhoneWarningBanner = () => {
             </p>
             <Link
               href="/dashboard/plan"
-              className="mt-8 block w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-red-200 active:scale-95 transition-all text-center"
+              className="mt-8 block w-full py-5 bg-alert text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-alert/20 active:scale-95 transition-all text-center"
             >
               Ir a mi Plan
             </Link>
@@ -726,14 +726,14 @@ const PhoneWarningBanner = () => {
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-gray-100 space-y-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="bg-red-50 p-4 rounded-full text-red-500"><AlertCircle size={40} /></div>
+              <div className="bg-alert/10 p-4 rounded-full text-alert"><AlertCircle size={40} /></div>
               <div className="space-y-2">
                 <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter italic">¡Cuidado!</h3>
                 <p className="text-sm text-gray-500 font-medium">Este cupón se desactivará inmediatamente para todos los clientes.</p>
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <button onClick={confirmDelete} className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all">Borrar de todas formas</button>
+              <button onClick={confirmDelete} className="w-full py-4 bg-alert text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-alert transition-all">Borrar de todas formas</button>
               <button onClick={() => setShowDeleteConfirm(false)} className="w-full py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-200">Cancelar</button>
             </div>
           </div>

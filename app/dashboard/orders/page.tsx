@@ -112,7 +112,7 @@ const getStatusBadge = (status: string, orderType?: string) => {
         case "en_proceso":
             return <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">{isRetail ? <ShoppingBag size={10} /> : <ChefHat size={10} />} {isRetail ? 'Preparando' : 'Cocina'}</span>;
         case "en_camino":
-            return <span className="bg-[#E8F7F1] text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : isRetail ? 'Pedido Enviado' : 'En camino'}</span>;
+            return <span className="bg-[#E8F7F1] text-ink text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Bike size={10} /> {orderType === 'mesa' ? 'Sirviendo' : isRetail ? 'Pedido Enviado' : 'En camino'}</span>;
         case "entregado":
         case "completado":
             return <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Check size={10} /> {isRetail ? 'Entregado' : 'Finalizado'}</span>;
@@ -721,7 +721,7 @@ useEffect(() => {
 <div className="flex flex-col gap-2 mb-1">
     {/* MENSAJE DE AYUDA (ARRIBA) */}
     <div className="flex items-center gap-1.5 ml-4">
-        <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+        <div className="w-1 h-1 rounded-full bg-fresco animate-pulse" />
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">
             Buscá por nombre o ID <span className="text-gray-300">(sin usar el #)</span>
         </p>
@@ -740,7 +740,7 @@ useEffect(() => {
         {searchTerm && (
             <button 
                 onClick={() => setSearchTerm("")} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-gray-100 p-1 rounded-full text-gray-500 hover:text-red-500 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-gray-100 p-1 rounded-full text-gray-500 hover:text-alert transition-colors"
             >
                 <X size={14} />
             </button>
@@ -843,9 +843,9 @@ useEffect(() => {
                             key={mesa.id}
                             onClick={() => setSelectedTableForDetail({ ...mesa, activeOrder })}
                             className={`relative rounded-2xl border-2 flex flex-col shadow-sm group cursor-pointer active:scale-[0.98] transition-all ${
-                              isCalling ? 'animate-table-call ring-4 ring-red-500/50' :
-                              isPendingAcceptance ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-300 animate-pulse' :
-                              isWaitingPayment ? 'border-brasa bg-purple-50 ring-2 ring-purple-100' :
+                              isCalling ? 'animate-table-call ring-4 ring-alert/50' :
+                              isPendingAcceptance ? 'border-brasa bg-brasa/10 ring-2 ring-brasa animate-pulse' :
+                              isWaitingPayment ? 'border-brasa bg-brasa/10 ring-2 ring-brasa/10' :
                               isOccupied ? 'border-orange-300 bg-white' :
                               'border-gray-100 bg-white'
                             }`}
@@ -853,7 +853,7 @@ useEffect(() => {
                             {/* Editar / borrar */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                               <button onClick={(e) => { e.stopPropagation(); openEditModal(mesa); }} className="p-1 bg-white shadow-md rounded-full text-fresco hover:bg-[#F0FAF6]"><Pencil size={9} /></button>
-                              <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1 bg-white shadow-md rounded-full text-red-400 hover:bg-red-50"><Trash2 size={9} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); if(confirm(`¿Eliminar ${mesa.name}?`)) supabase.from('tables').delete().eq('id', mesa.id).then(() => fetchTables(restaurantId!)); }} className="p-1 bg-white shadow-md rounded-full text-alert hover:bg-alert/10"><Trash2 size={9} /></button>
                             </div>
 
                             {/* Botón apagar llamado */}
@@ -865,7 +865,7 @@ useEffect(() => {
 
                             {/* Badge llamando al mozo */}
                             {isCalling && (
-                              <div className="absolute -top-2.5 left-2 bg-red-600 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-bounce z-20">
+                              <div className="absolute -top-2.5 left-2 bg-alert text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-bounce z-20">
                                 🔔 Llamando al mozo
                               </div>
                             )}
@@ -879,7 +879,7 @@ useEffect(() => {
 
                             {/* Badge nuevo pedido sin aceptar */}
                             {isPendingAcceptance && !isCalling && (
-                              <div className="absolute -top-2.5 left-2 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-bounce z-20">
+                              <div className="absolute -top-2.5 left-2 bg-brasa text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase shadow-lg animate-bounce z-20">
                                 🆕 Nuevo Pedido
                               </div>
                             )}
@@ -889,8 +889,8 @@ useEffect(() => {
                               <div className="flex items-center justify-between">
                                 <span className={`font-black text-[11px] uppercase tracking-tight ${
                                   isCalling ? 'text-white' :
-                                  isPendingAcceptance ? 'text-amber-700' :
-                                  isWaitingPayment ? 'text-purple-700' :
+                                  isPendingAcceptance ? 'text-brasa' :
+                                  isWaitingPayment ? 'text-brasa' :
                                   isOccupied ? 'text-orange-600' :
                                   'text-gray-700'
                                 }`}>{mesa.name}</span>
@@ -898,7 +898,7 @@ useEffect(() => {
                               </div>
                               <p className={`text-[8px] font-black uppercase tracking-widest ${
                                 isCalling ? 'text-white/80' :
-                                isPendingAcceptance ? 'text-amber-600' :
+                                isPendingAcceptance ? 'text-brasa' :
                                 isWaitingPayment ? 'text-brasa' :
                                 isOccupied ? 'text-orange-400' :
                                 'text-gray-300'
@@ -914,7 +914,7 @@ useEffect(() => {
                                 onClick={(e) => { e.stopPropagation(); setSelectedTableForDetail({ ...mesa, activeOrder }); }}
                                 className={`w-full py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-95 transition-all ${
                                   isCalling ? 'bg-white text-gray-900' :
-                                  isPendingAcceptance ? 'bg-amber-500 text-white' :
+                                  isPendingAcceptance ? 'bg-brasa text-white' :
                                   isWaitingPayment ? 'bg-brasa text-white' :
                                   isOccupied ? 'bg-gray-900 text-white' :
                                   'bg-gray-100 text-gray-600'
@@ -1006,7 +1006,7 @@ useEffect(() => {
 {order.order_type !== 'mesa' && (
     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border mt-2 w-fit transition-all ${
         order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato'
-        ? 'bg-fresco border-indigo-400 text-white shadow-lg shadow-[#E8F7F1] animate-in zoom-in' // Resaltado si es para más tarde
+        ? 'bg-fresco border-fresco text-white shadow-lg shadow-[#E8F7F1] animate-in zoom-in' // Resaltado si es para más tarde
         : 'bg-slate-100 border-slate-200 text-slate-500' // Estilo neutro si es inmediato
     }`}>
         {order.scheduled_delivery_time && order.scheduled_delivery_time !== 'Inmediato' 
@@ -1051,8 +1051,8 @@ useEffect(() => {
                         </div>
 
                         {order.description && (
-                            <div className="mt-3 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-2xl">
-                                <p className="text-xs text-amber-900 font-medium italic">"{order.description}"</p>
+                            <div className="mt-3 p-3 bg-brasa/10 border-l-4 border-brasa rounded-r-2xl">
+                                <p className="text-xs text-ink font-medium italic">"{order.description}"</p>
                             </div>
                         )}
 
@@ -1095,15 +1095,15 @@ useEffect(() => {
         /* 🛵 SI ES DELIVERY/RETIRO: Flujo normal con "Tomar Pedido" inicial */
         <>
             {order.status === "cancelado" && (
-                <div className="flex items-center justify-center gap-2 py-3 px-4 bg-red-50 border border-red-200 rounded-xl animate-in fade-in">
-                    <X size={14} className="text-red-500 shrink-0" />
-                    <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Rechazado</span>
+                <div className="flex items-center justify-center gap-2 py-3 px-4 bg-alert/10 border border-alert/20 rounded-xl animate-in fade-in">
+                    <X size={14} className="text-alert shrink-0" />
+                    <span className="text-[10px] font-black text-alert uppercase tracking-widest">Rechazado</span>
                 </div>
             )}
 
             {order.status === "pendiente" && (
                 <div className="flex gap-2">
-                    <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
+                    <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-alert/10 text-alert hover:bg-alert/10 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
                     <button onClick={() => { updateStatus(order.id, "recibido"); if (thermalPrintingEnabled) { handleThermalPrint(order); } }} className="bg-fresco text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
                         <Check size={14} /> Tomar Pedido
                     </button>
@@ -1143,7 +1143,7 @@ useEffect(() => {
             {order.customer_phone && (
                 <a href={getWhatsAppLink(order.customer_phone, "chat")} className="flex-1 bg-green-50 text-green-700 border border-green-100 px-3 py-3 rounded-xl hover:bg-green-100 transition-all flex items-center justify-center gap-2 font-black text-[10px] no-underline uppercase">Chat Directo</a>
             )}
-            <button onClick={() => deleteOrder(order.id)} className="text-gray-400 hover:text-red-500 p-3 bg-gray-50 rounded-xl border border-gray-100"><Trash2 size={16} /></button>
+            <button onClick={() => deleteOrder(order.id)} className="text-gray-400 hover:text-alert p-3 bg-gray-50 rounded-xl border border-gray-100"><Trash2 size={16} /></button>
         </div>
     )}
 </div>
@@ -1243,7 +1243,7 @@ useEffect(() => {
     {selectedTableForDetail.needs_attention && (
         <button
             onClick={() => resetAttention(selectedTableForDetail.id)}
-            className="mt-2 w-full py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+            className="mt-2 w-full py-2 bg-alert/10 text-alert border border-alert/20 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
             <Check size={14} strokeWidth={3} /> Atendido — Apagar Llamado
         </button>
@@ -1311,7 +1311,7 @@ useEffect(() => {
 
                         {selectedTableForDetail.activeOrder.payment_method === 'transferencia' && (
                             <div className="mt-3 p-3 bg-white/10 rounded-2xl border border-white/20">
-                                <p className="text-[9px] font-black text-purple-100 uppercase mb-1">Nombre informado en transferencia:</p>
+                                <p className="text-[9px] font-black text-brasa/10 uppercase mb-1">Nombre informado en transferencia:</p>
                                 <p className="text-sm font-black">{selectedTableForDetail.activeOrder.payer_name || 'No informado'}</p>
                             </div>
                         )}
@@ -1346,7 +1346,7 @@ useEffect(() => {
                         <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center justify-between">
                                 <p className="text-[10px] font-black text-fresco uppercase tracking-widest">Añadir nuevos items</p>
-                                <button onClick={() => { setShowAddTools(false); setIsManualMode(false); }} className="p-1 text-gray-400 hover:text-red-500"><X size={16} /></button>
+                                <button onClick={() => { setShowAddTools(false); setIsManualMode(false); }} className="p-1 text-gray-400 hover:text-alert"><X size={16} /></button>
                             </div>
 
                             {/* SELECTOR: LISTA O MANUAL */}
@@ -1447,7 +1447,7 @@ useEffect(() => {
                         /* En cocina: marcar como entregado al cliente */
                         <button
                             onClick={() => markOrderDelivered(selectedTableForDetail.activeOrder)}
-                            className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-amber-500/30 hover:bg-amber-600 active:scale-95 transition-all"
+                            className="w-full py-4 bg-brasa text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-brasa/30 hover:bg-brasa active:scale-95 transition-all"
                         >
                             <Zap size={18} /> Marcar Entregado
                         </button>
@@ -1500,7 +1500,7 @@ useEffect(() => {
                     {resTable?.status === 'reservada' ? 'Detalle Reserva' : 'Nueva Reserva'}: {resTable?.name}
                 </h3>
                 {resTable?.status === 'reservada' && (
-                    <button onClick={() => deleteReservation(resTable.id)} className="p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors">
+                    <button onClick={() => deleteReservation(resTable.id)} className="p-2 bg-alert/10 text-alert rounded-full hover:bg-alert/10 transition-colors">
                         <Trash2 size={18} />
                     </button>
                 )}

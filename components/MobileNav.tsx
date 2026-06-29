@@ -152,13 +152,13 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
               {/* SECCIÓN SISTEMA (Solo si es Admin) */}
               {isAdmin && (
                 <div>
-                  <p className="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 text-left">Administración</p>
+                  <p className="px-4 text-[10px] font-black text-fresco uppercase tracking-[0.2em] mb-2 text-left">Administración</p>
                   <Link href="/admin/snappy" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 rounded-2xl bg-[#F0FAF6] border border-[#E8F7F1] active:scale-95 transition-all">
                     <div className="flex items-center gap-4">
-                      <div className="p-2 bg-fresco rounded-xl text-white shadow-lg shadow-indigo-200"><ShieldCheck size={20} /></div>
-                      <span className="font-black text-indigo-900">Panel Snappy Admin</span>
+                      <div className="p-2 bg-fresco rounded-xl text-white shadow-lg shadow-surface"><ShieldCheck size={20} /></div>
+                      <span className="font-black text-ink">Panel Snappy Admin</span>
                     </div>
-                    <ChevronRight size={18} className="text-indigo-300" />
+                    <ChevronRight size={18} className="text-fresco" />
                   </Link>
                 </div>
               )}
@@ -167,9 +167,9 @@ export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmi
               <div className="pt-4 border-t border-slate-100">
                 <button 
                   onClick={onLogout} 
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl font-black text-red-500 active:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl font-black text-alert active:bg-alert/10 transition-colors"
                 >
-                    <div className="p-2 bg-red-50 rounded-xl"><LogOut size={20} /></div>
+                    <div className="p-2 bg-alert/10 rounded-xl"><LogOut size={20} /></div>
                     Cerrar Sesión
                 </button>
               </div>

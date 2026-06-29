@@ -317,23 +317,23 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                     value={zone1Cost}
                     onChange={(e) => setZone1Cost(e.target.value)}
                     placeholder="0"
-                    className="w-full pl-7 pr-4 py-3 bg-white border border-[#E8F7F1] rounded-xl text-sm font-black outline-none focus:border-blue-400 transition-colors"
+                    className="w-full pl-7 pr-4 py-3 bg-white border border-[#E8F7F1] rounded-xl text-sm font-black outline-none focus:border-fresco transition-colors"
                   />
                 </div>
               </div>
             </div>
 
             {/* Zona 2 */}
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 space-y-4">
+            <div className="bg-brasa/10 border border-brasa/10 rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-amber-500" />
-                <p className="text-xs font-black text-amber-700 uppercase tracking-widest">Zona 2</p>
+                <div className="w-3 h-3 rounded-full bg-brasa" />
+                <p className="text-xs font-black text-brasa uppercase tracking-widest">Zona 2</p>
               </div>
 
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Radio</span>
-                  <span className="text-sm font-black text-amber-700">{zone2Km.toFixed(1)} km</span>
+                  <span className="text-sm font-black text-brasa">{zone2Km.toFixed(1)} km</span>
                 </div>
                 <input
                   type="range"
@@ -342,7 +342,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                   step={0.5}
                   value={zone2Km}
                   onChange={(e) => setZone2Km(Number(e.target.value))}
-                  className="w-full accent-amber-500"
+                  className="w-full accent-brasa"
                 />
                 <div className="flex justify-between text-[9px] text-gray-300 font-bold mt-0.5">
                   <span>{(zone1Km + 0.5).toFixed(1)} km</span>
@@ -361,7 +361,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                     value={zone2Cost}
                     onChange={(e) => setZone2Cost(e.target.value)}
                     placeholder="0"
-                    className="w-full pl-7 pr-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-black outline-none focus:border-amber-400 transition-colors"
+                    className="w-full pl-7 pr-4 py-3 bg-white border border-brasa/10 rounded-xl text-sm font-black outline-none focus:border-brasa transition-colors"
                   />
                 </div>
               </div>

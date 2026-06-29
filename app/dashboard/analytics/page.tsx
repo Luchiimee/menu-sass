@@ -314,7 +314,7 @@ export default function AnalyticsPage() {
                 </button>
               )}
               {currentShift && isShiftOpen && hasActiveShift && (
-                <button onClick={() => setShowCloseConfirm(true)} className="flex-1 md:flex-none px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-red-500 text-white shadow-lg shadow-red-100 hover:bg-red-600 active:scale-95 transition-all">
+                <button onClick={() => setShowCloseConfirm(true)} className="flex-1 md:flex-none px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-alert text-white shadow-lg shadow-alert/10 hover:bg-alert active:scale-95 transition-all">
                   <Lock size={16} /> Cerrar Caja
                 </button>
               )}
@@ -323,7 +323,7 @@ export default function AnalyticsPage() {
                   <button onClick={() => setShowSaleModal(true)} className="flex-1 md:flex-none bg-gray-900 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95">
                     <Plus size={16} /> Venta
                   </button>
-                  <button onClick={() => setShowExpenseModal(true)} className="flex-1 md:flex-none bg-white border-2 border-red-100 text-red-500 px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-50 transition-all active:scale-95">
+                  <button onClick={() => setShowExpenseModal(true)} className="flex-1 md:flex-none bg-white border-2 border-alert/10 text-alert px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-alert/10 transition-all active:scale-95">
                     <TrendingDown size={16} /> Gasto
                   </button>
                 </>
@@ -409,20 +409,20 @@ export default function AnalyticsPage() {
 
             {/* BANNER: TURNO ABIERTO AUTOMÁTICAMENTE */}
             {isShiftOpen && currentShift.opened_type === 'auto' && (
-              <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-5 flex items-start gap-4 animate-in fade-in duration-300">
-                <div className="bg-amber-400 p-2.5 rounded-2xl shrink-0 mt-0.5">
+              <div className="bg-brasa/10 border-2 border-brasa/20 rounded-3xl p-5 flex items-start gap-4 animate-in fade-in duration-300">
+                <div className="bg-brasa p-2.5 rounded-2xl shrink-0 mt-0.5">
                   <AlertCircle size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-amber-900 uppercase tracking-tight text-sm">Turno abierto automáticamente</p>
-                  <p className="text-amber-700 text-xs font-medium leading-relaxed mt-1">
+                  <p className="font-black text-ink uppercase tracking-tight text-sm">Turno abierto automáticamente</p>
+                  <p className="text-brasa text-xs font-medium leading-relaxed mt-1">
                     Este turno se abrió con el primer pedido del día — el monto de cambio inicial quedó en $0.
                     Actualizalo para un arqueo correcto.
                   </p>
                 </div>
                 <button
                   onClick={() => { setBalanceInput(String(currentShift.opening_balance ?? 0)); setShowBalanceModal(true); }}
-                  className="shrink-0 px-4 py-2 bg-amber-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all active:scale-95 whitespace-nowrap"
+                  className="shrink-0 px-4 py-2 bg-brasa text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-brasa transition-all active:scale-95 whitespace-nowrap"
                 >
                   Editar cambio
                 </button>
@@ -506,7 +506,7 @@ export default function AnalyticsPage() {
                   {/* Gastos */}
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Gastos</span>
-                    <span className={`text-sm font-black ${liveSummary.totalExpenses > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                    <span className={`text-sm font-black ${liveSummary.totalExpenses > 0 ? 'text-alert' : 'text-gray-400'}`}>
                       -{fp(liveSummary.totalExpenses)}
                     </span>
                   </div>
@@ -517,7 +517,7 @@ export default function AnalyticsPage() {
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                         Costo delivery{liveSummary.deliveryCount > 0 ? ` (${liveSummary.deliveryCount})` : ''}
                       </span>
-                      <span className={`text-sm font-black ${liveSummary.deliveryCostTotal > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                      <span className={`text-sm font-black ${liveSummary.deliveryCostTotal > 0 ? 'text-alert' : 'text-gray-400'}`}>
                         -{fp(liveSummary.deliveryCostTotal)}
                       </span>
                     </div>
@@ -527,7 +527,7 @@ export default function AnalyticsPage() {
                   <div className="border-t-2 border-dashed border-gray-200 pt-3 mt-1">
                     <div className="flex justify-between items-baseline">
                       <span className="text-xs font-black text-gray-700 uppercase tracking-widest">Ganancia Neta</span>
-                      <span className={`text-2xl font-black ${liveSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      <span className={`text-2xl font-black ${liveSummary.netProfit >= 0 ? 'text-green-600' : 'text-alert'}`}>
                         {fp(liveSummary.netProfit)}
                       </span>
                     </div>
@@ -540,13 +540,13 @@ export default function AnalyticsPage() {
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
                 <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Receipt size={20} className="text-red-400" /> Gastos del Turno
+                  <Receipt size={20} className="text-alert" /> Gastos del Turno
                   {liveSummary.totalExpenses > 0 && (
-                    <span className="text-sm font-black text-red-500 ml-1">{fp(liveSummary.totalExpenses)}</span>
+                    <span className="text-sm font-black text-alert ml-1">{fp(liveSummary.totalExpenses)}</span>
                   )}
                 </h3>
                 {isShiftOpen && (
-                  <button onClick={() => setShowExpenseModal(true)} className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:text-red-700 flex items-center gap-1 transition-colors">
+                  <button onClick={() => setShowExpenseModal(true)} className="text-[10px] font-black text-alert uppercase tracking-widest hover:text-alert flex items-center gap-1 transition-colors">
                     <Plus size={12} /> Agregar
                   </button>
                 )}
@@ -567,7 +567,7 @@ export default function AnalyticsPage() {
                         {isShiftOpen && (
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1.5 bg-red-50 text-red-400 rounded-xl hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-all"
+                            className="p-1.5 bg-alert/10 text-alert rounded-xl hover:bg-alert/10 opacity-0 group-hover:opacity-100 transition-all"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -615,7 +615,7 @@ export default function AnalyticsPage() {
                           <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${
                             o.payment_method === 'efectivo' ? 'bg-green-100 text-green-700' :
                             o.payment_method === 'tarjeta'  ? 'bg-[#E8F7F1] text-[#17A06D]' :
-                            'bg-purple-100 text-purple-700'
+                            'bg-brasa/10 text-brasa'
                           }`}>{o.payment_method}</span>
                         </td>
                         <td className="px-6 py-4 text-right font-black text-gray-900">{fp(Number(o.total))}</td>
@@ -659,7 +659,7 @@ export default function AnalyticsPage() {
             <p className="text-gray-500 text-sm mb-6 leading-tight">El resumen del turno quedará congelado. No podrás agregar más ventas ni gastos.</p>
             <div className="flex gap-3">
               <button onClick={() => setShowCloseConfirm(false)} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancelar</button>
-              <button onClick={handleCloseCaja} disabled={saving} className="flex-[2] bg-red-500 text-white py-4 rounded-2xl font-bold text-lg hover:bg-red-600 transition-all shadow-lg active:scale-95 disabled:opacity-50">
+              <button onClick={handleCloseCaja} disabled={saving} className="flex-[2] bg-alert text-white py-4 rounded-2xl font-bold text-lg hover:bg-alert transition-all shadow-lg active:scale-95 disabled:opacity-50">
                 {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Sí, cerrar'}
               </button>
             </div>
@@ -714,20 +714,20 @@ export default function AnalyticsPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Descripción *</label>
-                <input type="text" value={expenseData.description} onChange={(e) => setExpenseData({ ...expenseData, description: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none focus:ring-2 ring-red-300 transition-all" placeholder="Ej: Limpieza, Insumos..." autoFocus />
+                <input type="text" value={expenseData.description} onChange={(e) => setExpenseData({ ...expenseData, description: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none focus:ring-2 ring-alert/20 transition-all" placeholder="Ej: Limpieza, Insumos..." autoFocus />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Categoría (opcional)</label>
-                <input type="text" value={expenseData.category} onChange={(e) => setExpenseData({ ...expenseData, category: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none focus:ring-2 ring-red-300 transition-all" placeholder="Ej: Servicios, Personal..." />
+                <input type="text" value={expenseData.category} onChange={(e) => setExpenseData({ ...expenseData, category: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl font-bold outline-none focus:ring-2 ring-alert/20 transition-all" placeholder="Ej: Servicios, Personal..." />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block ml-1">Importe *</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">$</span>
-                  <input type="number" value={expenseData.amount} onChange={(e) => setExpenseData({ ...expenseData, amount: e.target.value })} className="w-full pl-8 pr-4 py-4 bg-gray-50 rounded-2xl text-2xl font-black outline-none focus:ring-2 ring-red-300 transition-all" placeholder="0" />
+                  <input type="number" value={expenseData.amount} onChange={(e) => setExpenseData({ ...expenseData, amount: e.target.value })} className="w-full pl-8 pr-4 py-4 bg-gray-50 rounded-2xl text-2xl font-black outline-none focus:ring-2 ring-alert/20 transition-all" placeholder="0" />
                 </div>
               </div>
-              <button onClick={handleAddExpense} disabled={saving || !expenseData.description || !expenseData.amount} className="w-full bg-red-500 text-white py-4 rounded-2xl font-bold text-lg hover:bg-red-600 transition-all shadow-lg mt-4 active:scale-95 disabled:opacity-50">
+              <button onClick={handleAddExpense} disabled={saving || !expenseData.description || !expenseData.amount} className="w-full bg-alert text-white py-4 rounded-2xl font-bold text-lg hover:bg-alert transition-all shadow-lg mt-4 active:scale-95 disabled:opacity-50">
                 {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Registrar Gasto'}
               </button>
             </div>
@@ -749,14 +749,14 @@ export default function AnalyticsPage() {
                 type="number"
                 value={balanceInput}
                 onChange={(e) => setBalanceInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-5 bg-gray-50 rounded-2xl text-4xl font-black outline-none focus:ring-4 ring-amber-100 border-none transition-all"
+                className="w-full pl-10 pr-4 py-5 bg-gray-50 rounded-2xl text-4xl font-black outline-none focus:ring-4 ring-brasa/10 border-none transition-all"
                 placeholder="0"
                 autoFocus
               />
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowBalanceModal(false)} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancelar</button>
-              <button onClick={handleUpdateOpeningBalance} disabled={saving} className="flex-[2] bg-amber-500 text-white py-4 rounded-2xl font-bold text-lg hover:bg-amber-600 transition-all shadow-lg shadow-amber-100 active:scale-95 disabled:opacity-50">
+              <button onClick={handleUpdateOpeningBalance} disabled={saving} className="flex-[2] bg-brasa text-white py-4 rounded-2xl font-bold text-lg hover:bg-brasa transition-all shadow-lg shadow-brasa/10 active:scale-95 disabled:opacity-50">
                 {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Guardar'}
               </button>
             </div>

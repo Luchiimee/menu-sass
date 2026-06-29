@@ -66,7 +66,7 @@ const PLANS = [
     tagline: 'Profesional ✨',
     price: 35000,
     originalPrice: 45500,
-    accent: 'border-emerald-500',
+    accent: 'border-fresco',
     badge: null,
     features: [
       { text: 'Productos Ilimitados', included: true },
@@ -488,7 +488,7 @@ function PlanContent() {
                     value={pendingPhone ?? profile.phone}
                     onChange={(e) => setPendingPhone(e.target.value)}
                     placeholder="Ej: +54911..."
-                    className={`flex-1 p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none transition-all duration-500 ${searchParams.get('requirePhone') === 'true' && !profile.phone ? 'ring-2 ring-amber-500 animate-pulse bg-amber-50' : 'focus:ring-2 ring-black/5'}`}
+                    className={`flex-1 p-2.5 bg-gray-50 border-none rounded-xl text-xs font-bold outline-none transition-all duration-500 ${searchParams.get('requirePhone') === 'true' && !profile.phone ? 'ring-2 ring-brasa animate-pulse bg-brasa/10' : 'focus:ring-2 ring-black/5'}`}
                   />
                   {pendingPhone !== null && pendingPhone !== profile.phone && (
                     <button
@@ -521,17 +521,17 @@ function PlanContent() {
                   <div>
                     <p className="text-xl font-black text-gray-900 uppercase italic tracking-tighter flex items-center gap-2">
                       Plan {restaurant.subscription_plan}
-                      {isActive && <Check size={16} className="text-emerald-500" />}
+                      {isActive && <Check size={16} className="text-fresco" />}
                     </p>
                     {isTrialing && !inGracePeriod && <p className="text-[11px] text-fresco font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span></p>}
                     {isCancelled && !inGracePeriod && (
-                      <div className="mt-2 p-3 bg-amber-50 rounded-2xl border border-amber-100">
-                        <p className="text-[10px] text-amber-700 font-black uppercase">Cancelada. Re-suscribite antes del <span className="underline">{getChargeDate()}</span>.</p>
+                      <div className="mt-2 p-3 bg-brasa/10 rounded-2xl border border-brasa/10">
+                        <p className="text-[10px] text-brasa font-black uppercase">Cancelada. Re-suscribite antes del <span className="underline">{getChargeDate()}</span>.</p>
                       </div>
                     )}
                     {isPaused && !inGracePeriod && (
-                      <div className="mt-2 p-3 bg-red-50 rounded-2xl border border-red-100">
-                        <p className="text-[10px] text-red-700 font-black uppercase">Pago fallido. Actualizá tu tarjeta para reactivar.</p>
+                      <div className="mt-2 p-3 bg-alert/10 rounded-2xl border border-alert/10">
+                        <p className="text-[10px] text-alert font-black uppercase">Pago fallido. Actualizá tu tarjeta para reactivar.</p>
                       </div>
                     )}
                     {isActive && !inGracePeriod && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}
@@ -590,7 +590,7 @@ function PlanContent() {
                       </button>
                     )}
                     {isActive && (
-                      <button onClick={handleCancelPlan} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                      <button onClick={handleCancelPlan} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-alert/10 text-alert hover:bg-alert/10 transition-colors">
                         Cancelar Plan
                       </button>
                     )}
@@ -619,7 +619,7 @@ function PlanContent() {
               const needsPayment = isCurrent && (isTrialing || isCancelled);
 
               const borderColor = isCurrent
-                ? plan.id === 'light' ? 'border-gray-900' : plan.id === 'go' ? 'border-fresco' : 'border-emerald-500'
+                ? plan.id === 'light' ? 'border-gray-900' : plan.id === 'go' ? 'border-fresco' : 'border-fresco'
                 : 'border-gray-100';
 
               return (
@@ -651,7 +651,7 @@ function PlanContent() {
                     {plan.features.map((f, i) => (
                       <li key={i} className={`flex items-center gap-2 text-[11px] font-bold ${f.included ? 'text-gray-700' : 'text-gray-300'}`}>
                         {f.included
-                          ? <Check size={12} className="text-emerald-500 shrink-0" />
+                          ? <Check size={12} className="text-fresco shrink-0" />
                           : <X size={12} className="text-gray-300 shrink-0" />
                         }
                         {f.text}

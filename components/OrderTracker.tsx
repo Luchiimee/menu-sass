@@ -104,9 +104,9 @@ useEffect(() => {
 
     if (status === 'cancelado') {
         return (
-            <div className="bg-white rounded-3xl p-8 text-center border border-red-100 h-full flex flex-col justify-center items-center">
-                <XCircle size={60} className="text-red-500 mb-4"/>
-                <h3 className="text-2xl font-black text-red-600 uppercase tracking-tighter">Pedido Cancelado</h3>
+            <div className="bg-white rounded-3xl p-8 text-center border border-alert/10 h-full flex flex-col justify-center items-center">
+                <XCircle size={60} className="text-alert mb-4"/>
+                <h3 className="text-2xl font-black text-alert uppercase tracking-tighter">Pedido Cancelado</h3>
                 <p className="text-gray-500 mt-2 text-sm font-bold">Ponete en contacto con nosotros por WhatsApp.</p>
             </div>
         );
@@ -122,28 +122,28 @@ const isTransfer = paymentMethod === 'transferencia';
             <div className="flex-1 flex flex-col justify-center items-center">
                 {showPaymentCard && (
     <div className="mb-6 w-full px-4 animate-in slide-in-from-top-4 duration-500">
-        <div className="bg-purple-50 border-2 border-purple-200 p-5 rounded-[2.5rem] shadow-xl">
+        <div className="bg-brasa/10 border-2 border-brasa/20 p-5 rounded-[2.5rem] shadow-xl">
             <div className="flex flex-col items-center text-center gap-3">
                 <div className="bg-brasa text-white p-2.5 rounded-2xl shadow-lg">
                     <CreditCard size={20} strokeWidth={2.5} />
                 </div>
                 <div className="space-y-1">
-                    <h4 className="text-sm font-black uppercase italic tracking-tighter text-purple-950">Pendiente de Pago</h4>
-                    <p className="text-[11px] font-bold text-purple-700/80 leading-tight">Transferí al Alias y envianos el comprobante para que comencemos a cocinar.</p>
+                    <h4 className="text-sm font-black uppercase italic tracking-tighter text-ink">Pendiente de Pago</h4>
+                    <p className="text-[11px] font-bold text-brasa/80 leading-tight">Transferí al Alias y envianos el comprobante para que comencemos a cocinar.</p>
                 </div>
 
-                <button onClick={() => { navigator.clipboard.writeText(aliasMpProp || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="w-full bg-white border-2 border-purple-100 p-3 rounded-2xl flex justify-between items-center active:scale-95 transition-all">
+                <button onClick={() => { navigator.clipboard.writeText(aliasMpProp || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="w-full bg-white border-2 border-brasa/10 p-3 rounded-2xl flex justify-between items-center active:scale-95 transition-all">
                     <div className="text-left">
                         <p className="text-[8px] font-black text-gray-400 uppercase">Copiar Alias</p>
-                        <p className="text-xs font-black text-purple-900">{aliasMpProp || 'Configurá tu Alias'}</p>
+                        <p className="text-xs font-black text-ink">{aliasMpProp || 'Configurá tu Alias'}</p>
                     </div>
-                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-purple-300" />}
+                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-brasa" />}
                 </button>
 
                 <button onClick={() => { const msg = encodeURIComponent(`Hola! mi pedido es ${orderId.slice(0,5)}, te adjunto el comprobante.`); window.open(`whatsapp://send?phone=${restaurantPhone.replace(/\D/g, '')}&text=${msg}`); }} className="w-full bg-green-600 text-white py-3.5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
                     <MessageCircle size={16} fill="white" /> Enviar Comprobante
                 </button>
-                <p className="text-[9px] font-bold text-purple-400 uppercase italic mt-1 leading-tight">Sino, esperá a que confirmemos <br/> el ingreso manualmente.</p>
+                <p className="text-[9px] font-bold text-brasa uppercase italic mt-1 leading-tight">Sino, esperá a que confirmemos <br/> el ingreso manualmente.</p>
             </div>
         </div>
     </div>
@@ -160,7 +160,7 @@ const isTransfer = paymentMethod === 'transferencia';
     <p className="text-[10px] font-black text-fresco uppercase tracking-[0.1em] italic">
     {showPaymentCard ? 'Pedido en Espera' : 'Pedido Agendado'}
 </p>
-    <p className="text-[11px] font-bold text-indigo-950 leading-tight">
+    <p className="text-[11px] font-bold text-ink leading-tight">
         {showPaymentCard 
             ? `Prepararemos tu pedido para las ${scheduledTime} apenas se confirme el pago.` // 🚀 Texto si falta pagar
             : `¡Recibimos tu pedido! Lo prepararemos para el horario seleccionado: ${scheduledTime}`      // Texto si es efectivo o ya pagó
