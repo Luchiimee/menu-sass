@@ -34,6 +34,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const [lat, setLat] = useState(DEFAULT_LAT);
   const [lng, setLng] = useState(DEFAULT_LNG);
   const [addressInput, setAddressInput] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
   const [zone1Km, setZone1Km] = useState(3);
   const [zone1Cost, setZone1Cost] = useState('');
   const [zone2Km, setZone2Km] = useState(7);
@@ -42,7 +43,6 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [resolvedAddress, setResolvedAddress] = useState('');
 
   // Cargar valores actuales de la DB
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
       const { data } = await supabase
         .from('restaurants')
         .select(
-          'delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost, delivery_zones_enabled',
+          'delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost, delivery_zones_enabled, delivery_address',
         )
         .eq('id', restaurantId)
         .single();
@@ -63,6 +63,16 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
         if (data.delivery_zone1_cost != null) setZone1Cost(String(data.delivery_zone1_cost));
         if (data.delivery_zone2_km != null) setZone2Km(data.delivery_zone2_km);
         if (data.delivery_zone2_cost != null) setZone2Cost(String(data.delivery_zone2_cost));
+        const saved = data.delivery_address || '';
+        const parts = saved.trim().split(' ');
+        const lastPart = parts[parts.length - 1];
+        if (saved && /^\d+$/.test(lastPart)) {
+          setAddressInput(parts.slice(0, -1).join(' '));
+          setAddressNumber(lastPart);
+        } else {
+          setAddressInput(saved);
+          setAddressNumber('');
+        }
       }
       setLoading(false);
     };
@@ -70,18 +80,22 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
-  const reverseGeocode = async (lat: number, lng: number) => {
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     try {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
       const res = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`,
       );
       const data = await res.json();
-      setResolvedAddress(data.results?.[0]?.formatted_address || '');
+      if (!data.results?.[0]) return;
+      const comps = data.results[0].address_components;
+      const get = (type: string) => comps.find((c: { types: string[]; long_name: string }) => c.types.includes(type))?.long_name || '';
+      const route = get('route');
+      if (route) setAddressInput(route);
     } catch {
-      setResolvedAddress('');
+      // reverseGeocode falló — addressInput queda sin cambios
     }
-  };
+  }, []);
 
   // Geocodificación con Nominatim (OpenStreetMap, gratuito, sin API key)
   const handleGeocode = async () => {
@@ -120,17 +134,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
         const { latitude, longitude } = pos.coords;
         setLat(latitude);
         setLng(longitude);
-        reverseGeocode(latitude, longitude);
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-            { headers: { 'Accept-Language': 'es' } },
-          );
-          const data = await res.json();
-          if (data.display_name) setAddressInput(data.display_name);
-        } catch {
-          // reverse geocoding falló — coordenadas ya seteadas, campo queda vacío
-        }
+        await reverseGeocode(latitude, longitude);
         setLocating(false);
       },
       () => {
@@ -153,6 +157,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
         delivery_zone1_cost: zone1Cost !== '' ? Number(zone1Cost) : null,
         delivery_zone2_km: zone2Km,
         delivery_zone2_cost: zone2Cost !== '' ? Number(zone2Cost) : null,
+        delivery_address: `${addressInput} ${addressNumber}`.trim(),
       })
       .eq('id', restaurantId);
 
@@ -168,7 +173,9 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const handlePositionChange = useCallback((newLat: number, newLng: number) => {
     setLat(newLat);
     setLng(newLng);
-  }, []);
+    reverseGeocode(newLat, newLng);
+    setAddressNumber('');
+  }, [reverseGeocode]);
 
   if (loading) {
     return (
@@ -208,10 +215,11 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
       {zonesEnabled && (
         <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Buscador de dirección */}
-          <div>
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">
               Dirección del local
             </label>
+            {/* Calle + botones */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -220,7 +228,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                   value={addressInput}
                   onChange={(e) => setAddressInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleGeocode(); }}
-                  placeholder="Av. Corrientes 1234, Buenos Aires..."
+                  placeholder="Av. Corrientes, Buenos Aires..."
                   className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
@@ -241,7 +249,15 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
                 Mi ubicación
               </button>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1.5 ml-1 font-medium">
+            {/* Número */}
+            <input
+              type="text"
+              value={addressNumber}
+              onChange={(e) => setAddressNumber(e.target.value)}
+              placeholder="Número (ej: 1234)"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-colors"
+            />
+            <p className="text-[10px] text-gray-400 ml-1 font-medium">
               También podés arrastrar el pin en el mapa para ajustar la posición exacta
             </p>
           </div>
@@ -256,13 +272,6 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
               onPositionChange={handlePositionChange}
             />
           </div>
-
-          {/* Dirección resuelta (debug Nominatim) */}
-          {resolvedAddress && (
-            <p className="text-[10px] text-gray-400 font-medium px-1">
-              <span className="font-black text-gray-500">📍 Nominatim:</span> {resolvedAddress}
-            </p>
-          )}
 
           {/* Configuración de zonas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
