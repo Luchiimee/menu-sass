@@ -123,19 +123,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ skipped: 'missing user id or email' });
   }
 
-  // Verificar que el restaurant exista y no hayamos mandado el email antes
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('id, welcome_email_sent')
+  // Idempotencia: verificar si ya se mandó el email para este user_id
+  const { data: alreadySent } = await supabase
+    .from('welcome_emails_sent')
+    .select('user_id')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (!restaurant) {
-    console.warn(`[webhook/bienvenida] No existe restaurant para user_id=${userId} — skip`);
-    return NextResponse.json({ skipped: 'restaurant not found' });
-  }
-
-  if (restaurant.welcome_email_sent) {
+  if (alreadySent) {
     console.log(`[webhook/bienvenida] Email ya enviado para user_id=${userId} — skip`);
     return NextResponse.json({ skipped: 'already sent' });
   }
@@ -182,10 +177,9 @@ export async function POST(request: Request) {
 
   // Marcar como enviado para evitar duplicados
   await supabase
-    .from('restaurants')
-    .update({ welcome_email_sent: true })
-    .eq('id', restaurant.id);
+    .from('welcome_emails_sent')
+    .insert({ user_id: userId });
 
-  console.log(`[webhook/bienvenida] ✅ Email enviado a ${email} (restaurant_id=${restaurant.id})`);
+  console.log(`[webhook/bienvenida] ✅ Email enviado a ${email} (user_id=${userId})`);
   return NextResponse.json({ sent: true, email });
 }
