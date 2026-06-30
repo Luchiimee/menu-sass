@@ -94,7 +94,7 @@ const TUTORIALS: Tutorial[] = [
 const DISENOS_INFO: any = {
   marketpro: { label: 'Market Pro', color: 'bg-emerald-500', desc: 'Diseño tipo App nativa. Ideal para catálogos con muchos productos.' },
   urban: { label: 'Urban Dark', color: 'bg-zinc-900', desc: 'Estilo nocturno y premium. Resalta la fotografía.' },
-  visualgrid: { label: 'Visual Grid', color: 'bg-orange-500', desc: 'Grilla visual impactante. Ideal para videos y fotos XL.' },
+  visualgrid: { label: 'Visual Grid', color: 'bg-brasa', desc: 'Grilla visual impactante. Ideal para videos y fotos XL.' },
  elegant: { label: 'Minimal', color: 'bg-stone-200', desc: 'Estilo limpio, centrado y tipografía moderna. La opción más elegante.' }
 };
 
@@ -267,9 +267,9 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
 {template === 'visualgrid' && (
         <div className="preview-viewport s-visual">
           <div className="flex justify-between items-center px-3 mb-2">
-            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-              <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+            <div className="flex items-center gap-1 px-2 py-1 bg-fresco/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-fresco rounded-full" />
+              <span className="text-fresco text-[8px] font-black uppercase tracking-wider">Abierto</span>
             </div>
             <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
               <Store size={12} className="text-white/70" />
@@ -305,9 +305,9 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
       {template === 'urban' && (
         <div className="preview-viewport u-container">
           <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-              <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+            <div className="flex items-center gap-1 px-2 py-1 bg-fresco/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-fresco rounded-full" />
+              <span className="text-fresco text-[8px] font-black uppercase tracking-wider">Abierto</span>
             </div>
             <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
               <Store size={12} className="text-white/70" />
@@ -348,9 +348,9 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
         <div className="preview-viewport bg-white">
           <div className="m-header">
             <div className="flex justify-between items-center w-full mb-2" style={{textAlign:'left'}}>
-              <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+              <div className="flex items-center gap-1 px-2 py-1 bg-fresco/20 rounded-full">
+                <div className="w-1.5 h-1.5 bg-fresco rounded-full" />
+                <span className="text-fresco text-[8px] font-black uppercase tracking-wider">Abierto</span>
               </div>
               <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
                 <Store size={12} className="text-white/70" />
@@ -393,9 +393,9 @@ const MenuPreview = ({ template, rubro }: { template: string, rubro: string }) =
       {template === 'elegant' && (
         <div className="preview-viewport minimal-container">
           <div className="flex justify-between items-center w-full mb-3">
-            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-              <span className="text-green-400 text-[8px] font-black uppercase tracking-wider">Abierto</span>
+            <div className="flex items-center gap-1 px-2 py-1 bg-fresco/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-fresco rounded-full" />
+              <span className="text-fresco text-[8px] font-black uppercase tracking-wider">Abierto</span>
             </div>
             <div className="w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
               <Store size={12} className="text-white/70" />
@@ -555,17 +555,17 @@ export default function LandingPage() {
   };
   const currentMode = seguimientoModes[activeMode];
   const badgeColors = [
-    'bg-fresco/20 text-blue-400',
-    'bg-yellow-500/20 text-yellow-400',
-    'bg-orange-500/20 text-orange-400',
-    'bg-green-500/20 text-green-400',
-    'bg-green-500/20 text-green-400',
+    'bg-fresco/20 text-fresco',
+    'bg-brasa/20 text-brasa',
+    'bg-brasa/20 text-brasa',
+    'bg-fresco/20 text-fresco',
+    'bg-fresco/20 text-fresco',
   ];
 
   return (
-    <div className="min-h-screen bg-[#f5f2e8] font-sans text-gray-900 selection:bg-green-100 overflow-x-hidden">
+    <div className="min-h-screen bg-paper font-sans text-gray-900 selection:bg-fresco/10 overflow-x-hidden">
      {/* --- NAVBAR RESPONSIVE CON LINKS --- */}
-      <nav className="fixed top-0 w-full z-[100] bg-[#f5f2e8]/80 backdrop-blur-xl border-b border-gray-100">
+      <nav className="fixed top-0 w-full z-[100] bg-paper/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo-snappy.svg" alt="Snappy" width={32} height={32} />
@@ -596,7 +596,7 @@ export default function LandingPage() {
 
         {/* Menú Desplegable Móvil (Centrado) */}
         {isMenuOpen && (
-          <div className="md:hidden bg-[#f5f2e8] border-b border-gray-100 p-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-top-5">
+          <div className="md:hidden bg-paper border-b border-gray-100 p-8 flex flex-col items-center gap-6 animate-in fade-in slide-in-from-top-5">
             <Link href="#negocios" className="text-sm font-black uppercase tracking-[0.2em] text-gray-500" onClick={() => setIsMenuOpen(false)}>
               Funcionalidades
             </Link>
@@ -623,7 +623,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left z-10">
             <div className="inline-flex items-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-1.5 rounded-full text-xs font-bold mb-8 text-gray-600">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>{" "}
+              <span className="w-2 h-2 rounded-full bg-fresco animate-pulse"></span>{" "}
               🚀 Para gastronomía, kioscos, dietéticas y más
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-8 leading-[1.05]">
@@ -631,7 +631,7 @@ export default function LandingPage() {
               <br />
               en minutos.
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-gray-900">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-fresco to-gray-900">
                 Para gastronomía, kioscos y más.
               </span>
             </h1>
@@ -680,20 +680,20 @@ export default function LandingPage() {
         {
           title: "GASTRONOMÍA",
           desc: "Eliminá el error de comanda y ahorrá comisiones. ",
-          icon: <Utensils className="text-orange-500" />,
-          bg: "bg-orange-50",
+          icon: <Utensils className="text-brasa" />,
+          bg: "bg-brasa/10",
         },
         {
           title: "KIOSCOS",
           desc: "Vendé 24/7 sin estar pegado al teléfono.",
           icon: <Store className="text-fresco" />,
-          bg: "bg-[#F0FAF6]",
+          bg: "bg-fresco/10",
         },
         {
           title: "VERDULERÍAS",
           desc: "Fruterías, dietéticas y productos orgánicos. Actualizá precios y stock del día en un clic",
-          icon: <Carrot className="text-green-500" />,
-          bg: "bg-green-50",
+          icon: <Carrot className="text-fresco" />,
+          bg: "bg-fresco/10",
         },
       ].map((item, i) => (
         <div
@@ -728,8 +728,8 @@ export default function LandingPage() {
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center mb-4">
-          <Smartphone size={20} className="text-orange-500" />
+        <div className="w-10 h-10 bg-brasa/10 rounded-2xl flex items-center justify-center mb-4">
+          <Smartphone size={20} className="text-brasa" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Tu menú, siempre actualizado</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
@@ -737,7 +737,7 @@ export default function LandingPage() {
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-10 h-10 bg-[#F0FAF6] rounded-2xl flex items-center justify-center mb-4">
+        <div className="w-10 h-10 bg-fresco/10 rounded-2xl flex items-center justify-center mb-4">
           <QrCode size={20} className="text-fresco" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Escaneán el QR y piden al instante</h3>
@@ -746,8 +746,8 @@ export default function LandingPage() {
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-10 h-10 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-          <Bell size={20} className="text-green-500" />
+        <div className="w-10 h-10 bg-fresco/10 rounded-2xl flex items-center justify-center mb-4">
+          <Bell size={20} className="text-fresco" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Reservas sin llamadas</h3>
         <p className="text-gray-500 text-xs leading-relaxed">
@@ -755,7 +755,7 @@ export default function LandingPage() {
         </p>
       </div>
       <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-        <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center mb-4">
+        <div className="w-10 h-10 bg-graphite/10 rounded-2xl flex items-center justify-center mb-4">
           <Percent size={20} className="text-brasa" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-3">Descuentos y cupones</h3>
@@ -789,7 +789,7 @@ export default function LandingPage() {
           onClick={() => setActiveBusinessType(tab.id)}
           className={`px-5 py-2.5 rounded-full text-sm font-black uppercase tracking-widest transition-all duration-200 ${
             activeBusinessType === tab.id
-              ? 'bg-green-600 text-white'
+              ? 'bg-fresco text-white'
               : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
           }`}
         >
@@ -841,8 +841,8 @@ export default function LandingPage() {
               <div className="md:w-[38%] shrink-0 flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[9px] font-black uppercase tracking-widest text-white">Gestión de Salón</p>
-                  <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
-                    <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-fresco/10 border border-fresco/20 rounded-full text-[8px] font-black text-fresco uppercase tracking-widest">
+                    <span className="w-1 h-1 rounded-full bg-fresco animate-pulse" /> En vivo
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -851,29 +851,29 @@ export default function LandingPage() {
                     <span className="text-[7px] font-black text-gray-600 uppercase">Disponible</span>
                     <button className="mt-1 w-full py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-gray-600 uppercase cursor-default">Abrir</button>
                   </div>
-                  <div className="bg-amber-500/5 border border-amber-400/50 rounded-xl p-2 flex flex-col gap-1">
+                  <div className="bg-brasa/5 border border-brasa/50 rounded-xl p-2 flex flex-col gap-1">
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 2</p>
-                    <span className="text-[7px] font-black text-amber-400 uppercase animate-bounce">🆕 Nuevo</span>
+                    <span className="text-[7px] font-black text-brasa uppercase animate-bounce">🆕 Nuevo</span>
                     <span className="text-[9px] font-black text-white">$25.000</span>
-                    <button className="mt-1 w-full py-1 rounded-lg bg-amber-500/10 border border-amber-400/40 text-[7px] font-black text-amber-400 uppercase cursor-default">Abrir</button>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-brasa/10 border border-brasa/40 text-[7px] font-black text-brasa uppercase cursor-default">Abrir</button>
                   </div>
-                  <div className="bg-white border border-orange-400/60 rounded-xl p-2 flex flex-col gap-1">
+                  <div className="bg-white border border-brasa/60 rounded-xl p-2 flex flex-col gap-1">
                     <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 3</p>
-                    <span className="text-[7px] font-black text-orange-500 uppercase">Ocupada</span>
+                    <span className="text-[7px] font-black text-brasa uppercase">Ocupada</span>
                     <span className="text-[9px] font-black text-gray-800">$18.500</span>
-                    <button className="mt-1 w-full py-1 rounded-lg bg-orange-50 border border-orange-300 text-[7px] font-black text-orange-500 uppercase cursor-default">Abrir</button>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-brasa/10 border border-brasa text-[7px] font-black text-brasa uppercase cursor-default">Abrir</button>
                   </div>
-                  <div className="bg-red-500/5 border-2 border-red-500/60 rounded-xl p-2 flex flex-col gap-1 animate-pulse">
+                  <div className="bg-alert/5 border-2 border-alert/60 rounded-xl p-2 flex flex-col gap-1 animate-pulse">
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 4</p>
-                    <span className="text-[7px] font-black text-red-400 uppercase">🚨 ¡Llama!</span>
+                    <span className="text-[7px] font-black text-alert uppercase">🚨 ¡Llama!</span>
                     <span className="text-[9px] font-black text-white">$31.000</span>
-                    <button className="mt-1 w-full py-1 rounded-lg bg-red-500/10 border border-red-500/40 text-[7px] font-black text-red-400 uppercase cursor-default">Abrir</button>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-alert/10 border border-alert/40 text-[7px] font-black text-alert uppercase cursor-default">Abrir</button>
                   </div>
                   <div className="bg-brasa/5 border border-brasa/40 rounded-xl p-2 flex flex-col gap-1">
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mesa 5</p>
-                    <span className="text-[7px] font-black text-purple-400 uppercase">Pago Pend.</span>
+                    <span className="text-[7px] font-black text-graphite uppercase">Pago Pend.</span>
                     <span className="text-[9px] font-black text-white">$14.200</span>
-                    <button className="mt-1 w-full py-1 rounded-lg bg-brasa/10 border border-brasa/30 text-[7px] font-black text-purple-400 uppercase cursor-default">Abrir</button>
+                    <button className="mt-1 w-full py-1 rounded-lg bg-brasa/10 border border-brasa/30 text-[7px] font-black text-graphite uppercase cursor-default">Abrir</button>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
                     <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Mesa 6</p>
@@ -889,41 +889,41 @@ export default function LandingPage() {
                   <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
                   <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">3 activos</span>
                 </div>
-                <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                <div className="bg-brasa/5 border border-brasa/30 rounded-2xl p-3 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                    <span className="px-2 py-0.5 bg-brasa/10 border border-brasa/30 rounded-full text-[7px] font-black text-brasa uppercase tracking-widest">⏳ Pendiente</span>
                     <span className="text-[11px] font-black text-white">$25.000</span>
                   </div>
                   <p className="text-[10px] font-black text-white uppercase tracking-wide">Luciano</p>
                   <div className="flex gap-1.5 flex-wrap">
-                    <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 Delivery</span>
+                    <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-fresco uppercase">🛵 Delivery</span>
                     <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
                   </div>
                   <p className="text-[8px] text-gray-600">Av. San Martín 1234</p>
                   <p className="text-[8px] text-gray-500">x1 Milanesa a la napolitana · $25.000</p>
-                  <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ Aceptar Pedido</button>
+                  <button className="w-full py-1.5 bg-fresco rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ Aceptar Pedido</button>
                 </div>
-                <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+                <div className="bg-brasa/5 border border-brasa/30 rounded-2xl p-3 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">🍳 En cocina</span>
+                    <span className="px-2 py-0.5 bg-brasa/10 border border-brasa/30 rounded-full text-[7px] font-black text-brasa uppercase tracking-widest">🍳 En cocina</span>
                     <span className="text-[11px] font-black text-white">$18.500</span>
                   </div>
                   <p className="text-[10px] font-black text-white uppercase tracking-wide">Martina</p>
                   <div className="flex gap-1.5 flex-wrap">
-                    <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/30 rounded text-[7px] font-black text-orange-400 uppercase">🏪 Retiro</span>
+                    <span className="px-1.5 py-0.5 bg-brasa/20 border border-brasa/30 rounded text-[7px] font-black text-brasa uppercase">🏪 Retiro</span>
                     <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Transferencia</span>
                   </div>
                   <p className="text-[8px] text-gray-500">x2 Empanadas $12.000 · x1 Coca 500cc $6.500</p>
-                  <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ Marcar Entregado</button>
+                  <button className="w-full py-1.5 bg-brasa/20 border border-brasa/40 rounded-xl text-[8px] font-black text-brasa uppercase tracking-wide cursor-default">⚡ Marcar Entregado</button>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                    <span className="px-2 py-0.5 bg-fresco/10 border border-fresco/20 rounded-full text-[7px] font-black text-fresco uppercase tracking-widest">✓ Finalizado</span>
                     <span className="text-[11px] font-black text-white">$31.000</span>
                   </div>
                   <p className="text-[10px] font-black text-white uppercase tracking-wide">Carlos</p>
                   <div className="flex gap-1.5 flex-wrap">
-                    <span className="px-1.5 py-0.5 bg-brasa/20 border border-brasa/30 rounded text-[7px] font-black text-purple-400 uppercase">🪑 Mesa 4</span>
+                    <span className="px-1.5 py-0.5 bg-brasa/20 border border-brasa/30 rounded text-[7px] font-black text-graphite uppercase">🪑 Mesa 4</span>
                     <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">Efectivo</span>
                   </div>
                   <p className="text-[8px] text-gray-500">x1 Bife de chorizo · $31.000</p>
@@ -973,13 +973,13 @@ export default function LandingPage() {
             <div className="relative w-full max-w-[460px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
-                  <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-fresco/10 border border-fresco/20 rounded-full text-[8px] font-black text-fresco uppercase tracking-widest">
+                  <span className="w-1 h-1 rounded-full bg-fresco animate-pulse" /> En vivo
                 </span>
               </div>
-              <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="bg-brasa/5 border border-brasa/30 rounded-2xl p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                  <span className="px-2 py-0.5 bg-brasa/10 border border-brasa/30 rounded-full text-[7px] font-black text-brasa uppercase tracking-widest">⏳ Pendiente</span>
                   <span className="text-[11px] font-black text-white">$8.400</span>
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">JORGE</p>
@@ -988,24 +988,24 @@ export default function LandingPage() {
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">EFECTIVO</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x2 Coca Cola 500cc $3.200 · x1 Alfajor triple $1.000 · x3 Cigarrillos $4.200</p>
-                <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ ACEPTAR PEDIDO</button>
+                <button className="w-full py-1.5 bg-fresco rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ ACEPTAR PEDIDO</button>
               </div>
-              <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="bg-brasa/5 border border-brasa/30 rounded-2xl p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">📦 En proceso</span>
+                  <span className="px-2 py-0.5 bg-brasa/10 border border-brasa/30 rounded-full text-[7px] font-black text-brasa uppercase tracking-widest">📦 En proceso</span>
                   <span className="text-[11px] font-black text-white">$12.600</span>
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">MARÍA</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-fresco uppercase">🛵 DELIVERY</span>
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x1 Pack snacks $6.000 · x2 Agua mineral $2.800 · x1 Chocolate $3.800</p>
-                <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ LISTO PARA ENTREGAR</button>
+                <button className="w-full py-1.5 bg-brasa/20 border border-brasa/40 rounded-xl text-[8px] font-black text-brasa uppercase tracking-wide cursor-default">⚡ LISTO PARA ENTREGAR</button>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                  <span className="px-2 py-0.5 bg-fresco/10 border border-fresco/20 rounded-full text-[7px] font-black text-fresco uppercase tracking-widest">✓ Finalizado</span>
                   <span className="text-[11px] font-black text-white">$5.200</span>
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">LUCAS</p>
@@ -1057,26 +1057,26 @@ export default function LandingPage() {
             <div className="relative w-full max-w-[460px] bg-gray-950 rounded-3xl border border-white/10 shadow-[0_0_60px_-10px_rgba(255,255,255,0.08)] p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white">Pedidos</p>
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[8px] font-black text-green-400 uppercase tracking-widest">
-                  <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /> En vivo
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-fresco/10 border border-fresco/20 rounded-full text-[8px] font-black text-fresco uppercase tracking-widest">
+                  <span className="w-1 h-1 rounded-full bg-fresco animate-pulse" /> En vivo
                 </span>
               </div>
-              <div className="bg-amber-500/5 border border-amber-400/30 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="bg-brasa/5 border border-brasa/30 rounded-2xl p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-400/30 rounded-full text-[7px] font-black text-amber-400 uppercase tracking-widest">⏳ Pendiente</span>
+                  <span className="px-2 py-0.5 bg-brasa/10 border border-brasa/30 rounded-full text-[7px] font-black text-brasa uppercase tracking-widest">⏳ Pendiente</span>
                   <span className="text-[11px] font-black text-white">$15.800</span>
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">CAROLINA</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-fresco uppercase">🛵 DELIVERY</span>
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x500g Granola $4.200 · x250g Almendras $6.800 · x1kg Arroz integral $4.800</p>
-                <button className="w-full py-1.5 bg-green-700 rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ ACEPTAR PEDIDO</button>
+                <button className="w-full py-1.5 bg-fresco rounded-xl text-[8px] font-black text-white uppercase tracking-wide cursor-default">✓ ACEPTAR PEDIDO</button>
               </div>
-              <div className="bg-orange-500/5 border border-orange-400/30 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="bg-brasa/5 border border-brasa/30 rounded-2xl p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-400/30 rounded-full text-[7px] font-black text-orange-400 uppercase tracking-widest">📦 En proceso</span>
+                  <span className="px-2 py-0.5 bg-brasa/10 border border-brasa/30 rounded-full text-[7px] font-black text-brasa uppercase tracking-widest">📦 En proceso</span>
                   <span className="text-[11px] font-black text-white">$9.600</span>
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">ROBERTO</p>
@@ -1085,16 +1085,16 @@ export default function LandingPage() {
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">EFECTIVO</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x1L Helado vainilla $5.200 · x500ml Helado chocolate $4.400</p>
-                <button className="w-full py-1.5 bg-amber-500/20 border border-amber-400/40 rounded-xl text-[8px] font-black text-amber-400 uppercase tracking-wide cursor-default">⚡ LISTO PARA ENTREGAR</button>
+                <button className="w-full py-1.5 bg-brasa/20 border border-brasa/40 rounded-xl text-[8px] font-black text-brasa uppercase tracking-wide cursor-default">⚡ LISTO PARA ENTREGAR</button>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-2 opacity-60">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full text-[7px] font-black text-green-500 uppercase tracking-widest">✓ Finalizado</span>
+                  <span className="px-2 py-0.5 bg-fresco/10 border border-fresco/20 rounded-full text-[7px] font-black text-fresco uppercase tracking-widest">✓ Finalizado</span>
                   <span className="text-[11px] font-black text-white">$22.400</span>
                 </div>
                 <p className="text-[10px] font-black text-white uppercase tracking-wide">VALENTINA</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-blue-400 uppercase">🛵 DELIVERY</span>
+                  <span className="px-1.5 py-0.5 bg-fresco/20 border border-fresco/30 rounded text-[7px] font-black text-fresco uppercase">🛵 DELIVERY</span>
                   <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black text-gray-400 uppercase">TRANSFERENCIA</span>
                 </div>
                 <p className="text-[8px] text-gray-500">x1kg Semillas mix $8.600 · x500g Proteína $13.800</p>
@@ -1138,11 +1138,11 @@ export default function LandingPage() {
               <div className="flex items-center justify-between mb-6">
                 <CreditCard
                   size={32}
-                  className="text-green-600 group-hover:scale-110 transition-transform"
+                  className="text-fresco group-hover:scale-110 transition-transform"
                 />
                 <div
                   onClick={handleCopyAlias}
-                  className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-[#F0FAF6] transition relative group/alias"
+                  className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 cursor-pointer hover:bg-fresco/10 transition relative group/alias"
                 >
                   <span className="text-[10px] font-black text-gray-600 uppercase tracking-wider">
                     luciano.mp
@@ -1184,7 +1184,7 @@ export default function LandingPage() {
             <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm group hover:-translate-y-2 transition-all duration-300 hover:shadow-xl">
               <Store
                 size={32}
-                className="text-orange-600 mb-6 group-hover:scale-110 transition-transform"
+                className="text-brasa mb-6 group-hover:scale-110 transition-transform"
               />
               <h3 className="text-xl font-bold mb-4 text-gray-900">
                 Gestión de Salón
@@ -1226,6 +1226,96 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* --- SECCIÓN: DELIVERY ZONAS --- */}
+      <section style={{ background: "#15160E", padding: "80px 24px", fontFamily: "var(--font-space-grotesk)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <span className="inline-block bg-fresco/10 text-fresco text-xs font-semibold tracking-widest uppercase px-4 py-1 rounded-full mb-5">
+              Delivery inteligente
+            </span>
+            <h2 className="text-4xl font-bold text-paper leading-tight tracking-tight mb-4">
+              Controlá cada entrega,<br />sin sorpresas
+            </h2>
+            <p className="text-graphite text-lg leading-relaxed max-w-lg mx-auto">
+              Definí dos zonas de delivery por radio y asigná un precio a cada una.
+              Tus clientes ven el costo exacto antes de confirmar.
+            </p>
+          </div>
+
+          <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px", alignItems: "stretch" }}>
+
+            {/* Mapa */}
+            <div style={{ background: "#1E1F17", borderRadius: 20, border: "1px solid #2A2B22", overflow: "hidden", position: "relative", minHeight: 380 }}>
+              <svg viewBox="0 0 600 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                <rect width="600" height="400" fill="#1a1f1a"/>
+                {[80,160,240,320].map(y => <rect key={`h${y}`} x="0" y={y} width="600" height="5" fill="#242b24" opacity="0.8"/>)}
+                {[80,160,240,320,400,480].map(x => <rect key={`v${x}`} x={x} y="0" width="5" height="400" fill="#242b24" opacity="0.8"/>)}
+                {[[90,90],[90,170],[90,250],[170,90],[170,250],[250,90],[330,90],[330,170],[330,250],[410,90],[410,250],[490,90],[490,170]].map(([x,y],i) => (
+                  <rect key={i} x={x} y={y} width="62" height="62" rx="4" fill="#222820" opacity="0.9"/>
+                ))}
+                <circle cx="300" cy="200" r="165" fill="#9A5532" opacity="0.12"/>
+                <circle cx="300" cy="200" r="165" fill="none" stroke="#9A5532" strokeWidth="2" strokeDasharray="7 5" opacity="0.6"/>
+                <circle cx="300" cy="200" r="88" fill="#1BB179" opacity="0.15"/>
+                <circle cx="300" cy="200" r="88" fill="none" stroke="#1BB179" strokeWidth="2.5" opacity="0.9"/>
+                <circle cx="300" cy="200" r="12" fill="#1BB179" opacity="0.3"/>
+                <circle cx="300" cy="200" r="8" fill="#1BB179"/>
+                <circle cx="300" cy="200" r="3.5" fill="white"/>
+                <rect x="318" y="172" width="96" height="28" rx="8" fill="#0D0E09" opacity="0.92"/>
+                <rect x="318" y="172" width="96" height="28" rx="8" fill="none" stroke="#1BB179" strokeWidth="1" opacity="0.5"/>
+                <text x="366" y="191" textAnchor="middle" fontSize="12" fontFamily="sans-serif" fontWeight="700" fill="#1BB179">Zona 1 · $500</text>
+                <rect x="388" y="75" width="96" height="28" rx="8" fill="#0D0E09" opacity="0.92"/>
+                <rect x="388" y="75" width="96" height="28" rx="8" fill="none" stroke="#9A5532" strokeWidth="1" opacity="0.5"/>
+                <text x="436" y="94" textAnchor="middle" fontSize="12" fontFamily="sans-serif" fontWeight="700" fill="#9A5532">Zona 2 · $900</text>
+                <line x1="414" y1="172" x2="436" y2="103" stroke="#9A5532" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"/>
+              </svg>
+              <div style={{ position: "absolute", bottom: 16, left: 16, right: 16, background: "#0D0E09", border: "1px solid #2A2B22", borderRadius: 10, padding: "8px 14px", display: "flex", gap: 16, alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1BB179" }}/>
+                  <span className="text-graphite text-xs">Zona 1</span>
+                  <span className="text-paper text-xs font-semibold">hasta 2 km</span>
+                </div>
+                <div style={{ width: 1, height: 16, background: "#2A2B22" }}/>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#9A5532" }}/>
+                  <span className="text-graphite text-xs">Zona 2</span>
+                  <span className="text-paper text-xs font-semibold">hasta 5 km</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cards + CTA */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ background: "#1E1F17", border: "1px solid #1BB17930", borderRadius: 16, padding: "20px 22px", flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#1BB179" }}/>
+                  <span className="text-fresco text-xs font-semibold tracking-widest uppercase">Zona 1</span>
+                </div>
+                <p className="text-paper font-bold mb-1" style={{ fontSize: 28 }}>$500</p>
+                <p className="text-graphite text-sm mb-3">Radio cercano · hasta 2 km</p>
+                <div style={{ height: 1, background: "#2A2B22", margin: "12px 0" }}/>
+                <p className="text-graphite text-sm leading-relaxed">Ideal para el barrio. El precio más accesible atrae más pedidos locales.</p>
+              </div>
+
+              <div style={{ background: "#1E1F17", border: "1px solid #9A553230", borderRadius: 16, padding: "20px 22px", flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#9A5532" }}/>
+                  <span className="text-brasa text-xs font-semibold tracking-widest uppercase">Zona 2</span>
+                </div>
+                <p className="text-paper font-bold mb-1" style={{ fontSize: 28 }}>$900</p>
+                <p className="text-graphite text-sm mb-3">Radio extendido · hasta 5 km</p>
+                <div style={{ height: 1, background: "#2A2B22", margin: "12px 0" }}/>
+                <p className="text-graphite text-sm leading-relaxed">Llegá más lejos sin perder rentabilidad. Vos fijás el precio que te conviene.</p>
+              </div>
+
+              <a href="/register" className="block w-full text-center bg-fresco text-white font-semibold rounded-xl py-4 text-sm hover:bg-fresco/90 transition-colors">
+                Empezar gratis →
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
 {/* --- SECCIÓN: SEGUIMIENTO DEL PEDIDO --- */}
 <section className="py-24 bg-gray-900 text-white overflow-hidden">
   <div className="max-w-7xl mx-auto px-6">
@@ -1252,7 +1342,7 @@ export default function LandingPage() {
               onClick={() => setActiveMode(mode.id)}
               className={`px-5 py-2 rounded-full text-sm font-black uppercase tracking-wide transition-all ${
                 activeMode === mode.id
-                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                  ? 'bg-fresco text-white shadow-lg shadow-fresco/30'
                   : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
               }`}
             >
@@ -1266,7 +1356,7 @@ export default function LandingPage() {
           {currentMode.leftSteps.map((step, i, arr) => (
             <div key={i} className="flex items-start gap-4">
               <div className="flex flex-col items-center">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-green-500">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-fresco">
                   <step.icon size={18} className="text-white" />
                 </div>
                 {i < arr.length - 1 && <div className="w-0.5 h-8 bg-white/10 mt-1" />}
@@ -1283,7 +1373,7 @@ export default function LandingPage() {
       {/* MOCKUP TELÉFONO ANIMADO */}
       <div className="relative flex justify-center items-center">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[220px] h-[440px] bg-green-500/10 rounded-full blur-[60px]" />
+          <div className="w-[220px] h-[440px] bg-fresco/10 rounded-full blur-[60px]" />
         </div>
 
         <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
@@ -1312,19 +1402,19 @@ export default function LandingPage() {
                   <div key={i} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
-                        isDone   ? 'bg-green-500' :
-                        isActive ? 'bg-green-500 ring-4 ring-green-500/20 animate-pulse' :
+                        isDone   ? 'bg-fresco' :
+                        isActive ? 'bg-fresco ring-4 ring-fresco/20 animate-pulse' :
                                    'bg-white/10'
                       }`}>
                         <step.icon size={14} className={isDone || isActive ? 'text-white' : 'text-gray-600'} />
                       </div>
                       {i < arr.length - 1 && (
-                        <div className={`w-0.5 h-7 mt-1 transition-all duration-700 ${isDone ? 'bg-green-500/60' : 'bg-white/10'}`} />
+                        <div className={`w-0.5 h-7 mt-1 transition-all duration-700 ${isDone ? 'bg-fresco/60' : 'bg-white/10'}`} />
                       )}
                     </div>
                     <div className="pt-1 pb-7">
                       <p className={`text-[11px] font-black uppercase tracking-wide transition-colors duration-300 ${
-                        isActive ? 'text-green-400' : isDone ? 'text-white' : 'text-gray-600'
+                        isActive ? 'text-fresco' : isDone ? 'text-white' : 'text-gray-600'
                       }`}>{step.label}</p>
                       <p className="text-gray-600 text-[9px] mt-0.5">{step.desc}</p>
                     </div>
@@ -1405,7 +1495,7 @@ export default function LandingPage() {
                 onClick={() => setActiveRubro(r.id)}
                 className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase flex items-center gap-2 transition-all border-2
                   ${activeRubro === r.id 
-                    ? 'bg-green-500 text-white border-green-500 shadow-md scale-105' 
+                    ? 'bg-fresco text-white border-fresco shadow-md scale-105' 
                     : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200'}`}
               >
                 <Icon size={14}/> {r.label}
@@ -1448,9 +1538,9 @@ export default function LandingPage() {
         </div>
         
         <div className="space-y-4 border-l-4 border-gray-100 pl-6">
-          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> El cliente pide desde el celular, sin descargas</div>
-          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Actualizá la carta en tiempo real</div>
-          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-green-500" size={22}/> Pedidos y reservas integrados desde el menú</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-fresco" size={22}/> El cliente pide desde el celular, sin descargas</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-fresco" size={22}/> Actualizá la carta en tiempo real</div>
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-fresco" size={22}/> Pedidos y reservas integrados desde el menú</div>
         </div>
 
         <Link href="/login" className="inline-flex items-center gap-1 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
@@ -1466,284 +1556,214 @@ export default function LandingPage() {
       
 
 
-      {/* --- PLANES (INFO ORIGINAL + PRECIO BLUR) --- */}
-
+      {/* --- PLANES --- */}
       <section
         id="planes"
-        className="py-24 px-6 bg-white border-y border-gray-100"
+        className="py-24 px-6 bg-paper"
       >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold mb-4">
-              Planes transparentes
+            <h2 className="text-4xl font-extrabold mb-4 text-ink">
+              Elegí tu plan
             </h2>
 
-            <p className="text-gray-500 text-lg">
-              Sin comisiones por venta. Cancela cuando quieras.
+            <p className="text-graphite text-lg">
+              14 días gratis en todos los planes. Sin tarjeta requerida.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-end">
-  
-{/* Plan 1: Light */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-8 transition flex flex-col hover:shadow-xl">
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Light</h3>
-        <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Para empezar</p>
-        <div className="mb-6">
-          <span className="line-through text-gray-400 text-sm font-medium">$19.500</span>
-          <div>
-            <span className="text-3xl font-black text-gray-900">$15.000</span>
-            <span className="text-gray-400 text-sm">/mes</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+
+            {/* Plan 1: Light */}
+            <div className="bg-white border border-[#DEDDD3] rounded-[20px] p-8 transition flex flex-col hover:shadow-xl relative">
+              <h3 className="text-lg font-bold text-ink mb-1">Light</h3>
+              <p className="text-xs text-graphite mb-6 uppercase font-bold tracking-wider">Para empezar</p>
+              <div className="mb-6">
+                <span className="line-through text-graphite text-sm font-medium">$19.500</span>
+                <div>
+                  <span className="text-5xl font-bold text-ink">$15.000</span>
+                  <span className="text-graphite text-sm">/mes</span>
+                </div>
+              </div>
+              <ul className="space-y-4 text-sm text-ink flex-1 mb-8">
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <span><b>Hasta 20 Productos</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <span>Catálogo Digital Interactivo</span>
+                </li>
+                <li className="flex items-start gap-3 text-left group relative cursor-help">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <div className="flex items-center gap-1.5">
+                    <span><b>Snapplink:</b> Hasta 2 enlaces</span>
+                    <HelpCircle size={13} className="text-graphite group-hover:text-fresco transition-colors" />
+                    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-ink text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[#DEDDD3] z-50">
+                      <p className="font-black uppercase text-fresco mb-1">Bio-Link Esencial</p>
+                      Mantené tu perfil organizado. Un solo link para tu biografía con botones directos a tu <b>Menú Digital y tu WhatsApp</b>.
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <span><b>Código QR</b> para tu local</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <span>Link para <b>Redes Sociales</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <span>Configuración de <b>Horarios</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5" />
+                  <span>Pedidos directos a WhatsApp</span>
+                </li>
+              </ul>
+              <Link href="/login" className="block w-full py-3 rounded-xl border-2 border-ink text-ink text-center font-bold hover:bg-ink hover:text-white transition text-sm">Prueba 14 días gratis</Link>
+            </div>
+
+            {/* Plan 2: GO */}
+            <div className="bg-white border-2 border-fresco rounded-[20px] p-8 transition flex flex-col shadow-lg relative">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-fresco text-white text-[10px] font-black px-4 py-1 rounded-full uppercase whitespace-nowrap">Más popular</span>
+              <h3 className="text-lg font-bold text-fresco mb-1">GO</h3>
+              <p className="text-xs text-graphite mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
+              <div className="mb-6">
+                <span className="line-through text-graphite text-sm font-medium">$28.600</span>
+                <div>
+                  <span className="text-5xl font-bold text-ink">$22.000</span>
+                  <span className="text-graphite text-sm">/mes</span>
+                </div>
+              </div>
+              <ul className="space-y-4 text-sm text-ink flex-1 mb-8">
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Hasta 60 Productos</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span>Sube <b>Imágenes o Videos</b> 🎥</span>
+                </li>
+                <li className="flex items-start gap-3 text-left group relative cursor-help">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <div className="flex items-center gap-1.5">
+                    <span><b>Snapplink:</b> Hasta 4 enlaces</span>
+                    <HelpCircle size={13} className="text-graphite group-hover:text-fresco transition-colors" />
+                    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-ink text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[#DEDDD3] z-50">
+                      <p className="font-black uppercase text-fresco mb-1">Bio-Link</p>
+                      Un solo link para tu biografía que contiene botones para tus enlaces más importantes (<b>Menú, WhatsApp y Redes</b>). <br/><i>Límite: 4 botones.</i>
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span>Pedidos al <b>Panel o WhatsApp</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Seguimiento en vivo</b> (Dueño y Cliente)</span>
+                </li>
+                <li className="flex items-start gap-3 text-left group relative cursor-help">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <div className="flex items-center gap-1.5">
+                    <span><b>Descuentos automáticos</b> por monto</span>
+                    <HelpCircle size={13} className="text-graphite group-hover:text-fresco transition-colors" />
+                    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-ink text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[#DEDDD3] z-50">
+                      <p className="font-black uppercase text-fresco mb-1">Ventas inteligentes</p>
+                      Puedes crear reglas automáticas: por ejemplo, si superan cierto monto el <b>envío es gratis</b> o se <b>descuenta un monto/porcentaje</b> del total. Una experiencia de compra superior para tu cliente.
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span>Gestión de Cupones</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Comandas</b> e Impresión de Tickets</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Integración con Mercado Pago</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Delivery por zonas</b> (2 zonas)</span>
+                </li>
+              </ul>
+              <Link href="/login" className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco/90 transition text-sm">Prueba 14 días gratis</Link>
+            </div>
+
+            {/* Plan 3: Plus */}
+            <div className="bg-white border border-[#DEDDD3] rounded-[20px] p-8 relative flex flex-col transition hover:shadow-xl">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-ink text-white text-[10px] font-black px-4 py-1 rounded-full uppercase whitespace-nowrap">Más elegido</span>
+              <h3 className="text-lg font-bold text-ink mb-1 flex items-center gap-2">
+                Plus <Zap size={18} className="text-fresco" fill="currentColor" />
+              </h3>
+              <p className="text-xs text-graphite mb-6 uppercase font-bold tracking-wider">Profesional</p>
+              <div className="mb-6">
+                <span className="line-through text-graphite text-sm font-medium">$45.500</span>
+                <div>
+                  <span className="text-5xl font-bold text-ink">$35.000</span>
+                  <span className="text-graphite text-sm">/mes</span>
+                </div>
+              </div>
+              <ul className="space-y-4 text-sm text-ink flex-1 mb-8">
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Productos Ilimitados</b> ✨</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>SnappyLinks:</b> 6 enlaces</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Caja</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span>Impresión de Tickets y <b>Mesas</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span>Gestión del <b>Salón</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Seguimiento en Vivo</b> 🚀</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span>Acceso a todas las plantillas</span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Integración con billeteras</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Rentabilidad</b></span>
+                </li>
+                <li className="flex items-start gap-3 text-left">
+                  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
+                  <span><b>Delivery por zonas</b></span>
+                </li>
+              </ul>
+              <Link
+                href="/login"
+                className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco/90 transition text-sm"
+              >
+                Prueba 14 días gratis
+              </Link>
+            </div>
+
           </div>
-        </div>
-        <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span><b>Hasta 20 Productos</b></span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span>Catálogo Digital Interactivo</span>
-          </li>
-          <li className="flex items-start gap-3 text-left group relative cursor-help">
-      <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-      <div className="flex items-center gap-1.5">
-        <span><b>Snapplink:</b> Hasta 2 enlaces</span>
-        <HelpCircle size={13} className="text-gray-400 group-hover:text-green-600 transition-colors" />
-        
-        <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-          <p className="font-black uppercase text-green-600 mb-1">Bio-Link Esencial</p>
-          Mantené tu perfil organizado. Un solo link para tu biografía con botones directos a tu <b>Menú Digital y tu WhatsApp</b>.
-        </div>
-      </div>
-    </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span><b>Código QR</b> para tu local</span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span>Link para <b>Redes Sociales</b></span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span>Configuración de <b>Horarios</b></span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> 
-            <span>Pedidos directos a WhatsApp</span>
-          </li>
-        </ul>
-        <Link href="/login" className="block w-full py-3 rounded-xl border-2 border-black text-center font-bold hover:bg-black hover:text-white transition text-sm">Prueba 14 días gratis</Link>
-      </div>
-
-      {/* Plan 2: GO */}
-      <div className="bg-white border-2 border-fresco rounded-[35px] p-8 transition flex flex-col shadow-lg relative z-20">
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-fresco text-white text-[10px] font-black px-4 py-1 rounded-full uppercase whitespace-nowrap">Ideal Crecimiento</div>
-        <h3 className="text-lg font-bold text-fresco mb-1">GO</h3>
-        <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
-        <div className="mb-6">
-          <span className="line-through text-gray-400 text-sm font-medium">$28.600</span>
-          <div>
-            <span className="text-3xl font-black text-gray-900">$22.000</span>
-            <span className="text-gray-400 text-sm">/mes</span>
-          </div>
-        </div>
-        <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
-            <span><b>Hasta 60 Productos</b></span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
-            <span>Sube <b>Imágenes o Videos</b> 🎥</span>
-          </li>
-          <li className="flex items-start gap-3 text-left group relative cursor-help">
-    <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
-    <div className="flex items-center gap-1.5">
-      <span><b>Snapplink:</b> Hasta 4 enlaces</span>
-      <HelpCircle size={13} className="text-gray-400 group-hover:text-fresco transition-colors" />
-      
-      <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-        <p className="font-black uppercase text-fresco mb-1">Bio-Link</p>
-        Un solo link para tu biografía que contiene botones para tus enlaces más importantes (<b>Menú, WhatsApp y Redes</b>). <br/><i>Límite: 4 botones.</i>
-      </div>
-    </div>
-  </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
-            <span>Pedidos al <b>Panel o WhatsApp</b></span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
-            <span><b>Seguimiento en vivo</b> (Dueño y Cliente)</span>
-          </li>
-         <li className="flex items-start gap-3 text-left group relative cursor-help">
-  <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/> 
-  <div className="flex items-center gap-1.5">
-    <span><b>Descuentos automáticos</b> por monto</span>
-    <HelpCircle size={13} className="text-gray-400 group-hover:text-fresco transition-colors" />
-    
-    {/* TOOLTIP EXPLICATIVO */}
-    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-      <p className="font-black uppercase text-fresco mb-1">Ventas inteligentes</p>
-      Puedes crear reglas automáticas: por ejemplo, si superan cierto monto el <b>envío es gratis</b> o se <b>descuenta un monto/porcentaje</b> del total. Una experiencia de compra superior para tu cliente.
-    </div>
-  </div>
-</li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
-            <span>Gestión de Cupones</span>
-          </li>
-          <li className="flex items-start gap-3 text-left">
-            <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
-            <span><b>Comandas</b> e Impresión de Tickets</span>
-          </li>
-        </ul>
-        <Link href="/login" className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco transition text-sm">Prueba 14 días gratis</Link>
-      </div>
-
- 
-{/* Plan 3: Plus */}
-<div className="bg-gray-900 text-white border-2 border-gray-900 rounded-[35px] p-8 relative shadow-2xl flex flex-col z-10 transition hover:scale-[1.02]">
-  <div className="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl rounded-tr-xl uppercase">
-    Más Elegido
-  </div>
-  
-  <h3 className="text-xl font-bold text-green-400 mb-1 flex items-center gap-2">
-    Plus <Zap size={18} fill="currentColor" />
-  </h3>
-  <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Profesional</p>
-  
-  <div className="mb-6">
-    <span className="line-through text-gray-500 text-sm font-medium">$45.500</span>
-    <div>
-      <span className="text-4xl font-black text-white">$35.000</span>
-      <span className="text-gray-400 text-sm">/mes</span>
-    </div>
-  </div>
-
-  <ul className="space-y-4 text-sm text-gray-300 flex-1 mb-8">
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Productos Ilimitados</b> ✨</span>
-    </li>
-
-    {/* --- SNAPPLINK: EXPLICACIÓN MEJORADA --- */}
-    <li className="flex items-start gap-3 text-left group relative cursor-help">
-  <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-  <div className="flex items-center gap-1.5">
-    <span><b>Snapplink:</b> Enlaces ilimitados</span>
-    <HelpCircle size={13} className="text-gray-500 group-hover:text-green-400 transition-colors" />
-    
-    <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-      <p className="font-black uppercase text-green-600 mb-1">Bio-Link Premium</p>
-      Centralizá todos tus enlaces sin límites. Agregá botones para cada red social, canales de atención y múltiples menús en una sola página profesional.
-    </div>
-  </div>
-</li>
-
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Caja</b></span>
-    </li>
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Gestión de 2 Sucursales</b> (PRÓX.)</span>
-    </li>
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span>Impresión de Tickets y <b>Mesas</b></span>
-    </li>
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span>Gestión del <b>Salón</b></span>
-    </li>
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Seguimiento en Vivo</b> 🚀</span>
-    </li>
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5"/> 
-      <span>Acceso a todas las plantillas</span>
-    </li>
-  </ul>
-
-  <Link 
-    href="/login" 
-    className="block w-full py-4 rounded-xl bg-green-500 text-black font-black text-center hover:bg-green-400 transition text-sm shadow-lg"
-  >
-    Prueba 14 días gratis
-  </Link>
-</div>
-
-{/* Plan 4: Max */}
-<div className="bg-white border border-gray-200 rounded-3xl p-8 flex flex-col h-full relative overflow-hidden transition hover:shadow-2xl">
-  {/* BADGE DE PRÓXIMAMENTE */}
-  <div className="absolute top-4 -right-8 bg-gray-100 text-gray-500 text-[8px] font-black px-10 py-1 rotate-45 uppercase tracking-widest border-b border-gray-200">
-    Próximamente
-  </div>
-
-  <h3 className="text-lg font-bold text-gray-900 mb-1">Max</h3>
-  <p className="text-xs text-gray-400 mb-6 uppercase font-bold tracking-wider">Escalabilidad Total</p>
-  
-  {/* PRECIO BORROSO */}
-  <div className="mb-6 select-none">
-    <span className="text-3xl font-black text-gray-900 blur-[5px]">$38.000</span>
-    <span className="text-gray-400 text-sm ml-1">/mes</span>
-  </div>
-
-  <ul className="space-y-4 text-sm text-gray-600 flex-1 mb-8">
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Gestión de hasta 4 sucursales</b></span>
-    </li>
-
-    {/* --- INTEGRACIÓN CON BILLETERAS CON TOOLTIP --- */}
-    <li className="flex items-start gap-3 text-left group relative cursor-help">
-      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
-      <div className="flex items-center gap-1.5">
-        <span><b>Integración con billeteras virtuales</b></span>
-        <HelpCircle size={13} className="text-gray-300 group-hover:text-black transition-colors" />
-        
-        {/* TOOLTIP EXPLICATIVO */}
-        <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-          <p className="font-black uppercase text-fresco mb-1">Cobros Automatizados</p>
-          Vinculá tu cuenta de <b>Mercado Pago o Ualá</b> para que tus clientes paguen directamente desde tu catálogo digital. Cobros rápidos, seguros y automáticos.
-        </div>
-      </div>
-    </li>
-
-    <li className="flex items-start gap-3 text-left group relative cursor-help">
-      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
-      <div className="flex items-center gap-1.5">
-        <span><b>Envíos por rango geográfico</b></span>
-        <HelpCircle size={13} className="text-gray-300 group-hover:text-black transition-colors" />
-        
-        <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white text-gray-800 text-[10px] leading-relaxed rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-100 z-50">
-          <p className="font-black uppercase text-black mb-1">Logística Inteligente</p>
-          Calculá el costo de envío exacto según la ubicación del cliente por radios de distancia (km).
-        </div>
-      </div>
-    </li>
-
-    <li className="flex items-start gap-3 text-left">
-      <Check size={16} className="text-gray-400 flex-shrink-0 mt-0.5"/> 
-      <span><b>Snapplink Premium:</b> Diseños exclusivos</span>
-    </li>
-  </ul>
-
-  <button 
-    disabled 
-    className="w-full py-3 rounded-xl bg-gray-50 text-gray-400 font-bold cursor-not-allowed uppercase text-[10px] tracking-widest border border-gray-100"
-  >
-    Muy pronto
-  </button>
-</div>
-
-</div>
         </div>
       </section>
+
 
 {/* --- SECCIÓN: SNAPPYLINKS --- */}
       <section className="py-24 bg-gray-950 text-white overflow-hidden">
@@ -1752,7 +1772,7 @@ export default function LandingPage() {
 
             {/* TEXTO */}
             <div>
-              <span className="inline-block px-3 py-1 bg-green-600/10 text-green-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-600/20 mb-6">
+              <span className="inline-block px-3 py-1 bg-fresco/10 text-fresco text-[10px] font-black uppercase tracking-widest rounded-full border border-fresco/20 mb-6">
                 SnappyLinks
               </span>
               <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
@@ -1771,19 +1791,19 @@ export default function LandingPage() {
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                      <item.icon size={16} className="text-green-500" />
+                      <item.icon size={16} className="text-fresco" />
                     </div>
                     <span className="text-gray-300 font-medium">{item.text}</span>
                   </li>
                 ))}
               </ul>
 
-              <p className="text-green-500 font-semibold text-sm mb-10">
+              <p className="text-fresco font-semibold text-sm mb-10">
                 ¿Ya usás una herramienta externa para agrupar tus links? Con SnappyLinks lo tenés incluido — sin cuentas extras, sin pagar otro servicio.
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-green-700 text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-green-600 transition-colors shadow-lg shadow-green-900/40">
+                <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-fresco text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-fresco transition-colors shadow-lg shadow-fresco/40">
                   Crear mi SnappyLinks <ArrowRight size={16} />
                 </Link>
                 <a
@@ -1800,7 +1820,7 @@ export default function LandingPage() {
             {/* MOCKUP TELÉFONO - BIO PAGE */}
             <div className="relative flex justify-center items-center">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[220px] h-[440px] bg-green-700/10 rounded-full blur-[60px]" />
+                <div className="w-[220px] h-[440px] bg-fresco/10 rounded-full blur-[60px]" />
               </div>
 
               <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
@@ -1809,7 +1829,7 @@ export default function LandingPage() {
                 <div className="pt-10 pb-6 px-4 flex flex-col min-h-[520px] bg-[#0d1117]">
                   {/* Header: avatar + nombre */}
                   <div className="flex flex-col items-center pt-4 mb-6">
-                    <div className="w-16 h-16 rounded-full bg-gray-700 border-2 border-green-600/30 mb-3 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-700 border-2 border-fresco/30 mb-3 flex items-center justify-center">
                       <span className="text-2xl">🍔</span>
                     </div>
                     <p className="text-white font-black text-sm uppercase tracking-tight text-center leading-tight">
@@ -1831,7 +1851,7 @@ export default function LandingPage() {
                         key={i}
                         className={`w-full py-2.5 px-4 rounded-2xl text-[10px] font-black uppercase tracking-wide text-center cursor-default border ${
                           item.accent
-                            ? 'bg-green-700/20 border-green-600/40 text-green-500'
+                            ? 'bg-fresco/20 border-fresco/40 text-fresco'
                             : 'bg-white/5 border-white/10 text-gray-300'
                         }`}
                       >
@@ -1856,7 +1876,7 @@ export default function LandingPage() {
       <section className="py-24 px-6 bg-white border-t border-gray-100">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <HelpCircle size={48} className="mx-auto text-green-600 mb-4" />
+            <HelpCircle size={48} className="mx-auto text-fresco mb-4" />
             <h2 className="text-4xl font-extrabold mb-4 uppercase tracking-tighter italic">
               Preguntas Frecuentes
             </h2>
@@ -1882,10 +1902,10 @@ export default function LandingPage() {
             ].map((faq, i) => (
               <div
                 key={i}
-                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-green-200 transition-all"
+                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-fresco/20 transition-all"
               >
                 <h3 className="font-bold text-lg mb-3 flex items-center gap-3">
-                  <span className="text-green-600 font-black">0{i + 1}.</span>{" "}
+                  <span className="text-fresco font-black">0{i + 1}.</span>{" "}
                   {faq.q}
                 </h3>
                 <p className="text-gray-500 leading-relaxed text-sm font-medium">
@@ -1899,12 +1919,12 @@ export default function LandingPage() {
 
 {/* --- SECCIÓN: LO QUE VIENE (PRÓXIMAMENTE) --- */}
       <section className="py-32 bg-[#0a0a0a] text-white overflow-hidden relative border-t border-white/5">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-fresco/5 rounded-full blur-[120px] pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic mb-6">
-              LO QUE <span className="text-green-500">VIENE</span>
+              LO QUE <span className="text-fresco">VIENE</span>
             </h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
               Estamos cocinando nuevas herramientas para que lleves tu negocio al siguiente nivel.
@@ -1930,7 +1950,7 @@ export default function LandingPage() {
               }
             ].map((item, i) => (
               <div key={i} className="group p-10 rounded-[40px] border border-white/10 bg-white/5 hover:bg-white/[0.08] transition-all backdrop-blur-sm relative overflow-hidden">
-                <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mb-8 text-green-500 group-hover:scale-110 transition-transform">
+                <div className="w-14 h-14 rounded-2xl bg-fresco/20 flex items-center justify-center mb-8 text-fresco group-hover:scale-110 transition-transform">
                   {item.icon}
                 </div>
                 <h3 className="text-xl font-black uppercase italic mb-4">{item.title}</h3>
@@ -1939,7 +1959,7 @@ export default function LandingPage() {
                 </p>
                 
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-brasa animate-pulse"></span>
                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">En desarrollo</span>
                 </div>
               </div>
@@ -1948,7 +1968,7 @@ export default function LandingPage() {
 
           <div className="mt-24 text-center">
             <p className="text-gray-500 text-sm font-bold uppercase tracking-[0.2em]">
-              ¿Tenés una sugerencia? <a href="https://wa.me/542324313123" className="text-white hover:text-green-500 transition-colors underline decoration-green-500 underline-offset-4">Contanos por WhatsApp</a>
+              ¿Tenés una sugerencia? <a href="https://wa.me/542324313123" className="text-white hover:text-fresco transition-colors underline decoration-fresco underline-offset-4">Contanos por WhatsApp</a>
             </p>
           </div>
         </div>
@@ -1959,7 +1979,7 @@ export default function LandingPage() {
 
       {/* --- FOOTER: RESTAURADO EXACTAMENTE --- */}
       <footer className="py-20 bg-black text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fresco/10 rounded-full blur-[120px]"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10 text-center md:text-left grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-6 justify-center md:justify-start">
@@ -1979,7 +1999,7 @@ export default function LandingPage() {
             <div className="flex gap-6 justify-center md:justify-start">
               <a
                 href="https://www.instagram.com/snappypedidos/"
-                className="hover:text-green-500 transition font-bold uppercase text-xs tracking-widest"
+                className="hover:text-fresco transition font-bold uppercase text-xs tracking-widest"
               >
                 Instagram
               </a>
@@ -1987,7 +2007,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div>
-            <h4 className="font-bold mb-6 text-green-500 uppercase text-[10px] tracking-[3px]">
+            <h4 className="font-bold mb-6 text-fresco uppercase text-[10px] tracking-[3px]">
               Producto
             </h4>
             <ul className="space-y-4 text-gray-500 text-sm font-medium">
@@ -2000,7 +2020,7 @@ export default function LandingPage() {
             </ul>
           </div>
           <div>
-            <h4 className="font-bold mb-6 text-green-500 uppercase text-[10px] tracking-[3px]">
+            <h4 className="font-bold mb-6 text-fresco uppercase text-[10px] tracking-[3px]">
               Soporte
             </h4>
             <ul className="space-y-4 text-gray-500 text-sm font-medium">
