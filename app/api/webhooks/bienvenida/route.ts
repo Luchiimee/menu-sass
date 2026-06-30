@@ -143,28 +143,41 @@ export async function POST(request: Request) {
   // Enviar email vía EnvíaloSimple
   const apiKey = process.env.ENVIALOSIMPLE_API_KEY;
   if (!apiKey) {
-    console.error('[webhook/bienvenida] ENVIALOSIMPLE_API_KEY no configurada');
+    console.error('[webhook/bienvenida] ENVIALOSIMPLE_API_KEY no está definida en las variables de entorno');
     return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
   }
+  console.log(`[webhook/bienvenida] ENVIALOSIMPLE_API_KEY presente (${apiKey.length} chars), enviando a ${email}`);
 
-  const emailRes = await fetch('https://backend.envialosimple.email/api/v1/mail/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      from:    'hola@snappy.uno',
-      to:      email,
-      subject: '¡Bienvenido a Snappy! Tu menú digital está listo',
-      html:    welcomeHtml(email),
-    }),
-  });
+  let emailRes: Response;
+  try {
+    emailRes = await fetch('https://backend.envialosimple.email/api/v1/mail/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from:    'hola@snappy.uno',
+        to:      email,
+        subject: '¡Bienvenido a Snappy! Tu menú digital está listo',
+        html:    welcomeHtml(email),
+      }),
+    });
+  } catch (fetchError) {
+    console.error('[webhook/bienvenida] Error de red al llamar EnvíaloSimple:', fetchError);
+    return NextResponse.json({ error: 'Network error calling email service' }, { status: 500 });
+  }
 
   if (!emailRes.ok) {
     const errBody = await emailRes.text();
-    console.error(`[webhook/bienvenida] Error EnvíaloSimple: ${errBody}`);
-    return NextResponse.json({ error: 'Failed to send email', detail: errBody }, { status: 500 });
+    console.error(
+      `[webhook/bienvenida] EnvíaloSimple respondió ${emailRes.status} ${emailRes.statusText}:`,
+      errBody
+    );
+    return NextResponse.json(
+      { error: 'Failed to send email', status: emailRes.status, detail: errBody },
+      { status: 500 }
+    );
   }
 
   // Marcar como enviado para evitar duplicados
