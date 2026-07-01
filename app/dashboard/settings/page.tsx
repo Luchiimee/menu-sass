@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
@@ -22,6 +23,23 @@ const DAYS = [
   { key: 'saturday', label: 'Sábado' },
   { key: 'sunday', label: 'Domingo' },
 ];
+
+function PlanLockOverlay() {
+  return (
+    <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center p-6">
+      <div className="bg-white shadow-2xl p-8 rounded-[2.5rem] max-w-xs w-full text-center border border-gray-100 animate-in zoom-in-95">
+        <div className="mx-auto w-14 h-14 bg-fresco/10 rounded-full flex items-center justify-center mb-4 text-fresco">
+          <Lock size={24} />
+        </div>
+        <p className="text-sm font-black text-gray-900 uppercase tracking-tight mb-1">Disponible a partir del plan GO</p>
+        <p className="text-xs text-gray-400 font-medium mb-6">Activá un plan pago para desbloquear esta sección.</p>
+        <Link href="/dashboard/plan" className="block w-full py-3 rounded-2xl font-black bg-fresco text-white hover:bg-fresco/90 transition shadow-lg uppercase text-xs tracking-widest">
+          Ver planes
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 function SettingsContent() {
   const router = useRouter(); 
@@ -433,7 +451,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
           { id: 'horarios',      label: 'Horarios'      },
           { id: 'impresoras',    label: 'Impresoras'    },
           { id: 'integraciones', label: 'Integraciones' },
-        ] as const).filter(t => t.id !== 'integraciones' || restaurant.subscription_plan !== 'light').map(t => (
+        ] as const).map(t => (
           <button
             key={t.id}
             onClick={() => setSettingsTab(t.id)}
@@ -770,9 +788,9 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 
         {/* ── TAB: IMPRESORAS ── */}
         {settingsTab === 'impresoras' && (
-        <div className="space-y-6">
-            {restaurant.subscription_plan !== 'light' && (
-              <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
+        <div className="space-y-6 relative">
+            {restaurant.subscription_plan === 'light' && <PlanLockOverlay />}
+              <section className={`bg-white rounded-[2.5rem] border border-gray-100 shadow-sm ${restaurant.subscription_plan === 'light' ? 'blur-sm pointer-events-none select-none' : ''}`}>
                 <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
 
                   {/* Columna izquierda: todo excepto el video */}
@@ -938,45 +956,47 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 
                 </div>
               </section>
-            )}
 
         </div>
         )}
 
         {/* ── TAB: INTEGRACIONES ── */}
-        {settingsTab === 'integraciones' && restaurant.subscription_plan !== 'light' && (
-          <div className="space-y-6">
-            <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
-              <div className="flex items-center gap-4">
-                <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
-                  <CreditCard size={24} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
-                    Mercado Pago
-                    <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
-                  </h2>
-                  <p className="text-xs text-gray-400 font-medium italic">Cobros automáticos directo desde el catálogo digital.</p>
-                </div>
-              </div>
-            </section>
-
-            {restaurant.subscription_plan === 'plus' && (
+        {settingsTab === 'integraciones' && (
+          <div className="space-y-6 relative">
+            {restaurant.subscription_plan === 'light' && <PlanLockOverlay />}
+            <div className={`space-y-6 ${restaurant.subscription_plan === 'light' ? 'blur-sm pointer-events-none select-none' : ''}`}>
               <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
                 <div className="flex items-center gap-4">
                   <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
-                    <Wallet size={24} />
+                    <CreditCard size={24} />
                   </div>
                   <div className="flex-1">
                     <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
-                      Ualá
+                      Mercado Pago
                       <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
                     </h2>
-                    <p className="text-xs text-gray-400 font-medium italic">Cobrá directo a tu cuenta Ualá.</p>
+                    <p className="text-xs text-gray-400 font-medium italic">Cobros automáticos directo desde el catálogo digital.</p>
                   </div>
                 </div>
               </section>
-            )}
+
+              {restaurant.subscription_plan === 'plus' && (
+                <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
+                      <Wallet size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                        Ualá
+                        <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
+                      </h2>
+                      <p className="text-xs text-gray-400 font-medium italic">Cobrá directo a tu cuenta Ualá.</p>
+                    </div>
+                  </div>
+                </section>
+              )}
+            </div>
           </div>
         )}
 
