@@ -10,6 +10,7 @@ import {
   Loader2, Clock, Lock, Check, Mail, AlertTriangle,
   LogOut, Trash2, ChevronDown, ChevronUp, X, Zap,
   Printer, Wifi, WifiOff, RefreshCw, Download, FlaskConical,
+  CreditCard, Wallet,
 } from 'lucide-react';
 
 const DAYS = [
@@ -432,7 +433,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
           { id: 'horarios',      label: 'Horarios'      },
           { id: 'impresoras',    label: 'Impresoras'    },
           { id: 'integraciones', label: 'Integraciones' },
-        ] as const).map(t => (
+        ] as const).filter(t => t.id !== 'integraciones' || restaurant.subscription_plan !== 'light').map(t => (
           <button
             key={t.id}
             onClick={() => setSettingsTab(t.id)}
@@ -943,13 +944,39 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
         )}
 
         {/* ── TAB: INTEGRACIONES ── */}
-        {settingsTab === 'integraciones' && (
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-16 text-center">
-            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Zap size={24} className="text-gray-400" />
-            </div>
-            <p className="font-black text-gray-900 uppercase tracking-tighter text-lg mb-1">Próximamente</p>
-            <p className="text-sm text-gray-400 font-medium">Las integraciones con servicios externos<br/>estarán disponibles en breve.</p>
+        {settingsTab === 'integraciones' && restaurant.subscription_plan !== 'light' && (
+          <div className="space-y-6">
+            <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
+              <div className="flex items-center gap-4">
+                <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
+                  <CreditCard size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                    Mercado Pago
+                    <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
+                  </h2>
+                  <p className="text-xs text-gray-400 font-medium italic">Cobros automáticos directo desde el catálogo digital.</p>
+                </div>
+              </div>
+            </section>
+
+            {restaurant.subscription_plan === 'plus' && (
+              <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
+                <div className="flex items-center gap-4">
+                  <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
+                    <Wallet size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                      Ualá
+                      <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
+                    </h2>
+                    <p className="text-xs text-gray-400 font-medium italic">Cobrá directo a tu cuenta Ualá.</p>
+                  </div>
+                </div>
+              </section>
+            )}
           </div>
         )}
 

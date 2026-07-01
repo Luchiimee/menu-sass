@@ -13,6 +13,7 @@ import {
 
 import MobileNav from '@/components/MobileNav';
 import OrderListener from '@/components/OrderListener';
+import { isAdminEmail, hasAdminSnappyAccess, hasBetaAccess } from '@/lib/access';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -56,8 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginoroblabelleggia@gmail.com'];
-setIsAdmin(adminEmails.includes(session.user.email?.toLowerCase() ?? ''));
+setIsAdmin(isAdminEmail(session.user.email));
 setUserEmail(session.user.email?.toLowerCase() ?? '');
       const [restRes, profileRes] = await Promise.all([
         supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle(),
@@ -139,10 +139,9 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
   const missingPhone = !profileData?.phone;
   const noPlan = !restaurant.plan;
 
-// Usuarios con acceso anticipado a Rentabilidad y Caja
-// independientemente de su plan. Agregar email cuando se habilite.
-const BETA_ACCESS_EMAILS = ['luchiimee2@gmail.com', 'vachettigustavo@gmail.com'];
-const hasBetaAccess = BETA_ACCESS_EMAILS.includes(userEmail);
+// Usuarios con acceso anticipado a Rentabilidad y Caja independientemente de su plan.
+const userHasBetaAccess = hasBetaAccess(userEmail);
+const userHasAdminSnappyAccess = hasAdminSnappyAccess(userEmail);
 
 const menuItems = [
   { 
@@ -177,14 +176,14 @@ const menuItems = [
       name: 'Caja',
       href: '/dashboard/analytics',
       icon: BarChart3,
-      locked: (restaurant.plan !== 'plus' && !hasBetaAccess) || isTrialExpired,
+      locked: (restaurant.plan !== 'plus' && !userHasBetaAccess) || isTrialExpired,
       msg: "La sección de Caja es exclusiva del Plan PLUS. 💎"
   },
   {
       name: 'Rentabilidad',
       href: '/dashboard/rentabilidad',
       icon: TrendingUp,
-      locked: !hasBetaAccess,
+      locked: !userHasBetaAccess,
       msg: ""
   },
   { 
@@ -288,8 +287,8 @@ const menuItems = [
         </div>
   <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {menuItems
-    // 🚀 FILTRO DE SEGURIDAD: Solo mostramos SuperAdmin si isAdmin es true
-    .filter(item => item.name !== 'SuperAdmin' || isAdmin) 
+    // 🚀 FILTRO DE SEGURIDAD: Solo mostramos SuperAdmin a quien puede entrar a /admin/snappy
+    .filter(item => item.name !== 'SuperAdmin' || userHasAdminSnappyAccess)
     .map((item) => {
       const isActive = pathname === item.href;
             
@@ -308,7 +307,7 @@ const menuItems = [
                 onClick={(e) => {
                   if (shouldShowLock) {
                     if (item.name === 'Rentabilidad') {
-                      if (!hasBetaAccess) {
+                      if (!userHasBetaAccess) {
                         e.preventDefault();
                         setShowRentabilidadModal(true);
                       }

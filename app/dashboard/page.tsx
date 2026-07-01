@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isAdminEmail } from '@/lib/access';
 
 export default function DashboardHome() {
   const [isLocked, setIsLocked] = useState(false);
@@ -82,8 +83,7 @@ useEffect(() => {
 
     if (mounted && rest) {
         // A. Verificamos suspensión
-        const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com'];
-        const isAdminUser = adminEmails.includes(session.user.email?.toLowerCase() ?? '');
+        const isAdminUser = isAdminEmail(session.user.email);
         const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
         setIsLocked(isSubscriptionInactive && !isAdminUser);
 

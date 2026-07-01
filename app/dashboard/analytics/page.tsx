@@ -12,6 +12,7 @@ import {
   TrendingDown, Receipt, ShoppingBag, Bike, Store, ChefHat, AlertCircle,
 } from 'lucide-react';
 import { getCashShiftRange, buildShiftSummary } from '@/lib/cashUtils';
+import { hasBetaAccess } from '@/lib/access';
 
 const SALE_TYPE_META: Record<string, { label: string; Icon: any }> = {
   mesa:      { label: 'Mesa',      Icon: ChefHat },
@@ -108,8 +109,8 @@ export default function AnalyticsPage() {
       setCashCloseHour(closeHour);
       setHasActiveShift(!!rest.current_shift_id);
 
-      const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
-      const locked = rest.subscription_plan === 'light' && !isSuperAdmin;
+      // Caja es exclusiva del Plan Plus (con acceso anticipado para beta testers)
+      const locked = rest.subscription_plan !== 'plus' && !hasBetaAccess(user.email);
       setIsLocked(locked);
       if (locked) return;
 
