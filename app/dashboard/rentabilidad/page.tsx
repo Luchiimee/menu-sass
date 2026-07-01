@@ -4,12 +4,12 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
-  Loader2, TrendingUp, X, Zap, Calendar as CalendarIcon,
+  Loader2, TrendingUp, X, Calendar as CalendarIcon,
   AlertCircle, Package, CheckCircle2, DollarSign,
 } from 'lucide-react';
 import { getCashShiftRange } from '@/lib/cashUtils';
+import { hasBetaAccess } from '@/lib/access';
 
 type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 type Tab = 'reporte' | 'costos';
@@ -106,8 +106,8 @@ export default function RentabilidadPage() {
       setCashCloseHour(closeHour);
       setDeliveryCost(Number(rest.delivery_cost ?? 0));
 
-      const isSuperAdmin = user.email === 'luchiimee2@gmail.com';
-      const locked = rest.subscription_plan === 'light' && !isSuperAdmin;
+      // Rentabilidad todavía no está disponible por plan — solo beta testers por ahora
+      const locked = !hasBetaAccess(user.email);
       setIsLocked(locked);
       if (locked) return;
 
@@ -249,13 +249,10 @@ export default function RentabilidadPage() {
             <div className="mx-auto w-16 h-16 bg-fresco/10 rounded-full flex items-center justify-center mb-5 text-fresco">
               <TrendingUp size={32} />
             </div>
-            <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Rentabilidad</h2>
-            <p className="text-gray-500 mb-8 text-sm font-medium">El reporte de rentabilidad por producto es exclusivo del <b>Plan Plus</b>.</p>
+            <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Próximamente</h2>
+            <p className="text-gray-500 mb-8 text-sm font-medium">Esta sección estará disponible muy pronto. Estamos trabajando para traerte reportes de rentabilidad detallados.</p>
             <div className="flex flex-col gap-3">
-              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-fresco transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
-                Actualizar a Plus <Zap size={18} fill="currentColor" />
-              </Link>
-              <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
+              <button onClick={() => router.push('/dashboard')} className="w-full py-4 rounded-2xl font-bold bg-gray-900 text-white hover:bg-gray-800 transition shadow-lg uppercase text-xs tracking-widest">
                 Volver al inicio
               </button>
             </div>

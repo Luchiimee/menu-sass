@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import QRCode from 'qrcode';
 import Link from "next/link";
+import { isAdminEmail } from '@/lib/access';
 import { toast } from 'sonner';
 const CUSTOM_STYLES = `
   @keyframes blink-alert {
@@ -511,8 +512,7 @@ const loadOrders = async () => {
     if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
         setShowTables(true);
     }
-    const adminEmails = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com', 'ginoroblabelleggia@gmail.com'];
-    setIsLocked(rest.subscription_plan === "light" && !adminEmails.includes(user.email?.toLowerCase() ?? ''));
+    setIsLocked(rest.subscription_plan === "light" && !isAdminEmail(user.email));
 }
 
       // --- AGREGADO: Cargar la vista guardada (Grilla o Lista) ---

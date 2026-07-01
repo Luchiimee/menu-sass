@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
 import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
+import { isAdminEmail } from '@/lib/access';
 
 import UrbanoDark from '../../../components/templates/UrbanoDark';
 import PopVibrant from '../../../components/templates/PopVibrant';
@@ -454,7 +455,7 @@ const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
     if (plan === 'light') return 2;
     if (plan === 'go') return 4;
-    return 100; // Ilimitado para Plus y Max
+    return 6; // Plus (y Max, hasta que tenga su propio límite)
   };
 
   const linkLimit = getLinksLimit();
@@ -493,7 +494,7 @@ const getLinksLimit = () => {
     if (!session?.user) return;
 
     // 1. 🚀 DETECTAMOS SI ES ADMIN (Para el bypass de planes)
-    const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+    const isSuperAdmin = isAdminEmail(session.user.email);
     setIsAdmin(isSuperAdmin);
 
     const { data: rest } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single();
@@ -1176,7 +1177,21 @@ const confirmReset = () => {
                     </div>
                   </section>
 
-                  <DeliveryZonesConfig restaurantId={data.id} />
+                  {currentPlan?.toLowerCase() !== 'light' ? (
+                    <DeliveryZonesConfig restaurantId={data.id} />
+                  ) : (
+                    <section className="p-6 bg-gray-50 border-2 border-gray-200 rounded-[2.5rem] opacity-80 flex items-center gap-4">
+                      <div className="p-2.5 rounded-2xl bg-gray-400 text-white shadow-lg shrink-0">
+                        <Bike size={20} />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none flex items-center gap-2">
+                          Delivery por Zonas <Lock size={10} className="text-gray-400" />
+                        </h3>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requiere Plan GO o superior</p>
+                      </div>
+                    </section>
+                  )}
 
                     <section className="p-5 bg-[#F0FAF6]/50 border border-[#E8F7F1] rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-ink uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
@@ -1946,7 +1961,7 @@ const confirmReset = () => {
     <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest italic flex items-center gap-2">
         <Layers size={14} /> Tus Botones 
         <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] ${isLimitReached ? 'bg-alert/10 text-alert' : 'bg-[#E8F7F1] text-fresco'}`}>
-            {currentLinksCount} / {linkLimit === 100 ? '∞' : linkLimit}
+            {currentLinksCount} / {linkLimit}
         </span>
     </h3>
     {!isLimitReached && (

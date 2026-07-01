@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { getSessionUser } from '@/lib/auth-server';
+import { isAdminEmail } from '@/lib/access';
 
 export async function POST(request: Request) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser || !isAdminEmail(sessionUser.email)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

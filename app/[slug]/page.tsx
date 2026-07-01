@@ -44,6 +44,7 @@ import ClassicDelivery from "@/components/templates/ClassicDelivery";
 import MinimalWhite from "@/components/templates/MinimalWhite";
 import Carta from "@/components/templates/Carta";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { ADMIN_EMAILS } from "@/lib/access";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -64,11 +65,17 @@ async function getRestaurant(slug: string) {
 
   if (menuData) {
     console.log("✅ MENÚ ENCONTRADO - PRIORIDAD ALTA");
-    const { data: products } = await supabase
+    const { data: rawProducts } = await supabase
       .from("products")
       .select("id, name, description, price, image_url, video_url, category_id, sale_type, variations")
       .eq("restaurant_id", menuData.id)
       .order("name", { ascending: true });
+
+    // El Plan Light no incluye video en el catálogo — lo sacamos acá para que
+    // no se muestre en el menú público aunque haya quedado cargado de un plan anterior.
+    const products = (rawProducts || []).map((p: any) =>
+      menuData.subscription_plan === 'light' ? { ...p, video_url: null } : p
+    );
 
     const { data: allExtras } = await supabase
       .from("extras")
@@ -1776,7 +1783,7 @@ case "spotlight":
             tableIdFromQR={mesaId}
             mesaLabel={mesaLabel}
             currentShiftId={restaurant.current_shift_id ?? null}
-            deliveryZonesEnabled={!!restaurant.delivery_zones_enabled}
+            deliveryZonesEnabled={restaurant.subscription_plan !== 'light' && !!restaurant.delivery_zones_enabled}
             deliveryLat={restaurant.delivery_lat ?? null}
             deliveryLng={restaurant.delivery_lng ?? null}
             deliveryZone1Km={Number(restaurant.delivery_zone1_km) || 3}
@@ -2595,7 +2602,7 @@ case "spotlight":
 function BioContent({ restaurant }: { restaurant: any }) {
   // 🛡️ LÓGICA DE LÍMITES PARA EL LINK PÚBLICO
   const plan = restaurant.subscription_plan?.toLowerCase() || 'light';
-  const limit = plan === 'light' ? 2 : plan === 'go' ? 4 : 100;
+  const limit = plan === 'light' ? 2 : plan === 'go' ? 4 : 6;
   
   // Recortamos la lista para que el cliente solo vea lo que el plan permite
   const visibleLinks = (restaurant.snappylink_links || []).slice(0, limit);
@@ -2688,8 +2695,6 @@ function BioContent({ restaurant }: { restaurant: any }) {
 }
 // ─── EXPORT DEFAULT MenuPage — REEMPLAZÁ COMPLETO ────────────────────────────
 // Solo cambia el bloque de lógica de suspensión. Todo lo demás igual.
-
-const ADMIN_EMAILS = ['luchiimee2@gmail.com', 'snappyuno25@gmail.com'];
 
 export default function MenuPage({
   params,

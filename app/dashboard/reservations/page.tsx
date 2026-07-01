@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
-import { 
-  Calendar as CalendarIcon, Users, Clock, CheckCircle2, XCircle, 
-  MessageCircle, Loader2, Trash2, CalendarCheck, ChevronLeft, ChevronRight, 
-  BellRing, LayoutList, Columns2, Sparkles, CalendarDays, Plus, 
-  X, NotebookPen, Phone, CalendarRange, MessageSquareText
+import {
+  Calendar as CalendarIcon, Users, Clock, CheckCircle2, XCircle,
+  MessageCircle, Loader2, Trash2, CalendarCheck, ChevronLeft, ChevronRight,
+  BellRing, LayoutList, Columns2, Sparkles, CalendarDays, Plus,
+  X, NotebookPen, Phone, CalendarRange, MessageSquareText, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isAdminEmail } from "@/lib/access";
 
 export default function ReservationsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [isLocked, setIsLocked] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'split'>('split');
   const [dailyReservations, setDailyReservations] = useState<any[]>([]); 
   const [todayReservations, setTodayReservations] = useState<any[]>([]); 
@@ -89,16 +94,21 @@ export default function ReservationsPage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: rest } = await supabase.from('restaurants').select('id').eq('user_id', user.id).single();
-        if (rest) setRestaurantId(rest.id);
+        const { data: rest } = await supabase.from('restaurants').select('id, subscription_plan').eq('user_id', user.id).single();
+        if (rest) {
+          // Reservas es exclusiva del Plan Plus
+          setIsLocked(rest.subscription_plan !== 'plus' && !isAdminEmail(user.email));
+          setRestaurantId(rest.id);
+        }
       }
+      setLoading(false);
     };
     init();
   }, []);
 
-  useEffect(() => { if(restaurantId) refreshAllData(); }, [restaurantId, selectedDate, currentMonth]);
+  useEffect(() => { if(restaurantId && !isLocked) refreshAllData(); }, [restaurantId, isLocked, selectedDate, currentMonth]);
   useEffect(() => {
-    if (!restaurantId) return;
+    if (!restaurantId || isLocked) return;
 
     const channel = supabase
       .channel('realtime-reservations') // Nombre único para el canal
@@ -182,8 +192,31 @@ export default function ReservationsPage() {
 }, [selectedDate]);
 
   return (
-    <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-6 font-sans pb-24 text-left text-gray-900">
-      
+    <>
+      {isLocked && (
+        <div className="fixed inset-0 z-[150] backdrop-blur-sm bg-white/60 flex items-center justify-center p-4">
+          <div className="bg-white shadow-2xl p-10 rounded-[2.5rem] max-w-md w-full text-center border border-gray-100 relative animate-in zoom-in-95">
+            <button onClick={() => router.push('/dashboard')} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+              <X size={20} className="text-gray-500" />
+            </button>
+            <div className="mx-auto w-16 h-16 bg-brasa/10 rounded-full flex items-center justify-center mb-5 text-brasa">
+              <CalendarCheck size={32} />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Reservas</h2>
+            <p className="text-gray-500 mb-8 text-sm font-medium">La gestión de reservas es exclusiva del <b>Plan Plus</b>.</p>
+            <div className="flex flex-col gap-3">
+              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-fresco/90 transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+                Actualizar a Plus <Zap size={18} fill="currentColor" />
+              </Link>
+              <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
+                Volver al inicio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    <div className={`max-w-[1600px] mx-auto p-4 md:p-8 space-y-6 font-sans pb-24 text-left text-gray-900 transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-screen' : ''}`}>
+
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl lg:text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
@@ -458,6 +491,7 @@ return (
       )}
 
     </div>
+    </>
   );
 }
 

@@ -9,16 +9,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ADMIN_EMAILS } from "@/lib/access";
 
 // 💰 PRECIOS ACTUALIZADOS (Mayo 2026)
 const PRECIO_PLUS = 27000;
 const PRECIO_GO = 16900;
 const PRECIO_LIGHT = 10000;
 
-const EMAILS_EXCLUIDOS = [
-  'luchiimee@gmail.com', 'luchiimee2@gmail.com', 
-  'tamarabenitez990@gmail.com', 'ginoroblabelleggia@gmail.com'
-];
+// Cuentas admin excluidas de las métricas de MRR/suscriptores (no son clientes reales)
+const EMAILS_EXCLUIDOS = ADMIN_EMAILS;
 
 export default function AdminSnappyPage() {
   const [data, setData] = useState<any[]>([]);

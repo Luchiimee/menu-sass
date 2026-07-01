@@ -41,8 +41,8 @@ export async function middleware(request: NextRequest) {
 
   // 4. REGLAS DE TRÁFICO (Aquí está la magia) 🚦
   
-  // Si NO está logueado y quiere entrar al dashboard -> Fuera (al login)
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  // Si NO está logueado y quiere entrar al dashboard o al panel de admin -> Fuera (al login)
+  if (!user && (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

@@ -7,6 +7,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { isAdminEmail } from '@/lib/access';
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -76,7 +77,7 @@ const [formData, setFormData] = useState({
         if (!session) return;
 
         // 1. Detectamos si sos el SuperAdmin para el bypass total
-        const isSuperAdmin = session.user.email === 'luchiimee2@gmail.com';
+        const isSuperAdmin = isAdminEmail(session.user.email);
         setIsAdmin(isSuperAdmin);
 
    const { data: rest, error: restError } = await supabase
