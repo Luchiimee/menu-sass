@@ -1690,7 +1690,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-start gap-3 text-left">
                   <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
-                  <span><b>Delivery por zonas</b> (2 zonas)</span>
+                  <span><b>Delivery por zonas</b></span>
                 </li>
               </ul>
               <Link href="/login" className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco/90 transition text-sm">Prueba 14 días gratis</Link>
