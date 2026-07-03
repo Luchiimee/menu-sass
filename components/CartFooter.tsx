@@ -28,7 +28,8 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 export default function CartFooter({
-    phone, deliveryCost, restaurantId, aliasMp, planType, receiveWhatsapp,
+    phone, deliveryCost, restaurantId, aliasTransferencia, planType, receiveWhatsapp,
+    efectivoEnabled = true, transferenciaEnabled = true,
     businessType, restaurantName,
     scheduled_delivery_enabled,
     scheduled_delivery_slots,
@@ -69,14 +70,14 @@ const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'pro
     const formatPrice = (price: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(price);
 
     const handleCopyAlias = async () => {
-        if (!aliasMp) return;
-        try { 
-            await navigator.clipboard.writeText(aliasMp); 
+        if (!aliasTransferencia) return;
+        try {
+            await navigator.clipboard.writeText(aliasTransferencia);
             setCopied(true);
-            setTimeout(() => setCopied(false), 4000); 
+            setTimeout(() => setCopied(false), 4000);
         } catch (err) {
             const textArea = document.createElement("textarea");
-            textArea.value = aliasMp;
+            textArea.value = aliasTransferencia;
             textArea.style.position = 'fixed';
             document.body.appendChild(textArea);
             textArea.focus();
@@ -129,6 +130,13 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [direccionEntreCalles, setDireccionEntreCalles] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
+
+    // Si el método seleccionado por defecto quedó deshabilitado, saltamos al otro disponible
+    useEffect(() => {
+        if (metodoPago === 'efectivo' && !efectivoEnabled && transferenciaEnabled) setMetodoPago('transferencia');
+        else if (metodoPago === 'transferencia' && !transferenciaEnabled && efectivoEnabled) setMetodoPago('efectivo');
+    }, [efectivoEnabled, transferenciaEnabled]);
+
     // --- ZONAS DE DELIVERY ---
     const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
     const [forcedZone, setForcedZone] = useState<'zone2' | null>(null);
@@ -496,7 +504,7 @@ const handleCallWaiter = async () => {
                                 restaurantPhone={phone}
                                 businessType={metodoEnvio}
                                 paymentMethodProp={metodoPago}
-                                aliasMpProp={aliasMp}
+                                aliasTransferenciaProp={aliasTransferencia}
                                 onStatusChange={(s: string) => setOrderStatus(s)}
                             />
                         </div>
@@ -557,7 +565,7 @@ const handleCallWaiter = async () => {
                                                 <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
                                                     {copied ? '¡COPIADO!' : 'TOCÁ PARA COPIAR ALIAS'}
                                                 </p>
-                                                <p className="text-sm font-black">{aliasMp}</p>
+                                                <p className="text-sm font-black">{aliasTransferencia}</p>
                                             </div>
                                             {copied ? <Check size={18} className="text-white shrink-0" /> : <Copy size={18} className="text-fresco shrink-0" />}
                                         </div>
@@ -691,18 +699,22 @@ const handleCallWaiter = async () => {
             <div className="space-y-3 animate-in slide-in-from-bottom-2">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">¿Cómo deseás pagar?</p>
                 <div className="grid grid-cols-1 gap-2">
+                    {efectivoEnabled && (
                     <button onClick={() => handleNotificarPagoMesa('efectivo')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-green-500 transition-all">
                         <div className="flex items-center gap-3"><Wallet className="text-green-600" /> Efectivo</div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
+                    )}
                     <button onClick={() => handleNotificarPagoMesa('tarjeta')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-fresco transition-all">
                         <div className="flex items-center gap-3"><CreditCard className="text-fresco" /> Tarjeta (Débito/Crédito)</div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
+                    {transferenciaEnabled && (
                     <button onClick={() => setPasoPago('transferencia')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-brasa transition-all">
                         <div className="flex items-center gap-3"><Landmark className="text-brasa" /> Transferencia</div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
+                    )}
                 </div>
                 <button onClick={() => setPasoPago('inicio')} className="w-full py-2 text-[9px] font-black text-gray-400 uppercase">Volver atrás</button>
             </div>
@@ -714,7 +726,7 @@ const handleCallWaiter = async () => {
                 <div className="bg-brasa/10 p-4 rounded-2xl border-2 border-brasa/20">
                     <p className="text-[9px] font-black text-brasa uppercase mb-1">Copiá nuestro Alias</p>
                     <div onClick={handleCopyAlias} className="flex justify-between items-center cursor-pointer">
-                        <span className="font-black text-ink">{aliasMp || 'Configurá tu Alias'}</span>
+                        <span className="font-black text-ink">{aliasTransferencia || 'Configurá tu Alias'}</span>
                         <Copy size={16} className="text-brasa" />
                     </div>
                 </div>
@@ -1378,9 +1390,9 @@ return (
                         <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                             Medio de Pago
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
-                      
+                        <div className={`grid gap-2 ${efectivoEnabled && transferenciaEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
 
+{efectivoEnabled && (
 <button
     onClick={() => setMetodoPago('efectivo')}
     className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
@@ -1391,7 +1403,9 @@ return (
 >
     <Wallet size={18} /> Efectivo
 </button>
+)}
 
+{transferenciaEnabled && (
 <button
     onClick={() => setMetodoPago('transferencia')}
     className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${
@@ -1402,9 +1416,10 @@ return (
 >
     <Landmark size={18} /> Transferencia
 </button>
+)}
                         </div>
 
-                        {metodoPago === 'transferencia' && aliasMp && (
+                        {metodoPago === 'transferencia' && aliasTransferencia && (
                             <div className="space-y-2">
                                 <div 
                                     onClick={handleCopyAlias} 
@@ -1414,7 +1429,7 @@ return (
                                         <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
                                             {copied ? '¡COPIADO!' : 'TOCA PARA COPIAR ALIAS'}
                                         </p>
-                                        <p className="text-sm font-black">{aliasMp}</p>
+                                        <p className="text-sm font-black">{aliasTransferencia}</p>
                                     </div>
                                     {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-fresco" />}
                                 </div>

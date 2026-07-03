@@ -5,10 +5,10 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { 
-    LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
+import {
+    LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store,
     LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, TrendingUp, ArrowRight,
-    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone
+    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone, Wallet
 } from 'lucide-react';
 
 import MobileNav from '@/components/MobileNav';
@@ -186,14 +186,21 @@ const menuItems = [
       locked: !userHasBetaAccess,
       msg: ""
   },
-  { 
-      name: 'Pedidos', 
-      href: '/dashboard/orders', 
-      icon: ShoppingBag, 
+  {
+      name: 'Pedidos',
+      href: '/dashboard/orders',
+      icon: ShoppingBag,
       locked: (restaurant.plan === 'light' || noPlan) || isTrialExpired, // 👈 Bloqueado en Light
-      msg: "La gestión de pedidos requiere Plan GO o PLUS. 🚀" 
-  }, 
-  { 
+      msg: "La gestión de pedidos requiere Plan GO o PLUS. 🚀"
+  },
+  {
+      name: 'Pagos y delivery',
+      href: '/dashboard/pagos',
+      icon: Wallet,
+      locked: isTrialExpired,
+      msg: "Activá un plan para acceder a Pagos y delivery. 💳"
+  },
+  {
       name: 'Reservas', 
       href: '/dashboard/reservations', 
       icon: CalendarCheck, 
@@ -289,6 +296,8 @@ const menuItems = [
         {menuItems
     // 🚀 FILTRO DE SEGURIDAD: Solo mostramos SuperAdmin a quien puede entrar a /admin/snappy
     .filter(item => item.name !== 'SuperAdmin' || userHasAdminSnappyAccess)
+    // Pagos y delivery es exclusivo de GO y Plus — Light no lo ve
+    .filter(item => item.name !== 'Pagos y delivery' || restaurant.plan === 'go' || restaurant.plan === 'plus')
     .map((item) => {
       const isActive = pathname === item.href;
             

@@ -5,14 +5,13 @@ import { CartProvider } from "@/context/CartContext";
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
-import { 
+import {
   Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
-  Save, CreditCard, Palette, Megaphone, MonitorSmartphone, RotateCcw, 
+  Save, Palette, Megaphone, MonitorSmartphone, RotateCcw,
   CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle, CalendarIcon, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
-import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
 import { isAdminEmail } from '@/lib/access';
 
 import UrbanoDark from '../../../components/templates/UrbanoDark';
@@ -727,7 +726,9 @@ const confirmReset = () => {
 
   setLoading(true);
   try {
-    const { id, created_at, categories, products, fetched_extras, ...updates } = data;
+    // alias_transferencia / efectivo_enabled / transferencia_enabled se administran
+    // desde /dashboard/pagos — los excluimos para no pisarlos con datos viejos de este form
+    const { id, created_at, categories, products, fetched_extras, alias_transferencia, efectivo_enabled, transferencia_enabled, ...updates } = data;
     const restaurantUpdates = { ...updates };
     
     Object.keys(restaurantUpdates).forEach(key => {
@@ -1170,28 +1171,25 @@ const confirmReset = () => {
                         <p className="text-[10px] text-gray-400 mt-1 leading-tight">Costo fijo de envío.</p>
                       </div>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias (Mercado Pago)</label>
-                      <div className="flex items-center border rounded-lg bg-white overflow-hidden"><div className="p-2 bg-brasa/10 text-brasa border-r"><CreditCard size={14} /></div><input value={data.alias_mp || ''} onChange={(e) => { setData({ ...data, alias_mp: e.target.value }); setUnsavedChanges(true); }} className="w-full p-2 text-xs font-bold outline-none" placeholder="alias.mp" /></div>
-                      <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido.</p>
-                    </div>
                   </section>
 
-                  {currentPlan?.toLowerCase() !== 'light' ? (
-                    <DeliveryZonesConfig restaurantId={data.id} />
-                  ) : (
-                    <section className="p-6 bg-gray-50 border-2 border-gray-200 rounded-[2.5rem] opacity-80 flex items-center gap-4">
-                      <div className="p-2.5 rounded-2xl bg-gray-400 text-white shadow-lg shrink-0">
-                        <Bike size={20} />
+                  <Link
+                    href="/dashboard/pagos?tab=delivery"
+                    className="flex items-center justify-between p-5 bg-[#F0FAF6] border border-[#E8F7F1] rounded-2xl hover:bg-[#E8F7F1] transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-2xl bg-fresco text-white shadow-lg shrink-0">
+                        <Bike size={18} />
                       </div>
                       <div className="text-left">
-                        <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none flex items-center gap-2">
-                          Delivery por Zonas <Lock size={10} className="text-gray-400" />
-                        </h3>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requiere Plan GO o superior</p>
+                        <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none">Zonas de Delivery</h3>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Radios y precios por zona</p>
                       </div>
-                    </section>
-                  )}
+                    </div>
+                    <span className="text-fresco font-black text-[10px] uppercase tracking-widest shrink-0 group-hover:translate-x-1 transition-transform">
+                      Configurar zonas de delivery →
+                    </span>
+                  </Link>
 
                     <section className="p-5 bg-[#F0FAF6]/50 border border-[#E8F7F1] rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
                       <h3 className="text-[10px] font-black text-ink uppercase tracking-widest flex items-center gap-2"><Store size={14} /> Información y Redes</h3>
