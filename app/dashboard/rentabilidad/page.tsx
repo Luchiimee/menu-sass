@@ -106,8 +106,10 @@ export default function RentabilidadPage() {
       setCashCloseHour(closeHour);
       setDeliveryCost(Number(rest.delivery_cost ?? 0));
 
-      // Rentabilidad todavía no está disponible por plan — solo beta testers por ahora
-      const locked = !hasBetaAccess(user.email);
+      // Gate por plan: Light siempre bloqueado, GO solo con beta access, Plus liberado.
+      // Sin excepción de admin acá — ADMIN_EMAILS solo evita el redirect de trial/cancelado.
+      const plan = rest.subscription_plan;
+      const locked = plan === 'plus' ? false : plan === 'go' ? !hasBetaAccess(user.email) : true;
       setIsLocked(locked);
       if (locked) return;
 

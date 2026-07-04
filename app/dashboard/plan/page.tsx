@@ -35,6 +35,7 @@ const PLANS = [
       { text: 'Horarios de atención', included: true },
       { text: 'Pedidos a WhatsApp', included: true },
       { text: 'Snapplink (2 links)', included: true },
+      { text: 'Soporte por WhatsApp en horario comercial', included: true },
       { text: 'Imágenes y Videos', included: false },
       { text: 'Descuentos y Cupones', included: false },
       { text: 'Caja', included: false },
@@ -50,11 +51,14 @@ const PLANS = [
     badge: 'POPULAR',
     features: [
       { text: '60 Productos', included: true },
-      { text: 'Imágenes y Videos 🎥', included: true },
+      { text: 'Imágenes y Videos', included: true },
       { text: 'Snapplink (4 links)', included: true },
       { text: 'Descuentos y Cupones', included: true },
       { text: 'Seguimiento en Vivo', included: true },
       { text: 'Comandas e Impresión de Tickets', included: true },
+      { text: 'Delivery por zonas', included: true },
+      { text: 'Integración con Mercado Pago', included: true },
+      { text: 'Soporte prioritario por WhatsApp', included: true },
       { text: 'Productos ilimitados', included: false },
       { text: 'Caja', included: false },
       { text: 'Gestión de Reservas', included: false },
@@ -70,13 +74,15 @@ const PLANS = [
     badge: null,
     features: [
       { text: 'Productos Ilimitados', included: true },
+      { text: 'SnappyLinks (6 enlaces)', included: true },
       { text: 'Caja', included: true },
-      { text: 'Snapplink Ilimitado', included: true },
+      { text: 'Rentabilidad', included: true },
       { text: 'Gestión de Reservas', included: true },
       { text: 'Tickets y Comandas', included: true },
       { text: 'Gestión de Mesas', included: true },
-      { text: 'Soporte prioritario', included: true },
-      { text: 'Todo lo anterior ✓', included: true },
+      { text: 'Delivery por zonas', included: true },
+      { text: 'Integración con billeteras', included: true },
+      { text: 'Soporte por WhatsApp con respuesta en menos de 24hs', included: true },
     ],
   },
 ];
@@ -698,16 +704,6 @@ function PlanContent() {
                 </div>
               );
             })}
-          </div>
-
-          {/* MAX — Coming soon */}
-          <div className="mt-4 border-2 border-dashed border-gray-100 bg-gray-50/50 rounded-[1.5rem] p-6 flex items-center justify-between">
-            <div>
-              <p className="text-[9px] font-black text-brasa uppercase tracking-widest">Próximamente</p>
-              <h3 className="text-xl font-black text-gray-400 italic tracking-tighter mt-0.5">Max <span className="text-sm text-gray-300 font-bold blur-sm">$XX.XXX</span></h3>
-              <p className="text-[10px] text-gray-400 font-bold mt-1">4 sucursales · Billeteras virtuales · Escalabilidad total</p>
-            </div>
-            <span className="text-[9px] font-black text-gray-400 uppercase border border-gray-200 px-3 py-1.5 rounded-full">En desarrollo</span>
           </div>
 
           <p className="text-center text-[9px] text-gray-300 font-bold uppercase tracking-widest mt-6">

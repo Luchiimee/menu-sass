@@ -454,7 +454,7 @@ const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
     if (plan === 'light') return 2;
     if (plan === 'go') return 4;
-    return 6; // Plus (y Max, hasta que tenga su propio límite)
+    return 6; // Plus
   };
 
   const linkLimit = getLinksLimit();
@@ -1227,7 +1227,7 @@ const confirmReset = () => {
     // 🛡️ LÓGICA DE ACCESO ESTRICTA POR PLAN
     // Quitamos "|| isAdmin" para que vos puedas testear el bloqueo al cambiar de plan
     const plan = currentPlan?.toLowerCase();
-    const hasAccess = plan === 'plus' || plan === 'max';
+    const hasAccess = plan === 'plus';
     
     // Si no tiene acceso, forzamos que el switch se vea desactivado visualmente
     const isEnabled = hasAccess ? data.reservations_enabled : false;
@@ -1248,7 +1248,7 @@ const confirmReset = () => {
                 </div>
                 
                 {hasAccess ? (
-                    // ✅ SWITCH ACTIVO (Solo para PLUS/MAX)
+                    // ✅ SWITCH ACTIVO (Solo para PLUS)
                     <button 
                         type="button"
                         onClick={() => { setData({...data, reservations_enabled: !data.reservations_enabled}); setUnsavedChanges(true); }}

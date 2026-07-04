@@ -183,7 +183,8 @@ const menuItems = [
       name: 'Rentabilidad',
       href: '/dashboard/rentabilidad',
       icon: TrendingUp,
-      locked: !userHasBetaAccess,
+      // Light: siempre bloqueado. GO: bloqueado salvo beta access. Plus: liberado.
+      locked: restaurant.plan !== 'plus' && !(restaurant.plan === 'go' && userHasBetaAccess),
       msg: ""
   },
   {
@@ -197,8 +198,8 @@ const menuItems = [
       name: 'Pagos y delivery',
       href: '/dashboard/pagos',
       icon: Wallet,
-      locked: isTrialExpired,
-      msg: "Activá un plan para acceder a Pagos y delivery. 💳"
+      locked: (restaurant.plan !== 'go' && restaurant.plan !== 'plus') || isTrialExpired, // 👈 Bloqueado en Light
+      msg: "La sección de Pagos y delivery requiere Plan GO o PLUS. 💳"
   },
   {
       name: 'Reservas', 
@@ -296,13 +297,17 @@ const menuItems = [
         {menuItems
     // 🚀 FILTRO DE SEGURIDAD: Solo mostramos SuperAdmin a quien puede entrar a /admin/snappy
     .filter(item => item.name !== 'SuperAdmin' || userHasAdminSnappyAccess)
-    // Pagos y delivery es exclusivo de GO y Plus — Light no lo ve
-    .filter(item => item.name !== 'Pagos y delivery' || restaurant.plan === 'go' || restaurant.plan === 'plus')
     .map((item) => {
       const isActive = pathname === item.href;
-            
-           
-            const isLockedByPlan = item.locked && (restaurant.plan !== 'plus' && item.name === 'Caja' || restaurant.plan !== 'plus' && item.name === 'Reservas' || (restaurant.plan === 'light' && item.name === 'Pedidos'));
+
+
+            const isLockedByPlan = item.locked && (
+              restaurant.plan !== 'plus' && item.name === 'Caja' ||
+              restaurant.plan !== 'plus' && item.name === 'Reservas' ||
+              (restaurant.plan === 'light' && item.name === 'Pedidos') ||
+              (restaurant.plan !== 'go' && restaurant.plan !== 'plus' && item.name === 'Pagos y delivery') ||
+              item.name === 'Rentabilidad'
+            );
 
             // 2. ¿Debería ver el candado? 
             // Lo ve si es un usuario normal con trial vencido O si es una sección bloqueada por su plan actual.

@@ -31,7 +31,7 @@ interface MobileNavProps {
 export default function MobileNav({ displayName, displaySubtext, logoUrl, isAdmin, onLogout }: MobileNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isPlus = displaySubtext?.includes('Plus') || displaySubtext?.includes('Max') || isAdmin;
+  const isPlus = displaySubtext?.includes('Plus') || isAdmin;
 
   const mainNavItems = [
     { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },

@@ -218,7 +218,7 @@ const handleNotificarPagoMesa = async (metodo: string) => {
            const isMesa = metodoEnvio === 'mesa';
            
            // Lógica para planes básicos (15 min)
-           if (planType !== 'go' && planType !== 'plus' && planType !== 'max') {
+           if (planType !== 'go' && planType !== 'plus') {
                 const timer = setTimeout(() => { clearCart(); setActiveOrderId(null); }, 15 * 60 * 1000); 
                 return () => clearTimeout(timer);
             }
@@ -343,7 +343,7 @@ useEffect(() => {
 if (initializing) return <div className="hidden" />;
 
 if (activeOrderId && !isVisible) {
-    if (planType === 'go' || planType === 'plus' || planType === 'max') {
+    if (planType === 'go' || planType === 'plus') {
         const isMesa = metodoEnvio === 'mesa';
         
         const tableStatusText: any = {
@@ -937,7 +937,7 @@ const handleCallWaiter = async () => {
         return alert("Por favor, seleccioná un horario para tu entrega programada.");
     }
 
-    const isPlus = planType === 'plus' || planType === 'max';
+    const isPlus = planType === 'plus';
     const isLight = planType === 'light';
     setIsSending(true);
 
@@ -1228,7 +1228,7 @@ return (
                             {['delivery', 'retiro', 'mesa']
                                 .filter(m => {
                                     if (m === 'mesa') {
-                                        return (planType === 'plus' || planType === 'max') && tableIdFromQR !== null;
+                                        return planType === 'plus' && tableIdFromQR !== null;
                                     }
                                     return true;
                                 })
