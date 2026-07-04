@@ -8,7 +8,7 @@ import {
     DollarSign, ShoppingBag, Eye, Copy, ExternalLink, Clock, 
     CheckCircle, XCircle, ChefHat, ArrowRight, Store, Loader2, 
     Zap, Lock, CheckCircle2, Crown, AlertCircle, CreditCard, ShieldCheck,
-    QrCode, Plus, Trash2, Layers
+    QrCode, Plus, Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -98,7 +98,7 @@ useEffect(() => {
             setPromoMessage(rest.promo_message || '');
             setShowPromo(rest.show_promo || false);
             const plan = rest.subscription_plan;
-            setIsPlus(plan === 'go' || plan === 'plus' || plan === 'max');
+            setIsPlus(plan === 'go' || plan === 'plus');
             setIsLight(plan === 'light');
             setAlwaysOpen(plan === 'light' ? false : (rest.always_open || false));
             
@@ -339,7 +339,7 @@ const PhoneWarningBanner = () => {
         </div>
 
         {/* 3. GRILLA DE PLANES (Cards Chicas + Info Detallada) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto px-4 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto px-4 mt-8">
             
             {/* PLAN LIGHT: Inicial */}
             <Link href={!phone ? "/dashboard/plan?requirePhone=true" : "/dashboard/plan"} className="group bg-white border-2 border-gray-100 p-6 rounded-[2.5rem] hover:border-black transition-all flex flex-col text-center shadow-sm hover:shadow-xl no-underline">
@@ -395,24 +395,6 @@ const PhoneWarningBanner = () => {
                 </p>
                 <span className="mt-4 text-[9px] font-black uppercase text-fresco group-hover:underline">Elegir este plan →</span>
             </Link>
-
-            {/* PLAN MAX: Premium */}
-            <div className="bg-gray-50 border-2 border-dashed border-gray-200 p-6 rounded-[2.5rem] flex flex-col text-center opacity-60 grayscale relative overflow-hidden">
-                <div className="absolute top-3 -right-8 bg-gray-100 text-gray-400 text-[7px] font-black px-10 py-1 rotate-45 uppercase tracking-widest border-b">PRÓXIMAMENTE</div>
-                <div className="w-10 h-10 bg-gray-200 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Layers size={20} />
-                </div>
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Escalabilidad</h3>
-                <p className="text-2xl font-black text-gray-400 italic">Max</p>
-                <div className="my-3 py-2 border-y border-gray-100">
-                    <p className="text-xl font-black text-gray-300">$38.000 <span className="text-[10px]">/mes</span></p>
-                </div>
-                <p className="text-[10px] text-gray-400 font-medium leading-relaxed flex-1">
-                   <b>Ideal para:</b> Cadenas y franquicias. <br/> 
-                   Control de sucursales, inventario avanzado e integración Mercado Pago.
-                </p>
-                <button disabled className="mt-4 text-[9px] font-black uppercase text-gray-400 cursor-not-allowed">No disponible</button>
-            </div>
         </div>
 
         <div className="text-center pt-6">

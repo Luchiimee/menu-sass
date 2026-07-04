@@ -1771,7 +1771,9 @@ case "spotlight":
             phone={restaurant.phone}
             deliveryCost={Number(restaurant.delivery_cost)}
             restaurantId={restaurant.id}
-            aliasMp={restaurant.alias_mp}
+            aliasTransferencia={restaurant.alias_transferencia}
+            efectivoEnabled={restaurant.efectivo_enabled ?? true}
+            transferenciaEnabled={restaurant.transferencia_enabled ?? true}
             planType={restaurant.subscription_plan}
             receiveWhatsapp={restaurant.receive_whatsapp}
             businessType={restaurant.business_type}

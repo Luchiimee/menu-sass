@@ -8,8 +8,8 @@ interface OrderTrackerProps {
     orderId: string;
     restaurantPhone: string;
     businessType?: string;
-    paymentMethodProp?: string; 
-    aliasMpProp?: string;
+    paymentMethodProp?: string;
+    aliasTransferenciaProp?: string;
     onStatusChange?: (status: string) => void;
 }
 
@@ -18,7 +18,7 @@ const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function OrderTracker({ orderId, restaurantPhone, businessType = 'gastronomico', paymentMethodProp, aliasMpProp, onStatusChange }: OrderTrackerProps) {
+export default function OrderTracker({ orderId, restaurantPhone, businessType = 'gastronomico', paymentMethodProp, aliasTransferenciaProp, onStatusChange }: OrderTrackerProps) {
     const [status, setStatus] = useState('pendiente');
     const [scheduledTime, setScheduledTime] = useState<string | null>(null);
     const [orderType, setOrderType] = useState(businessType); 
@@ -132,10 +132,10 @@ const isTransfer = paymentMethod === 'transferencia';
                     <p className="text-[11px] font-bold text-brasa/80 leading-tight">Transferí al Alias y envianos el comprobante para que comencemos a cocinar.</p>
                 </div>
 
-                <button onClick={() => { navigator.clipboard.writeText(aliasMpProp || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="w-full bg-white border-2 border-brasa/10 p-3 rounded-2xl flex justify-between items-center active:scale-95 transition-all">
+                <button onClick={() => { navigator.clipboard.writeText(aliasTransferenciaProp || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="w-full bg-white border-2 border-brasa/10 p-3 rounded-2xl flex justify-between items-center active:scale-95 transition-all">
                     <div className="text-left">
                         <p className="text-[8px] font-black text-gray-400 uppercase">Copiar Alias</p>
-                        <p className="text-xs font-black text-ink">{aliasMpProp || 'Configurá tu Alias'}</p>
+                        <p className="text-xs font-black text-ink">{aliasTransferenciaProp || 'Configurá tu Alias'}</p>
                     </div>
                     {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-brasa" />}
                 </button>

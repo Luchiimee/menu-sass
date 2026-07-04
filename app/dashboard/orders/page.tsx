@@ -509,7 +509,7 @@ const loadOrders = async () => {
     setCashCloseHour(rest.cash_close_hour?.slice(0, 5) ?? '00:00');
     setThermalPrintingEnabled(!!rest.thermal_printing_enabled);
     setThermalPrinterName(rest.thermal_printer_name ?? '');
-    if (rest.subscription_plan === 'plus' || rest.subscription_plan === 'max') {
+    if (rest.subscription_plan === 'plus') {
         setShowTables(true);
     }
     setIsLocked(rest.subscription_plan === "light" && !isAdminEmail(user.email));
@@ -646,7 +646,7 @@ useEffect(() => {
       </div>
     );
   }
-  const hasSalon = currentPlan === 'plus' || currentPlan === 'max';
+  const hasSalon = currentPlan === 'plus';
 
  return (
 <div className="max-w-full min-h-screen px-4 lg:px-6 pt-2 md:pt-2 lg:pt-8 relative font-sans">

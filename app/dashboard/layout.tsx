@@ -5,10 +5,10 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { 
-    LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store, 
+import {
+    LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store,
     LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, TrendingUp, ArrowRight,
-    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone
+    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone, Wallet
 } from 'lucide-react';
 
 import MobileNav from '@/components/MobileNav';
@@ -183,17 +183,25 @@ const menuItems = [
       name: 'Rentabilidad',
       href: '/dashboard/rentabilidad',
       icon: TrendingUp,
-      locked: !userHasBetaAccess,
+      // Light: siempre bloqueado. GO: bloqueado salvo beta access. Plus: liberado.
+      locked: restaurant.plan !== 'plus' && !(restaurant.plan === 'go' && userHasBetaAccess),
       msg: ""
   },
-  { 
-      name: 'Pedidos', 
-      href: '/dashboard/orders', 
-      icon: ShoppingBag, 
+  {
+      name: 'Pedidos',
+      href: '/dashboard/orders',
+      icon: ShoppingBag,
       locked: (restaurant.plan === 'light' || noPlan) || isTrialExpired, // 👈 Bloqueado en Light
-      msg: "La gestión de pedidos requiere Plan GO o PLUS. 🚀" 
-  }, 
-  { 
+      msg: "La gestión de pedidos requiere Plan GO o PLUS. 🚀"
+  },
+  {
+      name: 'Pagos y delivery',
+      href: '/dashboard/pagos',
+      icon: Wallet,
+      locked: (restaurant.plan !== 'go' && restaurant.plan !== 'plus') || isTrialExpired, // 👈 Bloqueado en Light
+      msg: "La sección de Pagos y delivery requiere Plan GO o PLUS. 💳"
+  },
+  {
       name: 'Reservas', 
       href: '/dashboard/reservations', 
       icon: CalendarCheck, 
@@ -291,9 +299,15 @@ const menuItems = [
     .filter(item => item.name !== 'SuperAdmin' || userHasAdminSnappyAccess)
     .map((item) => {
       const isActive = pathname === item.href;
-            
-           
-            const isLockedByPlan = item.locked && (restaurant.plan !== 'plus' && item.name === 'Caja' || restaurant.plan !== 'plus' && item.name === 'Reservas' || (restaurant.plan === 'light' && item.name === 'Pedidos'));
+
+
+            const isLockedByPlan = item.locked && (
+              restaurant.plan !== 'plus' && item.name === 'Caja' ||
+              restaurant.plan !== 'plus' && item.name === 'Reservas' ||
+              (restaurant.plan === 'light' && item.name === 'Pedidos') ||
+              (restaurant.plan !== 'go' && restaurant.plan !== 'plus' && item.name === 'Pagos y delivery') ||
+              item.name === 'Rentabilidad'
+            );
 
             // 2. ¿Debería ver el candado? 
             // Lo ve si es un usuario normal con trial vencido O si es una sección bloqueada por su plan actual.
