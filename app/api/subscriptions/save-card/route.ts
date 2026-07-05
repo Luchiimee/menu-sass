@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
+import { chargeSubscription } from '@/lib/mercadopagoBilling';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -95,14 +96,21 @@ export async function POST(req: Request) {
       { headers: mpHeaders() }
     );
     const existingCards = await existingCardsRes.json();
-    if (Array.isArray(existingCards) && existingCards.length > 0) {
+
+    if (!existingCardsRes.ok) {
+      console.error('save-card — error listando tarjetas existentes:', JSON.stringify(existingCards, null, 2));
+    } else if (Array.isArray(existingCards) && existingCards.length > 0) {
       await Promise.all(
-        existingCards.map((c: any) =>
-          fetch(`${MP_BASE}/v1/customers/${customerId}/cards/${c.id}`, {
+        existingCards.map(async (c: any) => {
+          const delRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards/${c.id}`, {
             method: 'DELETE',
             headers: mpHeaders(),
-          })
-        )
+          });
+          if (!delRes.ok) {
+            const delBody = await delRes.json().catch(() => null);
+            console.error(`save-card — error borrando tarjeta vieja ${c.id}:`, JSON.stringify(delBody, null, 2));
+          }
+        })
       );
     }
 
@@ -124,8 +132,8 @@ export async function POST(req: Request) {
 
     const cardId: string = card.id;
     const cardLastFour: string = card.last_four_digits ?? '';
-    // payment_method_id es el campo real de MP (ej: "visa", "master")
-    const cardBrand: string = card.payment_method_id ?? paymentMethodId ?? '';
+    // El brand real viene anidado en payment_method.id (ej: "visa", "master") — no en payment_method_id
+    const cardBrand: string = card.payment_method?.id ?? paymentMethodId ?? '';
 
     // 7. Calcular trial_ends_at
     let trialEndsAt: string | null = null;
@@ -168,7 +176,63 @@ export async function POST(req: Request) {
       );
     }
 
-    // 9. Éxito
+    // 9. Si la suscripción estaba cancelada o pausada, cobramos ahora mismo con la tarjeta
+    // recién guardada — no esperamos a la corrida diaria del cron.
+    if (restaurant.subscription_status === 'cancelled' || restaurant.subscription_status === 'paused') {
+      const effectivePlan = planId || restaurant.subscription_plan;
+
+      const result = await chargeSubscription({
+        customerId: customerId,
+        cardId:     cardId,
+        cardBrand:  cardBrand,
+        plan:       effectivePlan,
+        payerEmail: email,
+        description: `Snappy - Reactivación plan ${effectivePlan}`,
+      });
+
+      if (result.outcome === 'approved') {
+        const nextPayment = new Date();
+        nextPayment.setDate(nextPayment.getDate() + 30);
+
+        await supabase
+          .from('restaurants')
+          .update({
+            subscription_status: 'active',
+            next_payment_date:   nextPayment.toISOString(),
+            mp_preapproval_id:   null,
+          })
+          .eq('user_id', userId);
+
+        return NextResponse.json({
+          success: true,
+          charged: true,
+          card_last_four: cardLastFour,
+          card_brand: cardBrand,
+        });
+      }
+
+      console.error(`save-card — reactivación ${result.outcome}:`, result.detail);
+
+      const { error: pausedUpdateError } = await supabase
+        .from('restaurants')
+        .update({ subscription_status: 'paused' })
+        .eq('user_id', userId);
+
+      if (pausedUpdateError) {
+        console.error('Supabase UPDATE error (save-card, paused):', pausedUpdateError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        charged: false,
+        chargeError: result.detail,
+        reason: result.outcome, // 'rejected' | 'error'
+        card_last_four: cardLastFour,
+        card_brand: cardBrand,
+      });
+    }
+
+    // 10. Éxito (sin cobro sincrónico — no estaba cancelada)
     return NextResponse.json({ success: true, card_last_four: cardLastFour, card_brand: cardBrand });
   } catch (err: any) {
     console.error('SERVER ERROR (save-card):', err);
