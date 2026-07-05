@@ -19,6 +19,7 @@ interface PaymentFormProps {
   inline?: boolean;
   currentCard?: { brand: string; last4: string; expMonth: number; expYear: number } | null;
   onSuccess: () => void;
+  onChargeFailed?: () => void;
   onClose: () => void;
 }
 
@@ -35,6 +36,7 @@ export default function PaymentForm({
   inline = false,
   currentCard = null,
   onSuccess,
+  onChargeFailed,
   onClose,
 }: PaymentFormProps) {
   const [loading, setLoading] = useState(true);
@@ -98,9 +100,26 @@ export default function PaymentForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al procesar');
 
-      toast.success(mode === 'update-card'
-        ? '¡Tarjeta actualizada correctamente!'
-        : '¡Suscripción activada! Los primeros 14 días son gratis.'
+      if (data.charged === false) {
+        // Tarjeta guardada OK, pero el cobro de reactivación no se pudo procesar.
+        // Dejamos el formulario abierto (no llamamos a onSuccess) para que pueda
+        // cargar otra tarjeta de inmediato, sin recargar la página. Sí refrescamos
+        // el estado del restaurante (subscription_status ya cambió a 'paused' en DB)
+        // para que el resto de la pantalla lo refleje.
+        if (data.reason === 'rejected') {
+          toast.error('Tarjeta guardada, pero el pago fue rechazado (falta de fondos u otro motivo). Cargá otra tarjeta para reintentar.');
+        } else {
+          toast.error('Hubo un problema de conexión al procesar el pago. Volvé a intentar en unos minutos.');
+        }
+        onChargeFailed?.();
+        return;
+      }
+
+      toast.success(data.charged === true
+        ? '¡Suscripción reactivada!'
+        : mode === 'update-card'
+          ? '¡Tarjeta actualizada correctamente!'
+          : '¡Suscripción activada! Los primeros 14 días son gratis.'
       );
       onSuccess();
     } catch (err: any) {

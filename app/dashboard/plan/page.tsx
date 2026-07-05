@@ -370,10 +370,7 @@ function PlanContent() {
     }
   };
 
-  const handlePaymentSuccess = async () => {
-    setShowPaymentForm(false);
-    setPaymentPlan(null);
-    // Recargar desde Supabase para obtener mp_preapproval_id actualizado
+  const refreshRestaurantData = async () => {
     const { data: restData } = await supabase
       .from('restaurants')
       .select('*')
@@ -382,6 +379,13 @@ function PlanContent() {
     if (restData) setRestaurant(prev => ({ ...prev, ...restData }));
     fetchLinkedCard();
     window.dispatchEvent(new Event("profile-updated"));
+  };
+
+  const handlePaymentSuccess = async () => {
+    setShowPaymentForm(false);
+    setPaymentPlan(null);
+    // Recargar desde Supabase para obtener mp_preapproval_id actualizado
+    await refreshRestaurantData();
   };
 
   const handleCancelPlan = async () => {
@@ -723,6 +727,7 @@ function PlanContent() {
               inline={true}
               currentCard={paymentMode === 'update-card' ? linkedCard : null}
               onSuccess={handlePaymentSuccess}
+              onChargeFailed={refreshRestaurantData}
               onClose={() => setShowPaymentForm(false)}
             />
           </div>

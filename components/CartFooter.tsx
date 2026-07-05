@@ -42,6 +42,7 @@ export default function CartFooter({
     deliveryZonesEnabled = false,
     deliveryLat = null,
     deliveryLng = null,
+    deliveryCity = null,
     deliveryZone1Km = 3,
     deliveryZone1Cost = 0,
     deliveryZone2Km = 7,
@@ -57,6 +58,7 @@ export default function CartFooter({
     const [aviso, setAviso] = useState<string | null>(null); 
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
+    const [pagoConfirmado, setPagoConfirmado] = useState(false);
     const orderStatusRef = useRef(orderStatus);
     useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
@@ -147,6 +149,50 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [nroMesa, setNroMesa] = useState(mesaLabel || '')
     const [availableTables, setAvailableTables] = useState<Table[]>([]);
 
+    // Auto-geocode al tipear la dirección manualmente: espera 800ms de inactividad y
+    // resuelve coords sin bloquear la UI. Si falla o no hay resultados, no hace nada —
+    // el cliente puede seguir escribiendo (retriggerea este mismo efecto) o usar el botón GPS.
+    const addressGeocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Token de request: cada intento de geocode (debounce, click con texto, o GPS) incrementa
+    // esto y captura su propio valor. Si al resolver ya no coincide con el valor global, la
+    // respuesta es vieja y se descarta — evita que una respuesta tardía pise una más nueva.
+    const geocodeRequestId = useRef(0);
+    // Cuando el flujo GPS reescribe direccionCalle vía reverse-geocode, marcamos esto para que
+    // el efecto de abajo no lo interprete como "el usuario tipeó" y no dispare un re-geocode
+    // innecesario que pisaría el resultado (ya correcto) del GPS.
+    const skipNextAutoGeocode = useRef(false);
+
+    useEffect(() => {
+        if (skipNextAutoGeocode.current) {
+            skipNextAutoGeocode.current = false;
+            return;
+        }
+
+        if (metodoEnvio !== 'delivery' || !deliveryZonesEnabled) return;
+        if (!direccionCalle.trim()) return;
+
+        // Reseteamos a 'calculating' de inmediato (antes de que pasen los 800ms) para que un
+        // resultado previo (zona resuelta o 'outside') no quede pegado mientras el cliente sigue
+        // corrigiendo la dirección.
+        setClientCoords(null);
+        setForcedZone(null);
+
+        if (addressGeocodeTimer.current) clearTimeout(addressGeocodeTimer.current);
+
+        addressGeocodeTimer.current = setTimeout(async () => {
+            const myRequestId = ++geocodeRequestId.current;
+            const coords = await geocodeAddress(direccionCalle);
+            if (myRequestId !== geocodeRequestId.current) return; // respuesta vieja, se descarta
+            if (coords) {
+                setClientCoords(coords);
+            }
+        }, 800);
+
+        return () => {
+            if (addressGeocodeTimer.current) clearTimeout(addressGeocodeTimer.current);
+        };
+    }, [direccionCalle, metodoEnvio, deliveryZonesEnabled]);
+
     // 🔄 Si el parámetro ?mesa= llega después del primer render, forzamos metodoEnvio a 'mesa'
     useEffect(() => {
         if (tableIdFromQR) {
@@ -178,7 +224,21 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [isValidating, setIsValidating] = useState(false);
     const [couponError, setCouponError] = useState("");
 
-    
+    // --- REGLAS DE DESCUENTO AUTOMÁTICO (envío gratis / % / efectivo) ---
+    const [discountRules, setDiscountRules] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!restaurantId) return;
+        const loadDiscountRules = async () => {
+            const { data } = await supabase
+                .from('discount_rules')
+                .select('*')
+                .eq('restaurant_id', restaurantId)
+                .eq('activo', true);
+            setDiscountRules(data || []);
+        };
+        loadDiscountRules();
+    }, [restaurantId]);
 
     const applyCoupon = async () => {
         if (!couponCode) return;
@@ -245,14 +305,15 @@ useEffect(() => {
             // AGREGAR: payment_status a la consulta select
             const { data } = await supabase
                 .from('orders')
-                .select('status, payment_method, payment_status')
+                .select('status, payment_method, payment_status, pago_confirmado')
                 .eq('id', activeOrderId)
                 .maybeSingle();
 
             if (data) {
                 setOrderStatus(data.status);
                 setMetodoPago(data.payment_method);
-                
+                setPagoConfirmado(!!data.pago_confirmado);
+
                 // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación, 
                 // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
                 if (data.payment_status === 'esperando_confirmacion') {
@@ -276,7 +337,8 @@ useEffect(() => {
                 const newPayStatus = payload.new.payment_status; // NUEVA LÍNEA
 
                 setOrderStatus(newStatus);
-                
+                setPagoConfirmado(!!payload.new.pago_confirmado);
+
                 // Si el backend actualizó el estado de pago, la UI reacciona aquí
                 if (newPayStatus === 'esperando_confirmacion' || newStatus === 'completado') {
                     setPasoPago('espera');
@@ -295,14 +357,16 @@ useEffect(() => {
                     
                     const { data, error } = await supabase
                         .from('orders')
-                        .select('payment_status, status')
-                        .eq('id', activeOrderId) 
+                        .select('payment_status, status, pago_confirmado')
+                        .eq('id', activeOrderId)
                         .maybeSingle();
 
                     if (error) {
                         console.error("❌ Fallo en re-sincronización manual:", error.message);
                         return;
                     }
+
+                    if (data) setPagoConfirmado(!!data.pago_confirmado);
 
                     // Forzamos el estado de la UI según la realidad de la DB
                     if (data?.payment_status === 'esperando_confirmacion' || data?.status === 'completado') {
@@ -556,28 +620,36 @@ const handleCallWaiter = async () => {
                                 {/* Card de transferencia */}
                                 {metodoPago === 'transferencia' && !['cancelado', 'completado'].includes(orderStatus) && (
                                     <div className="bg-brasa/10 border border-brasa/20 rounded-[16px] p-4 mb-4">
-                                        <p className="text-brasa font-black text-[13px] mb-3">Pago por transferencia</p>
-                                        <div
-                                            onClick={handleCopyAlias}
-                                            className={`flex justify-between items-center cursor-pointer p-3 rounded-[12px] transition-all border-2 ${copied ? 'bg-green-600 border-green-600' : 'bg-[#F0FAF6] border-[#B8E8D4] active:scale-95'}`}
-                                        >
-                                            <div className={copied ? 'text-white' : 'text-ink'}>
-                                                <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
-                                                    {copied ? '¡COPIADO!' : 'TOCÁ PARA COPIAR ALIAS'}
+                                        {pagoConfirmado ? (
+                                            <p className="text-brasa font-black text-[13px] text-center py-1">
+                                                ✓ Pago recibido. Ya estamos preparando tu pedido.
+                                            </p>
+                                        ) : (
+                                            <>
+                                                <p className="text-brasa font-black text-[13px] mb-3">Pago por transferencia</p>
+                                                <div
+                                                    onClick={handleCopyAlias}
+                                                    className={`flex justify-between items-center cursor-pointer p-3 rounded-[12px] transition-all border-2 ${copied ? 'bg-green-600 border-green-600' : 'bg-[#F0FAF6] border-[#B8E8D4] active:scale-95'}`}
+                                                >
+                                                    <div className={copied ? 'text-white' : 'text-ink'}>
+                                                        <p className="text-[9px] font-black opacity-80 uppercase leading-none mb-1">
+                                                            {copied ? '¡COPIADO!' : 'TOCÁ PARA COPIAR ALIAS'}
+                                                        </p>
+                                                        <p className="text-sm font-black">{aliasTransferencia}</p>
+                                                    </div>
+                                                    {copied ? <Check size={18} className="text-white shrink-0" /> : <Copy size={18} className="text-fresco shrink-0" />}
+                                                </div>
+                                                <p className="text-[11px] text-brasa text-center mt-2 leading-snug">
+                                                    Envianos el comprobante por WhatsApp o esperá a que confirmemos el ingreso manualmente.
                                                 </p>
-                                                <p className="text-sm font-black">{aliasTransferencia}</p>
-                                            </div>
-                                            {copied ? <Check size={18} className="text-white shrink-0" /> : <Copy size={18} className="text-fresco shrink-0" />}
-                                        </div>
-                                        <p className="text-[11px] text-brasa text-center mt-2 leading-snug">
-                                            Envianos el comprobante por WhatsApp o esperá a que confirmemos el ingreso manualmente.
-                                        </p>
-                                        <button
-                                            onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
-                                            className="w-full bg-green-600 text-white rounded-[12px] py-2 text-[12px] font-black mt-3 flex items-center justify-center gap-2"
-                                        >
-                                            <MessageSquare size={14} /> Enviar comprobante por WhatsApp
-                                        </button>
+                                                <button
+                                                    onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)}
+                                                    className="w-full bg-green-600 text-white rounded-[12px] py-2 text-[12px] font-black mt-3 flex items-center justify-center gap-2"
+                                                >
+                                                    <MessageSquare size={14} /> Enviar comprobante por WhatsApp
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 )}
 
@@ -842,6 +914,42 @@ const handleCallWaiter = async () => {
         return acc + (item.price + extrasTotal) * item.quantity;
     }, 0);
     const montoDescuento = appliedCoupon ? (subtotal * Number(appliedCoupon.discount_percent) / 100) : 0;
+
+    // --- EVALUACIÓN DE REGLAS DE DESCUENTO AUTOMÁTICO ---
+    // Parser estricto: Number("") y Number("   ") dan 0 (no NaN), así que un monto_minimo
+    // vacío/blanco desde Supabase pasaría como umbral 0 y el descuento se aplicaría siempre.
+    // Acá lo tratamos como "sin umbral" (null) en vez de 0.
+    const parseMonto = (val: any): number | null => {
+        if (val == null) return null;
+        const trimmed = String(val).trim();
+        if (trimmed === '') return null;
+        const num = Number(trimmed);
+        return Number.isFinite(num) ? num : null;
+    };
+
+    // Reglas por monto (envio_gratis / porcentaje / porcentaje_envio_gratis), ordenadas de mayor a menor
+    // monto_minimo — se aplica solo la de mayor beneficio (el primer umbral que el subtotal alcanza).
+    const montoRule = [...discountRules]
+        .filter((r) => r.tipo !== 'efectivo' && parseMonto(r.monto_minimo) != null)
+        .sort((a, b) => (parseMonto(b.monto_minimo)! - parseMonto(a.monto_minimo)!))
+        .find((r) => subtotal >= parseMonto(r.monto_minimo)!);
+
+    const efectivoRule = discountRules.find((r) => r.tipo === 'efectivo');
+
+    const autoFreeShipping = montoRule?.tipo === 'envio_gratis' || montoRule?.tipo === 'porcentaje_envio_gratis';
+
+    let autoDescuento = 0;
+    if (montoRule?.tipo === 'porcentaje' || montoRule?.tipo === 'porcentaje_envio_gratis') {
+        autoDescuento += subtotal * Number(montoRule.porcentaje) / 100;
+    }
+    if (metodoPago === 'efectivo' && efectivoRule) {
+        // Se acumula con la regla de monto solo si esa regla lo permite (o si no hay ninguna aplicando)
+        const puedeAcumularEfectivo = !montoRule || montoRule.acumulable_efectivo === true;
+        if (puedeAcumularEfectivo) {
+            autoDescuento += subtotal * Number(efectivoRule.porcentaje) / 100;
+        }
+    }
+
     const zoneStatus = (() => {
       if (metodoEnvio !== 'delivery') return null;
       if (!deliveryZonesEnabled) return 'flat';
@@ -853,14 +961,16 @@ const handleCallWaiter = async () => {
       return 'outside';
     })();
     const envio = (() => {
+      if (autoFreeShipping) return 0;
       if (metodoEnvio !== 'delivery') return 0;
       if (zoneStatus === 'flat')  return Number(deliveryCost) || 0;
       if (zoneStatus === 'zone1') return Number(deliveryZone1Cost) || 0;
       if (zoneStatus === 'zone2') return Number(deliveryZone2Cost) || 0;
       return 0; // 'calculating' o 'outside'
     })();
-    const totalFinal = subtotal - montoDescuento + envio;
-   
+    const totalFinal = subtotal - montoDescuento - autoDescuento + envio;
+    const paymentMethodsCount = (efectivoEnabled ? 1 : 0) + (transferenciaEnabled ? 1 : 0);
+
 
   const direccionCompleta = direccionEntreCalles.trim()
     ? `${direccionCalle} (entre ${direccionEntreCalles})`
@@ -886,41 +996,96 @@ const handleCallWaiter = async () => {
     }
   };
 
+  // Geocodifica una dirección de texto vía Google Maps Geocoding API (mismo proveedor que
+  // reverseGeocode). Nominatim no tiene granularidad de housenumber para calles de Mercedes
+  // ("calle 2 100" y "calle 2 365" resolvían al mismo punto) — Google sí interpola por número.
+  // Devuelve null en error o sin resultados (sin lanzar, para que tanto el botón GPS como el
+  // auto-geocode al tipear puedan usarlo).
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      const fullAddress = deliveryCity ? `${address}, ${deliveryCity}, Argentina` : address;
+      const params = new URLSearchParams({
+        address: fullAddress,
+        key: apiKey ?? '',
+        language: 'es',
+        components: 'country:AR|administrative_area:Buenos Aires',
+      });
+
+      // Acotamos la búsqueda al radio de la zona más lejana configurada, para que
+      // direcciones cortas/ambiguas ("calle 2 365") no resuelvan a un homónimo en otra
+      // ciudad/provincia. Solo aplica si hay ubicación del local Y zona real configurada —
+      // sin esos dos datos reales, no acotamos (sin fallback inventado).
+      if (deliveryLat != null && deliveryLng != null && deliveryZonesEnabled && deliveryZone2Km) {
+        const radiusKm = Number(deliveryZone2Km);
+        const latPad = radiusKm / 111;
+        const lngPad = radiusKm / (111 * Math.cos((deliveryLat * Math.PI) / 180));
+        const south = deliveryLat - latPad;
+        const north = deliveryLat + latPad;
+        const west  = deliveryLng - lngPad;
+        const east  = deliveryLng + lngPad;
+        params.set('bounds', `${south},${west}|${north},${east}`);
+      }
+
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
+      );
+      const data = await res.json();
+      if (!data.results?.[0]) return null;
+      const { lat, lng } = data.results[0].geometry.location;
+      return { lat, lng };
+    } catch {
+      return null;
+    }
+  };
+
   const handleDetectLocation = async () => {
     setDetectingLocation(true);
     setClientCoords(null);
     setForcedZone(null);
 
-    const tryNominatim = async () => {
-      if (!direccionCalle.trim()) { setForcedZone('zone2'); setDetectingLocation(false); return; }
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccionCalle)}&format=json&limit=1`,
-          { headers: { 'Accept-Language': 'es' } },
-        );
-        const data = await res.json();
-        if (data.length > 0) {
-          setClientCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
-        } else {
-          setForcedZone('zone2');
-        }
-      } catch {
+    // Cancelamos el debounce del texto: si el cliente tipeó rápido y clickeó antes de los
+    // 800ms, no queremos dos geocodeAddress corriendo en paralelo.
+    if (addressGeocodeTimer.current) clearTimeout(addressGeocodeTimer.current);
+
+    // Prioridad: si ya escribió una dirección, geocodificamos ESE texto directamente
+    // (mismo método que el debounce) en vez de pedir GPS y terminar pisándolo después.
+    if (direccionCalle.trim()) {
+      const myRequestId = ++geocodeRequestId.current;
+      const coords = await geocodeAddress(direccionCalle);
+      if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
+      if (coords) {
+        setClientCoords(coords);
+      } else {
         setForcedZone('zone2');
       }
       setDetectingLocation(false);
+      return;
+    }
+
+    // Sin texto cargado: reservamos el flujo GPS
+    const fallbackSinTexto = () => {
+      setForcedZone('zone2');
+      setDetectingLocation(false);
     };
 
-    if (!navigator.geolocation) { await tryNominatim(); return; }
+    if (!navigator.geolocation) { fallbackSinTexto(); return; }
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        const myRequestId = ++geocodeRequestId.current;
         const { latitude, longitude } = pos.coords;
+        if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
         setClientCoords({ lat: latitude, lng: longitude });
         const addr = await reverseGeocode(latitude, longitude);
-        if (addr) setDireccionCalle(addr);
+        if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
+        if (addr) {
+          skipNextAutoGeocode.current = true;
+          setDireccionCalle(addr);
+        }
         setDetectingLocation(false);
       },
-      tryNominatim,
+      fallbackSinTexto,
     );
   };
 
@@ -1260,7 +1425,7 @@ return (
                                 {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
                                 Calcular envío
                               </button>
-                            ) : (
+                            ) : deliveryZonesEnabled && zoneStatus === 'outside' ? null : (
                               <div className="px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
                                 <div className="flex justify-between items-center">
                                   <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
@@ -1387,10 +1552,19 @@ return (
       )}
                 {metodoEnvio !== 'mesa' && (
                     <div className="space-y-3 animate-in fade-in duration-300">
-                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-                            Medio de Pago
-                        </label>
-                        <div className={`grid gap-2 ${efectivoEnabled && transferenciaEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        {paymentMethodsCount > 0 && (
+                            <>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                                    Medio de Pago
+                                </label>
+                                {paymentMethodsCount === 1 && (
+                                    <p className="text-xs text-graphite text-center mb-2">
+                                        {efectivoEnabled
+                                            ? 'Por el momento este local solo acepta efectivo'
+                                            : 'Por el momento este local solo acepta transferencia'}
+                                    </p>
+                                )}
+                                <div className={`grid gap-2 ${paymentMethodsCount > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
 
 {efectivoEnabled && (
 <button
@@ -1417,7 +1591,16 @@ return (
     <Landmark size={18} /> Transferencia
 </button>
 )}
-                        </div>
+                                </div>
+                            </>
+                        )}
+
+                        {paymentMethodsCount === 0 && (
+                            <div className="p-4 bg-alert/10 border-2 border-alert/20 rounded-2xl flex items-center gap-2.5">
+                                <XCircle size={18} className="text-alert shrink-0" />
+                                <p className="text-xs font-bold text-alert">El local no tiene métodos de pago configurados</p>
+                            </div>
+                        )}
 
                         {metodoPago === 'transferencia' && aliasTransferencia && (
                             <div className="space-y-2">
@@ -1460,7 +1643,21 @@ return (
                     <div className="px-2 space-y-1 pb-4 bg-white rounded-[16px] p-4 border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
                         <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                         {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Envío</span><span>{envio > 0 ? formatPrice(envio) : 'Gratis'}</span></div>
+                        {autoDescuento > 0 && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento aplicado</span><span>-{formatPrice(autoDescuento)}</span></div>}
+                        {zoneStatus !== 'outside' && (
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
+                                <span className="text-slate-400">Envío</span>
+                                <span className={zoneStatus === 'calculating' && !autoFreeShipping ? 'text-graphite' : 'text-slate-400'}>
+                                    {autoFreeShipping
+                                        ? 'Envío gratis 🎉'
+                                        : zoneStatus === 'calculating'
+                                        ? 'Calculando...'
+                                        : envio > 0
+                                        ? formatPrice(envio)
+                                        : 'Envío gratis 🎉'}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-end pt-2 mt-2 border-t border-dashed border-slate-200"><span className="text-xs font-black uppercase text-slate-700 mb-1">Total Final</span><span className="text-[20px] font-black text-green-700 tracking-tighter leading-none">{formatPrice(totalFinal)}</span></div>
                     </div>
                     {tableIdFromQR && mesaLabel && (
@@ -1480,7 +1677,7 @@ return (
                     )}
                     <button
                         onClick={handleSendOrder}
-                        disabled={isSending || (metodoEnvio === 'delivery' && deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside'))}
+                        disabled={isSending || (metodoEnvio !== 'mesa' && paymentMethodsCount === 0) || (metodoEnvio === 'delivery' && deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside'))}
                         className="w-full bg-green-700 disabled:bg-slate-100 disabled:text-slate-400 text-white py-4 rounded-[18px] font-black flex items-center justify-center gap-3 shadow-[0_4px_20px_rgba(22,163,74,0.35)] text-[16px] active:scale-95 transition-all mb-10"
                     >
                         {isSending ? (

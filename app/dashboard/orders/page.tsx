@@ -306,6 +306,11 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
     await supabase.from("orders").update({ status: newStatus }).eq("id", id);
   };
 
+  const confirmarPagoTransferencia = async (id: string) => {
+    setOrders(prev => prev.map((o) => (o.id === id ? { ...o, pago_confirmado: true } : o)));
+    await supabase.from("orders").update({ pago_confirmado: true }).eq("id", id);
+  };
+
   const acceptOrder = async (order: any) => {
     await updateStatus(order.id, 'en_proceso');
     setSelectedTableForDetail((prev: any) =>
@@ -1082,7 +1087,17 @@ useEffect(() => {
         Imprimir Comanda
     </button>
     )}
-    
+
+    {/* Confirmar pago por transferencia (delivery/retiro) */}
+    {order.order_type !== 'mesa' && order.payment_method === 'transferencia' && !order.pago_confirmado && (order.status === 'pendiente' || order.status === 'recibido') && (
+    <button
+        onClick={() => confirmarPagoTransferencia(order.id)}
+        className="w-full bg-fresco text-white py-3 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2"
+    >
+        <Check size={14} /> Confirmar Pago
+    </button>
+    )}
+
     {/* 🚀 LÓGICA DE SEPARACIÓN: MESA vs DELIVERY */}
     {order.order_type === 'mesa' ? (
         /* 🍽️ SI ES MESA: No mostramos botones de flujo, solo info */

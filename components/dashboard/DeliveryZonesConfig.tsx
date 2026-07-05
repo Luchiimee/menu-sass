@@ -39,6 +39,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const [zone1Cost, setZone1Cost] = useState('');
   const [zone2Km, setZone2Km] = useState(7);
   const [zone2Cost, setZone2Cost] = useState('');
+  const [city, setCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
@@ -50,13 +51,14 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
       const { data } = await supabase
         .from('restaurants')
         .select(
-          'delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost, delivery_zones_enabled, delivery_address',
+          'delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost, delivery_zones_enabled, delivery_address, city',
         )
         .eq('id', restaurantId)
         .single();
 
       if (data) {
         setZonesEnabled(!!data.delivery_zones_enabled);
+        if (data.city) setCity(data.city);
         if (data.delivery_lat != null) setLat(data.delivery_lat);
         if (data.delivery_lng != null) setLng(data.delivery_lng);
         if (data.delivery_zone1_km != null) setZone1Km(data.delivery_zone1_km);
@@ -91,9 +93,11 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
       const comps = data.results[0].address_components;
       const get = (type: string) => comps.find((c: { types: string[]; long_name: string }) => c.types.includes(type))?.long_name || '';
       const route = get('route');
-      if (route) setAddressInput(route);
+      const cityName = get('locality') || get('sublocality') || get('administrative_area_level_2');
+      if (cityName) setCity(cityName);
+      if (route) setAddressInput(cityName ? `${route}, ${cityName}` : route);
     } catch {
-      // reverseGeocode falló — addressInput queda sin cambios
+      // reverseGeocode falló — addressInput/city quedan sin cambios
     }
   }, []);
 
@@ -158,6 +162,7 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
         delivery_zone2_km: zone2Km,
         delivery_zone2_cost: zone2Cost !== '' ? Number(zone2Cost) : null,
         delivery_address: `${addressInput} ${addressNumber}`.trim(),
+        city: city || null,
       })
       .eq('id', restaurantId);
 

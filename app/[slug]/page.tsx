@@ -1788,6 +1788,7 @@ case "spotlight":
             deliveryZonesEnabled={restaurant.subscription_plan !== 'light' && !!restaurant.delivery_zones_enabled}
             deliveryLat={restaurant.delivery_lat ?? null}
             deliveryLng={restaurant.delivery_lng ?? null}
+            deliveryCity={restaurant.city ?? null}
             deliveryZone1Km={Number(restaurant.delivery_zone1_km) || 3}
             deliveryZone1Cost={Number(restaurant.delivery_zone1_cost) || 0}
             deliveryZone2Km={Number(restaurant.delivery_zone2_km) || 7}
