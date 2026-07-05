@@ -119,6 +119,18 @@ function PagosContent() {
 
   const hasActiveEfectivoRule = rules.some(r => r.tipo === 'efectivo' && r.id !== editingRuleId);
 
+  const [showConflictConfirm, setShowConflictConfirm] = useState(false);
+  const [conflictingRule, setConflictingRule] = useState<any>(null);
+
+  // El conflicto de "gana_si_no_acumula" solo existe entre una regla de monto
+  // y la regla de efectivo — nunca entre dos reglas del mismo lado.
+  const findConflictingRule = (tipo: DiscountType) => {
+    const isOpponent = tipo === 'efectivo'
+      ? (r: any) => r.tipo !== 'efectivo'
+      : (r: any) => r.tipo === 'efectivo';
+    return rules.find(r => r.gana_si_no_acumula && r.id !== editingRuleId && isOpponent(r));
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -215,6 +227,29 @@ function PagosContent() {
     setShowRuleModal(true);
   };
 
+  const handleToggleGanaSiNoAcumula = () => {
+    if (!newRule.gana_si_no_acumula) {
+      const conflict = findConflictingRule(newRule.tipo);
+      if (conflict) {
+        setConflictingRule(conflict);
+        setShowConflictConfirm(true);
+        return;
+      }
+    }
+    setNewRule(r => ({ ...r, gana_si_no_acumula: !r.gana_si_no_acumula }));
+  };
+
+  const handleConfirmConflict = () => {
+    setNewRule(r => ({ ...r, gana_si_no_acumula: true }));
+    setShowConflictConfirm(false);
+    setConflictingRule(null);
+  };
+
+  const handleCancelConflict = () => {
+    setShowConflictConfirm(false);
+    setConflictingRule(null);
+  };
+
   const handleSaveRule = async () => {
     if (newRule.tipo !== 'efectivo' && !newRule.monto_minimo) {
       toast.error('Ingresá el monto mínimo de compra');
@@ -225,17 +260,11 @@ function PagosContent() {
       return;
     }
 
-    // El conflicto de "gana_si_no_acumula" solo existe entre una regla de monto
-    // y la regla de efectivo — nunca entre dos reglas del mismo lado. Acotamos
-    // tanto el UPDATE en el servidor como la búsqueda del "perdedor" a esa
-    // categoría opuesta, para no tocar reglas sin relación con este conflicto.
+    // Acotamos el UPDATE del servidor a la categoría opuesta (monto vs. efectivo),
+    // para no tocar reglas sin relación con este conflicto puntual.
     const isOpponent = newRule.tipo === 'efectivo'
       ? (r: any) => r.tipo !== 'efectivo'
       : (r: any) => r.tipo === 'efectivo';
-
-    const otherWinner = newRule.gana_si_no_acumula
-      ? rules.find(r => r.gana_si_no_acumula && r.id !== editingRuleId && isOpponent(r))
-      : null;
 
     setSavingRule(true);
     const payload = {
@@ -279,16 +308,6 @@ function PagosContent() {
     });
     closeRuleModal();
     toast.success(editingRuleId ? 'Regla actualizada' : 'Regla creada');
-
-    if (otherWinner) {
-      const label = DISCOUNT_TYPES.find(t => t.id === otherWinner.tipo)?.label || otherWinner.tipo;
-      setTimeout(() => {
-        toast.info(`Listo — se desactivó "gana si hay conflicto" en ${label}, porque ahora esta la reemplaza.`, {
-          position: 'bottom-center',
-          duration: 5000,
-        });
-      }, 300);
-    }
   };
 
   const handleDeleteRule = async (id: string) => {
@@ -556,7 +575,7 @@ function PagosContent() {
               </div>
               <ToggleSwitch
                 checked={newRule.gana_si_no_acumula}
-                onChange={() => setNewRule(r => ({ ...r, gana_si_no_acumula: !r.gana_si_no_acumula }))}
+                onChange={handleToggleGanaSiNoAcumula}
               />
             </div>
 
@@ -591,6 +610,26 @@ function PagosContent() {
               >
                 {savingRule ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {editingRuleId ? 'Guardar cambios' : 'Guardar regla'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR CONFLICTO gana_si_no_acumula */}
+      {showConflictConfirm && conflictingRule && (
+        <div className="fixed inset-0 z-[1100] bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full p-6 space-y-5 animate-in zoom-in-95">
+            <h3 className="font-black text-lg text-ink uppercase tracking-tight">Confirmar cambio</h3>
+            <p className="text-sm text-graphite leading-relaxed">
+              Ya tenés otra regla que gana en caso de conflicto ("<b>{ruleDescription(conflictingRule)}</b>"). Si continuás, se desactivará esa regla y quedará activada esta.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button onClick={handleCancelConflict} className="flex-1 py-3.5 rounded-2xl border border-border text-graphite font-black text-xs uppercase tracking-widest hover:bg-surface transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleConfirmConflict} className="flex-1 py-3.5 rounded-2xl bg-ink text-white font-black text-xs uppercase tracking-widest hover:bg-black transition-colors">
+                Continuar
               </button>
             </div>
           </div>
