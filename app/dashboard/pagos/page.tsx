@@ -49,6 +49,7 @@ function ruleChips(rule: any): string[] {
   if (rule.tipo === 'envio_gratis' || rule.tipo === 'porcentaje_envio_gratis') chips.push('Envío gratis');
   if (rule.tipo === 'efectivo') chips.push('Solo efectivo');
   if (rule.tipo !== 'efectivo' && rule.acumulable_efectivo) chips.push('+ acumulable con efectivo');
+  if (rule.gana_si_no_acumula) chips.push('Gana si hay conflicto');
   return chips;
 }
 
@@ -113,6 +114,7 @@ function PagosContent() {
     monto_minimo: '',
     porcentaje: '',
     acumulable_efectivo: false,
+    gana_si_no_acumula: false,
   });
 
   const hasActiveEfectivoRule = rules.some(r => r.tipo === 'efectivo' && r.id !== editingRuleId);
@@ -198,7 +200,7 @@ function PagosContent() {
   const closeRuleModal = () => {
     setShowRuleModal(false);
     setEditingRuleId(null);
-    setNewRule({ tipo: 'envio_gratis', monto_minimo: '', porcentaje: '', acumulable_efectivo: false });
+    setNewRule({ tipo: 'envio_gratis', monto_minimo: '', porcentaje: '', acumulable_efectivo: false, gana_si_no_acumula: false });
   };
 
   const handleOpenEdit = (rule: any) => {
@@ -207,6 +209,7 @@ function PagosContent() {
       monto_minimo: rule.monto_minimo != null ? String(rule.monto_minimo) : '',
       porcentaje: rule.porcentaje != null ? String(rule.porcentaje) : '',
       acumulable_efectivo: !!rule.acumulable_efectivo,
+      gana_si_no_acumula: !!rule.gana_si_no_acumula,
     });
     setEditingRuleId(rule.id);
     setShowRuleModal(true);
@@ -222,13 +225,41 @@ function PagosContent() {
       return;
     }
 
+    // El conflicto de "gana_si_no_acumula" solo existe entre una regla de monto
+    // y la regla de efectivo — nunca entre dos reglas del mismo lado. Acotamos
+    // tanto el UPDATE en el servidor como la búsqueda del "perdedor" a esa
+    // categoría opuesta, para no tocar reglas sin relación con este conflicto.
+    const isOpponent = newRule.tipo === 'efectivo'
+      ? (r: any) => r.tipo !== 'efectivo'
+      : (r: any) => r.tipo === 'efectivo';
+
+    const otherWinner = newRule.gana_si_no_acumula
+      ? rules.find(r => r.gana_si_no_acumula && r.id !== editingRuleId && isOpponent(r))
+      : null;
+
     setSavingRule(true);
     const payload = {
       tipo: newRule.tipo,
       monto_minimo: newRule.tipo === 'efectivo' ? null : Number(newRule.monto_minimo),
       porcentaje: newRule.tipo === 'envio_gratis' ? null : Number(newRule.porcentaje),
       acumulable_efectivo: hasActiveEfectivoRule ? newRule.acumulable_efectivo : false,
+      gana_si_no_acumula: newRule.gana_si_no_acumula,
     };
+
+    // Solo una regla puede ganar en caso de conflicto — si esta se marca, se
+    // desmarca la del lado opuesto (server-side, no solo en el form).
+    if (payload.gana_si_no_acumula) {
+      let clearQuery = supabase
+        .from('discount_rules')
+        .update({ gana_si_no_acumula: false })
+        .eq('restaurant_id', restaurant.id)
+        .eq('activo', true);
+      clearQuery = newRule.tipo === 'efectivo'
+        ? clearQuery.neq('tipo', 'efectivo')
+        : clearQuery.eq('tipo', 'efectivo');
+      if (editingRuleId) clearQuery = clearQuery.neq('id', editingRuleId);
+      await clearQuery;
+    }
 
     const { data, error } = editingRuleId
       ? await supabase.from('discount_rules').update(payload).eq('id', editingRuleId).select().single()
@@ -240,9 +271,24 @@ function PagosContent() {
       return;
     }
 
-    setRules(prev => editingRuleId ? prev.map(r => r.id === data.id ? data : r) : [...prev, data]);
+    setRules(prev => {
+      const cleared = payload.gana_si_no_acumula
+        ? prev.map(r => (isOpponent(r) ? { ...r, gana_si_no_acumula: false } : r))
+        : prev;
+      return editingRuleId ? cleared.map(r => r.id === data.id ? data : r) : [...cleared, data];
+    });
     closeRuleModal();
     toast.success(editingRuleId ? 'Regla actualizada' : 'Regla creada');
+
+    if (otherWinner) {
+      const label = DISCOUNT_TYPES.find(t => t.id === otherWinner.tipo)?.label || otherWinner.tipo;
+      setTimeout(() => {
+        toast.info(`Listo — se desactivó "gana si hay conflicto" en ${label}, porque ahora esta la reemplaza.`, {
+          position: 'bottom-center',
+          duration: 5000,
+        });
+      }, 300);
+    }
   };
 
   const handleDeleteRule = async (id: string) => {
@@ -502,6 +548,17 @@ function PagosContent() {
                 />
               </div>
             )}
+
+            <div className="flex items-center justify-between p-4 bg-surface rounded-2xl">
+              <div>
+                <p className="text-sm font-bold text-ink">Esta regla gana si hay conflicto</p>
+                <p className="text-[10px] text-graphite">Si no se acumula con la otra regla activa, esta se aplica y la otra se descarta.</p>
+              </div>
+              <ToggleSwitch
+                checked={newRule.gana_si_no_acumula}
+                onChange={() => setNewRule(r => ({ ...r, gana_si_no_acumula: !r.gana_si_no_acumula }))}
+              />
+            </div>
 
             {hasActiveEfectivoRule ? (
               <div className="flex items-center justify-between p-4 bg-surface rounded-2xl">

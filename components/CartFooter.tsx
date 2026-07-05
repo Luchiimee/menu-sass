@@ -935,19 +935,35 @@ const handleCallWaiter = async () => {
         .find((r) => subtotal >= parseMonto(r.monto_minimo)!);
 
     const efectivoRule = discountRules.find((r) => r.tipo === 'efectivo');
+    const efectivoAplicaria = metodoPago === 'efectivo' && !!efectivoRule;
 
-    const autoFreeShipping = montoRule?.tipo === 'envio_gratis' || montoRule?.tipo === 'porcentaje_envio_gratis';
+    // Si no se acumulan: gana la regla que tenga gana_si_no_acumula marcado. Si ninguna lo tiene
+    // (o, por configuración ambigua, las dos lo tienen) → gana la regla de monto, mismo
+    // comportamiento que antes de que existiera este campo.
+    let montoGanadora = montoRule;
+    let efectivoGana = false;
+    if (montoRule && efectivoAplicaria) {
+        if (montoRule.acumulable_efectivo === true) {
+            efectivoGana = true;
+        } else {
+            const efectivoDeclaradaGanadora = !!efectivoRule!.gana_si_no_acumula && !montoRule.gana_si_no_acumula;
+            if (efectivoDeclaradaGanadora) {
+                montoGanadora = undefined;
+                efectivoGana = true;
+            }
+        }
+    } else if (efectivoAplicaria) {
+        efectivoGana = true;
+    }
+
+    const autoFreeShipping = montoGanadora?.tipo === 'envio_gratis' || montoGanadora?.tipo === 'porcentaje_envio_gratis';
 
     let autoDescuento = 0;
-    if (montoRule?.tipo === 'porcentaje' || montoRule?.tipo === 'porcentaje_envio_gratis') {
-        autoDescuento += subtotal * Number(montoRule.porcentaje) / 100;
+    if (montoGanadora?.tipo === 'porcentaje' || montoGanadora?.tipo === 'porcentaje_envio_gratis') {
+        autoDescuento += subtotal * Number(montoGanadora.porcentaje) / 100;
     }
-    if (metodoPago === 'efectivo' && efectivoRule) {
-        // Se acumula con la regla de monto solo si esa regla lo permite (o si no hay ninguna aplicando)
-        const puedeAcumularEfectivo = !montoRule || montoRule.acumulable_efectivo === true;
-        if (puedeAcumularEfectivo) {
-            autoDescuento += subtotal * Number(efectivoRule.porcentaje) / 100;
-        }
+    if (efectivoGana) {
+        autoDescuento += subtotal * Number(efectivoRule!.porcentaje) / 100;
     }
 
     const zoneStatus = (() => {
