@@ -247,7 +247,7 @@ const menuItems = [
         )}
 
         {/* 3. BANNER DE PAGO FALLIDO */}
-        {restaurant.status === 'paused' && !isAdmin && (
+        {restaurant.status === 'paused' && !isAdmin && !inGracePeriod && (
           <div className="bg-alert text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
             <div className="flex items-center gap-2">
               <AlertTriangle size={16}/>
