@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import {
-  Loader2, Wallet, Landmark, CreditCard, Percent, Check, X, Trash2, Zap, Lightbulb,
+  Loader2, Wallet, Landmark, CreditCard, Percent, Check, X, Trash2, Pencil, Zap, Lightbulb,
 } from 'lucide-react';
 import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
 
@@ -105,16 +105,17 @@ function PagosContent() {
 
   const [rules, setRules] = useState<any[]>([]);
   const [showRuleModal, setShowRuleModal] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [savingRule, setSavingRule] = useState(false);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [newRule, setNewRule] = useState({
     tipo: 'envio_gratis' as DiscountType,
     monto_minimo: '',
     porcentaje: '',
-    acumulable_efectivo: true,
+    acumulable_efectivo: false,
   });
 
-  const hasActiveEfectivoRule = rules.some(r => r.tipo === 'efectivo');
+  const hasActiveEfectivoRule = rules.some(r => r.tipo === 'efectivo' && r.id !== editingRuleId);
 
   useEffect(() => {
     let mounted = true;
@@ -196,10 +197,22 @@ function PagosContent() {
 
   const closeRuleModal = () => {
     setShowRuleModal(false);
-    setNewRule({ tipo: 'envio_gratis', monto_minimo: '', porcentaje: '', acumulable_efectivo: true });
+    setEditingRuleId(null);
+    setNewRule({ tipo: 'envio_gratis', monto_minimo: '', porcentaje: '', acumulable_efectivo: false });
   };
 
-  const handleCreateRule = async () => {
+  const handleOpenEdit = (rule: any) => {
+    setNewRule({
+      tipo: rule.tipo,
+      monto_minimo: rule.monto_minimo != null ? String(rule.monto_minimo) : '',
+      porcentaje: rule.porcentaje != null ? String(rule.porcentaje) : '',
+      acumulable_efectivo: !!rule.acumulable_efectivo,
+    });
+    setEditingRuleId(rule.id);
+    setShowRuleModal(true);
+  };
+
+  const handleSaveRule = async () => {
     if (newRule.tipo !== 'efectivo' && !newRule.monto_minimo) {
       toast.error('Ingresá el monto mínimo de compra');
       return;
@@ -210,27 +223,26 @@ function PagosContent() {
     }
 
     setSavingRule(true);
-    const { data, error } = await supabase
-      .from('discount_rules')
-      .insert({
-        restaurant_id: restaurant.id,
-        tipo: newRule.tipo,
-        monto_minimo: newRule.tipo === 'efectivo' ? null : Number(newRule.monto_minimo),
-        porcentaje: newRule.tipo === 'envio_gratis' ? null : Number(newRule.porcentaje),
-        acumulable_efectivo: hasActiveEfectivoRule ? newRule.acumulable_efectivo : true,
-      })
-      .select()
-      .single();
+    const payload = {
+      tipo: newRule.tipo,
+      monto_minimo: newRule.tipo === 'efectivo' ? null : Number(newRule.monto_minimo),
+      porcentaje: newRule.tipo === 'envio_gratis' ? null : Number(newRule.porcentaje),
+      acumulable_efectivo: hasActiveEfectivoRule ? newRule.acumulable_efectivo : false,
+    };
+
+    const { data, error } = editingRuleId
+      ? await supabase.from('discount_rules').update(payload).eq('id', editingRuleId).select().single()
+      : await supabase.from('discount_rules').insert({ restaurant_id: restaurant.id, ...payload }).select().single();
     setSavingRule(false);
 
     if (error || !data) {
-      toast.error('No se pudo guardar la regla');
+      toast.error(editingRuleId ? 'No se pudo actualizar la regla' : 'No se pudo guardar la regla');
       return;
     }
 
-    setRules(prev => [...prev, data]);
+    setRules(prev => editingRuleId ? prev.map(r => r.id === data.id ? data : r) : [...prev, data]);
     closeRuleModal();
-    toast.success('Regla creada');
+    toast.success(editingRuleId ? 'Regla actualizada' : 'Regla creada');
   };
 
   const handleDeleteRule = async (id: string) => {
@@ -410,13 +422,21 @@ function PagosContent() {
                         ))}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteRule(rule.id)}
-                      disabled={deletingRuleId === rule.id}
-                      className="p-2.5 text-alert hover:bg-alert/10 rounded-xl transition-colors shrink-0 disabled:opacity-40"
-                    >
-                      {deletingRuleId === rule.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleOpenEdit(rule)}
+                        className="p-2.5 text-graphite hover:bg-surface rounded-xl transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRule(rule.id)}
+                        disabled={deletingRuleId === rule.id}
+                        className="p-2.5 text-alert hover:bg-alert/10 rounded-xl transition-colors disabled:opacity-40"
+                      >
+                        {deletingRuleId === rule.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -436,7 +456,7 @@ function PagosContent() {
         <div className="fixed inset-0 z-[1000] bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-lg text-ink uppercase tracking-tight">Nueva regla</h3>
+              <h3 className="font-black text-lg text-ink uppercase tracking-tight">{editingRuleId ? 'Editar regla' : 'Nueva regla'}</h3>
               <button onClick={closeRuleModal} className="p-1.5 rounded-full hover:bg-surface transition-colors">
                 <X size={20} className="text-graphite" />
               </button>
@@ -508,12 +528,12 @@ function PagosContent() {
                 Cancelar
               </button>
               <button
-                onClick={handleCreateRule}
+                onClick={handleSaveRule}
                 disabled={savingRule}
                 className="flex-1 py-3.5 rounded-2xl bg-ink text-white font-black text-xs uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {savingRule ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                Guardar regla
+                {editingRuleId ? 'Guardar cambios' : 'Guardar regla'}
               </button>
             </div>
           </div>
