@@ -106,11 +106,9 @@ export default function PaymentForm({
         // cargar otra tarjeta de inmediato, sin recargar la página. Sí refrescamos
         // el estado del restaurante (subscription_status ya cambió a 'paused' en DB)
         // para que el resto de la pantalla lo refleje.
-        if (data.reason === 'rejected') {
-          toast.error('Tarjeta guardada, pero el pago fue rechazado (falta de fondos u otro motivo). Cargá otra tarjeta para reintentar.');
-        } else {
-          toast.error('Hubo un problema de conexión al procesar el pago. Volvé a intentar en unos minutos.');
-        }
+        // Mostramos el motivo real de MP (ej: el banco pide autorización),
+        // no un genérico de "falta de fondos".
+        toast.error(data.chargeError || 'No se pudo procesar el pago. Probá con otra tarjeta.', { duration: 8000 });
         onChargeFailed?.();
         return;
       }
