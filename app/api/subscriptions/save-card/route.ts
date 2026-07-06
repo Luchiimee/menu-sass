@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
-import { chargeSubscription } from '@/lib/mercadopagoBilling';
+import { chargeSubscription, friendlyChargeError } from '@/lib/mercadopagoBilling';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -225,7 +225,10 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         charged: false,
-        chargeError: result.detail,
+        chargeError: result.outcome === 'rejected'
+          ? friendlyChargeError(result.detail)
+          : 'Hubo un problema de conexión al procesar el pago. Volvé a intentar en unos minutos.',
+        rawDetail: result.detail,
         reason: result.outcome, // 'rejected' | 'error'
         card_last_four: cardLastFour,
         card_brand: cardBrand,
