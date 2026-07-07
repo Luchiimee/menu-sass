@@ -2,14 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
-webpush.setVapidDetails(
-  'mailto:push@snappy.app',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// Configuramos VAPID de forma perezosa y protegida: NO al cargar el módulo
+// (eso corre durante el build y, si las claves faltan o están mal, rompe el
+// build entero). Se ejecuta una sola vez, en el primer request.
+let vapidReady = false;
+function ensureVapid(): boolean {
+  if (vapidReady) return true;
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  if (!pub || !priv) {
+    console.error('Push: faltan claves VAPID (NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)');
+    return false;
+  }
+  try {
+    webpush.setVapidDetails('mailto:push@snappy.app', pub, priv);
+    vapidReady = true;
+    return true;
+  } catch (err) {
+    console.error('Push: claves VAPID inválidas:', err);
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
+    if (!ensureVapid()) {
+      return NextResponse.json({ error: 'Push no configurado' }, { status: 503 });
+    }
    const webhookPayload = await req.json();
 
 // Supabase mete los datos reales adentro de 'record'
