@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
-import { chargeSubscription, friendlyChargeError } from '@/lib/mercadopagoBilling';
+import { createSubscription, friendlyChargeError } from '@/lib/mercadopagoBilling';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -176,30 +176,29 @@ export async function POST(req: Request) {
       );
     }
 
-    // 9. Si la suscripción estaba cancelada o pausada, cobramos ahora mismo con la tarjeta
-    // recién guardada — no esperamos a la corrida diaria del cron.
+    // 9. Si la suscripción estaba cancelada o pausada, reactivamos con una
+    // SUSCRIPCIÓN (preapproval) — método correcto para cobros recurrentes que
+    // NO dispara los rechazos "call_for_authorize" del cobro manual sin CVV.
+    // MP cobra el primer mes al instante y maneja los cobros siguientes.
     if (restaurant.subscription_status === 'cancelled' || restaurant.subscription_status === 'paused') {
       const effectivePlan = planId || restaurant.subscription_plan;
 
-      const result = await chargeSubscription({
-        customerId: customerId,
+      const result = await createSubscription({
         cardId:     cardId,
-        cardBrand:  cardBrand,
         plan:       effectivePlan,
         payerEmail: email,
-        description: `Snappy - Reactivación plan ${effectivePlan}`,
+        userId:     userId,
       });
 
       if (result.outcome === 'approved') {
-        const nextPayment = new Date();
-        nextPayment.setDate(nextPayment.getDate() + 30);
-
+        // MP maneja lo recurrente → dejamos next_payment_date en null para que
+        // el cron NO los vuelva a cobrar (evita doble cobro).
         await supabase
           .from('restaurants')
           .update({
             subscription_status: 'active',
-            next_payment_date:   nextPayment.toISOString(),
-            mp_preapproval_id:   null,
+            mp_preapproval_id:   result.preapprovalId,
+            next_payment_date:   null,
           })
           .eq('user_id', userId);
 
@@ -211,7 +210,7 @@ export async function POST(req: Request) {
         });
       }
 
-      console.error(`save-card — reactivación ${result.outcome}:`, result.detail);
+      console.error(`save-card — reactivación (preapproval) ${result.outcome}:`, result.detail);
 
       const { error: pausedUpdateError } = await supabase
         .from('restaurants')

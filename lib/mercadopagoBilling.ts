@@ -149,3 +149,61 @@ export async function chargeSubscription({
     return { outcome: 'error', detail: err.message || 'Error de red al procesar el pago' };
   }
 }
+
+export type SubscriptionResult =
+  | { outcome: 'approved'; preapprovalId: string }
+  | { outcome: 'rejected'; detail: string }
+  | { outcome: 'error'; detail: string };
+
+interface CreateSubscriptionParams {
+  cardId: string;
+  plan: string | null;
+  payerEmail: string;
+  userId: string;
+}
+
+// Crea una SUSCRIPCIÓN (preapproval) sobre la tarjeta guardada.
+// Es el método correcto para cobros recurrentes: Mercado Pago autoriza la
+// tarjeta de forma que NO dispara los rechazos "call_for_authorize" que da el
+// cobro manual sin CVV. El primer cobro es inmediato (sin auto_start_date) y
+// MP se encarga de los cobros mensuales siguientes.
+export async function createSubscription({
+  cardId,
+  plan,
+  payerEmail,
+  userId,
+}: CreateSubscriptionParams): Promise<SubscriptionResult> {
+  try {
+    const res = await fetch(`${MP_BASE}/preapproval`, {
+      method: 'POST',
+      headers: mpHeaders(crypto.randomUUID()),
+      body: JSON.stringify({
+        reason: `Snappy - Plan ${(plan ?? '').toUpperCase()}`,
+        payer_email: payerEmail,
+        external_reference: userId,
+        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/plan`,
+        card_id: cardId,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: getPlanAmount(plan),
+          currency_id: 'ARS',
+        },
+      }),
+    });
+    const data = await res.json();
+
+    // status 'authorized' = tarjeta autorizada y primer cobro OK
+    if (res.ok && data.status === 'authorized') {
+      return { outcome: 'approved', preapprovalId: data.id };
+    }
+
+    // Cualquier otro estado/errores → no quedó activa
+    return {
+      outcome: 'rejected',
+      detail: data.message ?? data.status_detail ?? `Suscripción no autorizada: status=${data.status}`,
+    };
+  } catch (err: any) {
+    return { outcome: 'error', detail: err.message || 'Error de red al crear la suscripción' };
+  }
+}
