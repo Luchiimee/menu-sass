@@ -90,6 +90,69 @@ export async function POST(req: Request) {
       profile?.first_name ?? ''
     );
 
+    // 4.b REACTIVACIÓN: si estaba pausada/cancelada, autorizamos la suscripción
+    // con el token del navegador (que SÍ trae el CVV que MP exige). El token es
+    // de un solo uso, así que va directo al preapproval — NO lo gastamos guardando
+    // la tarjeta aparte. MP guarda la tarjeta y maneja los cobros mensuales solo.
+    if (restaurant.subscription_status === 'cancelled' || restaurant.subscription_status === 'paused') {
+      const effectivePlan = planId || restaurant.subscription_plan;
+
+      // Limpiar tarjetas viejas del customer antes de asociar la nueva
+      const oldCardsRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
+      const oldCards = await oldCardsRes.json().catch(() => []);
+      if (Array.isArray(oldCards)) {
+        await Promise.all(oldCards.map((c: any) =>
+          fetch(`${MP_BASE}/v1/customers/${customerId}/cards/${c.id}`, { method: 'DELETE', headers: mpHeaders() })
+        ));
+      }
+
+      const result = await createSubscription({
+        cardTokenId: token,
+        plan:        effectivePlan,
+        payerEmail:  email,
+        userId,
+      });
+
+      if (result.outcome === 'approved') {
+        // Traer la tarjeta que MP asoció, para mostrarla en el dashboard
+        let last4 = '';
+        let brand = '';
+        try {
+          const cr = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
+          const cards = await cr.json();
+          if (Array.isArray(cards) && cards[0]) {
+            last4 = cards[0].last_four_digits ?? '';
+            brand = cards[0].payment_method?.id ?? '';
+          }
+        } catch { /* display best-effort */ }
+
+        // next_payment_date en null → el cron NO los recobra (MP maneja lo recurrente)
+        await supabase.from('restaurants').update({
+          subscription_status: 'active',
+          mp_preapproval_id:   result.preapprovalId,
+          mp_customer_id:      customerId,
+          card_last_four:      last4,
+          card_brand:          brand,
+          next_payment_date:   null,
+        }).eq('user_id', userId);
+
+        return NextResponse.json({ success: true, charged: true, card_last_four: last4, card_brand: brand });
+      }
+
+      console.error(`save-card — reactivación (preapproval) ${result.outcome}:`, result.detail);
+      await supabase.from('restaurants').update({ subscription_status: 'paused' }).eq('user_id', userId);
+
+      return NextResponse.json({
+        success: true,
+        charged: false,
+        chargeError: result.outcome === 'rejected'
+          ? friendlyChargeError(result.detail)
+          : 'Hubo un problema al procesar el pago. Volvé a intentar en unos minutos.',
+        rawDetail: result.detail,
+        reason: result.outcome,
+      });
+    }
+
     // 5. Borrar tarjetas anteriores del customer
     const existingCardsRes = await fetch(
       `${MP_BASE}/v1/customers/${customerId}/cards`,
@@ -176,65 +239,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 9. Si la suscripción estaba cancelada o pausada, reactivamos con una
-    // SUSCRIPCIÓN (preapproval) — método correcto para cobros recurrentes que
-    // NO dispara los rechazos "call_for_authorize" del cobro manual sin CVV.
-    // MP cobra el primer mes al instante y maneja los cobros siguientes.
-    if (restaurant.subscription_status === 'cancelled' || restaurant.subscription_status === 'paused') {
-      const effectivePlan = planId || restaurant.subscription_plan;
-
-      const result = await createSubscription({
-        cardId:     cardId,
-        plan:       effectivePlan,
-        payerEmail: email,
-        userId:     userId,
-      });
-
-      if (result.outcome === 'approved') {
-        // MP maneja lo recurrente → dejamos next_payment_date en null para que
-        // el cron NO los vuelva a cobrar (evita doble cobro).
-        await supabase
-          .from('restaurants')
-          .update({
-            subscription_status: 'active',
-            mp_preapproval_id:   result.preapprovalId,
-            next_payment_date:   null,
-          })
-          .eq('user_id', userId);
-
-        return NextResponse.json({
-          success: true,
-          charged: true,
-          card_last_four: cardLastFour,
-          card_brand: cardBrand,
-        });
-      }
-
-      console.error(`save-card — reactivación (preapproval) ${result.outcome}:`, result.detail);
-
-      const { error: pausedUpdateError } = await supabase
-        .from('restaurants')
-        .update({ subscription_status: 'paused' })
-        .eq('user_id', userId);
-
-      if (pausedUpdateError) {
-        console.error('Supabase UPDATE error (save-card, paused):', pausedUpdateError);
-      }
-
-      return NextResponse.json({
-        success: true,
-        charged: false,
-        chargeError: result.outcome === 'rejected'
-          ? friendlyChargeError(result.detail)
-          : 'Hubo un problema de conexión al procesar el pago. Volvé a intentar en unos minutos.',
-        rawDetail: result.detail,
-        reason: result.outcome, // 'rejected' | 'error'
-        card_last_four: cardLastFour,
-        card_brand: cardBrand,
-      });
-    }
-
-    // 10. Éxito (sin cobro sincrónico — no estaba cancelada)
+    // 9. Éxito guardando la tarjeta (usuario que NO estaba pausado/cancelado:
+    // la reactivación con cobro ya se resolvió arriba en el paso 4.b).
     return NextResponse.json({ success: true, card_last_four: cardLastFour, card_brand: cardBrand });
   } catch (err: any) {
     console.error('SERVER ERROR (save-card):', err);
