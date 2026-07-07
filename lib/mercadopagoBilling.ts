@@ -156,19 +156,19 @@ export type SubscriptionResult =
   | { outcome: 'error'; detail: string };
 
 interface CreateSubscriptionParams {
-  cardId: string;
+  cardTokenId: string;
   plan: string | null;
   payerEmail: string;
   userId: string;
 }
 
-// Crea una SUSCRIPCIÓN (preapproval) sobre la tarjeta guardada.
-// Es el método correcto para cobros recurrentes: Mercado Pago autoriza la
-// tarjeta de forma que NO dispara los rechazos "call_for_authorize" que da el
-// cobro manual sin CVV. El primer cobro es inmediato (sin auto_start_date) y
-// MP se encarga de los cobros mensuales siguientes.
+// Crea una SUSCRIPCIÓN (preapproval) autorizada usando el token de tarjeta que
+// generó el navegador (que SÍ incluye el CVV). MP exige el CVV para autorizar,
+// por eso NO sirve un token regenerado desde la tarjeta guardada. Con el token
+// correcto, MP autoriza, cobra el primer mes y maneja los cobros mensuales
+// siguientes por su cuenta (sin CVV, sin cron, sin "call_for_authorize").
 export async function createSubscription({
-  cardId,
+  cardTokenId,
   plan,
   payerEmail,
   userId,
@@ -182,7 +182,8 @@ export async function createSubscription({
         payer_email: payerEmail,
         external_reference: userId,
         back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/plan`,
-        card_id: cardId,
+        card_token_id: cardTokenId,
+        status: 'authorized',
         auto_recurring: {
           frequency: 1,
           frequency_type: 'months',
