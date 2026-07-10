@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { createBrowserClient } from '@supabase/ssr';
-import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints } from 'lucide-react';
+import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints, Calculator } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 const supabase = createBrowserClient(
@@ -149,19 +149,20 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [nroMesa, setNroMesa] = useState(mesaLabel || '')
     const [availableTables, setAvailableTables] = useState<Table[]>([]);
 
-    // Auto-geocode al tipear la dirección manualmente: espera 800ms de inactividad y
-    // resuelve coords sin bloquear la UI. Si falla o no hay resultados, no hace nada —
-    // el cliente puede seguir escribiendo (retriggerea este mismo efecto) o usar el botón GPS.
-    const addressGeocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    // Token de request: cada intento de geocode (debounce, click con texto, o GPS) incrementa
+    // Token de request: cada intento de geocode (click en "Buscar costo de envío" o GPS) incrementa
     // esto y captura su propio valor. Si al resolver ya no coincide con el valor global, la
     // respuesta es vieja y se descarta — evita que una respuesta tardía pise una más nueva.
     const geocodeRequestId = useRef(0);
     // Cuando el flujo GPS reescribe direccionCalle vía reverse-geocode, marcamos esto para que
-    // el efecto de abajo no lo interprete como "el usuario tipeó" y no dispare un re-geocode
-    // innecesario que pisaría el resultado (ya correcto) del GPS.
+    // el efecto de abajo no lo interprete como "el usuario editó la dirección" y no invalide
+    // el resultado (ya correcto) que acaba de traer el GPS.
     const skipNextAutoGeocode = useRef(false);
 
+    // El geocode ya NO se dispara solo (evitaba mostrar "no llegamos" o un costo de envío
+    // mientras el cliente todavía está escribiendo, o con direcciones incompletas). Este
+    // efecto solo invalida el resultado anterior cuando el cliente edita la dirección, para
+    // que no quede un costo/zona desactualizado en pantalla — el cálculo real ocurre al
+    // apretar "Buscar costo de envío" (o el flujo GPS).
     useEffect(() => {
         if (skipNextAutoGeocode.current) {
             skipNextAutoGeocode.current = false;
@@ -169,28 +170,9 @@ const handleNotificarPagoMesa = async (metodo: string) => {
         }
 
         if (metodoEnvio !== 'delivery' || !deliveryZonesEnabled) return;
-        if (!direccionCalle.trim()) return;
 
-        // Reseteamos a 'calculating' de inmediato (antes de que pasen los 800ms) para que un
-        // resultado previo (zona resuelta o 'outside') no quede pegado mientras el cliente sigue
-        // corrigiendo la dirección.
         setClientCoords(null);
         setForcedZone(null);
-
-        if (addressGeocodeTimer.current) clearTimeout(addressGeocodeTimer.current);
-
-        addressGeocodeTimer.current = setTimeout(async () => {
-            const myRequestId = ++geocodeRequestId.current;
-            const coords = await geocodeAddress(direccionCalle);
-            if (myRequestId !== geocodeRequestId.current) return; // respuesta vieja, se descarta
-            if (coords) {
-                setClientCoords(coords);
-            }
-        }, 800);
-
-        return () => {
-            if (addressGeocodeTimer.current) clearTimeout(addressGeocodeTimer.current);
-        };
     }, [direccionCalle, metodoEnvio, deliveryZonesEnabled]);
 
     // 🔄 Si el parámetro ?mesa= llega después del primer render, forzamos metodoEnvio a 'mesa'
@@ -992,6 +974,10 @@ const handleCallWaiter = async () => {
     ? `${direccionCalle} (entre ${direccionEntreCalles})`
     : direccionCalle;
 
+  // Habilita "Calcular costo" cuando la dirección termina en un número (evita geocodificar
+  // direcciones incompletas tipo "calle 26 num").
+  const direccionListaParaBuscar = !direccionCalle.trim() || /\d+\s*$/.test(direccionCalle.trim());
+
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -1015,8 +1001,8 @@ const handleCallWaiter = async () => {
   // Geocodifica una dirección de texto vía Google Maps Geocoding API (mismo proveedor que
   // reverseGeocode). Nominatim no tiene granularidad de housenumber para calles de Mercedes
   // ("calle 2 100" y "calle 2 365" resolvían al mismo punto) — Google sí interpola por número.
-  // Devuelve null en error o sin resultados (sin lanzar, para que tanto el botón GPS como el
-  // auto-geocode al tipear puedan usarlo).
+  // Devuelve null en error o sin resultados (sin lanzar, para que tanto el flujo GPS como el
+  // click en "Buscar costo de envío" puedan usarlo).
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -1055,31 +1041,27 @@ const handleCallWaiter = async () => {
     }
   };
 
-  const handleDetectLocation = async () => {
+  const handleCalcularCosto = async () => {
     setDetectingLocation(true);
     setClientCoords(null);
     setForcedZone(null);
 
-    // Cancelamos el debounce del texto: si el cliente tipeó rápido y clickeó antes de los
-    // 800ms, no queremos dos geocodeAddress corriendo en paralelo.
-    if (addressGeocodeTimer.current) clearTimeout(addressGeocodeTimer.current);
-
-    // Prioridad: si ya escribió una dirección, geocodificamos ESE texto directamente
-    // (mismo método que el debounce) en vez de pedir GPS y terminar pisándolo después.
-    if (direccionCalle.trim()) {
-      const myRequestId = ++geocodeRequestId.current;
-      const coords = await geocodeAddress(direccionCalle);
-      if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
-      if (coords) {
-        setClientCoords(coords);
-      } else {
-        setForcedZone('zone2');
-      }
-      setDetectingLocation(false);
-      return;
+    const myRequestId = ++geocodeRequestId.current;
+    const coords = await geocodeAddress(direccionCalle);
+    if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
+    if (coords) {
+      setClientCoords(coords);
+    } else {
+      setForcedZone('zone2');
     }
+    setDetectingLocation(false);
+  };
 
-    // Sin texto cargado: reservamos el flujo GPS
+  const handleUseGps = async () => {
+    setDetectingLocation(true);
+    setClientCoords(null);
+    setForcedZone(null);
+
     const fallbackSinTexto = () => {
       setForcedZone('zone2');
       setDetectingLocation(false);
@@ -1434,12 +1416,12 @@ return (
                             {deliveryZonesEnabled && zoneStatus === 'calculating' ? (
                               <button
                                 type="button"
-                                onClick={handleDetectLocation}
-                                disabled={detectingLocation}
+                                onClick={handleUseGps}
+                                disabled={detectingLocation || direccionCalle.trim() !== ''}
                                 className="bg-[#F0FAF6] border border-[#B8E8D4] text-fresco rounded-xl py-2 px-4 flex items-center gap-2 w-full justify-center font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all"
                               >
                                 {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                                Calcular envío
+                                Buscar por GPS
                               </button>
                             ) : deliveryZonesEnabled && zoneStatus === 'outside' ? null : (
                               <div className="px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
@@ -1459,6 +1441,18 @@ return (
                             {/* Entre calles — opcional */}
                             <label className="text-[10px] font-black text-gray-400 uppercase ml-2 mt-1 block">Entre calles <span className="font-medium normal-case text-gray-300">(opcional)</span></label>
                             <input type="text" placeholder="Ej: Entre 29 y 31" value={direccionEntreCalles} onChange={(e)=>setDireccionEntreCalles(e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-500 shadow-inner" />
+                            {/* Calcular costo — aparece desde el primer carácter, se habilita con número al final */}
+                            {deliveryZonesEnabled && zoneStatus === 'calculating' && direccionCalle.trim() !== '' && (
+                              <button
+                                type="button"
+                                onClick={handleCalcularCosto}
+                                disabled={detectingLocation || !direccionListaParaBuscar}
+                                className="bg-[#F0FAF6] border border-[#B8E8D4] text-fresco rounded-xl py-2 px-4 flex items-center gap-2 w-full justify-center font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all"
+                              >
+                                {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <Calculator size={14} />}
+                                Calcular costo
+                              </button>
+                            )}
                             {/* Feedback de error de zona */}
                             {deliveryZonesEnabled && zoneStatus === 'outside' && (
                               <div className="flex items-center gap-2 px-4 py-2.5 bg-alert/10 rounded-2xl border border-alert/20">
