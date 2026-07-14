@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import {
-  Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink,
+  Loader2, Copy, Check, Plus, Image as ImageIcon, Trash2, Store, Phone, Bike, ExternalLink, CreditCard,
   Save, Palette, Megaphone, MonitorSmartphone, RotateCcw,
   CheckCircle, Utensils, X, Lock, UploadCloud, Star, Eye, Zap, Layers, ChevronDown,Music2, Facebook, Instagram,Globe,MessageCircle,Clock,MapPin,HelpCircle, CalendarIcon, Sparkles
 } from 'lucide-react';
@@ -395,6 +395,7 @@ export default function EditorPage() {
   const templatesSinFoto = ['minimal', 'classic', 'elegant', 'pop', 'bistro', 'icecream'];
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [savingAlias, setSavingAlias] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [activeFrom, setActiveFrom] = useState('');
 const [activeTo, setActiveTo] = useState('');
@@ -709,6 +710,15 @@ const confirmReset = () => {
       const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
       setNewProd({ ...newProd, image_url: publicUrl });
     } catch (error) { alert('Error subiendo imagen de producto'); } finally { setUploading(false); }
+  };
+
+ const handleSaveAlias = async () => {
+    if (!data.id) return;
+    setSavingAlias(true);
+    const { error } = await supabase.from('restaurants').update({ alias_transferencia: data.alias_transferencia || null }).eq('id', data.id);
+    setSavingAlias(false);
+    if (!error) toast.success('Alias guardado', { position: 'bottom-right', duration: 1500 });
+    else toast.error('No se pudo guardar el alias');
   };
 
  const handleSave = async () => {
@@ -1171,6 +1181,31 @@ const confirmReset = () => {
                         <p className="text-[10px] text-gray-400 mt-1 leading-tight">Costo fijo de envío.</p>
                       </div>
                     </div>
+                    {currentPlan?.toLowerCase() === 'light' && (
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Alias para transferencias</label>
+                        <div className="flex gap-2">
+                          <div className="flex-1 flex items-center border rounded-lg bg-white overflow-hidden">
+                            <div className="p-2 bg-gray-50 text-gray-500 border-r"><CreditCard size={14} /></div>
+                            <input
+                              value={data.alias_transferencia || ''}
+                              onChange={(e) => setData({ ...data, alias_transferencia: e.target.value })}
+                              className="w-full p-2 text-xs font-bold outline-none"
+                              placeholder="alias.transferencia"
+                            />
+                          </div>
+                          <button
+                            onClick={handleSaveAlias}
+                            disabled={savingAlias}
+                            className="px-4 py-2 bg-ink text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+                          >
+                            {savingAlias ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                            Guardar
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1 leading-tight">Se copiará al confirmar pedido por transferencia.</p>
+                      </div>
+                    )}
                   </section>
 
                   <Link
