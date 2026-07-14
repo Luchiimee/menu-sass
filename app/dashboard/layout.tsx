@@ -8,7 +8,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import {
     LayoutDashboard, Palette, ShoppingBag, Settings, LogOut, Store,
     LayoutTemplate, UtensilsCrossed, AlertTriangle, BarChart3, TrendingUp, ArrowRight,
-    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone, Wallet
+    ChevronLeft, ChevronRight, Headset, ShieldCheck, Bell, Zap, X, Clock, Lock, CalendarCheck, HelpCircle, Phone, Wallet, PlayCircle
 } from 'lucide-react';
 
 import MobileNav from '@/components/MobileNav';
@@ -210,7 +210,8 @@ const menuItems = [
   },
   { name: 'SuperAdmin', href: '/admin/snappy', icon: ShieldCheck, locked: false },
   { name: 'Plan', href: '/dashboard/plan', icon: Zap, locked: false },
-  { 
+  { name: 'Tutoriales', href: '/dashboard/tutoriales', icon: PlayCircle, locked: false },
+  {
       name: 'Configuración', 
       href: '/dashboard/settings', 
       icon: Settings, 
