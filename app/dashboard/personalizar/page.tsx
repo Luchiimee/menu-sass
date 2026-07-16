@@ -26,6 +26,7 @@ import MarketProTemplate from '../../../components/templates/MarketProTemplate';
 import AlternaPro from '../../../components/templates/AlternaPro';
 import HeladeriaSoft from '../../../components/templates/HeladeriaSoft';
 import Carta from '../../../components/templates/Carta';
+import Argentina from '../../../components/templates/Argentina';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
@@ -132,6 +133,16 @@ visualgrid: {
     cat_bg_color: '#F7F3EE', cat_text_color: '#9a948c',
     cat_active_bg_color: '#1C1A18', cat_active_text_color: '#F7F3EE',
     search_bg_color: '#ffffff', search_icon_color: '#B5863A'
+  },
+  argentina: {
+    theme: '#3E7CB1', bg: '#ffffff', text: '#15160E', desc: '#86877B',
+    card_name: '#0E2A45', card_desc: '#1B3A57', card_price: '#0E2A45',
+    card: '#6CACE4', btn_bg: '#F2B705', btn_text: '#4a3600',
+    promo_bg_color: '#FFF7E0', promo_text_color: '#4a3600', banner: true,
+    cat_bg_color: '#f3f4f6', cat_text_color: '#9ca3af',
+    cat_active_bg_color: '#3E7CB1', cat_active_text_color: '#ffffff',
+    search_bg_color: '#f3f4f6', search_icon_color: '#3E7CB1',
+    hero_badge_bg: '#F2B705', hero_badge_color: '#4a3600'
   },
 };
 
@@ -296,6 +307,7 @@ isMockup: isMockup,
   );
               case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
               case 'carta': return <Carta {...props} />;
+              case 'argentina': return <Argentina {...props} />;
               default: return <ClassicDelivery {...props} />;
             }
           })()}
@@ -593,14 +605,14 @@ const getTemplateConfig = () => {
     return {
       editable: true, group: id,
       showClassicBanner: id === 'classic',
-      showBannerImg: ['spotlight', 'marketpro', 'carta'].includes(id),
+      showBannerImg: ['spotlight', 'marketpro', 'carta', 'argentina'].includes(id),
       promoMessageDisabled: id === 'carta',
 
       showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant', 'classic', 'minimal'].includes(id),
       showCard: true,
-      showHeroEditor: ['spotlight', 'carta'].includes(id),
-      
-      showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight'].includes(id),
+      showHeroEditor: ['spotlight', 'carta', 'argentina'].includes(id),
+
+      showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight', 'argentina'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
      
       showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic', 'minimal'].includes(id),
@@ -1065,6 +1077,7 @@ const confirmReset = () => {
           </div>
         </div>
 
+        {data.template_id !== 'argentina' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5 text-left">
             <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Precio ($)</label>
@@ -1078,7 +1091,16 @@ const confirmReset = () => {
             </select>
           </div>
         </div>
+        )}
 
+        {data.template_id === 'argentina' && (
+        <div className="space-y-1.5 text-left p-3 bg-white/60 border border-dashed border-gray-200 rounded-xl">
+          <p className="text-[10px] text-gray-400 italic">El producto destacado se marca desde Productos → editá el producto y activá "Destacado".</p>
+        </div>
+        )}
+
+        {data.template_id !== 'argentina' && (
+        <>
         <div className="space-y-1.5 text-left">
           <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Opciones de Bebida y Tamaño</label>
           <div className="flex gap-2">
@@ -1095,9 +1117,12 @@ const confirmReset = () => {
           <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Descripción (se verá en el Modal)</label>
           <textarea value={data.hero_description || ''} onChange={(e) => { setData({ ...data, hero_description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none bg-white resize-none" rows={2} />
         </div>
+        </>
+        )}
       </div>
 
-      {/* 🍱 SECCIÓN: MENÚ SECUNDARIO / EJECUTIVO */}
+      {data.template_id !== 'argentina' && (
+      /* 🍱 SECCIÓN: MENÚ SECUNDARIO / EJECUTIVO */
       <div className="mt-8 p-6 bg-white border-2 border-dashed border-surface rounded-[2.5rem] space-y-6 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-fresco rounded-2xl text-white shadow-lg"><Layers size={18} /></div>
@@ -1152,6 +1177,7 @@ const confirmReset = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   </section>
 )}

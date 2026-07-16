@@ -51,8 +51,12 @@ const [formData, setFormData] = useState({
   video_url: '',
   category_id: '',
   sale_type: 'unidad' as 'unidad' | 'peso',
-  variations: [] as { label: string, price: string, is_featured?: boolean }[]
+  variations: [] as { label: string, price: string, is_featured?: boolean }[],
+  es_destacado: false
 });
+
+// Templates que soportan "Producto Destacado" vía es_destacado — sumar acá cuando otro template lo adopte
+const FEATURED_TOGGLE_TEMPLATES = ['argentina'];
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
   const supabase = createBrowserClient(
@@ -156,7 +160,8 @@ const openCreateModal = () => {
     setFormData({
       name: '', description: '', price: '', image_url: '', video_url: '', category_id: '',
       sale_type: 'unidad',
-      variations: []
+      variations: [],
+      es_destacado: false
     });
     setSelectedExtras([]); 
     setShowModal(true);
@@ -172,7 +177,8 @@ const openEditModal = async (product: any) => {
         video_url: product.video_url || '',
         category_id: product.category_id || '',
         sale_type: product.sale_type || 'unidad',
-        variations: product.variations || []
+        variations: product.variations || [],
+        es_destacado: product.es_destacado || false
     });
     setSelectedExtras([]); 
     const { data: rels } = await supabase.from('product_extras').select('extra_id').eq('product_id', product.id);
@@ -283,6 +289,16 @@ const openEditModal = async (product: any) => {
     }
 
     if (!restaurantId) return;
+
+    if (formData.es_destacado) {
+      const otroDestacado = products.find((p: any) => p.es_destacado && p.id !== editingId);
+      if (otroDestacado) {
+        setToast(`⚠️ "${otroDestacado.name}" ya está marcado como Destacado. Desmarcalo primero para elegir otro.`);
+        setTimeout(() => setToast(null), 4000);
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -298,7 +314,8 @@ const openEditModal = async (product: any) => {
             video_url: formData.video_url || null,
             category_id: formData.category_id || null,
             sale_type: formData.sale_type,
-            variations: formData.variations
+            variations: formData.variations,
+            es_destacado: formData.es_destacado
         };
 
         if (editingId) {
@@ -988,7 +1005,21 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
         </div>
     </div>
 
-  
+    {FEATURED_TOGGLE_TEMPLATES.includes(selectedTemplate || '') && (
+    <div className="flex items-center justify-between p-3 bg-yellow-50/50 border border-yellow-100 rounded-xl">
+      <div>
+        <label className="text-xs font-bold text-gray-700 block">⭐ Producto Destacado</label>
+        <p className="text-[10px] text-gray-400 mt-0.5">Aparece en la card flotante debajo de la portada. Solo uno a la vez.</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setFormData({ ...formData, es_destacado: !formData.es_destacado })}
+        className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors shrink-0 ${formData.es_destacado ? 'bg-black' : 'bg-gray-300'}`}
+      >
+        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${formData.es_destacado ? 'translate-x-4' : 'translate-x-0'}`} />
+      </button>
+    </div>
+    )}
 
 {/* TOGGLE: TIPO DE VENTA POR PRODUCTO */}
 <div>
