@@ -43,6 +43,7 @@ import BioModern from "@/components/templates/bio/BioModern";
 import ClassicDelivery from "@/components/templates/ClassicDelivery";
 import MinimalWhite from "@/components/templates/MinimalWhite";
 import Carta from "@/components/templates/Carta";
+import Argentina from "@/components/templates/Argentina";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { ADMIN_EMAILS } from "@/lib/access";
 
@@ -1700,6 +1701,25 @@ case "spotlight":
       case "carta":
         return (
           <Carta
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras || []}
+            isOpen={isOpen}
+            mesaLabel={mesaLabel}
+            onAddToCart={(product: any, qty: number = 1) => {
+              for (let i = 0; i < qty; i++) {
+                addToCart(product);
+              }
+              mostrarAviso("✅ Agregado");
+            }}
+            isMockup={false}
+            setShowInfo={setShowInfo}
+          />
+        );
+      case "argentina":
+        return (
+          <Argentina
             restaurant={restaurant}
             products={allProducts}
             categories={displayCats}
