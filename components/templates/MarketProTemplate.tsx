@@ -6,8 +6,10 @@ import { Search, Plus, X, Minus, RotateCcw, Bike, ExternalLink, Clock, MapPin, S
 import { getProductDisplayPrice } from "@/lib/productPricing";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { getContrastColor } from "@/lib/colorUtils";
+import { useCart } from "@/context/CartContext";
 
 export default function MarketProTemplate({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
+  const { cart } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -28,9 +30,10 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
   const promoFont = restaurant.promo_font || 'Inter';
 
   // --- COMPONENTE DE TARJETA ---
-  const ProductCard = ({ product }: { product: any }) => {
+  const ProductCard = ({ product, cart }: { product: any; cart: any[] }) => {
     const showBg = restaurant.card_show_bg !== false;
     const { amount: displayPrice, isFrom } = getProductDisplayPrice(product);
+    const totalQty = cart.filter((item: any) => item.id === product.id).reduce((sum: number, item: any) => sum + item.quantity, 0);
 
     const handleProductClick = () => {
       if (!isOpenNow && !isMockup) {
@@ -51,6 +54,11 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
           }}
         >
       <div className="aspect-[3/4] w-full rounded-xl overflow-hidden mb-1 bg-gray-100 flex items-center justify-center relative">
+  {totalQty > 0 && (
+    <span className="absolute top-1 right-1 z-20 bg-alert text-white text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white">
+      {totalQty}
+    </span>
+  )}
   {product.video_url ? (
     <video 
       src={product.video_url} 
@@ -201,7 +209,7 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
           <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
             {/* Aquí podrías poner un .slice(0, 6) si quisieras mostrar solo los primeros 6 como destacados */}
             {products?.slice(0, 6).map((product: any) => ( 
-              <ProductCard key={`featured-${product.id}`} product={product} />
+              <ProductCard key={`featured-${product.id}`} product={product} cart={cart} />
             ))}
           </div>
         </section>
@@ -228,7 +236,7 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
               </div>
               <div className="grid grid-cols-3 gap-x-2 gap-y-4 items-start">
                 {catProducts.map((product: any) => (
-                  <ProductCard key={`cat-${cat.id}-prod-${product.id}`} product={product} />
+                  <ProductCard key={`cat-${cat.id}-prod-${product.id}`} product={product} cart={cart} />
                 ))}
               </div>
             </section>
