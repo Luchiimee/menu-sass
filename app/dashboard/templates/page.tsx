@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Lock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles, ArrowRight, Store, CheckCircle2 } from 'lucide-react';
+import { Loader2, Lock, Clock, Check, Crown, Coffee, Utensils, Search, ShoppingBag, Zap, X, Heart, Sparkles, ArrowRight, Store, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -377,7 +377,7 @@ const TEMPLATES = [
   { id: 'marketpro',   name: 'Market Pro',        type: 'marketpro',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'kiosco',       idealFor: 'Ideal para kiosco y despensa' },
   { id: 'alterna-pro', name: 'Alterna Pro',       type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true,  premium: true, businessCategory: 'elegante',     idealFor: 'Ideal para carta compleja y mercado', featured: true },
   { id: 'carta',       name: 'Carta',             type: 'carta',       category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
-  { id: 'argentina',   name: 'Argentina',         type: 'argentina',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para locales con identidad argentina — parrillas, hamburgueserías y más' },
+  { id: 'argentina',   name: 'Argentina',         type: 'argentina',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, upcoming: true, businessCategory: 'restaurante',  idealFor: 'Ideal para locales con identidad argentina — parrillas, hamburgueserías y más' },
 ];
 
 function GalleryContent() {
@@ -415,7 +415,8 @@ useEffect(() => {
     loadAllData();
 }, [supabase]);
   // --- LOGICA DE SELECCI�"N CORREGIDA (HARD RESET) ---
- const handleSelect = async (id: string, premium: boolean) => {
+ const handleSelect = async (id: string, premium: boolean, upcoming?: boolean) => {
+    if (upcoming) return alert("Este diseño todavía no está disponible — muy pronto vas a poder elegirlo.");
     if (premium && userPlan === 'free') return alert("Esta es una plantilla Premium. Actualizá tu plan para usarla.");
     
     setSavingId(id);
@@ -503,7 +504,7 @@ const finalTemplates = TEMPLATES.filter(t =>
         {finalTemplates.map((t) => {
           const isSelected = currentTemplate === t.id;
           const isLocked = t.premium && userPlan === 'free';
-          const isUpcoming = false;
+          const isUpcoming = !!(t as any).upcoming;
 
           // Escalas confirmadas visualmente �?" cada una muestra header + al menos 1 elemento de contenido
           const desktopScale =
@@ -539,7 +540,12 @@ const finalTemplates = TEMPLATES.filter(t =>
                         <Store size={13} className="text-gray-700" />
                       </div>
                     )}
-                    {isLocked && (
+                    {isUpcoming && !isSelected ? (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
+                        <Clock size={20} className="mb-1 opacity-80" />
+                        <span className="font-bold text-[10px]">PRÓXIMAMENTE</span>
+                      </div>
+                    ) : isLocked && (
                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-30">
                         <Lock size={20} className="mb-1 opacity-80" />
                         <span className="font-bold text-[10px]">PREMIUM</span>
@@ -558,7 +564,7 @@ const finalTemplates = TEMPLATES.filter(t =>
                     </Link>
                   ) : (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false); }}
+                      onClick={(e) => { e.stopPropagation(); handleSelect(t.id, t.premium ?? false, (t as any).upcoming ?? false); }}
                       disabled={savingId === t.id}
                       className={`sel-btn ${isFeatured ? 'sel-btn--featured' : 'sel-btn--default'}`}
                     >

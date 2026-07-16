@@ -698,8 +698,9 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
 </div>
                                             <div className="flex flex-col min-w-0">
                                                 {/* NOMBRE NEGRITA Y COMPACTO */}
-                                                <p className="font-black text-slate-900 uppercase leading-tight text-xs truncate max-w-[180px]">
-                                                    {p.name}
+                                                <p className="font-black text-slate-900 uppercase leading-tight text-xs truncate max-w-[180px] flex items-center gap-1">
+                                                    {p.es_destacado && <span className="shrink-0" title="Producto Destacado">⭐</span>}
+                                                    {p.name || <span className="italic text-slate-300 normal-case">Sin nombre — completalo acá</span>}
                                                 </p>
                                                 {/* 3. DESCRIPCIÓN TRUNCADA (SOLO UN POCO) */}
                                                 <p className="text-[10px] text-slate-400 font-bold truncate max-w-[220px]">
@@ -743,8 +744,13 @@ const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999
                 /* VISTA EN CUADRICULA (GRID) */
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {products.map((p) => (
-                        <div key={p.id} className="bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition">
+                        <div key={p.id} className={`bg-white border rounded-2xl overflow-hidden group hover:shadow-lg transition ${p.es_destacado ? 'ring-2 ring-amber-400' : ''}`}>
   <div className="aspect-square bg-gray-100 relative overflow-hidden group">
+  {p.es_destacado && (
+    <div className="absolute top-2 left-2 z-20 bg-amber-400 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-sm">
+      ⭐ Portada
+    </div>
+  )}
   {/* 🚀 CASO 1: TIENE IMAGEN */}
   {p.image_url ? (
     <>
