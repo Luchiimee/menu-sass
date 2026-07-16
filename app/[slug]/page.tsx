@@ -68,7 +68,7 @@ async function getRestaurant(slug: string) {
     console.log("✅ MENÚ ENCONTRADO - PRIORIDAD ALTA");
     const { data: rawProducts } = await supabase
       .from("products")
-      .select("id, name, description, price, image_url, video_url, category_id, sale_type, variations")
+      .select("id, name, description, price, image_url, video_url, category_id, sale_type, variations, es_destacado")
       .eq("restaurant_id", menuData.id)
       .order("name", { ascending: true });
 

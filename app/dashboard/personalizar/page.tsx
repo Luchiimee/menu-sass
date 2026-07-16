@@ -605,12 +605,12 @@ const getTemplateConfig = () => {
     return {
       editable: true, group: id,
       showClassicBanner: id === 'classic',
-      showBannerImg: ['spotlight', 'marketpro', 'carta', 'argentina'].includes(id),
+      showBannerImg: ['spotlight', 'marketpro', 'carta'].includes(id),
       promoMessageDisabled: id === 'carta',
 
       showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant', 'classic', 'minimal'].includes(id),
       showCard: true,
-      showHeroEditor: ['spotlight', 'carta', 'argentina'].includes(id),
+      showHeroEditor: ['spotlight', 'carta'].includes(id),
 
       showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight', 'argentina'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
@@ -703,6 +703,54 @@ const confirmReset = () => {
       setData({ ...data, [field]: publicUrl });
       setUnsavedChanges(true);
     } catch (error) { alert('Error subiendo imagen'); } finally { setUploading(false); }
+  };
+
+  const handleUploadDestacadoPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("❌ La imagen es muy pesada. Máximo 5MB.");
+      return;
+    }
+
+    setUploading(true);
+    const fileName = `prod_${Math.random()}.${file.name.split('.').pop()}`;
+
+    try {
+      await supabase.storage.from('images').upload(fileName, file);
+      const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+
+      const destacado = products.find((p: any) => p.es_destacado);
+
+      if (!destacado) {
+        const { data: inserted, error } = await supabase.from('products').insert({
+          restaurant_id: data.id,
+          name: '',
+          price: 0,
+          category_id: null,
+          es_destacado: true,
+          image_url: publicUrl,
+          sale_type: 'unidad',
+          variations: []
+        }).select().single();
+
+        if (!error && inserted) {
+          setProducts([inserted, ...products]);
+        }
+      } else if (!destacado.name) {
+        const { error } = await supabase.from('products').update({ image_url: publicUrl }).eq('id', destacado.id);
+
+        if (!error) {
+          setProducts(products.map((p: any) => p.id === destacado.id ? { ...p, image_url: publicUrl } : p));
+        }
+      }
+      // Si destacado.name ya tiene valor, no tocamos nada — el dueño edita la foto desde Productos.
+    } catch (error) {
+      alert('Error subiendo imagen');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleNewProdImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1077,7 +1125,6 @@ const confirmReset = () => {
           </div>
         </div>
 
-        {data.template_id !== 'argentina' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5 text-left">
             <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Precio ($)</label>
@@ -1091,16 +1138,7 @@ const confirmReset = () => {
             </select>
           </div>
         </div>
-        )}
 
-        {data.template_id === 'argentina' && (
-        <div className="space-y-1.5 text-left p-3 bg-white/60 border border-dashed border-gray-200 rounded-xl">
-          <p className="text-[10px] text-gray-400 italic">El producto destacado se marca desde Productos → editá el producto y activá "Destacado".</p>
-        </div>
-        )}
-
-        {data.template_id !== 'argentina' && (
-        <>
         <div className="space-y-1.5 text-left">
           <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Opciones de Bebida y Tamaño</label>
           <div className="flex gap-2">
@@ -1117,12 +1155,9 @@ const confirmReset = () => {
           <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Descripción (se verá en el Modal)</label>
           <textarea value={data.hero_description || ''} onChange={(e) => { setData({ ...data, hero_description: e.target.value }); setUnsavedChanges(true); }} className="w-full p-3 border rounded-xl text-xs outline-none bg-white resize-none" rows={2} />
         </div>
-        </>
-        )}
       </div>
 
-      {data.template_id !== 'argentina' && (
-      /* 🍱 SECCIÓN: MENÚ SECUNDARIO / EJECUTIVO */
+      {/* 🍱 SECCIÓN: MENÚ SECUNDARIO / EJECUTIVO */}
       <div className="mt-8 p-6 bg-white border-2 border-dashed border-surface rounded-[2.5rem] space-y-6 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-fresco rounded-2xl text-white shadow-lg"><Layers size={18} /></div>
@@ -1177,10 +1212,60 @@ const confirmReset = () => {
           </div>
         </div>
       </div>
-      )}
     </div>
   </section>
 )}
+
+{data.template_id === 'argentina' && (() => {
+  const destacado = products.find((p: any) => p.es_destacado);
+  const isIncomplete = destacado && !destacado.name;
+
+  return (
+    <section className="space-y-6 animate-in fade-in slide-in-from-top-2">
+      <div className="p-6 bg-[#F0FAF6]/50 border border-[#E8F7F1] rounded-[2.5rem] space-y-3">
+        <h3 className="text-xs font-black text-ink uppercase tracking-widest flex items-center gap-2">
+          <Star size={14} className="fill-fresco text-fresco" /> Producto Destacado
+        </h3>
+
+        {(!destacado || isIncomplete) ? (
+          <>
+            <p className="text-[10px] text-gray-400 italic">
+              Esta foto se usa como portada del banner. Completá el nombre y el precio desde
+              Productos para terminar de configurarlo.
+            </p>
+            <div className="relative h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-white transition group overflow-hidden bg-white">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleUploadDestacadoPhoto}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                disabled={uploading}
+              />
+              {destacado?.image_url ? (
+                <>
+                  <img src={getOptimizedImageUrl(destacado.image_url, 300, 70)} className="w-full h-full object-cover opacity-60" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold">Cambiar Foto</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-gray-400">
+                  <ImageIcon size={16} />
+                  <span className="text-xs">Subir Foto de Producto Destacado</span>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="text-[10px] text-gray-400 italic">
+            Tu producto destacado es "{destacado.name}". Para cambiar la foto, el nombre o el precio,
+            andá a <Link href="/dashboard/products" className="text-fresco font-bold underline">Productos</Link>.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+})()}
 
                   {/* WHATSAPP / ENVÍO / MP */}
                   <section className="space-y-4">
