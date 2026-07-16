@@ -3,8 +3,11 @@ import { Search, Plus, X, Minus, Store, Clock, Check, Utensils } from 'lucide-re
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { getContrastColor } from '@/lib/colorUtils';
+import { useCart } from '@/context/CartContext';
 
 export default function UrbanoDark({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
+  const { cart } = useCart();
+  const getTotalQtyForProduct = (productId: any) => cart.filter((item: any) => item.id === productId).reduce((sum: number, item: any) => sum + item.quantity, 0);
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -115,6 +118,11 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
                 <div className="urbano-img flex items-center justify-center" style={{ backgroundImage: p.image_url && !p.video_url ? `url("${getOptimizedImageUrl(p.image_url, 300, 70)}")` : 'none', backgroundColor: '#1E1E1E', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
                   {p.video_url && (<video autoPlay={!isMockup} loop={!isMockup} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}><source src={p.video_url} /></video>)}
                   {!p.image_url && !p.video_url && (<Utensils size={28} strokeWidth={1.2} className="text-zinc-700" />)}
+                  {getTotalQtyForProduct(p.id) > 0 && (
+                    <span className="absolute top-1 right-1 z-20 bg-alert text-white text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white">
+                      {getTotalQtyForProduct(p.id)}
+                    </span>
+                  )}
                 </div>
                 <div className="urbano-info">
                   <div className="urbano-tit">{p.name}</div>
@@ -135,6 +143,11 @@ export default function UrbanoDark({ restaurant, products, categories, fetchedEx
                   <div key={i} className="urbano-item" onClick={() => { if (!isOpenNow && !isMockup) return setShowClosedModal(true); setSelectedProduct(p); setQuantity(1); setSelectedExtras([]); setVariationsQuantities({}); }}>
                     <div className="urbano-img" style={{ backgroundImage: p.image_url && !p.video_url ? `url("${getOptimizedImageUrl(p.image_url, 300, 70)}")` : 'none', backgroundColor: '#333', position: 'relative', overflow: 'hidden' }}>
                       {p.video_url && (<video autoPlay={!isMockup} loop={!isMockup} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}><source src={p.video_url} /></video>)}
+                      {getTotalQtyForProduct(p.id) > 0 && (
+                        <span className="absolute top-1 right-1 z-20 bg-alert text-white text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white">
+                          {getTotalQtyForProduct(p.id)}
+                        </span>
+                      )}
                     </div>
                     <div className="urbano-info">
                       <div className="urbano-tit">{p.name}</div>

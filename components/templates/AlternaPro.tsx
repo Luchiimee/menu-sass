@@ -4,10 +4,11 @@ import { Utensils, ShoppingBag, Store, Star, Zap, Info, X, Minus, Plus, Check, C
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { getContrastColor } from '@/lib/colorUtils';
+import { useCart } from '@/context/CartContext';
 
-export default function AlternaPro({ 
-  restaurant = {}, 
-  products = [], 
+export default function AlternaPro({
+  restaurant = {},
+  products = [],
   setSelectedProduct,
   onAddToCart,
   isOpen,
@@ -15,6 +16,8 @@ export default function AlternaPro({
   setShowInfo,
   mesaLabel = null,
 }: any) {
+  const { cart } = useCart();
+  const getTotalQtyForProduct = (productId: any) => cart.filter((item: any) => item.id === productId).reduce((sum: number, item: any) => sum + item.quantity, 0);
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
@@ -94,6 +97,11 @@ export default function AlternaPro({
               </div>
             )}
           </div>
+          {getTotalQtyForProduct(p.id) > 0 && (
+            <span className="absolute top-1 right-1 z-20 bg-alert text-white text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white">
+              {getTotalQtyForProduct(p.id)}
+            </span>
+          )}
         </div>
         <div className={`flex-1 min-w-0 flex flex-col ${isEven ? 'items-start text-left' : 'items-end text-right'} space-y-1`}>
           <span className="inline-block px-3 py-2 rounded-xl border border-gray-100 shadow-sm text-[9px] font-black uppercase" style={{ color: PROD_NAME_COLOR, backgroundColor: PROD_NAME_BG }}>{p.name}</span>
