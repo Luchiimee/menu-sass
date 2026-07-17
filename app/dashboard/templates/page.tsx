@@ -377,7 +377,7 @@ const TEMPLATES = [
   { id: 'marketpro',   name: 'Market Pro',        type: 'marketpro',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'kiosco',       idealFor: 'Ideal para kiosco y despensa' },
   { id: 'alterna-pro', name: 'Alterna Pro',       type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true,  premium: true, businessCategory: 'elegante',     idealFor: 'Ideal para carta compleja y mercado', featured: true },
   { id: 'carta',       name: 'Carta',             type: 'carta',       category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
-  { id: 'argentina',   name: 'Argentina',         type: 'argentina',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, upcoming: true, businessCategory: 'restaurante',  idealFor: 'Ideal para locales con identidad argentina — parrillas, hamburgueserías y más' },
+  { id: 'argentina',   name: 'Argentina',         type: 'argentina',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para locales con identidad argentina — parrillas, hamburgueserías y más' },
 ];
 
 function GalleryContent() {

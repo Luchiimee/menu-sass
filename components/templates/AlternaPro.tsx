@@ -249,7 +249,7 @@ export default function AlternaPro({
               <p className="text-[11px] text-gray-500 mt-2 font-medium leading-relaxed">{restaurant.selectedProduct.description}</p>
               
               <div className="mt-8 space-y-3">
-                <p className="text-[10px] font-black uppercase text-fresco tracking-widest ml-1">Elegí cantidad:</p>
+                <p className="text-[10px] font-black uppercase text-fresco tracking-widest ml-1">{restaurant.selectedProduct.name}</p>
                 {(restaurant.selectedProduct.variations?.length > 0 ? restaurant.selectedProduct.variations : [{ label: 'principal', price: restaurant.selectedProduct.price }]).map((v: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-4 rounded-3xl bg-gray-50 border border-gray-100">
                     <div className="flex flex-col">

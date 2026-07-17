@@ -14,7 +14,7 @@ export default function MarketProTemplate({ restaurant, products, categories, fe
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0);
   const [notes, setNotes] = useState("");
 
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
@@ -249,7 +249,7 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
         return (
         <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative w-full max-w-sm rounded-[2.5rem] bg-white overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
-            <button onClick={() => { setSelectedProduct(null); setQuantity(1); setNotes(""); }} className="absolute top-4 right-8 z-[210] bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-gray-100">
+            <button onClick={() => { setSelectedProduct(null); setQuantity(0); setNotes(""); }} className="absolute top-4 right-8 z-[210] bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-gray-100">
               <X size={18} className="text-gray-900" />
             </button>
             <div className="overflow-y-auto no-scrollbar flex-1">
@@ -280,9 +280,9 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
                 
                 {/* 1. SELECTOR DE UNIDADES (LIMPIO) */}
                 <div className="flex items-center justify-between p-4 rounded-2xl mb-8 border border-gray-100 bg-gray-50/80">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Unidades</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{selectedProduct.name}</p>
                   <div className="flex items-center gap-5 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="text-red-500 active:scale-75 transition-transform"><Minus size={16} strokeWidth={3}/></button>
+                    <button onClick={() => setQuantity(Math.max(0, quantity - 1))} className="text-red-500 active:scale-75 transition-transform"><Minus size={16} strokeWidth={3}/></button>
                     <span className="font-black text-sm w-4 text-center text-gray-900">{quantity}</span>
                     <button onClick={() => setQuantity(quantity + 1)} className="text-gray-900 active:scale-75 transition-transform"><Plus size={16} strokeWidth={3}/></button>
                   </div>
@@ -344,31 +344,35 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
             {/* 3. BOTÓN CONFIRMAR CON SUMA TOTAL */}
             <div className="p-6 pt-2 border-t border-gray-50 bg-white">
               <button 
-                onClick={() => { 
+                onClick={() => {
                   if (!isOpenNow && !isMockup) return setShowClosedModal(true);
-                  
-                  // Agregamos el producto
-                  onAddToCart({ ...selectedProduct, price: selectedDisplayPrice }, quantity);
 
-                  // Agregamos los extras
-                  selectedExtras.forEach(extra => {
-                    onAddToCart({
-                      id: selectedProduct.id, 
-                      extraId: extra.id,
-                      name: extra.name,
-                      price: Number(extra.price)
-                    }, quantity);
-                  });
+                  if (quantity > 0) {
+                    // Agregamos el producto
+                    onAddToCart({ ...selectedProduct, price: selectedDisplayPrice }, quantity);
+
+                    // Agregamos los extras
+                    selectedExtras.forEach(extra => {
+                      onAddToCart({
+                        id: selectedProduct.id,
+                        extraId: extra.id,
+                        name: extra.name,
+                        price: Number(extra.price)
+                      }, quantity);
+                    });
+                  }
 
                   // Reseteo de estados
-                  setSelectedProduct(null); 
+                  setSelectedProduct(null);
                   setSelectedExtras([]);
-                  setQuantity(1);
-                }} 
-                className="w-full py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all" 
+                  setQuantity(0);
+                }}
+                className="w-full py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all"
                 style={{ backgroundColor: restaurant.theme_color || '#000000', color: '#ffffff' }}
               >
-                Confirmar — ${ (selectedDisplayPrice * quantity) + (selectedExtras.reduce((acc, e) => acc + Number(e.price), 0) * quantity) }
+                {quantity > 0
+                  ? `Confirmar — $${(selectedDisplayPrice * quantity) + (selectedExtras.reduce((acc, e) => acc + Number(e.price), 0) * quantity)}`
+                  : 'Elegí una cantidad'}
               </button>
             </div>
           </div>
