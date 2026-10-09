@@ -4,9 +4,10 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Loader2, TrendingUp, X, Calendar as CalendarIcon,
-  AlertCircle, Package, CheckCircle2, DollarSign,
+  AlertCircle, Package, CheckCircle2, DollarSign, Zap,
 } from 'lucide-react';
 import { getCashShiftRange } from '@/lib/cashUtils';
 import { hasBetaAccess } from '@/lib/access';
@@ -45,6 +46,10 @@ export default function RentabilidadPage() {
   const [cashCloseHour, setCashCloseHour] = useState('00:00');
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [deliveryOrderCount, setDeliveryOrderCount] = useState(0);
+  // Pedidos aceptados del período: total y cuántos tienen turno de caja.
+  // Si hay pedidos pero ninguno con turno, no aparecen en el reporte.
+  const [periodOrderCount, setPeriodOrderCount] = useState(0);
+  const [periodOrdersWithShiftCount, setPeriodOrdersWithShiftCount] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [items, setItems] = useState<ItemCost[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -115,7 +120,7 @@ export default function RentabilidadPage() {
 
       const { start, end } = getRange(p, closeHour);
 
-      const [{ data: rows }, { data: prods }, deliveryRes, shiftsRes] = await Promise.all([
+      const [{ data: rows }, { data: prods }, deliveryRes, shiftsRes, periodOrdersRes, periodOrdersWithShiftRes] = await Promise.all([
         supabase
           .from('order_item_costs')
           .select(`product_name, product_id, quantity, unit_cost_frozen, unit_price_frozen, orders!inner(created_at, status)`)
@@ -145,9 +150,28 @@ export default function RentabilidadPage() {
           .eq('restaurant_id', rest.id)
           .gte('opened_at', start)
           .lt('opened_at', end),
+        // Pedidos aceptados del período (con o sin turno de caja)
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('restaurant_id', rest.id)
+          .gte('created_at', start)
+          .lte('created_at', end)
+          .not('status', 'in', '("pendiente","cancelado")'),
+        // Los mismos, pero solo los que tienen turno de caja
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('restaurant_id', rest.id)
+          .gte('created_at', start)
+          .lte('created_at', end)
+          .not('status', 'in', '("pendiente","cancelado")')
+          .not('shift_id', 'is', null),
       ]);
 
       setDeliveryOrderCount(deliveryRes.count ?? 0);
+      setPeriodOrderCount(periodOrdersRes.count ?? 0);
+      setPeriodOrdersWithShiftCount(periodOrdersWithShiftRes.count ?? 0);
 
       // Gastos de los turnos del período
       const shiftIds = (shiftsRes.data ?? []).map((s: any) => s.id);
@@ -251,10 +275,13 @@ export default function RentabilidadPage() {
             <div className="mx-auto w-16 h-16 bg-fresco/10 rounded-full flex items-center justify-center mb-5 text-fresco">
               <TrendingUp size={32} />
             </div>
-            <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Próximamente</h2>
-            <p className="text-gray-500 mb-8 text-sm font-medium">Esta sección estará disponible muy pronto. Estamos trabajando para traerte reportes de rentabilidad detallados.</p>
+            <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Disponible en el Plan PLUS</h2>
+            <p className="text-gray-500 mb-8 text-sm font-medium">Rentabilidad es exclusiva del <b>Plan Plus</b>.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={() => router.push('/dashboard')} className="w-full py-4 rounded-2xl font-bold bg-gray-900 text-white hover:bg-gray-800 transition shadow-lg uppercase text-xs tracking-widest">
+              <Link href="/dashboard/plan" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-fresco/90 transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+                Ver Plan Plus <Zap size={18} fill="currentColor" />
+              </Link>
+              <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
                 Volver al inicio
               </button>
             </div>
@@ -474,7 +501,16 @@ export default function RentabilidadPage() {
             )}
 
             {/* EMPTY */}
-            {withCost.length === 0 && withoutCost.length === 0 && (
+            {withCost.length === 0 && withoutCost.length === 0 && periodOrderCount > 0 && periodOrdersWithShiftCount === 0 && (
+              <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-16 text-center">
+                <AlertCircle size={40} className="text-gray-300 mx-auto mb-4" />
+                <p className="font-black text-gray-500 uppercase tracking-widest text-sm">Para ver la rentabilidad, abrí un turno de caja antes de recibir pedidos</p>
+                <p className="text-gray-400 text-xs font-medium mt-2">
+                  Hay {periodOrderCount} {periodOrderCount === 1 ? 'pedido' : 'pedidos'} en este período, pero ninguno se recibió con la caja abierta.
+                </p>
+              </div>
+            )}
+            {withCost.length === 0 && withoutCost.length === 0 && !(periodOrderCount > 0 && periodOrdersWithShiftCount === 0) && (
               <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-16 text-center">
                 <TrendingUp size={40} className="text-gray-200 mx-auto mb-4" />
                 <p className="font-black text-gray-400 uppercase tracking-widest text-sm">Sin ventas en este período</p>
