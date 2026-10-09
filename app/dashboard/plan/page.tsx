@@ -251,7 +251,8 @@ function PlanContent() {
         });
         if (!res.ok) throw new Error('Error al cambiar plan');
         const data = await res.json();
-        const isUpgrade = prices[planId] > prices[restaurant.subscription_plan as string];
+        // El server compara contra el monto real del preapproval (puede ser un precio viejo)
+        const isUpgrade: boolean = data.isUpgrade ?? (prices[planId] > prices[restaurant.subscription_plan as string]);
         if (isUpgrade && data.proratedAmount > 0 && data.prorateCharged) {
           toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.`, { duration: 6000 });
         } else if (isUpgrade && data.proratedAmount > 0 && !data.prorateCharged) {
@@ -277,7 +278,9 @@ function PlanContent() {
     const hasActiveSub = restaurant.mp_preapproval_id &&
       (restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized');
 
-    if (hasActiveSub && prices[planId] > prices[restaurant.subscription_plan ?? '']) {
+    // Con suscripción activa siempre pedimos el preview al server: el monto actual
+    // sale del preapproval de MP, no del precio de lista (si es downgrade, prorrateo = 0).
+    if (hasActiveSub) {
       setProcessingPlan(planId);
       try {
         const res = await fetch(`/api/subscriptions/change?userId=${userId}&plan=${planId}`);
@@ -440,7 +443,7 @@ function PlanContent() {
               ${estimatedProrate.amount.toLocaleString('es-AR')}
             </p>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-6">
-              A partir del próximo ciclo se cobra ${prices[pendingPlanChange].toLocaleString('es-AR')}/mes completo.
+              A partir del próximo ciclo se cobra {formatARS(prices[pendingPlanChange])}/mes completo.
             </p>
             <div className="flex gap-3">
               <button
