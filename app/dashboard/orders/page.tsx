@@ -672,7 +672,7 @@ useEffect(() => {
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic">Gestor de Pedidos</h2>
            <p className="text-gray-500 mb-8 text-sm">El panel de pedidos en tiempo real está disponible desde el <b>Plan GO</b>.</p>
 <div className="flex flex-col gap-3">
-   <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg uppercase text-xs tracking-widest text-center no-underline">
+   <Link href="/dashboard/plan" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg uppercase text-xs tracking-widest text-center no-underline">
       Actualizar a GO <Zap size={18} fill="currentColor" className="inline ml-1" />
    </Link>
                <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600">
@@ -1216,7 +1216,7 @@ useEffect(() => {
 
               <div className="flex flex-col gap-3">
                 <Link 
-                  href="/dashboard/settings?focus=phone" 
+                  href="/dashboard/plan" 
                   className="w-full bg-fresco text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[#B8E8D4] hover:bg-[#17A06D] transition-all flex items-center justify-center gap-2 no-underline"
                 >
                   Ver Planes <Zap size={14} fill="currentColor" />
