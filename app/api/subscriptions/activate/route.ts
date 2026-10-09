@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
+import { isPlanId } from '@/lib/plans';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const prices: Record<string, number> = { light: 15000, go: 22000, plus: 35000 };
 
 // Activa un plan en modo trial. Server-side para evitar que el usuario
 // resetee su trial infinitamente manipulando el cliente.
@@ -18,7 +17,7 @@ export async function POST(req: Request) {
     const userId = sessionUser.id;
 
     const { plan } = await req.json();
-    if (!plan || !prices[plan]) {
+    if (!isPlanId(plan)) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
     }
 
