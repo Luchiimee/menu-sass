@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
+import { cancelPreapproval } from '@/lib/mercadopagoBilling';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -32,13 +33,36 @@ export async function POST(req: Request) {
     // Obtener mp_customer_id guardado (evita search por email si ya lo tenemos)
     const { data: restaurant, error: restError } = await supabase
       .from('restaurants')
-      .select('mp_customer_id')
+      .select('mp_customer_id, mp_preapproval_id')
       .eq('user_id', userId)
       .maybeSingle();
 
     if (restError || !restaurant) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
     }
+
+    // Si tiene un preapproval en MP, cancelarlo ANTES de tocar tarjetas: con la
+    // tarjeta nueva pasa al modelo de cobro por cron, y si el preapproval sigue
+    // vivo MP seguiría cobrando por su lado. Si MP no confirma, abortamos sin
+    // tocar nada para no perder la referencia.
+    const hadPreapproval = !!restaurant.mp_preapproval_id;
+    if (restaurant.mp_preapproval_id) {
+      const cancel = await cancelPreapproval(restaurant.mp_preapproval_id);
+      if (!cancel.ok) {
+        console.error(`update-card — MP no canceló el preapproval ${restaurant.mp_preapproval_id}:`, cancel.detail);
+        return NextResponse.json(
+          { error: 'No pudimos actualizar la suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
+          { status: 502 }
+        );
+      }
+    }
+
+    // El preapproval ya quedó cancelado en MP: si algo falla más adelante,
+    // limpiamos la referencia igual para que la base no apunte a uno muerto.
+    const clearCancelledPreapproval = async () => {
+      if (!hadPreapproval) return;
+      await supabase.from('restaurants').update({ mp_preapproval_id: null }).eq('user_id', userId);
+    };
 
     // Obtener o crear customer en MP
     let customerId: string = restaurant.mp_customer_id ?? '';
@@ -60,6 +84,7 @@ export async function POST(req: Request) {
         });
         const customer = await create.json();
         if (!create.ok) {
+          await clearCancelledPreapproval();
           return NextResponse.json({ error: customer.message || 'Error al crear customer' }, { status: 502 });
         }
         customerId = customer.id;
@@ -93,6 +118,7 @@ export async function POST(req: Request) {
 
     if (!cardRes.ok) {
       console.error('MP update-card (save card) ERROR:', JSON.stringify(card, null, 2));
+      await clearCancelledPreapproval();
       return NextResponse.json({ error: card.message || 'Error al guardar tarjeta' }, { status: 502 });
     }
 

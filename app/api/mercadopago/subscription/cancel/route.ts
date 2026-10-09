@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
+import { cancelPreapproval } from '@/lib/mercadopagoBilling';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,30 @@ export async function POST() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
     const userId = sessionUser.id;
+
+    const { data: restaurant, error: restError } = await supabase
+      .from('restaurants')
+      .select('mp_preapproval_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (restError || !restaurant) {
+      return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+    }
+
+    // Si tiene preapproval en MP, cancelarlo primero. Si MP no lo confirma,
+    // no tocamos la base: borrar mp_preapproval_id perdería la referencia y MP
+    // seguiría cobrando.
+    if (restaurant.mp_preapproval_id) {
+      const result = await cancelPreapproval(restaurant.mp_preapproval_id);
+      if (!result.ok) {
+        console.error(`cancel — MP no canceló el preapproval ${restaurant.mp_preapproval_id}:`, result.detail);
+        return NextResponse.json(
+          { error: 'No pudimos cancelar la suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
+          { status: 502 }
+        );
+      }
+    }
 
     const { error: updateError } = await supabase
       .from('restaurants')
