@@ -27,7 +27,8 @@ export const LEGACY_PLAN_PRICES: Record<PlanId, number> = {
   plus:  35000,
 };
 
-const FALLBACK_PLAN_AMOUNT = 22000;
+// Plan desconocido → se cobra el precio de GO (misma regla de siempre).
+const FALLBACK_PLAN_AMOUNT = PLAN_PRICES.go;
 
 export function isPlanId(plan: unknown): plan is PlanId {
   return typeof plan === 'string' && (PLAN_IDS as readonly string[]).includes(plan);
@@ -39,7 +40,7 @@ export function getPlanAmount(plan: string | null | undefined): number {
   return FALLBACK_PLAN_AMOUNT;
 }
 
-// $15.000
+// formatARS(20000) → "$20.000"
 export function formatARS(n: number): string {
   return `$${n.toLocaleString('es-AR')}`;
 }
