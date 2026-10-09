@@ -36,6 +36,28 @@ function currentAmountFrom(preapprovalData: any | null, currentPlan: PlanId): nu
   return Number.isFinite(amount) && amount > 0 ? amount : prices[currentPlan];
 }
 
+// Próximo cobro del ciclo actual. Usa next_payment_date del preapproval (la
+// fecha real de MP); si no está, la estima por el día de alta (acotado al último
+// día del mes para no desbordar, p. ej. día 31 en un mes de 30).
+function nextRenewalFrom(preapprovalData: any | null, today: Date): Date {
+  const mpNext = preapprovalData?.next_payment_date ? new Date(preapprovalData.next_payment_date) : null;
+  if (mpNext && !isNaN(mpNext.getTime()) && mpNext > today) return mpNext;
+
+  const created = new Date(preapprovalData?.date_created || today);
+  const dayIn = (y: number, m: number) => Math.min(created.getDate(), new Date(y, m + 1, 0).getDate());
+  let renewal = new Date(today.getFullYear(), today.getMonth(), dayIn(today.getFullYear(), today.getMonth()));
+  if (renewal <= today) {
+    const y = today.getMonth() === 11 ? today.getFullYear() + 1 : today.getFullYear();
+    const m = (today.getMonth() + 1) % 12;
+    renewal = new Date(y, m, dayIn(y, m));
+  }
+  return renewal;
+}
+
+function daysUntil(date: Date, today: Date): number {
+  return Math.max(1, Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
 export async function GET(req: Request) {
   try {
     const sessionUser = await getSessionUser();
@@ -67,13 +89,8 @@ export async function GET(req: Request) {
     const newPrice = prices[plan];
     const isUpgrade = newPrice > currentPrice;
 
-    const dateCreated = new Date(preapprovalData?.date_created || new Date());
     const today = new Date();
-    const renewalDay = dateCreated.getDate();
-    const nextRenewal = new Date(today.getFullYear(), today.getMonth(), renewalDay);
-    if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
-
-    const daysRemaining = Math.max(1, Math.ceil((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    const daysRemaining = daysUntil(nextRenewalFrom(preapprovalData, today), today);
     const proratedAmount = Math.round((daysRemaining / 30) * (newPrice - currentPrice));
 
     return NextResponse.json({ proratedAmount: Math.max(0, proratedAmount), daysRemaining, isUpgrade, currentPrice, newPrice });
@@ -90,7 +107,7 @@ export async function POST(req: Request) {
     }
     const userId = sessionUser.id;
 
-    const { plan, email } = await req.json();
+    const { plan } = await req.json();
 
     if (!isPlanId(plan)) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
@@ -98,9 +115,13 @@ export async function POST(req: Request) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('mp_preapproval_id, subscription_status, subscription_plan')
+      .select('mp_preapproval_id, subscription_status, subscription_plan, owner_email')
       .eq('user_id', userId)
       .maybeSingle();
+
+    // El email para buscar la tarjeta a cobrar sale de la base, NO del body:
+    // si viniera del cliente, se podría cobrar el prorrateo a la tarjeta de otro.
+    const email: string | undefined = restaurant?.owner_email || sessionUser.email || undefined;
 
     const preapprovalId = restaurant?.mp_preapproval_id;
     const currentPlan = restaurant?.subscription_plan;
@@ -119,18 +140,25 @@ export async function POST(req: Request) {
       const newPrice = prices[plan];
       isUpgrade = newPrice > currentPrice;
 
-      // Calcular próxima fecha de renovación basada en la fecha de creación
-      const dateCreated = new Date(preapprovalData?.date_created || new Date());
+      // Mismo cálculo que el preview (GET) para que el monto cobrado coincida con el mostrado
       const today = new Date();
-      const renewalDay = dateCreated.getDate();
+      daysRemaining = daysUntil(nextRenewalFrom(preapprovalData, today), today);
 
-      const nextRenewal = new Date(today);
-      nextRenewal.setDate(renewalDay);
-      if (nextRenewal <= today) {
-        nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+      // Actualizar el monto del preapproval ANTES de cobrar el prorrateo: si MP
+      // no lo acepta, abortamos sin cobrar nada y sin cambiar el plan en la base.
+      const putRes = await fetch(`${MP_BASE}/preapproval/${preapprovalId}`, {
+        method: 'PUT',
+        headers: mpHeaders(),
+        body: JSON.stringify({ auto_recurring: { transaction_amount: newPrice } }),
+      });
+      if (!putRes.ok) {
+        const putErr = await putRes.json().catch(() => ({}));
+        console.error(`change — PUT monto preapproval ${preapprovalId} falló: http=${putRes.status}`, putErr);
+        return NextResponse.json(
+          { error: 'No pudimos actualizar tu suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
+          { status: 502 }
+        );
       }
-
-      daysRemaining = Math.max(1, Math.ceil((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 
       // Cobrar diferencia proporcional solo si es un upgrade
       if (isUpgrade && email) {
@@ -183,13 +211,6 @@ export async function POST(req: Request) {
           }
         }
       }
-
-      // Actualizar monto de la suscripción para el próximo ciclo
-      await fetch(`${MP_BASE}/preapproval/${preapprovalId}`, {
-        method: 'PUT',
-        headers: mpHeaders(),
-        body: JSON.stringify({ auto_recurring: { transaction_amount: newPrice } }),
-      });
     }
 
     // Actualizar Supabase

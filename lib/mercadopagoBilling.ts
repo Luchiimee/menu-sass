@@ -234,3 +234,21 @@ export async function cancelPreapproval(preapprovalId: string): Promise<CancelPr
     return { ok: false, detail: err.message || 'Error de red al cancelar la suscripción' };
   }
 }
+
+export type GetPreapprovalResult =
+  | { ok: true; data: any }
+  | { ok: false; detail: string };
+
+// GET de un preapproval en MP (solo lectura).
+export async function getPreapproval(preapprovalId: string): Promise<GetPreapprovalResult> {
+  try {
+    const res = await fetch(`${MP_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+      headers: mpHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, detail: data.message ?? `http=${res.status}` };
+    return { ok: true, data };
+  } catch (err: any) {
+    return { ok: false, detail: err.message || 'Error de red al consultar la suscripción' };
+  }
+}
