@@ -425,7 +425,7 @@ const menuItems = [
         </div>
       )}
 
-      {/* Modal Próximamente — Rentabilidad */}
+      {/* Modal Rentabilidad bloqueada por plan */}
       {showRentabilidadModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-[#F0FAF6] max-w-sm w-full text-center animate-in zoom-in-95 relative">
@@ -433,13 +433,14 @@ const menuItems = [
             <div className="w-20 h-20 bg-[#F0FAF6] text-fresco rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
               <TrendingUp size={40} />
             </div>
-            <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Próximamente</h2>
+            <h2 className="text-2xl font-black mb-3 uppercase italic text-gray-900 leading-none tracking-tighter">Disponible en el Plan PLUS</h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-8 font-medium">
-              Esta sección estará disponible muy pronto. Estamos trabajando para traerte reportes de rentabilidad detallados.
+              Rentabilidad es exclusiva del Plan PLUS. 💎
             </p>
-            <button onClick={() => setShowRentabilidadModal(false)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">
-              Cerrar
-            </button>
+            <div className="space-y-3">
+              <Link href="/dashboard/plan" onClick={() => setShowRentabilidadModal(false)} className="block w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest">VER PLAN PLUS 🚀</Link>
+              <button onClick={() => setShowRentabilidadModal(false)} className="block w-full py-3 text-gray-400 font-bold uppercase text-[10px]">Más tarde</button>
+            </div>
           </div>
         </div>
       )}

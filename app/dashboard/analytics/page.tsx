@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
             <h2 className="text-2xl font-bold mb-2 tracking-tighter uppercase italic text-gray-900">Control de Caja</h2>
             <p className="text-gray-500 mb-8 text-sm font-medium">Las métricas y arqueo de caja son exclusivos del <b>Plan Plus</b>.</p>
             <div className="flex flex-col gap-3">
-              <Link href="/dashboard/settings" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+              <Link href="/dashboard/plan" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-[#17A06D] transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
                 Actualizar a Plus <Zap size={18} fill="currentColor" />
               </Link>
               <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
