@@ -7,6 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
 import { Loader2, User, Check, CreditCard, Clock, FileText, X, RefreshCw } from "lucide-react";
 import PaymentForm from "@/components/PaymentForm";
+import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 
 type Restaurant = {
   id: string | null;
@@ -25,8 +26,8 @@ const PLANS = [
     id: 'light' as const,
     name: 'Light',
     tagline: 'Para empezar',
-    price: 15000,
-    originalPrice: 19500,
+    price: PLAN_PRICES.light,
+    originalPrice: PLAN_ORIGINAL_PRICES.light,
     accent: 'border-gray-500',
     badge: null,
     features: [
@@ -45,8 +46,8 @@ const PLANS = [
     id: 'go' as const,
     name: 'GO',
     tagline: 'Más potencia',
-    price: 22000,
-    originalPrice: 28600,
+    price: PLAN_PRICES.go,
+    originalPrice: PLAN_ORIGINAL_PRICES.go,
     accent: 'border-fresco',
     badge: 'POPULAR',
     features: [
@@ -68,8 +69,8 @@ const PLANS = [
     id: 'plus' as const,
     name: 'Plus',
     tagline: 'Profesional ✨',
-    price: 35000,
-    originalPrice: 45500,
+    price: PLAN_PRICES.plus,
+    originalPrice: PLAN_ORIGINAL_PRICES.plus,
     accent: 'border-fresco',
     badge: null,
     features: [
@@ -87,7 +88,8 @@ const PLANS = [
   },
 ];
 
-const prices: Record<string, number> = { light: 15000, go: 22000, plus: 35000 };
+// Lookup por string (subscription_plan viene de la base): undefined si el plan es desconocido.
+const prices: Record<string, number> = PLAN_PRICES;
 
 function PlanContent() {
   const supabase = createBrowserClient(
@@ -249,7 +251,8 @@ function PlanContent() {
         });
         if (!res.ok) throw new Error('Error al cambiar plan');
         const data = await res.json();
-        const isUpgrade = prices[planId] > prices[restaurant.subscription_plan as string];
+        // El server compara contra el monto real del preapproval (puede ser un precio viejo)
+        const isUpgrade: boolean = data.isUpgrade ?? (prices[planId] > prices[restaurant.subscription_plan as string]);
         if (isUpgrade && data.proratedAmount > 0 && data.prorateCharged) {
           toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.`, { duration: 6000 });
         } else if (isUpgrade && data.proratedAmount > 0 && !data.prorateCharged) {
@@ -275,7 +278,9 @@ function PlanContent() {
     const hasActiveSub = restaurant.mp_preapproval_id &&
       (restaurant.subscription_status === 'active' || restaurant.subscription_status === 'authorized');
 
-    if (hasActiveSub && prices[planId] > prices[restaurant.subscription_plan ?? '']) {
+    // Con suscripción activa siempre pedimos el preview al server: el monto actual
+    // sale del preapproval de MP, no del precio de lista (si es downgrade, prorrateo = 0).
+    if (hasActiveSub) {
       setProcessingPlan(planId);
       try {
         const res = await fetch(`/api/subscriptions/change?userId=${userId}&plan=${planId}`);
@@ -438,7 +443,7 @@ function PlanContent() {
               ${estimatedProrate.amount.toLocaleString('es-AR')}
             </p>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-6">
-              A partir del próximo ciclo se cobra ${prices[pendingPlanChange].toLocaleString('es-AR')}/mes completo.
+              A partir del próximo ciclo se cobra {formatARS(prices[pendingPlanChange])}/mes completo.
             </p>
             <div className="flex gap-3">
               <button
@@ -649,9 +654,9 @@ function PlanContent() {
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{plan.tagline}</p>
                     <h3 className="text-2xl font-black text-gray-900 italic tracking-tighter mt-0.5">{plan.name}</h3>
                     <div className="mt-3">
-                      <span className="line-through text-gray-400 text-sm font-medium">${plan.originalPrice.toLocaleString('es-AR')}</span>
+                      <span className="line-through text-gray-400 text-sm font-medium">{formatARS(plan.originalPrice)}</span>
                       <p className="text-3xl font-black text-gray-900">
-                        ${plan.price.toLocaleString('es-AR')}
+                        {formatARS(plan.price)}
                         <span className="text-sm text-gray-400 font-bold"> /mes</span>
                       </p>
                     </div>

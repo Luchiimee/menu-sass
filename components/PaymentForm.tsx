@@ -3,12 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Shield, CreditCard, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const PLAN_PRICES: Record<string, number> = {
-  light: 15000,
-  go: 22000,
-  plus: 35000,
-};
+import { PLAN_PRICES, formatARS, isPlanId } from '@/lib/plans';
 
 interface PaymentFormProps {
   plan: string;
@@ -45,7 +40,7 @@ export default function PaymentForm({
   const [docNumber, setDocNumber] = useState('');
   const mpRef = useRef<any>(null);
   const fieldsReady = useRef(false);
-  const amount = PLAN_PRICES[plan] ?? 0;
+  const amount = isPlanId(plan) ? PLAN_PRICES[plan] : 0;
 
   useEffect(() => {
     if (window.MercadoPago) { initMP(); return; }
@@ -143,7 +138,7 @@ export default function PaymentForm({
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
               {isUpdateCard
                 ? 'Ingresá tu nueva tarjeta de pago'
-                : `$${amount.toLocaleString('es-AR')} / mes · 14 días gratis`}
+                : `${formatARS(amount)} / mes · 14 días gratis`}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">

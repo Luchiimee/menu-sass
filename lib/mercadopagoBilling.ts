@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { getPlanAmount } from '@/lib/plans';
 
 const MP_BASE = 'https://api.mercadopago.com';
 
@@ -7,16 +8,6 @@ const mpHeaders = (idempotencyKey?: string): Record<string, string> => ({
   Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
   ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
 });
-
-export const PLAN_PRICES: Record<string, number> = {
-  light: 15000,
-  go:    22000,
-  plus:  35000,
-};
-
-export function getPlanAmount(plan: string | null | undefined): number {
-  return PLAN_PRICES[plan ?? ''] ?? 22000;
-}
 
 export type ChargeResult =
   | { outcome: 'approved'; paymentId: string }
@@ -206,5 +197,58 @@ export async function createSubscription({
     };
   } catch (err: any) {
     return { outcome: 'error', detail: err.message || 'Error de red al crear la suscripción' };
+  }
+}
+
+export type CancelPreapprovalResult =
+  | { ok: true }
+  | { ok: false; detail: string };
+
+// Cancela un preapproval (suscripción) en Mercado Pago. Solo devuelve ok si MP
+// confirma que quedó cancelado: el caller NO debe borrar mp_preapproval_id de la
+// base si esto falla, para no perder la referencia y que MP siga cobrando.
+// Si ya estaba cancelado (p. ej. un reintento), también se considera ok.
+export async function cancelPreapproval(preapprovalId: string): Promise<CancelPreapprovalResult> {
+  try {
+    const res = await fetch(`${MP_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+      method: 'PUT',
+      headers: mpHeaders(crypto.randomUUID()),
+      body: JSON.stringify({ status: 'cancelled' }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.status === 'cancelled') return { ok: true };
+
+    // MP rechaza el PUT si el preapproval ya estaba cancelado: lo verificamos con un GET.
+    const checkRes = await fetch(`${MP_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+      headers: mpHeaders(),
+    });
+    const check = await checkRes.json().catch(() => ({}));
+    if (checkRes.ok && check.status === 'cancelled') return { ok: true };
+
+    return {
+      ok: false,
+      detail: data.message ?? `MP no confirmó la cancelación: http=${res.status} status=${data.status}`,
+    };
+  } catch (err: any) {
+    return { ok: false, detail: err.message || 'Error de red al cancelar la suscripción' };
+  }
+}
+
+export type GetPreapprovalResult =
+  | { ok: true; data: any }
+  | { ok: false; detail: string };
+
+// GET de un preapproval en MP (solo lectura).
+export async function getPreapproval(preapprovalId: string): Promise<GetPreapprovalResult> {
+  try {
+    const res = await fetch(`${MP_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+      headers: mpHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, detail: data.message ?? `http=${res.status}` };
+    return { ok: true, data };
+  } catch (err: any) {
+    return { ok: false, detail: err.message || 'Error de red al consultar la suscripción' };
   }
 }
