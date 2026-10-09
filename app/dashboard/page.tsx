@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { isAdminEmail } from '@/lib/access';
+import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from '@/lib/plans';
 
 export default function DashboardHome() {
   const [isLocked, setIsLocked] = useState(false);
@@ -349,8 +350,8 @@ const PhoneWarningBanner = () => {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Para Empezar</h3>
                 <p className="text-2xl font-black text-gray-900">Light</p>
                 <div className="my-3 py-2 border-y border-gray-50">
-                    <span className="line-through text-gray-400 text-xs font-medium block">$19.500</span>
-                    <p className="text-xl font-black text-gray-800">$15.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <span className="line-through text-gray-400 text-xs font-medium block">{formatARS(PLAN_ORIGINAL_PRICES.light)}</span>
+                    <p className="text-xl font-black text-gray-800">{formatARS(PLAN_PRICES.light)} <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Emprendimientos pequeños. <br/> 
@@ -368,8 +369,8 @@ const PhoneWarningBanner = () => {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-fresco mb-1">Profesional</h3>
                 <p className="text-2xl font-black text-gray-900">Plan GO</p>
                 <div className="my-3 py-2 border-y border-[#E8F7F1]">
-                    <span className="line-through text-gray-400 text-xs font-medium block">$28.600</span>
-                    <p className="text-xl font-black text-fresco">$22.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <span className="line-through text-gray-400 text-xs font-medium block">{formatARS(PLAN_ORIGINAL_PRICES.go)}</span>
+                    <p className="text-xl font-black text-fresco">{formatARS(PLAN_PRICES.go)} <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-ink font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Negocios que crecen. <br/> 
@@ -386,8 +387,8 @@ const PhoneWarningBanner = () => {
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-fresco mb-1">Locales Físicos</h3>
                 <p className="text-2xl font-black text-gray-900">Plus</p>
                 <div className="my-3 py-2 border-y border-gray-50">
-                    <span className="line-through text-gray-400 text-xs font-medium block">$45.500</span>
-                    <p className="text-xl font-black text-gray-800">$35.000 <span className="text-[10px] text-gray-400">/mes</span></p>
+                    <span className="line-through text-gray-400 text-xs font-medium block">{formatARS(PLAN_ORIGINAL_PRICES.plus)}</span>
+                    <p className="text-xl font-black text-gray-800">{formatARS(PLAN_PRICES.plus)} <span className="text-[10px] text-gray-400">/mes</span></p>
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Salones y locales. <br/> 

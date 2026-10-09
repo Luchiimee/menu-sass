@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { getPlanAmount } from '@/lib/plans';
 
 const MP_BASE = 'https://api.mercadopago.com';
 
@@ -7,16 +8,6 @@ const mpHeaders = (idempotencyKey?: string): Record<string, string> => ({
   Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
   ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
 });
-
-export const PLAN_PRICES: Record<string, number> = {
-  light: 15000,
-  go:    22000,
-  plus:  35000,
-};
-
-export function getPlanAmount(plan: string | null | undefined): number {
-  return PLAN_PRICES[plan ?? ''] ?? 22000;
-}
 
 export type ChargeResult =
   | { outcome: 'approved'; paymentId: string }

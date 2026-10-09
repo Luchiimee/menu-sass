@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 import {
   ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
   Smartphone, MousePointer2, HelpCircle, CreditCard, PlayCircle,
@@ -1579,9 +1580,9 @@ export default function LandingPage() {
               <h3 className="text-lg font-bold text-ink mb-1">Light</h3>
               <p className="text-xs text-graphite mb-6 uppercase font-bold tracking-wider">Para empezar</p>
               <div className="mb-6">
-                <span className="line-through text-graphite text-sm font-medium">$19.500</span>
+                <span className="line-through text-graphite text-sm font-medium">{formatARS(PLAN_ORIGINAL_PRICES.light)}</span>
                 <div>
-                  <span className="text-5xl font-bold text-ink">$15.000</span>
+                  <span className="text-5xl font-bold text-ink">{formatARS(PLAN_PRICES.light)}</span>
                   <span className="text-graphite text-sm">/mes</span>
                 </div>
               </div>
@@ -1631,9 +1632,9 @@ export default function LandingPage() {
               <h3 className="text-lg font-bold text-fresco mb-1">GO</h3>
               <p className="text-xs text-graphite mb-6 uppercase font-bold tracking-wider">Más Potencia</p>
               <div className="mb-6">
-                <span className="line-through text-graphite text-sm font-medium">$28.600</span>
+                <span className="line-through text-graphite text-sm font-medium">{formatARS(PLAN_ORIGINAL_PRICES.go)}</span>
                 <div>
-                  <span className="text-5xl font-bold text-ink">$22.000</span>
+                  <span className="text-5xl font-bold text-ink">{formatARS(PLAN_PRICES.go)}</span>
                   <span className="text-graphite text-sm">/mes</span>
                 </div>
               </div>
@@ -1704,9 +1705,9 @@ export default function LandingPage() {
               </h3>
               <p className="text-xs text-graphite mb-6 uppercase font-bold tracking-wider">Profesional</p>
               <div className="mb-6">
-                <span className="line-through text-graphite text-sm font-medium">$45.500</span>
+                <span className="line-through text-graphite text-sm font-medium">{formatARS(PLAN_ORIGINAL_PRICES.plus)}</span>
                 <div>
-                  <span className="text-5xl font-bold text-ink">$35.000</span>
+                  <span className="text-5xl font-bold text-ink">{formatARS(PLAN_PRICES.plus)}</span>
                   <span className="text-graphite text-sm">/mes</span>
                 </div>
               </div>

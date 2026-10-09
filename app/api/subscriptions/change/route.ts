@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
+import { PLAN_PRICES as prices, isPlanId } from '@/lib/plans';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const prices: Record<string, number> = {
-  light: 15000,
-  go: 22000,
-  plus: 35000,
-};
 
 const MP_BASE = 'https://api.mercadopago.com';
 const mpHeaders = () => ({
@@ -30,7 +25,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const plan = searchParams.get('plan');
 
-    if (!plan || !prices[plan]) {
+    if (!isPlanId(plan)) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
@@ -40,8 +35,8 @@ export async function GET(req: Request) {
       .eq('user_id', userId)
       .maybeSingle();
 
-    const currentPlan = restaurant?.subscription_plan as string;
-    if (!restaurant?.mp_preapproval_id || !currentPlan || !prices[currentPlan]) {
+    const currentPlan = restaurant?.subscription_plan;
+    if (!restaurant?.mp_preapproval_id || !isPlanId(currentPlan)) {
       return NextResponse.json({ proratedAmount: 0, daysRemaining: 0 });
     }
 
@@ -76,7 +71,7 @@ export async function POST(req: Request) {
 
     const { plan, email } = await req.json();
 
-    if (!plan || !prices[plan]) {
+    if (!isPlanId(plan)) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
@@ -87,7 +82,7 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const preapprovalId = restaurant?.mp_preapproval_id;
-    const currentPlan = restaurant?.subscription_plan as string;
+    const currentPlan = restaurant?.subscription_plan;
     const status = restaurant?.subscription_status;
     const hasActiveSub = preapprovalId && (status === 'active' || status === 'authorized');
 
@@ -95,7 +90,7 @@ export async function POST(req: Request) {
     let daysRemaining = 0;
     let prorateCharged = false;
 
-    if (hasActiveSub && currentPlan && prices[currentPlan]) {
+    if (hasActiveSub && isPlanId(currentPlan)) {
       const currentPrice = prices[currentPlan];
       const newPrice = prices[plan];
       const isUpgrade = newPrice > currentPrice;
