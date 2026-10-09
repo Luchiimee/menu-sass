@@ -208,3 +208,38 @@ export async function createSubscription({
     return { outcome: 'error', detail: err.message || 'Error de red al crear la suscripción' };
   }
 }
+
+export type CancelPreapprovalResult =
+  | { ok: true }
+  | { ok: false; detail: string };
+
+// Cancela un preapproval (suscripción) en Mercado Pago. Solo devuelve ok si MP
+// confirma que quedó cancelado: el caller NO debe borrar mp_preapproval_id de la
+// base si esto falla, para no perder la referencia y que MP siga cobrando.
+// Si ya estaba cancelado (p. ej. un reintento), también se considera ok.
+export async function cancelPreapproval(preapprovalId: string): Promise<CancelPreapprovalResult> {
+  try {
+    const res = await fetch(`${MP_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+      method: 'PUT',
+      headers: mpHeaders(crypto.randomUUID()),
+      body: JSON.stringify({ status: 'cancelled' }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.status === 'cancelled') return { ok: true };
+
+    // MP rechaza el PUT si el preapproval ya estaba cancelado: lo verificamos con un GET.
+    const checkRes = await fetch(`${MP_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+      headers: mpHeaders(),
+    });
+    const check = await checkRes.json().catch(() => ({}));
+    if (checkRes.ok && check.status === 'cancelled') return { ok: true };
+
+    return {
+      ok: false,
+      detail: data.message ?? `MP no confirmó la cancelación: http=${res.status} status=${data.status}`,
+    };
+  } catch (err: any) {
+    return { ok: false, detail: err.message || 'Error de red al cancelar la suscripción' };
+  }
+}
