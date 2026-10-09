@@ -21,7 +21,6 @@ export const ADMIN_SNAPPY_ACCESS_EMAILS = [
 // Acceso anticipado a Caja y Rentabilidad independientemente del plan.
 export const BETA_ACCESS_EMAILS = [
   'luchiimee2@gmail.com',
-  'vachettigustavo@gmail.com',
 ];
 
 function normalize(email?: string | null) {
