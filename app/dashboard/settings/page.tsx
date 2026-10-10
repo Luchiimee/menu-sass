@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { canUseMpConnect } from '@/lib/access';
 
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
@@ -60,6 +59,19 @@ function SettingsContent() {
   const [restaurant, setRestaurant] = useState<any>({ id: null, business_hours: {}, subscription_plan: null });
 
   const [settingsTab, setSettingsTab] = useState<'seguridad' | 'horarios' | 'impresoras' | 'integraciones'>('seguridad');
+
+  // MP Connect disponible para este usuario: lo decide el servidor (/api/mp/status).
+  // null = cargando o sin respuesta → se muestra "Próximamente".
+  const [mpAvailable, setMpAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/mp/status', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (mounted) setMpAvailable(data?.available === true); })
+      .catch(() => { if (mounted) setMpAvailable(false); });
+    return () => { mounted = false; };
+  }, []);
 
   // --- QZ TRAY ---
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
@@ -967,8 +979,8 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
             {restaurant.subscription_plan === 'light' && <PlanLockOverlay />}
             <div className={`space-y-6 ${restaurant.subscription_plan === 'light' ? 'blur-sm pointer-events-none select-none' : ''}`}>
               {/* La conexión de Mercado Pago se administra en Pagos y delivery → Métodos de pago.
-                  Mientras MP Connect no esté disponible para este usuario (lib/access.ts), "Próximamente". */}
-              {canUseMpConnect(profile.email) ? (
+                  "Próximamente" mientras carga o si MP Connect no está disponible (available de /api/mp/status). */}
+              {mpAvailable === true ? (
                 <Link href="/dashboard/pagos?tab=metodos" className="block bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8 hover:border-fresco/40 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">

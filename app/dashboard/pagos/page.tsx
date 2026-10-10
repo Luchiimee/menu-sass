@@ -87,7 +87,7 @@ function CardHeader({ icon, title, subtitle, badge, action }: { icon: React.Reac
 }
 
 // Estado de la cuenta de Mercado Pago vinculada (MP Connect, /api/mp/status)
-// available: MP Connect habilitado para este usuario (lib/access.ts → canUseMpConnect)
+// available: MP Connect habilitado para este usuario (lo decide el servidor en /api/mp/status)
 type MpStatus =
   | { status: 'disconnected'; available: boolean }
   | { status: 'connected' | 'expired' | 'error'; nickname: string | null; expiresAt: string | null; available: boolean };
