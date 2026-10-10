@@ -229,14 +229,16 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
                 Object.entries(variationsQuantities).forEach(([idx, qty]) => {
                   if (qty > 0) {
                     const variation = selectedProduct.variations[Number(idx)];
-                    onAddToCart({ ...selectedProduct, id: `${selectedProduct.id}-${idx}`, name: `${selectedProduct.name} (${variation.label})`, price: Number(variation.price) }, qty);
-                    selectedExtras.forEach(ex => onAddToCart({ id: `${selectedProduct.id}-${idx}`, extraId: ex.id, name: ex.name, price: Number(ex.price) }, qty));
+                    onAddToCart(
+                      { ...selectedProduct, id: `${selectedProduct.id}-${idx}`, name: `${selectedProduct.name} (${variation.label})`, price: Number(variation.price) },
+                      qty,
+                      selectedExtras.map((ex: any) => ({ id: ex.id, name: ex.name, price: Number(ex.price), quantity: 1 })),
+                    );
                   }
                 });
               } else {
                 if (quantity > 0) {
-                  onAddToCart(selectedProduct, quantity);
-                  selectedExtras.forEach(ex => onAddToCart({ id: selectedProduct.id, extraId: ex.id, name: ex.name, price: Number(ex.price) }, quantity));
+                  onAddToCart(selectedProduct, quantity, selectedExtras.map((ex: any) => ({ id: ex.id, name: ex.name, price: Number(ex.price), quantity: 1 })));
                 }
               }
               setSelectedProduct(null);

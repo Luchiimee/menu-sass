@@ -691,7 +691,7 @@ function MenuContent({
   });
 
   console.log("Dato del botón:", restaurant.card_btn_text);
-  const { cart, addToCart, updateQuantity, activeOrderId, setActiveOrderId } =
+  const { cart, addToCart, addItem, updateQuantity, activeOrderId, setActiveOrderId } =
     useCart();
   const [showTracking, setShowTracking] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -1047,10 +1047,9 @@ const handleSendReservation = async () => {
             fetchedExtras={restaurant.fetched_extras}
             isOpen={isOpen}
             mesaLabel={mesaLabel}
-            onAddToCart={(product: any, qty: number) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
               mostrarAviso("✅ Producto agregado");
             }}
             isMockup={false}
@@ -1066,10 +1065,9 @@ const handleSendReservation = async () => {
             fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
             mesaLabel={mesaLabel}
-            onAddToCart={(product: any, qty: number = 1) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
               mostrarAviso("✅ Agregado");
             }}
             isMockup={false}
@@ -1085,10 +1083,9 @@ const handleSendReservation = async () => {
             fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
             mesaLabel={mesaLabel}
-            onAddToCart={(product: any, qty: number = 1) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
               mostrarAviso("✅ Agregado");
             }}
             isMockup={false}
@@ -1343,10 +1340,9 @@ case "spotlight":
       products={allProducts}
       categories={displayCats}
       fetchedExtras={restaurant.fetched_extras}
-      onAddToCart={(product: any, qty: number) => {
-        for (let i = 0; i < qty; i++) {
-          addToCart(product);
-        }
+      onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+        // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+        addItem(product, qty, extras);
         mostrarAviso("✅ Producto agregado");
       }}
       isOpen={isOpen}
@@ -1656,10 +1652,9 @@ case "spotlight":
             isOpen={isOpen}
             mesaLabel={mesaLabel}
             setShowInfo={setShowInfo}
-            onAddToCart={(product: any, qty: number) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
               mostrarAviso("✅ Producto agregado");
             }}
           />
@@ -1688,10 +1683,9 @@ case "spotlight":
       setSelectedProduct={setSelectedProduct}
       isOpen={isOpen}
       mesaLabel={mesaLabel}
-      onAddToCart={(product: any, qty: number) => {
-        for (let i = 0; i < qty; i++) {
-          addToCart(product);
-        }
+      onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+        // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+        addItem(product, qty, extras);
         mostrarAviso("✅ Producto agregado");
       }}
       isMockup={false}
@@ -1707,10 +1701,9 @@ case "spotlight":
             fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
             mesaLabel={mesaLabel}
-            onAddToCart={(product: any, qty: number = 1) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
               mostrarAviso("✅ Agregado");
             }}
             isMockup={false}
@@ -1726,10 +1719,9 @@ case "spotlight":
             fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
             mesaLabel={mesaLabel}
-            onAddToCart={(product: any, qty: number = 1) => {
-              for (let i = 0; i < qty; i++) {
-                addToCart(product);
-              }
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
               mostrarAviso("✅ Agregado");
             }}
             isMockup={false}
@@ -2350,22 +2342,22 @@ case "spotlight":
                     if (qty > 0) {
                       const variation = selectedProduct.variations[Number(idx)];
                       const parentId = `${selectedProduct.id}-${idx}`;
-                      for (let i = 0; i < qty; i++) {
-                        addToCart({
+                      // qty unidades de esta variación, cada una con los extras elegidos (1 por unidad)
+                      addItem(
+                        {
                           ...selectedProduct,
                           id: parentId,
                           name: `${selectedProduct.name} (${variation.label})`,
                           price: Number(variation.price),
-                        });
-                        selectedExtras.forEach((extra) => {
-                          addToCart({
-                            id: parentId,
-                            extraId: extra.id,
-                            name: extra.name,
-                            price: Number(extra.price),
-                          });
-                        });
-                      }
+                        },
+                        qty,
+                        selectedExtras.map((extra) => ({
+                          id: extra.id,
+                          name: extra.name,
+                          price: Number(extra.price),
+                          quantity: 1,
+                        })),
+                      );
                     }
                   });
                   mostrarAviso("✅ Agregado al pedido");

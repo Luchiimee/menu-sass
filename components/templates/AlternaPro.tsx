@@ -295,8 +295,11 @@ export default function AlternaPro({
                     const basePrice = (restaurant.selectedProduct.variations?.find((v:any) => v.label === label)?.price) || restaurant.selectedProduct.price;
                     const parentId = label === 'principal' ? restaurant.selectedProduct.id : `${restaurant.selectedProduct.id}-${label}`;
                     const parentName = label === 'principal' ? restaurant.selectedProduct.name : `${restaurant.selectedProduct.name} (${label})`;
-                    onAddToCart({ ...restaurant.selectedProduct, id: parentId, name: parentName, price: Number(basePrice) }, qty);
-                    selectedExtras.forEach(extra => onAddToCart({ id: parentId, extraId: extra.id, name: extra.name, price: Number(extra.price) }, qty));
+                    onAddToCart(
+                      { ...restaurant.selectedProduct, id: parentId, name: parentName, price: Number(basePrice) },
+                      qty,
+                      selectedExtras.map((ex: any) => ({ id: ex.id, name: ex.name, price: Number(ex.price), quantity: 1 })),
+                    );
                   }
                 });
                 closeModal();
