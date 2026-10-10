@@ -1,9 +1,11 @@
 // GET /api/mp/status — estado de la cuenta de MP vinculada del restaurante.
-// Devuelve solo status, nickname y vencimiento. NUNCA tokens.
+// Devuelve solo status, nickname, vencimiento y si MP Connect está disponible
+// para este usuario (available, lib/access.ts). NUNCA tokens.
 
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth-server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { canUseMpConnect } from '@/lib/access';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +13,7 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
+  const available = canUseMpConnect(user.email);
   const supabase = getSupabaseAdmin();
 
   const { data: rest, error: restError } = await supabase
@@ -22,7 +25,7 @@ export async function GET() {
     console.error('[mp/status] error leyendo restaurante:', restError.message);
     return NextResponse.json({ error: 'No se pudo consultar' }, { status: 500 });
   }
-  if (!rest) return NextResponse.json({ status: 'disconnected' });
+  if (!rest) return NextResponse.json({ status: 'disconnected', available });
 
   const { data: cred, error } = await supabase
     .from('restaurant_mp_credentials')
@@ -34,7 +37,7 @@ export async function GET() {
     return NextResponse.json({ error: 'No se pudo consultar' }, { status: 500 });
   }
 
-  if (!cred || cred.status === 'revoked') return NextResponse.json({ status: 'disconnected' });
+  if (!cred || cred.status === 'revoked') return NextResponse.json({ status: 'disconnected', available });
 
   // Conectado pero ya vencido (el cron no llegó a refrescar): se informa vencido.
   const expired = cred.status === 'connected' && !!cred.expires_at && new Date(cred.expires_at) <= new Date();
@@ -43,5 +46,6 @@ export async function GET() {
     status: expired ? 'expired' : cred.status,
     nickname: cred.mp_nickname,
     expiresAt: cred.expires_at,
+    available,
   });
 }

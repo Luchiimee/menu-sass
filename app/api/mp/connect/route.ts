@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth-server';
 import { requirePlan } from '@/lib/planAccess';
+import { canUseMpConnect } from '@/lib/access';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   MP_AUTH_URL, OAUTH_STATE_TTL_MS, createPkcePair, createState, getOAuthConfig,
@@ -18,6 +19,9 @@ function back(req: Request, reason: string) {
 export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.redirect(new URL('/login', req.url));
+
+  // Disponibilidad (lib/access.ts): antes de tocar la base o llamar a MP
+  if (!canUseMpConnect(user.email)) return back(req, 'no_disponible');
 
   const access = await requirePlan(user.id, ['go', 'plus']);
   if (!access.ok) return back(req, access.reason === 'plan' ? 'plan' : 'account');

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth-server';
 import { requirePlan } from '@/lib/planAccess';
+import { canUseMpConnect } from '@/lib/access';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { encrypt } from '@/lib/crypto';
 import {
@@ -27,6 +28,9 @@ export async function GET(req: Request) {
 
   const user = await getSessionUser();
   if (!user) return NextResponse.redirect(new URL('/login', req.url));
+
+  // Disponibilidad (lib/access.ts): antes de tocar la base o llamar a MP
+  if (!canUseMpConnect(user.email)) return back(req, 'error', 'no_disponible');
 
   // El state se consume siempre (un solo uso), aunque el usuario haya cancelado.
   let stateRow: { restaurant_id: string; user_id: string; code_verifier: string; created_at: string } | null = null;

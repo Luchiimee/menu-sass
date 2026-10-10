@@ -87,9 +87,10 @@ function CardHeader({ icon, title, subtitle, badge, action }: { icon: React.Reac
 }
 
 // Estado de la cuenta de Mercado Pago vinculada (MP Connect, /api/mp/status)
+// available: MP Connect habilitado para este usuario (lib/access.ts → canUseMpConnect)
 type MpStatus =
-  | { status: 'disconnected' }
-  | { status: 'connected' | 'expired' | 'error'; nickname: string | null; expiresAt: string | null };
+  | { status: 'disconnected'; available: boolean }
+  | { status: 'connected' | 'expired' | 'error'; nickname: string | null; expiresAt: string | null; available: boolean };
 
 // Motivos cortos que manda /api/mp/callback o /api/mp/connect en ?reason=
 const MP_ERROR_MESSAGES: Record<string, string> = {
@@ -101,6 +102,7 @@ const MP_ERROR_MESSAGES: Record<string, string> = {
   account:  'Tu suscripción no está activa. Revisá tu plan para conectar Mercado Pago.',
   config:   'La conexión con Mercado Pago no está disponible en este momento.',
   save:     'No pudimos guardar la conexión. Volvé a intentarlo.',
+  no_disponible: 'La conexión con Mercado Pago todavía no está disponible.',
 };
 
 function PagosContent() {
@@ -232,7 +234,7 @@ function PagosContent() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo desconectar');
       toast.success('Mercado Pago desconectado');
-      setMpStatus({ status: 'disconnected' });
+      setMpStatus(prev => ({ status: 'disconnected', available: prev?.available ?? true }));
     } catch (err: any) {
       toast.error(err.message || 'No se pudo desconectar Mercado Pago');
     } finally {
@@ -492,7 +494,19 @@ function PagosContent() {
               )}
             </div>
 
-            {/* MERCADO PAGO (MP Connect): solo la conexión de la cuenta, sin cobro todavía */}
+            {/* MERCADO PAGO (MP Connect): solo la conexión de la cuenta, sin cobro todavía.
+                Mientras no esté disponible para este usuario (o no se sepa todavía), se
+                muestra como antes: "Próximamente", sin botón. */}
+            {mpLoading || !mpStatus?.available ? (
+            <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden opacity-60">
+              <CardHeader
+                icon={<CreditCard size={20} />}
+                title="Mercado Pago"
+                subtitle="Cobros automáticos directo desde el catálogo digital."
+                badge="Próximamente"
+              />
+            </div>
+            ) : (
             <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
               <CardHeader
                 icon={<CreditCard size={20} />}
@@ -503,9 +517,7 @@ function PagosContent() {
                     : 'Vinculá tu cuenta para cobrar con Mercado Pago.'
                 }
                 action={
-                  mpLoading ? (
-                    <Loader2 size={18} className="animate-spin text-graphite" />
-                  ) : mpStatus?.status === 'connected' ? (
+                  mpStatus.status === 'connected' ? (
                     <button
                       onClick={handleMpDisconnect}
                       disabled={mpDisconnecting}
@@ -521,25 +533,18 @@ function PagosContent() {
                     >
                       Reconectar
                     </a>
-                  ) : mpStatus?.status === 'disconnected' ? (
+                  ) : (
                     <a
                       href="/api/mp/connect"
                       className="px-4 py-2 rounded-xl bg-fresco text-white font-black text-[10px] uppercase tracking-widest hover:bg-fresco/90 transition-colors inline-block"
                     >
                       Conectar Mercado Pago
                     </a>
-                  ) : (
-                    <button
-                      onClick={loadMpStatus}
-                      className="px-4 py-2 rounded-xl border border-border text-graphite font-black text-[10px] uppercase tracking-widest hover:bg-surface transition-colors"
-                    >
-                      Reintentar
-                    </button>
                   )
                 }
               />
 
-              {!mpLoading && (mpStatus?.status === 'expired' || mpStatus?.status === 'error') && (
+              {(mpStatus.status === 'expired' || mpStatus.status === 'error') && (
                 <div className="px-6 py-4 border-t border-border/60 bg-alert/10 flex items-center gap-2.5">
                   <AlertTriangle size={16} className="text-alert shrink-0" />
                   <p className="text-xs font-bold text-alert">
@@ -547,13 +552,8 @@ function PagosContent() {
                   </p>
                 </div>
               )}
-
-              {!mpLoading && mpStatus === null && (
-                <div className="px-6 py-4 border-t border-border/60">
-                  <p className="text-xs text-graphite">No pudimos consultar el estado de Mercado Pago.</p>
-                </div>
-              )}
             </div>
+            )}
 
             {restaurant.subscription_plan === 'plus' && (
               <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden opacity-60">
