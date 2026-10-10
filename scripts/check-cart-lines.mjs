@@ -6,7 +6,7 @@
 // Imprime la tabla antes/después y falla (exit 1) si algún caso esperado no da.
 
 import {
-  cartTotal, mergeUnits, setLineExtra, stepProduct, stepProductExtra, addExtraToOneUnit,
+  cartTotal, cartLineKey, mergeUnits, setLineExtra, stepProduct, stepProductExtra, addExtraToOneUnit,
 } from '../lib/cartLines.ts';
 
 const P = { id: 'bacon', name: 'Americana Bacon Deluxe', price: 9000 };
@@ -133,6 +133,59 @@ const check = (label, ok, detail) => {
   c = addExtraToOneUnit(c, plainLine.uniqueId, E, newId);
   check('(c) 1 con Medallón + 1 simple, Agregar Medallón a la simple → 2× con Medallón en 1 renglón',
     c.length === 1 && c[0].quantity === 2 && cartTotal(c) === 23000, `$${cartTotal(c)}`);
+}
+
+// uniqueId: carrito con operaciones mezcladas sobre 2 productos. Después de
+// CADA operación verifica que (1) todos los uniqueId son distintos, (2) ningún
+// uniqueId que desapareció del carrito vuelve a aparecer, y (3) no hay dos
+// renglones con la misma combinación (deberían estar agrupados).
+{
+  const P2 = { id: 'doble', name: 'Doble Cheddar XL', price: 9500 };
+  const E2 = { id: 'papas', name: 'Papas extra', price: 1800 };
+  const seen = new Set();     // todos los uniqueId que existieron alguna vez
+  const removed = new Set();  // los que salieron del carrito
+  let prevIds = new Set();
+  let failures = [];
+  let c = [];
+
+  const verify = (label) => {
+    const ids = c.map((it) => it.uniqueId);
+    const idSet = new Set(ids);
+    if (idSet.size !== ids.length) failures.push(`${label}: uniqueId repetido (${ids.join(', ')})`);
+    for (const id of idSet) {
+      if (removed.has(id)) failures.push(`${label}: reapareció ${id}`);
+      seen.add(id);
+    }
+    for (const id of prevIds) if (!idSet.has(id)) removed.add(id);
+    const keys = c.map((it) => cartLineKey(it.id, it.extrasList));
+    if (new Set(keys).size !== keys.length) failures.push(`${label}: dos renglones con la misma combinación`);
+    prevIds = idSet;
+  };
+  const op = (label, fn) => { c = fn(c); verify(label); };
+  const lineOf = (pid, extraId) => c.find((it) => it.id === pid && (extraId ? it.extrasList.some((e) => e.id === extraId) : it.extrasList.length === 0));
+
+  op('mergeUnits 3× Americana', (l) => mergeUnits(l, P, [], 3, newId));
+  op('mergeUnits 2× Doble con Papas', (l) => mergeUnits(l, P2, [{ ...E2, quantity: 1 }], 2, newId));
+  op('addExtraToOneUnit Medallón a 1 Americana (separa)', (l) => addExtraToOneUnit(l, lineOf(P.id).uniqueId, E, newId));
+  op('addExtraToOneUnit Medallón a otra Americana (agrupa)', (l) => addExtraToOneUnit(l, lineOf(P.id).uniqueId, E, newId));
+  op('setLineExtra Medallón ×2 a 1 unidad (separa)', (l) => setLineExtra(l, lineOf(P.id, E.id).uniqueId, E.id, 2, newId));
+  op('stepProductExtra Papas a 1 Americana', (l) => stepProductExtra(l, P.id, E2, 1, newId));
+  op('stepProductExtra Medallón a 1 Doble', (l) => stepProductExtra(l, P2.id, E, 1, newId));
+  op('stepProduct − Doble (saca 1)', (l) => stepProduct(l, P2, -1, newId));
+  op('stepProduct + Americana (simple nueva)', (l) => stepProduct(l, P, 1, newId));
+  op('stepProductExtra − Papas de Americana (vuelve a simple, agrupa)', (l) => stepProductExtra(l, P.id, E2, -1, newId));
+  op('stepProduct − Americana ×3 (borra renglones)', (l) => stepProduct(stepProduct(stepProduct(l, P, -1, newId), P, -1, newId), P, -1, newId));
+  op('mergeUnits 2× Americana de nuevo', (l) => mergeUnits(l, P, [], 2, newId));
+  op('addExtraToOneUnit Papas a 1 Americana', (l) => addExtraToOneUnit(l, lineOf(P.id).uniqueId, E2, newId));
+  op('stepProduct − Doble hasta vaciar', (l) => {
+    let x = l;
+    while (x.some((it) => it.id === P2.id)) x = stepProduct(x, P2, -1, newId);
+    return x;
+  });
+  op('mergeUnits 1× Doble otra vez', (l) => mergeUnits(l, P2, [], 1, newId));
+
+  check(`uniqueId distintos y nunca reutilizados (${seen.size} ids en ${15} operaciones, quedan ${c.length} renglones)`,
+    failures.length === 0 && removed.size > 0, failures.join(' | '));
 }
 
 const fmt = (v) => `$${v.toLocaleString('es-AR')}`;
