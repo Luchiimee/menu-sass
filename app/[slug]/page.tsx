@@ -1805,6 +1805,7 @@ case "spotlight":
             deliveryZone1Cost={Number(restaurant.delivery_zone1_cost) || 0}
             deliveryZone2Km={Number(restaurant.delivery_zone2_km) || 7}
             deliveryZone2Cost={Number(restaurant.delivery_zone2_cost) || 0}
+            availableExtras={restaurant.fetched_extras || []}
           />
         </div>
         {showReservationModal && (

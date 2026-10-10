@@ -6,6 +6,7 @@ import {
   cartTotal,
   mergeUnits,
   setLineExtra,
+  addExtraToOneUnit as addExtraToOneUnitIn,
   productUnits as unitsOf,
   stepProduct as stepProductIn,
   productExtraCount as extraCountOf,
@@ -22,6 +23,7 @@ interface CartContextType {
   removeFromCart: (id: string) => void;
   updateQuantity: (uniqueId: string, quantity: number) => void;
   updateExtraQuantity: (itemUniqueId: string, extraId: string, quantity: number, extraData?: Omit<CartExtra, 'quantity'>) => void;
+  addExtraToOneUnit: (itemUniqueId: string, extra: Omit<CartExtra, 'quantity'>) => void;
   productUnits: (productId: any) => number;
   stepProduct: (product: any, delta: number) => void;
   productExtraCount: (productId: any, extraId: string) => number;
@@ -103,6 +105,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCart((prev) => setLineExtra(prev, itemUniqueId, extraId, quantity, generateUniqueId, extraData));
   };
 
+  // "+ Agregar extra" del carrito: el extra va a UNA unidad del renglón
+  const addExtraToOneUnit = (itemUniqueId: string, extra: Omit<CartExtra, 'quantity'>) => {
+    setCart((prev) => addExtraToOneUnitIn(prev, itemUniqueId, extra, generateUniqueId));
+  };
+
   // Helpers para plantillas con controles por producto (tarjeta)
   const productUnits = (productId: any) => unitsOf(cart, productId);
   const stepProduct = (product: any, delta: number) =>
@@ -119,7 +126,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <CartContext.Provider value={{
-      cart, addToCart, addItem, removeFromCart, updateQuantity, updateExtraQuantity,
+      cart, addToCart, addItem, removeFromCart, updateQuantity, updateExtraQuantity, addExtraToOneUnit,
       productUnits, stepProduct, productExtraCount, stepProductExtra,
       clearCart, total, cartRestaurantId,
       activeOrderId, setActiveOrderId

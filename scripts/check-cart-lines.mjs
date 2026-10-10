@@ -6,7 +6,7 @@
 // Imprime la tabla antes/después y falla (exit 1) si algún caso esperado no da.
 
 import {
-  cartTotal, mergeUnits, setLineExtra, stepProduct, stepProductExtra,
+  cartTotal, mergeUnits, setLineExtra, stepProduct, stepProductExtra, addExtraToOneUnit,
 } from '../lib/cartLines.ts';
 
 const P = { id: 'bacon', name: 'Americana Bacon Deluxe', price: 9000 };
@@ -100,6 +100,39 @@ for (const qty of [1, 3]) {
   const ok = c.length === 1 && c[0].quantity === 3 && c[0].extrasList.length === 0;
   console.log(`+ y − del extra vuelve a 3 simples en 1 renglón → ${ok ? 'OK' : 'FALLA'}`);
   if (!ok) process.exitCode = 1;
+}
+
+// "+ Agregar extra" del carrito (addExtraToOneUnit)
+const check = (label, ok, detail) => {
+  console.log(`${label} → ${ok ? 'OK' : 'FALLA'}${detail ? ` (${detail})` : ''}`);
+  if (!ok) process.exitCode = 1;
+};
+// (a) 2×Americana sin extra + Medallón → 1×Americana + 1×Americana con Medallón
+{
+  const c0 = mergeUnits([], P, [], 2, newId);
+  const c = addExtraToOneUnit(c0, c0[0].uniqueId, E, newId);
+  const plain = c.find((it) => it.extrasList.length === 0);
+  const withM = c.find((it) => it.extrasList.some((e) => e.id === E.id));
+  check('(a) 2 simples + Agregar Medallón → 1 simple + 1 con Medallón, $20.500',
+    c.length === 2 && plain?.quantity === 1 && withM?.quantity === 1 && cartTotal(c) === 9000 + 11500,
+    `$${cartTotal(c)} en ${c.length} renglones`);
+}
+// (b) quantity 1 → el extra va al mismo renglón
+{
+  const c0 = mergeUnits([], P, [], 1, newId);
+  const c = addExtraToOneUnit(c0, c0[0].uniqueId, E, newId);
+  check('(b) 1 unidad + Agregar Medallón → mismo renglón',
+    c.length === 1 && c[0].uniqueId === c0[0].uniqueId && c[0].extrasList[0]?.quantity === 1 && cartTotal(c) === 11500,
+    `$${cartTotal(c)}`);
+}
+// (c) agregar el mismo extra a otra unidad → se agrupa con el renglón idéntico
+{
+  let c = mergeUnits([], P, [{ ...E, quantity: 1 }], 1, newId);
+  c = mergeUnits(c, P, [], 1, newId);
+  const plainLine = c.find((it) => it.extrasList.length === 0);
+  c = addExtraToOneUnit(c, plainLine.uniqueId, E, newId);
+  check('(c) 1 con Medallón + 1 simple, Agregar Medallón a la simple → 2× con Medallón en 1 renglón',
+    c.length === 1 && c[0].quantity === 2 && cartTotal(c) === 23000, `$${cartTotal(c)}`);
 }
 
 const fmt = (v) => `$${v.toLocaleString('es-AR')}`;

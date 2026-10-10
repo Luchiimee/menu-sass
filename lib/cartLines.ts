@@ -94,6 +94,16 @@ export function setLineExtra(
   return moveOneUnit(list, uniqueId, (extras) => setExtraQty(extras, data, Math.max(0, quantity)), newId);
 }
 
+// "+ Agregar extra" del carrito: suma el extra (1 por unidad, o uno más si ya
+// estaba) a UNA unidad del renglón. Con quantity > 1 esa unidad pasa a su propio
+// renglón (o se agrupa con uno idéntico); con quantity = 1 queda en el mismo.
+export function addExtraToOneUnit(list: any[], uniqueId: string, extra: Omit<CartExtra, 'quantity'>, newId: NewId): any[] {
+  const line = list.find((it) => it.uniqueId === uniqueId);
+  if (!line) return list;
+  const current = (line.extrasList || []).find((e: CartExtra) => e.id === extra.id)?.quantity || 0;
+  return setLineExtra(list, uniqueId, extra.id, current + 1, newId, extra);
+}
+
 const sameProduct = (it: any, productId: any) => String(it.id) === String(productId);
 
 export function productUnits(list: any[], productId: any): number {

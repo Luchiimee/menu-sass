@@ -47,8 +47,28 @@ export default function CartFooter({
     deliveryZone1Cost = 0,
     deliveryZone2Km = 7,
     deliveryZone2Cost = 0,
+    // Extras del restaurante (con su vínculo product_extras) para "+ Agregar extra"
+    availableExtras = [],
 }: any) {
-    const { cart, updateQuantity, updateExtraQuantity, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
+    const { cart, updateQuantity, updateExtraQuantity, addExtraToOneUnit, clearCart, total, activeOrderId, setActiveOrderId } = useCart();
+
+    // "+ Agregar extra": renglón con la lista de extras desplegada
+    const [extrasOpenFor, setExtrasOpenFor] = useState<string | null>(null);
+
+    // Extras disponibles para un renglón: vinculados a su producto (product_extras),
+    // con is_available distinto de false y que el renglón todavía no tenga.
+    // Los renglones de variaciones usan id `${productId}-${idx}`.
+    const extrasForLine = (item: any) => {
+        const itemId = String(item.id);
+        return (availableExtras || []).filter((ex: any) =>
+            ex.is_available !== false &&
+            ex.product_extras?.some((rel: any) => {
+                const pid = String(rel.product_id);
+                return itemId === pid || itemId.startsWith(`${pid}-`);
+            }) &&
+            !(item.extrasList || []).some((e: any) => e.id === ex.id)
+        );
+    };
     
     // --- 1. ESTADOS PRINCIPALES ---
     const [pasoPago, setPasoPago] = useState<'inicio' | 'seleccion' | 'transferencia' | 'espera'>('inicio');
@@ -1350,6 +1370,38 @@ return (
                                     </div>
                                 </div>
                             ))}
+                            {(() => {
+                                const options = extrasForLine(item);
+                                if (options.length === 0) return null;
+                                const isOpen = extrasOpenFor === item.uniqueId;
+                                return (
+                                    <div className="pl-3 mt-1.5 pt-1.5 border-t border-dashed border-slate-100">
+                                        <button
+                                            onClick={() => setExtrasOpenFor(isOpen ? null : item.uniqueId)}
+                                            className="text-[11px] font-black text-green-700 py-1"
+                                        >
+                                            {item.quantity > 1 ? '+ Agregar extra a 1 unidad' : '+ Agregar extra'}
+                                        </button>
+                                        {isOpen && (
+                                            <div className="mt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                                {options.map((ex: any) => (
+                                                    <button
+                                                        key={ex.id}
+                                                        onClick={() => {
+                                                            addExtraToOneUnit(item.uniqueId, { id: ex.id, name: ex.name, price: Number(ex.price) });
+                                                            setExtrasOpenFor(null);
+                                                        }}
+                                                        className="w-full flex justify-between items-center px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-600 hover:border-green-600 transition-colors"
+                                                    >
+                                                        <span>{ex.name}</span>
+                                                        <span className="text-green-600">+{formatPrice(Number(ex.price))}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ))}
                 </div>
