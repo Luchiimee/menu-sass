@@ -1186,7 +1186,7 @@ if (telCliente.trim()) {
             mensaje += `✅ *${item.quantity}x ${item.name}*\n`; 
             if (item.extrasList?.length > 0) {
                 item.extrasList.forEach((ex: any) => {
-                    mensaje += `      _Extra: ${ex.name} (${formatPrice(ex.price)})_\n`; 
+                    mensaje += `      _Extra: ${ex.quantity}x ${ex.name} por unidad (${formatPrice(ex.price)} c/u)_\n`; 
                 });
             }
         });
@@ -1342,7 +1342,7 @@ return (
                             </div>
                             {item.extrasList?.map((ex: any) => (
                                 <div key={ex.id} className="flex justify-between items-center pl-3 py-1.5 mt-1.5 border-t border-dashed border-slate-100">
-                                    <div className="flex flex-col flex-1"><span className="text-[11px] text-slate-500 font-bold">+ {ex.name}</span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)}</span></div>
+                                    <div className="flex flex-col flex-1"><span className="text-[11px] text-slate-500 font-bold">+ {ex.name} <span className="font-medium text-slate-400">(por unidad)</span></span><span className="text-[10px] text-green-600 font-bold">{formatPrice(ex.price)} c/u</span></div>
                                     <div className="flex items-center gap-2 mr-1">
                                         <button onClick={() => updateExtraQuantity(item.uniqueId, ex.id, ex.quantity - 1)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm rounded-full text-alert active:scale-75"><Minus size={13} strokeWidth={3}/></button>
                                         <span className="text-xs font-black">{ex.quantity}</span>
