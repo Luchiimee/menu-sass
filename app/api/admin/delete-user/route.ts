@@ -5,8 +5,11 @@ import { isAdminEmail } from '@/lib/access';
 
 export async function POST(request: Request) {
   const sessionUser = await getSessionUser();
-  if (!sessionUser || !isAdminEmail(sessionUser.email)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!sessionUser) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+  }
+  if (!isAdminEmail(sessionUser.email)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
   const supabaseAdmin = createClient(
@@ -16,6 +19,11 @@ export async function POST(request: Request) {
 
   try {
     const { userId } = await request.json();
+
+    // Un admin no puede borrarse a sí mismo desde el panel
+    if (userId === sessionUser.id) {
+      return NextResponse.json({ error: 'No podés eliminar tu propia cuenta desde el panel' }, { status: 400 });
+    }
 
     // 1. Buscar el restaurant del usuario
     const { data: restaurant } = await supabaseAdmin
