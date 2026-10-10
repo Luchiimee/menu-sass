@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import { isValidWebhookSecret } from '@/lib/webhookAuth';
 
 // Configuramos VAPID de forma perezosa y protegida: NO al cargar el módulo
 // (eso corre durante el build y, si las claves faltan o están mal, rompe el
@@ -24,7 +25,12 @@ function ensureVapid(): boolean {
   }
 }
 
+// Database Webhook de Supabase (INSERT en orders). Exige el header
+// x-webhook-secret = SUPABASE_WEBHOOK_SECRET (lib/webhookAuth.ts).
 export async function POST(req: NextRequest) {
+  if (!isValidWebhookSecret(req)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
   try {
     if (!ensureVapid()) {
       return NextResponse.json({ error: 'Push no configurado' }, { status: 503 });

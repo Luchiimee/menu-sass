@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isValidWebhookSecret } from '@/lib/webhookAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,7 +97,13 @@ const welcomeHtml = (email: string) => `
 </html>
 `;
 
+// Database Webhook de Supabase (auth.users). Exige el header
+// x-webhook-secret = SUPABASE_WEBHOOK_SECRET (lib/webhookAuth.ts).
 export async function POST(request: Request) {
+  if (!isValidWebhookSecret(request)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
   let payload: any;
   try {
     payload = await request.json();
