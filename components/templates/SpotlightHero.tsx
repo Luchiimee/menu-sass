@@ -5,7 +5,7 @@ import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export default function SpotlightHero({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
-  const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
+  const { cart, addToCart, productUnits, stepProduct, productExtraCount, stepProductExtra } = useCart();
   const [showHeroModal, setShowHeroModal] = useState(false);
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,26 +56,20 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
     addToCart({ ...product, id: `${menuType}-${product.id}`, name: `${menuPrefix}: ${finalName}`, price: finalPrice });
   };
 
+  // Tarjeta: la cantidad del producto es la suma de todos sus renglones (combinaciones)
   const handleMainStep = (p: any, delta: number) => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
-    const item = getCartItem(p.id);
-    if (!item) { if (delta > 0) addToCart({ ...p, price: getProductDisplayPrice(p).amount }); }
-    else { updateQuantity(item.uniqueId, item.quantity + delta); }
+    stepProduct({ ...p, price: getProductDisplayPrice(p).amount }, delta);
   };
 
   const getExtrasForProduct = (productId: string) => {
     return fetchedExtras?.filter((extra: any) => extra.product_extras?.some((rel: any) => String(rel.product_id) === String(productId))) || [];
   };
 
+  // + / − de un extra desde la tarjeta: se lo suma o saca a UNA unidad
   const handleExtraStep = (productId: string, extra: any, delta: number) => {
-    const item = getCartItem(productId);
-    if (!item) return;
-    const currentExtraQty = (item.extrasList?.find((ex: any) => ex.id === extra.id))?.quantity || 0;
-    if (currentExtraQty === 0 && delta > 0) {
-      addToCart({ id: productId, extraId: extra.id, name: extra.name, price: Number(extra.price) });
-    } else {
-      updateExtraQuantity(item.uniqueId, extra.id, currentExtraQty + delta);
-    }
+    if (productUnits(productId) === 0) return;
+    stepProductExtra(productId, { id: extra.id, name: extra.name, price: Number(extra.price) }, delta);
   };
 
   const isAddedA = cart.some((item: any) => String(item.id) === `A-${heroProduct?.id}`);
@@ -204,7 +198,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
                 {cartItem ? (
                   <div className="flex items-center gap-3 bg-gray-100 p-1 rounded-lg border border-gray-200">
                     <button onClick={() => handleMainStep(p, -1)} className="w-7 h-7 flex items-center justify-center text-red-500 font-bold active:scale-75 transition-transform">-</button>
-                    <span className="text-xs font-black text-gray-900 w-4 text-center">{cartItem.quantity}</span>
+                    <span className="text-xs font-black text-gray-900 w-4 text-center">{productUnits(p.id)}</span>
                     <button onClick={() => handleMainStep(p, 1)} className="w-7 h-7 flex items-center justify-center text-gray-900 font-bold active:scale-75 transition-transform">+</button>
                   </div>
                 ) : (
@@ -215,7 +209,7 @@ export default function SpotlightHero({ restaurant, products, categories, fetche
                 <div className="px-4 pb-4 space-y-2 bg-gray-50/50 border-t border-gray-100/50 animate-in slide-in-from-top-1">
                   <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest py-2 flex items-center gap-1"><Layers size={10} /> Personalizá tu {p.name}</p>
                   {extras.map((ex: any) => {
-                    const extraQty = (cartItem.extrasList?.find((e: any) => e.id === ex.id))?.quantity || 0;
+                    const extraQty = productExtraCount(p.id, ex.id);
                     return (
                       <div key={ex.id} className="flex justify-between items-center text-[11px]">
                         <span className="text-gray-600 font-medium">{ex.name} <span className="text-gray-400 font-bold">(+{formatPrice(ex.price)})</span></span>

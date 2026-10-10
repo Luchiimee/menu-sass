@@ -22,7 +22,7 @@ interface Props {
 const MinimalWhite: React.FC<Props> = ({
   restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false, setShowInfo, mesaLabel = null,
 }) => {
-  const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
+  const { cart, productUnits, stepProduct, productExtraCount, stepProductExtra } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -56,22 +56,22 @@ const MinimalWhite: React.FC<Props> = ({
     return extra ? extra.quantity : 0;
   };
 
+  // Tarjeta: la cantidad del producto es la suma de todos sus renglones (combinaciones)
   const handleMainStep = (p: any, delta: number) => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
-    const item = getCartItem(p.id);
-    if (!item) { if (delta > 0) onAddToCart({ ...p, price: getProductDisplayPrice(p).amount }); }
-    else { updateQuantity(item.uniqueId, item.quantity + delta); }
+    const product = { ...p, price: getProductDisplayPrice(p).amount };
+    if (productUnits(p.id) === 0) {
+      if (delta > 0) onAddToCart(product);
+    } else {
+      stepProduct(product, delta);
+    }
   };
 
+  // + / − de un extra desde la tarjeta: se lo suma o saca a UNA unidad (si hay
+  // más de una, esa unidad pasa a su propio renglón)
   const handleExtraStep = (productId: string, extra: any, delta: number) => {
-    const item = getCartItem(productId);
-    if (!item) return;
-    const currentExtraQty = getExtraQty(item, extra.id);
-    if (currentExtraQty === 0 && delta > 0) {
-      addToCart({ id: productId, extraId: extra.id, name: extra.name, price: Number(extra.price) });
-    } else {
-      updateExtraQuantity(item.uniqueId, extra.id, currentExtraQty + delta);
-    }
+    if (productUnits(productId) === 0) return;
+    stepProductExtra(productId, { id: extra.id, name: extra.name, price: Number(extra.price) }, delta);
   };
 
   const styles = `
@@ -145,7 +145,7 @@ const MinimalWhite: React.FC<Props> = ({
                       {cartItem ? (
                         <div className="minimal-stepper">
                           <button onClick={() => handleMainStep(p, -1)} className="minimal-step-btn bg-white text-red-400"><Minus size={12} strokeWidth={3} /></button>
-                          <span style={{ fontSize: '11px', fontWeight: 900, minWidth: '15px', textAlign: 'center' }}>{cartItem.quantity}</span>
+                          <span style={{ fontSize: '11px', fontWeight: 900, minWidth: '15px', textAlign: 'center' }}>{productUnits(p.id)}</span>
                           <button onClick={() => handleMainStep(p, 1)} className="minimal-step-btn" style={{ backgroundColor: btnBg, color: btnText }}><Plus size={12} strokeWidth={3} /></button>
                         </div>
                       ) : (
@@ -156,7 +156,7 @@ const MinimalWhite: React.FC<Props> = ({
                       <div className="mt-4 bg-gray-50/50 p-3 rounded-xl border border-gray-100 animate-in slide-in-from-top-1">
                         <p style={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', color: '#aaa', marginBottom: '10px', letterSpacing: '1px' }} className="flex items-center gap-1"><Layers size={10} /> Adicionales</p>
                         {extras.map((ex: any) => {
-                          const extraQty = getExtraQty(cartItem, ex.id);
+                          const extraQty = productExtraCount(p.id, ex.id);
                           return (
                             <div key={ex.id} className="minimal-extra-row">
                               <div className="text-left flex-1"><span style={{ fontSize: '11px', fontWeight: 700, color: prodName }}>{ex.name}</span><span style={{ fontSize: '10px', fontWeight: 800, color: priceColor }} className="ml-2">+{formatPrice(ex.price)}</span></div>

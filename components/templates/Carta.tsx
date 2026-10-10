@@ -34,7 +34,7 @@ const Carta: React.FC<Props> = ({
   restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false,
   setShowInfo, mesaLabel = null
 }) => {
-  const { cart, updateQuantity, addToCart } = useCart();
+  const { cart, addToCart, productUnits, stepProduct } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [showHeroModal, setShowHeroModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,12 +86,11 @@ const Carta: React.FC<Props> = ({
 
   const handleMainStep = (p: any, delta: number) => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
-    const item = getCartItem(p.id);
-
-    if (!item) {
-      if (delta > 0) onAddToCart({ ...p, price: getProductDisplayPrice(p).amount });
+    const product = { ...p, price: getProductDisplayPrice(p).amount };
+    if (productUnits(p.id) === 0) {
+      if (delta > 0) onAddToCart(product);
     } else {
-      updateQuantity(item.uniqueId, item.quantity + delta);
+      stepProduct(product, delta);
     }
   };
 
@@ -336,7 +335,7 @@ const Carta: React.FC<Props> = ({
                           {cartItem ? (
                             <div className="carta-stepper">
                               <button onClick={() => handleMainStep(p, -1)} className="carta-step-btn" style={{ backgroundColor: '#fff', color: '#ef4444' }}><Minus size={12} strokeWidth={3} /></button>
-                              <span className="carta-qty-text">{cartItem.quantity}</span>
+                              <span className="carta-qty-text">{productUnits(p.id)}</span>
                               <button onClick={() => handleMainStep(p, 1)} className="carta-step-btn" style={{ backgroundColor: btnBg, color: btnText }}><Plus size={12} strokeWidth={3} /></button>
                             </div>
                           ) : (
