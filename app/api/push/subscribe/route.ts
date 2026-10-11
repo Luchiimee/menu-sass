@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSessionUser } from '@/lib/auth-server';
 
 // 1. Configuración del cliente Admin (Bypassea RLS)
 const supabaseAdmin = createClient(
@@ -8,9 +9,18 @@ const supabaseAdmin = createClient(
 );
 
 // 2. Función para GUARDAR suscripciones (POST)
+// El dueño de la suscripción es SIEMPRE el usuario de la sesión: si el body
+// trae un userId (el frontend lo manda), se ignora.
 export async function POST(req: NextRequest) {
   try {
-    const { subscription, userId } = await req.json();
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    const userId = sessionUser.id;
+
+    const { subscription } = await req.json();
+    if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+      return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
+    }
 
     const { error } = await supabaseAdmin
       .from('push_subscriptions')
@@ -29,15 +39,20 @@ export async function POST(req: NextRequest) {
 }
 
 // 3. Función para BORRAR suscripciones (DELETE) - La que arregla el iPhone
+// Solo borra suscripciones del usuario de la sesión con el endpoint del body.
 export async function DELETE(req: NextRequest) {
   try {
-    const { endpoint, userId } = await req.json();
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    const userId = sessionUser.id;
 
-    if (!endpoint || !userId) {
+    const { endpoint } = await req.json();
+
+    if (!endpoint) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
-    // Usamos el cliente Admin para que borre aunque la sesión esté cerrada
+    // Cliente Admin: filtra igual por user_id de la sesión + endpoint
     const { error } = await supabaseAdmin
       .from('push_subscriptions')
       .delete()

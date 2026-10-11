@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
+import { getSessionUser } from '@/lib/auth-server';
 
 const client = new MercadoPagoConfig({ 
     accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! 
@@ -11,9 +12,16 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(request: Request) {
+// "Eliminar cuenta" desde Configuración: cancela la suscripción del usuario
+// LOGUEADO. El usuario sale siempre de la sesión; si el body trae un userId
+// (el frontend lo manda), se ignora.
+export async function POST() {
     try {
-        const { userId } = await request.json();
+        const sessionUser = await getSessionUser();
+        if (!sessionUser) {
+            return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+        }
+        const userId = sessionUser.id;
 
         const { data: rest } = await supabaseAdmin
             .from('restaurants')

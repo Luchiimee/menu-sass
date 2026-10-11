@@ -20,13 +20,13 @@ const MP_BASE = 'https://api.mercadopago.com';
  * Valida la firma del webhook de Mercado Pago (header x-signature).
  * Manifest: id:{data.id};request-id:{x-request-id};ts:{ts};
  * Se firma con HMAC-SHA256 usando MP_WEBHOOK_SECRET y se compara con v1.
- * Devuelve true si es válida (o si no hay secret configurado, con warning).
+ * Devuelve true solo si es válida. Sin MP_WEBHOOK_SECRET se rechaza todo (fail closed).
  */
 function isValidSignature(request: Request, dataId: string | null): boolean {
     const secret = process.env.MP_WEBHOOK_SECRET;
     if (!secret) {
-        console.warn('⚠️ MP_WEBHOOK_SECRET no configurado — webhook SIN validar firma. Configuralo antes de producción.');
-        return true;
+        console.error('🚫 MP_WEBHOOK_SECRET no configurado — webhook rechazado (fail closed).');
+        return false;
     }
 
     const xSignature = request.headers.get('x-signature');
