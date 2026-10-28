@@ -1,7 +1,7 @@
 // POST /api/checkout/mp — checkout online con Mercado Pago (MP Connect, fase 2).
 // PÚBLICO: lo llama el cliente del menú, sin sesión. Recalcula el total desde la
 // base (lib/checkoutPricing.ts), guarda el pedido en pending_mp_orders y crea una
-// preference en la cuenta de MP del restaurante. Devuelve solo { init_point }.
+// preference en la cuenta de MP del restaurante. Devuelve solo { init_point, ref }.
 // El pedido real (orders) lo crea el webhook en la fase 3: acá no se toca orders.
 //
 // TODO(rate limit): esta ruta es pública y escribe en la base y llama a MP por
@@ -191,12 +191,18 @@ export async function POST(req: Request) {
     // rid: el webhook lo usa para elegir el token del vendedor y lo contrasta con
     // pending_mp_orders.restaurant_id (la firma de MP no lo cubre)
     notification_url: `${appUrl}/api/mp/webhook?rid=${restaurant.id}`,
+    // ref = id del pendiente: la pantalla de retorno lo usa con /api/checkout/mp/status.
+    // Es nuestro; los parámetros que MP agrega a la vuelta (status, payment_id...) no se usan.
     back_urls: {
-      success: `${menuUrl}?mp=success`,
-      pending: `${menuUrl}?mp=pending`,
-      failure: `${menuUrl}?mp=failure`,
+      success: `${menuUrl}?mp=success&ref=${pendingId}`,
+      pending: `${menuUrl}?mp=pending&ref=${pendingId}`,
+      failure: `${menuUrl}?mp=failure&ref=${pendingId}`,
     },
     auto_return: 'approved',
+    // Sin pagos en efectivo (Rapipago, Pago Fácil...): se acreditan horas después y la
+    // fila pending vence a los 30 min. Campo según la doc de Checkout Pro:
+    // payment_methods.excluded_payment_types: [{ id: 'ticket' }].
+    payment_methods: { excluded_payment_types: [{ id: 'ticket' }] },
     expires: true,
     expiration_date_from: new Date().toISOString(),
     expiration_date_to: expiresAt.toISOString(),
@@ -243,5 +249,5 @@ export async function POST(req: Request) {
     console.error(`[checkout/mp] no se pudo guardar mp_preference_id (pending ${pendingId}):`, updateError.message);
   }
 
-  return NextResponse.json({ init_point: initPoint });
+  return NextResponse.json({ init_point: initPoint, ref: pendingId });
 }
