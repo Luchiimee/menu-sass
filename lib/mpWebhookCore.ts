@@ -300,11 +300,11 @@ async function processPayment(rid: string | null, paymentId: string | null, deps
     return ok('expirado');
   }
   if (pending.status === 'paid') {
-    if (pending.order_id) return ok('ya_procesado');
     if (pending.mp_payment_id && String(pending.mp_payment_id) !== paymentId) {
       console.error(`[mp/webhook] pending ${ref} ya cobrado con otro pago (${pending.mp_payment_id}); pago ${paymentId} duplicado — reconciliar`);
       return ok('pago_duplicado');
     }
+    if (pending.order_id) return ok('ya_procesado');
     // Cobrado pero sin pedido (la creación falló antes): reintento de recuperación
   } else {
     // Candado atómico: solo uno pasa de pending|failed a paid. 'failed' entra porque
