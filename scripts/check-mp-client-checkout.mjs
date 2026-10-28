@@ -3,7 +3,10 @@
 //
 //   node scripts/check-mp-client-checkout.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
-import { convertCartForMp, totalsMatch, mpErrorMessage } from '../lib/mpClientCheckout.ts';
+import {
+  convertCartForMp, totalsMatch, mpErrorMessage,
+  parseReturnParams, parseStoredMpPending, nextPollDelay, decideNext,
+} from '../lib/mpClientCheckout.ts';
 
 const P1 = '11111111-1111-4111-8111-111111111111';
 const P2 = '22222222-2222-4222-8222-222222222222';
@@ -100,6 +103,65 @@ console.log('mpErrorMessage');
   check('código desconocido → mensaje genérico', mpErrorMessage('lo_que_sea') === 'No pudimos iniciar el pago. Intentá de nuevo.');
   check('sin código → genérico', mpErrorMessage(undefined).startsWith('No pudimos'));
   check('combo_no_soportado explica qué hacer', /combo/i.test(mpErrorMessage('combo_no_soportado')));
+}
+
+console.log('parseReturnParams');
+{
+  const sp = (q) => new URLSearchParams(q);
+  let r = parseReturnParams(sp(`mp=success&ref=${P1}`));
+  check('success + ref', r && r.mp === 'success' && r.ref === P1);
+  r = parseReturnParams(sp(`mp=failure&ref=${P1.toUpperCase()}`));
+  check('ref en mayúsculas se normaliza', r && r.ref === P1);
+  r = parseReturnParams(sp('mp=pending'));
+  check('sin ref → ref null', r && r.mp === 'pending' && r.ref === null);
+  r = parseReturnParams(sp('mp=success&ref=no-es-uuid'));
+  check('ref inválido → null', r && r.ref === null);
+  check('mp desconocido → no es vuelta', parseReturnParams(sp(`mp=hacked&ref=${P1}`)) === null);
+  check('sin mp → no es vuelta', parseReturnParams(sp(`ref=${P1}`)) === null);
+  r = parseReturnParams(sp(`mp=success&ref=${P1}&status=approved&payment_id=1&external_reference=${P2}`));
+  check('ignora los parámetros de MP (external_reference no se usa como ref)', r && r.ref === P1 && Object.keys(r).length === 2);
+}
+
+console.log('parseStoredMpPending');
+{
+  const NOW = 1_700_000_000_000;
+  const entry = (over = {}) => JSON.stringify({ ref: P1, metodoEnvio: 'retiro', ts: NOW - 60_000, restaurantId: 'rest-1', cart: [line()], ...over });
+  let r = parseStoredMpPending(entry(), 'rest-1', NOW);
+  check('entrada válida', r && r.ref === P1 && r.metodoEnvio === 'retiro' && r.cart.length === 1);
+  check('null/vacío', parseStoredMpPending(null, 'rest-1', NOW) === null && parseStoredMpPending('', 'rest-1', NOW) === null);
+  check('JSON roto', parseStoredMpPending('{no', 'rest-1', NOW) === null);
+  check('otro restaurante', parseStoredMpPending(entry({ restaurantId: 'rest-2' }), 'rest-1', NOW) === null);
+  check('vencida (más de 24 h)', parseStoredMpPending(entry({ ts: NOW - 25 * 3600_000 }), 'rest-1', NOW) === null);
+  check('ts del futuro', parseStoredMpPending(entry({ ts: NOW + 3600_000 }), 'rest-1', NOW) === null);
+  check('ref inválido', parseStoredMpPending(entry({ ref: 'x' }), 'rest-1', NOW) === null);
+  check('metodoEnvio mesa no vale', parseStoredMpPending(entry({ metodoEnvio: 'mesa' }), 'rest-1', NOW) === null);
+  r = parseStoredMpPending(entry({ cart: 'basura' }), 'rest-1', NOW);
+  check('cart no array → []', r && Array.isArray(r.cart) && r.cart.length === 0);
+}
+
+console.log('nextPollDelay');
+{
+  check('arranca en 2 s y sube de a poco', nextPollDelay(2000, 'ok') === 2500 && nextPollDelay(2500, 'ok') === 3125);
+  let d = 2000;
+  for (let i = 0; i < 20; i++) d = nextPollDelay(d, 'ok');
+  check('tope de 5 s', d === 5000, String(d));
+  check('429 duplica', nextPollDelay(2000, 'rate_limited') === 4000 && nextPollDelay(5000, 'rate_limited') === 10000);
+  check('429 repetido tiene tope', nextPollDelay(15000, 'rate_limited') === 20000 && nextPollDelay(20000, 'rate_limited') === 20000);
+  check('error de red también duplica', nextPollDelay(3000, 'error') === 6000);
+}
+
+console.log('decideNext');
+{
+  const d = (state, mode, recheckDone = false) => decideNext({ state, mode, recheckDone });
+  check('order_created → order_created', d('order_created', 'success') === 'order_created' && d('order_created', 'failure') === 'order_created');
+  check('paid → wait_paid (también desde failure)', d('paid', 'success') === 'wait_paid' && d('paid', 'failure') === 'wait_paid');
+  check('pending en success/pending → sigue esperando', d('pending', 'success') === 'wait_pending' && d('pending', 'pending') === 'wait_pending');
+  check('pending en failure → recheck', d('pending', 'failure') === 'recheck');
+  check('failed la primera vez → recheck', d('failed', 'success') === 'recheck');
+  check('failed después del recheck → failure', d('failed', 'success', true) === 'failure');
+  check('expired primera vez → recheck, luego failure', d('expired', 'pending') === 'recheck' && d('expired', 'pending', true) === 'failure');
+  check('not_found primera vez → recheck, luego failure', d('not_found', 'success') === 'recheck' && d('not_found', 'success', true) === 'failure');
+  check('pending en failure tras recheck → failure', d('pending', 'failure', true) === 'failure');
 }
 
 if (failures > 0) {
