@@ -1,7 +1,7 @@
 // POST /api/checkout/mp — checkout online con Mercado Pago (MP Connect, fase 2).
 // PÚBLICO: lo llama el cliente del menú, sin sesión. Recalcula el total desde la
 // base (lib/checkoutPricing.ts), guarda el pedido en pending_mp_orders y crea una
-// preference en la cuenta de MP del restaurante. Devuelve solo { init_point, ref }.
+// preference en la cuenta de MP del restaurante. Devuelve solo { init_point, ref, total }.
 // El pedido real (orders) lo crea el webhook en la fase 3: acá no se toca orders.
 //
 // TODO(rate limit): esta ruta es pública y escribe en la base y llama a MP por
@@ -17,6 +17,7 @@ import { getSellerAccessToken } from '@/lib/mpSellerToken';
 import { isMpCheckoutEnabled } from '@/lib/mpCheckoutAccess';
 import { isRestaurantOpen } from '@/lib/businessHours';
 import { CheckoutError, computeOrderTotal } from '@/lib/checkoutPricing';
+import { totalsMatch } from '@/lib/mpClientCheckout';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +89,12 @@ export async function POST(req: Request) {
   if (address === undefined) return fail('direccion_invalida', 400);
   if (notes === undefined) return fail('notas_invalidas', 400);
   if (couponCode === undefined) return fail('cupon_invalido', 400);
+  // Opcional: el total que ve el cliente. Si no coincide con el calculado, no se crea nada.
+  const expectedTotal = body.expected_total;
+  if (expectedTotal !== undefined && expectedTotal !== null
+    && !(typeof expectedTotal === 'number' && Number.isFinite(expectedTotal))) {
+    return fail('total_esperado_invalido', 400);
+  }
 
   const db = getSupabaseAdmin();
 
@@ -133,6 +140,11 @@ export async function POST(req: Request) {
     }
     console.error('[checkout/mp] error inesperado calculando total:', err?.message);
     return fail('error_datos', 500);
+  }
+
+  // El cliente vio otro total (menú o cupón cambiaron): se frena ANTES de escribir nada
+  if (typeof expectedTotal === 'number' && !totalsMatch(expectedTotal, priced.total)) {
+    return NextResponse.json({ error: 'total_distinto', total: priced.total }, { status: 409 });
   }
 
   // --- Pedido pendiente ---
@@ -249,5 +261,5 @@ export async function POST(req: Request) {
     console.error(`[checkout/mp] no se pudo guardar mp_preference_id (pending ${pendingId}):`, updateError.message);
   }
 
-  return NextResponse.json({ init_point: initPoint, ref: pendingId });
+  return NextResponse.json({ init_point: initPoint, ref: pendingId, total: priced.total });
 }
