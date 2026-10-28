@@ -13,7 +13,7 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
-  const { cart, updateQuantity, updateExtraQuantity, addToCart } = useCart();
+  const { addItem, productUnits, stepProduct, productExtraCount, stepProductExtra } = useCart();
 
   if (!restaurant) return null;
 
@@ -150,15 +150,17 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
 
                     <div style={{ width: '100%', marginBottom: '15px' }} onClick={(e) => e.stopPropagation()}>
                       {(() => {
-                        const itemInCart = cart.find(item => item.id === p.id && !item.parentId);
-                        if (itemInCart) {
+                        // Cantidad = suma de todos los renglones (combinaciones) de este producto
+                        const units = productUnits(p.id);
+                        const productWithPrice = { ...p, price: getProductDisplayPrice(p).amount };
+                        if (units > 0) {
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '18px', background: 'white', padding: '8px 12px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', width: 'fit-content', margin: '0 0 15px 0' }}>
-                              <button onClick={(e) => { e.stopPropagation(); updateQuantity(itemInCart.uniqueId, itemInCart.quantity - 1); }} style={{ color: 'black', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <button onClick={(e) => { e.stopPropagation(); stepProduct(productWithPrice, -1); }} style={{ color: 'black', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                 <Minus size={16} />
                               </button>
-                              <span style={{ color: ACENTO, fontWeight: '900', fontSize: '16px' }}>{itemInCart.quantity}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateQuantity(itemInCart.uniqueId, itemInCart.quantity + 1); handleAddToCart(p); }} style={{ color: 'black', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <span style={{ color: ACENTO, fontWeight: '900', fontSize: '16px' }}>{units}</span>
+                              <button onClick={(e) => { e.stopPropagation(); if (!isOpen && !isMockup) return setShowClosedModal(true); stepProduct(productWithPrice, 1); }} style={{ color: 'black', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                 <Plus size={16} />
                               </button>
                             </div>
@@ -179,9 +181,9 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                       <div style={{ marginTop: '10px' }}>
                         <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontWeight: '900', marginBottom: '12px', textAlign: 'left' }}>Adicionales</p>
                         {extras.map((ex: any) => {
-                          const parentItem = cart.find(item => item.id === p.id && !item.parentId);
-                          const extraInCart = parentItem?.extrasList?.find((e: any) => e.id === ex.id);
-                          const eQty = extraInCart ? extraInCart.quantity : 0;
+                          // Veces que está el extra entre todas las unidades del producto
+                          const eQty = productExtraCount(p.id, ex.id);
+                          const extraData = { id: ex.id, name: ex.name, price: Number(ex.price) };
 
                           return (
                             <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '15px', marginBottom: '8px' }}>
@@ -191,18 +193,18 @@ export default function VisualGrid({ restaurant, products, categories, fetchedEx
                               </div>
                               {eQty > 0 ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '4px 8px', borderRadius: '10px' }}>
-                                  <button onClick={(e) => { e.stopPropagation(); updateExtraQuantity(parentItem.uniqueId, ex.id, eQty - 1); }} style={{ color: 'black', border: 'none', background: 'none' }}><Minus size={14} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); stepProductExtra(p.id, extraData, -1); }} style={{ color: 'black', border: 'none', background: 'none' }}><Minus size={14} /></button>
                                   <span style={{ color: 'black', fontWeight: '900', fontSize: '14px' }}>{eQty}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); updateExtraQuantity(parentItem.uniqueId, ex.id, eQty + 1); handleAddToCart(p); }} style={{ color: 'black', border: 'none', background: 'none' }}><Plus size={14} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); if (!isOpen && !isMockup) return setShowClosedModal(true); stepProductExtra(p.id, extraData, 1); }} style={{ color: 'black', border: 'none', background: 'none' }}><Plus size={14} /></button>
                                 </div>
                               ) : (
                                 <button onClick={(e) => {
                                   e.stopPropagation();
                                   if (!isOpen && !isMockup) return setShowClosedModal(true);
                                   const productWithPrice = { ...p, price: getProductDisplayPrice(p).amount };
-                                  if (!parentItem) { onAddToCart(productWithPrice); }
-                                  addToCart({ id: p.id, extraId: ex.id, name: ex.name, price: Number(ex.price) });
-                                  onAddToCart(productWithPrice);
+                                  // Sin unidades: una unidad con el extra. Con unidades: el extra a UNA de ellas.
+                                  if (productUnits(p.id) === 0) addItem(productWithPrice, 1, [{ ...extraData, quantity: 1 }]);
+                                  else stepProductExtra(p.id, extraData, 1);
                                 }} style={{ width: '30px', height: '30px', background: 'white', color: 'black', border: 'none', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   <Plus size={16} strokeWidth={3} />
                                 </button>

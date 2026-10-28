@@ -31,7 +31,7 @@ export default function AddToCartBtn({
   onOpenExtras,
   style
 }: AddToCartBtnProps) {
- const { cart, addToCart, removeFromCart } = useCart();
+ const { cart, addToCart, stepProduct } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Cantidad total de este producto físico en el carrito
@@ -57,11 +57,8 @@ export default function AddToCartBtn({
     e.stopPropagation();
     if (disabled) return;
     
-    // Nueva lógica: buscamos el último producto base (sin extras) para restar
-    const itemToRemove = cart.find(item => item.id === product.id && (!item.extrasList || item.extrasList.length === 0)) 
-                       || cart.find(item => item.id === product.id);
-    
-    if (itemToRemove) removeFromCart(itemToRemove.uniqueId);
+    // Saca UNA unidad: del renglón sin extras si existe, si no del último renglón del producto
+    stepProduct(product, -1);
   };
 
   // Botón con cantidad 0
