@@ -348,18 +348,12 @@ const catInactiveBorder = getContrastColor(restaurant.cat_bg_color || '#f3f4f6')
                   if (!isOpenNow && !isMockup) return setShowClosedModal(true);
 
                   if (quantity > 0) {
-                    // Agregamos el producto
-                    onAddToCart({ ...selectedProduct, price: selectedDisplayPrice }, quantity);
-
-                    // Agregamos los extras
-                    selectedExtras.forEach(extra => {
-                      onAddToCart({
-                        id: selectedProduct.id,
-                        extraId: extra.id,
-                        name: extra.name,
-                        price: Number(extra.price)
-                      }, quantity);
-                    });
+                    // Una combinación: `quantity` unidades, cada una con los extras elegidos (1 por unidad)
+                    onAddToCart(
+                      { ...selectedProduct, price: selectedDisplayPrice },
+                      quantity,
+                      selectedExtras.map((ex: any) => ({ id: ex.id, name: ex.name, price: Number(ex.price), quantity: 1 })),
+                    );
                   }
 
                   // Reseteo de estados

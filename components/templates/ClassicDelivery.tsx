@@ -23,7 +23,7 @@ const ClassicDelivery: React.FC<Props> = ({
   restaurant, products, categories, fetchedExtras, isOpen, onAddToCart, isMockup = false,
   setShowInfo, mesaLabel = null
 }) => {
-  const { cart, updateQuantity, updateExtraQuantity, removeFromCart, addToCart } = useCart();
+  const { cart, productUnits, stepProduct, productExtraCount, stepProductExtra } = useCart();
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
@@ -69,31 +69,22 @@ const headerBg = restaurant.theme_color || '#1a1a2e';
     ) || [];
   };
 
-const handleMainStep = (p: any, delta: number) => {
+// Tarjeta: la cantidad del producto es la suma de todos sus renglones (combinaciones)
+  const handleMainStep = (p: any, delta: number) => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
-    const item = getCartItem(p.id);
-    
-    if (!item) {
-      if (delta > 0) onAddToCart({ ...p, price: getProductDisplayPrice(p).amount });
+    const product = { ...p, price: getProductDisplayPrice(p).amount };
+    if (productUnits(p.id) === 0) {
+      if (delta > 0) onAddToCart(product);
     } else {
-      // 🚀 Cambiamos item.id por item.uniqueId para que el Contexto lo encuentre
-      updateQuantity(item.uniqueId, item.quantity + delta);
+      stepProduct(product, delta);
     }
   };
 
+  // + / − de un extra desde la tarjeta: se lo suma o saca a UNA unidad (si hay
+  // más de una, esa unidad pasa a su propio renglón)
   const handleExtraStep = (productId: string, extra: any, delta: number) => {
-    const item = getCartItem(productId);
-    if (!item) return; // No debería pasar porque el extra solo se ve si el item está en el cart
-
-    const currentExtraQty = getExtraQty(item, extra.id);
-    const newQty = currentExtraQty + delta;
-
-    if (currentExtraQty === 0 && delta > 0) {
-      // Usamos tu addToCart que maneja la lógica de "buscar el padre"
-      addToCart({ id: productId, extraId: extra.id, name: extra.name, price: Number(extra.price) });
-    } else {
-      updateExtraQuantity(item.uniqueId, extra.id, newQty);
-    }
+    if (productUnits(productId) === 0) return;
+    stepProductExtra(productId, { id: extra.id, name: extra.name, price: Number(extra.price) }, delta);
   };
 
   const styles = `
@@ -288,7 +279,7 @@ const handleMainStep = (p: any, delta: number) => {
                       {cartItem ? (
                         <div className="classic-stepper">
                            <button onClick={() => handleMainStep(p, -1)} className="classic-step-btn bg-white shadow-sm text-red-500"><Minus size={14} strokeWidth={3}/></button>
-                           <span className="classic-qty-text">{cartItem.quantity}</span>
+                           <span className="classic-qty-text">{productUnits(p.id)}</span>
                            <button onClick={() => handleMainStep(p, 1)} className="classic-step-btn" style={{ backgroundColor: headerBg, color: headerText }}><Plus size={14} strokeWidth={3}/></button>
                         </div>
                       ) : (
@@ -303,7 +294,7 @@ const handleMainStep = (p: any, delta: number) => {
                           <Layers size={10}/> Personalizá tu pedido
                         </p>
                         {extras.map((ex: any) => {
-                          const extraQty = getExtraQty(cartItem, ex.id);
+                          const extraQty = productExtraCount(p.id, ex.id);
                           return (
                             <div key={ex.id} className="classic-extra-row">
                               <div className="text-left flex-1">

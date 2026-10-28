@@ -374,9 +374,9 @@ const loadOrders = async () => {
         <div style="margin-bottom: 5px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between;">
                 <span>${item.quantity}x ${item.name.toUpperCase()}</span>
-                <span>$${(item.price * item.quantity).toLocaleString()}</span>
+                <span>$${((item.price + (item.extrasList || []).reduce((a: number, e: any) => a + e.price * e.quantity, 0)) * item.quantity).toLocaleString()}</span>
             </div>
-            ${item.extrasList?.map((e: any) => `<div style="font-size: 10px; margin-left: 10px;">+ ${e.name.toUpperCase()}</div>`).join('') || ''}
+            ${item.extrasList?.map((e: any) => `<div style="font-size: 10px; margin-left: 10px;">+ ${e.quantity}x ${e.name.toUpperCase()} (POR UNIDAD)</div>`).join('') || ''}
         </div>`).join("");
     return `
         <html>
@@ -1047,8 +1047,8 @@ useEffect(() => {
                                     </div>
                                     {item.extrasList?.map((extra: any, j: number) => (
                                         <div key={j} className="pl-3 mt-0.5 flex justify-between text-[10px] text-gray-400 font-bold italic">
-                                            <span>+ {extra.quantity} {extra.name}</span>
-                                            <span>${extra.price * extra.quantity}</span>
+                                            <span>+ {extra.quantity} {extra.name} (por unidad)</span>
+                                            <span>${extra.price * extra.quantity * item.quantity}</span>
                                         </div>
                                     ))}
                                 </div>
