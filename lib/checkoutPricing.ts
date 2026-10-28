@@ -82,12 +82,13 @@ export type PricingDeps = {
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 // ---------------------------------------------------------------------------
-// Regla única de "se puede comprar online". Los productos no tienen flag de
-// disponibilidad en la base: se puede comprar si tiene un precio calculable.
+// Regla única de "se puede comprar online": is_available no puede ser false
+// (null cuenta como disponible) y tiene que tener un precio calculable.
 // (Los combos / hero-item no son filas de products: se rechazan antes.)
 // ---------------------------------------------------------------------------
 export function isProductPurchasable(product: any): boolean {
   if (!product || !product.id) return false;
+  if (product.is_available === false) return false;
   if (product.sale_type === 'peso') {
     return Array.isArray(product.variations) && product.variations.length > 0;
   }
@@ -235,7 +236,7 @@ export async function computeOrderTotal(
   // --- Productos (deben ser del restaurante) ---
   const productIds = [...new Set(cart.map((c) => c.productId))];
   const products: any[] = unwrap(
-    await db.from('products').select('id, restaurant_id, name, price, sale_type, variations').in('id', productIds),
+    await db.from('products').select('id, restaurant_id, name, price, sale_type, variations, is_available').in('id', productIds),
     'productos'
   );
   const productById = new Map(products.map((p) => [String(p.id), p]));

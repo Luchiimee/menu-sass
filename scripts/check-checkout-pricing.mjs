@@ -190,6 +190,17 @@ for (const [name, cart] of [
 ]) {
   await expectError(`validación: ${name}`, 'carrito_invalido', () => run(baseTables(), cart));
 }
+await expectError('producto con is_available=false', 'producto_no_disponible', () => {
+  const t = baseTables();
+  t.products[0].is_available = false;
+  return run(t, [{ productId: 'burger', extras: [], quantity: 1 }]);
+});
+{
+  const t = baseTables();
+  t.products[0].is_available = null;
+  const r = await run(t, [{ productId: 'burger', extras: [], quantity: 1 }], 'retiro');
+  report('producto con is_available=null cuenta como disponible', r.total === 9000, `total ${r.total}`);
+}
 report('isProductPurchasable: precio 0 no se puede comprar', !isProductPurchasable({ id: 'x', price: 0, sale_type: 'unidad' }));
 report('isProductPurchasable: peso sin variaciones no se puede comprar', !isProductPurchasable({ id: 'x', sale_type: 'peso', variations: [] }));
 
