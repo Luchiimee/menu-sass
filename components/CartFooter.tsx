@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints, Calculator } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
+import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -79,6 +80,8 @@ export default function CartFooter({
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
     const [pagoConfirmado, setPagoConfirmado] = useState(false);
+    // Datos reales del pedido pagado con MP (el carrito en memoria no sobrevive a la ida a MP)
+    const [mpOrder, setMpOrder] = useState<{ total: number; delivery: number; items: any[] } | null>(null);
     const orderStatusRef = useRef(orderStatus);
     useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
@@ -168,6 +171,34 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [metodoEnvio, setMetodoEnvio] = useState(tableIdFromQR ? 'mesa' : 'delivery');
     const [nroMesa, setNroMesa] = useState(mesaLabel || '')
     const [availableTables, setAvailableTables] = useState<Table[]>([]);
+
+    // --- MERCADO PAGO (checkout online) ---
+    // La disponibilidad la decide el SERVIDOR (lanzamiento, plan, credenciales): acá solo se pregunta.
+    const [mpAvailable, setMpAvailable] = useState(false);
+    const [mpError, setMpError] = useState('');
+    useEffect(() => {
+        if (!restaurantId || planType === 'light') { setMpAvailable(false); return; }
+        let cancelled = false;
+        fetch(`/api/checkout/mp/available?rid=${encodeURIComponent(restaurantId)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => { if (!cancelled) setMpAvailable(d?.available === true); })
+            .catch(() => { if (!cancelled) setMpAvailable(false); });
+        return () => { cancelled = true; };
+    }, [restaurantId, planType]);
+
+    // Se oculta con: mesa, entrega programada, delivery por zonas (el servidor cobra siempre
+    // la zona 2 y el total no coincidiría) o un carrito que no se puede convertir (combo).
+    const mpCart = convertCartForMp(cart);
+    const mpVisible = mpAvailable && !tableIdFromQR && metodoEnvio !== 'mesa' && entregaTipo !== 'programada'
+        && !(metodoEnvio === 'delivery' && deliveryZonesEnabled) && mpCart.ok;
+    // Si MP deja de estar disponible estando elegido, volver a un medio que sí lo esté.
+    // (Con un pedido activo, metodoPago viene de la base y no se toca.)
+    useEffect(() => {
+        if (metodoPago === 'mercadopago' && !mpVisible && !activeOrderId) {
+            setMetodoPago(efectivoEnabled ? 'efectivo' : transferenciaEnabled ? 'transferencia' : 'efectivo');
+        }
+        if (!mpVisible) setMpError('');
+    }, [mpVisible, metodoPago, activeOrderId, efectivoEnabled, transferenciaEnabled]);
 
     // Token de request: cada intento de geocode (click en "Buscar costo de envío" o GPS) incrementa
     // esto y captura su propio valor. Si al resolver ya no coincide con el valor global, la
@@ -307,7 +338,7 @@ useEffect(() => {
             // AGREGAR: payment_status a la consulta select
             const { data } = await supabase
                 .from('orders')
-                .select('status, payment_method, payment_status, pago_confirmado')
+                .select('status, payment_method, payment_status, pago_confirmado, order_type, total, delivery_cost, items')
                 .eq('id', activeOrderId)
                 .maybeSingle();
 
@@ -315,6 +346,16 @@ useEffect(() => {
                 setOrderStatus(data.status);
                 setMetodoPago(data.payment_method);
                 setPagoConfirmado(!!data.pago_confirmado);
+                if (data.payment_method === 'mercadopago') {
+                    // total y envío reales del servidor (con descuentos y zona) y los renglones guardados
+                    setMpOrder({ total: Number(data.total) || 0, delivery: Number(data.delivery_cost) || 0, items: Array.isArray(data.items) ? data.items : [] });
+                    if (data.order_type === 'delivery' || data.order_type === 'retiro') {
+                        setMetodoEnvio(data.order_type);
+                        localStorage.setItem('metodoEnvio', data.order_type);
+                    }
+                } else {
+                    setMpOrder(null);
+                }
 
                 // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación, 
                 // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
@@ -445,6 +486,15 @@ const handleCallWaiter = async () => {
         }, 0);
         const trackingEnvio = metodoEnvio === 'delivery' ? Number(deliveryCost) || 0 : 0;
         const trackingTotal = trackingSubtotal + trackingEnvio;
+        // Pedido de MP: total, envío y renglones salen de orders, no del carrito local
+        const summaryEnvio = mpOrder ? mpOrder.delivery : trackingEnvio;
+        const summaryTotal = mpOrder ? mpOrder.total : trackingTotal;
+        const summaryDiscount = mpOrder
+            ? mpOrder.items.reduce((acc: number, item: any) => {
+                const extras = (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0);
+                return acc + (item.price + extras) * item.quantity;
+            }, 0) + mpOrder.delivery - mpOrder.total
+            : 0;
 
         const trackingActiveStep =
             orderStatus === 'recibido'   ? 1 :
@@ -655,24 +705,39 @@ const handleCallWaiter = async () => {
                                     </div>
                                 )}
 
+                                {/* Pago online con Mercado Pago */}
+                                {metodoPago === 'mercadopago' && pagoConfirmado && orderStatus !== 'cancelado' && (
+                                    <div className="bg-[#E6F6FD] border border-[#B3E2F7] rounded-[16px] p-4 mb-4">
+                                        <p className="text-[#007EB5] font-black text-[13px] text-center py-1">
+                                            Pagado con Mercado Pago ✓
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Separador + Resumen del pedido */}
                                 <div className="border-t border-slate-100 my-3" />
                                 <div className="space-y-2">
-                                    {cart.map((item: any) => (
-                                        <div key={item.uniqueId} className="flex justify-between text-[13px] text-slate-600">
+                                    {(mpOrder ? mpOrder.items : cart).map((item: any, idx: number) => (
+                                        <div key={item.uniqueId ?? idx} className="flex justify-between text-[13px] text-slate-600">
                                             <span>{item.quantity}x {item.name}</span>
                                             <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
                                         </div>
                                     ))}
-                                    {trackingEnvio > 0 && (
+                                    {summaryEnvio > 0 && (
                                         <div className="flex justify-between text-[13px] text-slate-600">
                                             <span>Envío</span>
-                                            <span>{formatPrice(trackingEnvio)}</span>
+                                            <span>{formatPrice(summaryEnvio)}</span>
+                                        </div>
+                                    )}
+                                    {summaryDiscount > 0.5 && (
+                                        <div className="flex justify-between text-[13px] text-green-600">
+                                            <span>Descuento</span>
+                                            <span>-{formatPrice(summaryDiscount)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
                                         <span>Total</span>
-                                        <span className="text-green-700">{formatPrice(trackingTotal)}</span>
+                                        <span className="text-green-700">{formatPrice(summaryTotal)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -987,7 +1052,8 @@ const handleCallWaiter = async () => {
       return 0; // 'calculating' o 'outside'
     })();
     const totalFinal = subtotal - montoDescuento - autoDescuento + envio;
-    const paymentMethodsCount = (efectivoEnabled ? 1 : 0) + (transferenciaEnabled ? 1 : 0);
+    const cashTransferCount = (efectivoEnabled ? 1 : 0) + (transferenciaEnabled ? 1 : 0);
+    const paymentMethodsCount = cashTransferCount + (mpVisible ? 1 : 0);
 
 
   const direccionCompleta = direccionEntreCalles.trim()
@@ -1107,7 +1173,75 @@ const handleCallWaiter = async () => {
     );
   };
 
+  // Pago online con Mercado Pago (MP Connect). El servidor recalcula el total desde la base y
+  // crea la preference; acá solo se validan los datos, se guarda el respaldo y se redirige.
+  // NO vacía el carrito: si algo falla (o el pago no se completa) el cliente no pierde nada.
+  const handlePayWithMp = async () => {
+    if (isSending) return;
+    setMpError('');
+    const fail = (msg: string) => { setMpError(msg); setIsSending(false); };
+    if (!mpVisible || !mpCart.ok) return fail(mpErrorMessage('no_disponible'));
+    if (!nombre.trim()) return fail('Por favor, ingresá tu nombre.');
+    if (!apellido.trim()) return fail('Por favor, ingresá tu apellido.');
+    if (!telCliente.trim()) return fail('Ingresá tu teléfono para pagar con Mercado Pago.');
+    if (metodoEnvio === 'delivery' && !direccionCalle.trim()) return fail('Ingresá la calle y número de envío.');
+
+    const customerName = `${nombre.trim()} ${apellido.trim()}`;
+    const address = metodoEnvio === 'delivery' ? direccionCompleta.trim() : '';
+    if (customerName.length > 80) return fail('Nombre y apellido: máximo 80 caracteres en total.');
+    if (telCliente.trim().length > 30) return fail('El teléfono es demasiado largo.');
+    if (address.length > 200) return fail('La dirección es demasiado larga (máximo 200 caracteres).');
+    if (aclaraciones.trim().length > 500) return fail('La aclaración es demasiado larga (máximo 500 caracteres).');
+
+    setIsSending(true);
+    try {
+        const res = await fetch('/api/checkout/mp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                restaurant_id: restaurantId,
+                order_type: metodoEnvio,
+                customer_name: customerName,
+                customer_phone: telCliente.trim(),
+                address,
+                notes: aclaraciones.trim(),
+                coupon_code: appliedCoupon?.code || '',
+                cart: mpCart.items,
+                expected_total: totalFinal, // el servidor frena si calcula otro total
+            }),
+        });
+        const data = await res.json().catch(() => ({}));
+        const totalChanged = (serverTotal: unknown) =>
+            `El total cambió: ahora es ${formatPrice(Number(serverTotal))} y vos veías ${formatPrice(totalFinal)}. Revisá tu pedido y volvé a intentar.`;
+
+        if (!res.ok) {
+            if (data?.error === 'total_distinto') return fail(totalChanged(data.total));
+            return fail(mpErrorMessage(data?.error));
+        }
+
+        let target: URL;
+        try { target = new URL(String(data?.init_point)); } catch { return fail(mpErrorMessage('mp_error')); }
+        if (target.protocol !== 'https:' || typeof data?.ref !== 'string' || !UUID_RE.test(data.ref)) {
+            return fail(mpErrorMessage('mp_error'));
+        }
+        // Respaldo por si el servidor no aplicó expected_total
+        if (!totalsMatch(totalFinal, data.total)) return fail(totalChanged(data.total));
+
+        // Respaldo ANTES de salir: el ref (por si MP lo pierde) y el carrito (la ida a MP
+        // descarta el estado en memoria; MpReturn lo devuelve si el pago no se completa).
+        try {
+            localStorage.setItem(MP_PENDING_KEY, JSON.stringify({ ref: data.ref, metodoEnvio, ts: Date.now(), restaurantId, cart }));
+        } catch { /* sin respaldo: el back_url igual lleva el ref */ }
+        window.onbeforeunload = null;
+        window.location.assign(target.toString());
+    } catch {
+        fail('No pudimos conectar con Mercado Pago. Revisá tu conexión e intentá de nuevo.');
+    }
+  };
+
   const handleSendOrder = async () => {
+    // Mercado Pago nunca pasa por el insert directo a orders: lo crea el webhook al confirmarse el pago
+    if (metodoPago === 'mercadopago') return handlePayWithMp();
     if (!nombre.trim()) return alert("Por favor, ingresá tu nombre.");
     if (metodoEnvio !== 'mesa' && !apellido.trim()) return alert("Por favor, ingresá tu apellido.");
     if (metodoEnvio === 'delivery' && !direccionCalle.trim()) return alert("Ingresá la calle y número de envío.");
@@ -1619,7 +1753,7 @@ return (
                                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                                     Medio de Pago
                                 </label>
-                                {paymentMethodsCount === 1 && (
+                                {paymentMethodsCount === 1 && !mpVisible && (
                                     <p className="text-xs text-graphite text-center mb-2">
                                         {efectivoEnabled
                                             ? 'Por el momento este local solo acepta efectivo'
@@ -1651,6 +1785,19 @@ return (
     }`}
 >
     <Landmark size={18} /> Transferencia
+</button>
+)}
+
+{mpVisible && (
+<button
+    onClick={() => setMetodoPago('mercadopago')}
+    className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-all ${cashTransferCount === 2 ? 'col-span-2' : ''} ${
+        metodoPago === 'mercadopago'
+        ? 'border-[#009EE3] bg-[#E6F6FD] text-[#007EB5] shadow-md'
+        : 'border-slate-200 text-slate-600 bg-white'
+    }`}
+>
+    <CreditCard size={18} /> Mercado Pago
 </button>
 )}
                                 </div>
@@ -1737,20 +1884,33 @@ return (
                     {metodoEnvio === 'delivery' && zoneStatus === 'outside' && (
                       <p className="text-[11px] font-bold text-alert text-center pb-1">No llegamos a tu zona de entrega</p>
                     )}
+                    {mpError && metodoPago === 'mercadopago' && (
+                        <p className="text-[11px] font-bold text-alert text-center pb-1 animate-in fade-in">{mpError}</p>
+                    )}
                     <button
-                        onClick={handleSendOrder}
+                        onClick={metodoPago === 'mercadopago' && mpVisible ? handlePayWithMp : handleSendOrder}
                         disabled={isSending || (metodoEnvio !== 'mesa' && paymentMethodsCount === 0) || (metodoEnvio === 'delivery' && deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside'))}
-                        className="w-full bg-green-700 disabled:bg-slate-100 disabled:text-slate-400 text-white py-4 rounded-[18px] font-black flex items-center justify-center gap-3 shadow-[0_4px_20px_rgba(22,163,74,0.35)] text-[16px] active:scale-95 transition-all mb-10"
+                        className={`w-full bg-green-700 disabled:bg-slate-100 disabled:text-slate-400 text-white py-4 rounded-[18px] font-black flex items-center justify-center gap-3 shadow-[0_4px_20px_rgba(22,163,74,0.35)] text-[16px] active:scale-95 transition-all ${metodoPago === 'mercadopago' && mpVisible ? 'mb-3' : 'mb-10'}`}
                     >
                         {isSending ? (
                             <Loader2 className="animate-spin" size={24} />
+                        ) : metodoPago === 'mercadopago' && mpVisible ? (
+                            <>
+                                <CreditCard size={24} />
+                                Pagar con Mercado Pago
+                            </>
                         ) : (
                             <>
-                                <Send size={24} /> 
+                                <Send size={24} />
                                 {metodoEnvio === 'mesa' ? 'Pedir ahora' : 'Enviar Pedido'}
                             </>
                         )}
                     </button>
+                    {metodoPago === 'mercadopago' && mpVisible && (
+                        <p className="text-[11px] font-bold text-slate-400 text-center mb-10">
+                            Pagá con tarjeta o dinero en cuenta de Mercado Pago
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
