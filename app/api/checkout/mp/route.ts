@@ -188,7 +188,9 @@ export async function POST(req: Request) {
       },
     ],
     external_reference: pendingId,
-    notification_url: `${appUrl}/api/mp/webhook`, // el handler es de la fase 3
+    // rid: el webhook lo usa para elegir el token del vendedor y lo contrasta con
+    // pending_mp_orders.restaurant_id (la firma de MP no lo cubre)
+    notification_url: `${appUrl}/api/mp/webhook?rid=${restaurant.id}`,
     back_urls: {
       success: `${menuUrl}?mp=success`,
       pending: `${menuUrl}?mp=pending`,
