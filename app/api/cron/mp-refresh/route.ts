@@ -1,11 +1,13 @@
 // GET /api/cron/mp-refresh — cron diario de MP Connect.
 // Refresca los tokens de vendedor que vencen en menos de 30 días y marca
-// 'expired' los que fallan (lo hace refreshIfNeeded). No devuelve ni loguea
+// 'expired' los que fallan (lo hace refreshIfNeeded). También expira los pedidos
+// pendientes de pago vencidos (pending_mp_orders). No devuelve ni loguea
 // tokens: solo conteos e ids de restaurante.
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { refreshIfNeeded } from '@/lib/mpSellerToken';
+import { expirePendingMpOrders } from '@/lib/pendingMpOrders';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,9 @@ export async function GET(request: Request) {
   if (!secret || authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Independiente del refresh: si falla (p. ej. falta la tabla) no corta el cron
+  const expiredOrders = await expirePendingMpOrders();
 
   const limit = new Date(Date.now() + THRESHOLD_MS).toISOString();
   const { data: rows, error } = await getSupabaseAdmin()
@@ -43,7 +48,7 @@ export async function GET(request: Request) {
     } else skipped++; // otro proceso lo refrescó en el medio
   }
 
-  const summary = { processed: rows?.length ?? 0, refreshed, failed, skipped };
+  const summary = { processed: rows?.length ?? 0, refreshed, failed, skipped, expiredOrders };
   console.log('[cron/mp-refresh] Resumen:', summary);
   return NextResponse.json(summary);
 }
