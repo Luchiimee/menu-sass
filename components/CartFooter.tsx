@@ -7,6 +7,7 @@ import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, La
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
+import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -156,12 +157,6 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
 
-    // Si el método seleccionado por defecto quedó deshabilitado, saltamos al otro disponible
-    useEffect(() => {
-        if (metodoPago === 'efectivo' && !efectivoEnabled && transferenciaEnabled) setMetodoPago('transferencia');
-        else if (metodoPago === 'transferencia' && !transferenciaEnabled && efectivoEnabled) setMetodoPago('efectivo');
-    }, [efectivoEnabled, transferenciaEnabled]);
-
     // --- ZONAS DE DELIVERY ---
     const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
     const [forcedZone, setForcedZone] = useState<'zone2' | null>(null);
@@ -176,13 +171,15 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     // La disponibilidad la decide el SERVIDOR (lanzamiento, plan, credenciales): acá solo se pregunta.
     const [mpAvailable, setMpAvailable] = useState(false);
     const [mpError, setMpError] = useState('');
+    const [mpLoaded, setMpLoaded] = useState(false); // ya se consultó /available (o no hace falta)
     useEffect(() => {
-        if (!restaurantId || planType === 'light') { setMpAvailable(false); return; }
+        if (!restaurantId || planType === 'light') { setMpAvailable(false); setMpLoaded(true); return; }
         let cancelled = false;
         fetch(`/api/checkout/mp/available?rid=${encodeURIComponent(restaurantId)}`)
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => { if (!cancelled) setMpAvailable(d?.available === true); })
-            .catch(() => { if (!cancelled) setMpAvailable(false); });
+            .catch(() => { if (!cancelled) setMpAvailable(false); })
+            .finally(() => { if (!cancelled) setMpLoaded(true); });
         return () => { cancelled = true; };
     }, [restaurantId, planType]);
 
@@ -191,14 +188,19 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const mpCart = convertCartForMp(cart);
     const mpVisible = mpAvailable && !tableIdFromQR && metodoEnvio !== 'mesa' && entregaTipo !== 'programada'
         && !(metodoEnvio === 'delivery' && deliveryZonesEnabled) && mpCart.ok;
-    // Si MP deja de estar disponible estando elegido, volver a un medio que sí lo esté.
-    // (Con un pedido activo, metodoPago viene de la base y no se toca.)
+    // Preselección: se mantiene el medio elegido si sigue disponible; si no, el primero
+    // disponible (con uno solo, queda preseleccionado). Con un pedido activo, metodoPago
+    // viene de la base y no se toca.
     useEffect(() => {
-        if (metodoPago === 'mercadopago' && !mpVisible && !activeOrderId) {
-            setMetodoPago(efectivoEnabled ? 'efectivo' : transferenciaEnabled ? 'transferencia' : 'efectivo');
-        }
-        if (!mpVisible) setMpError('');
-    }, [mpVisible, metodoPago, activeOrderId, efectivoEnabled, transferenciaEnabled]);
+        if (activeOrderId) return;
+        const next = pickPaymentMethod(metodoPago, {
+            efectivo: !!efectivoEnabled,
+            transferencia: !!transferenciaEnabled,
+            mercadopago: mpVisible,
+        });
+        if (next && next !== metodoPago) setMetodoPago(next);
+    }, [metodoPago, efectivoEnabled, transferenciaEnabled, mpVisible, activeOrderId]);
+    useEffect(() => { if (!mpVisible) setMpError(''); }, [mpVisible]);
 
     // Token de request: cada intento de geocode (click en "Buscar costo de envío" o GPS) incrementa
     // esto y captura su propio valor. Si al resolver ya no coincide con el valor global, la
@@ -1753,11 +1755,13 @@ return (
                                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                                     Medio de Pago
                                 </label>
-                                {paymentMethodsCount === 1 && !mpVisible && (
+                                {paymentMethodsCount === 1 && (
                                     <p className="text-xs text-graphite text-center mb-2">
                                         {efectivoEnabled
                                             ? 'Por el momento este local solo acepta efectivo'
-                                            : 'Por el momento este local solo acepta transferencia'}
+                                            : transferenciaEnabled
+                                            ? 'Por el momento este local solo acepta transferencia'
+                                            : 'Por el momento este local solo acepta Mercado Pago'}
                                     </p>
                                 )}
                                 <div className={`grid gap-2 ${paymentMethodsCount > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -1804,10 +1808,14 @@ return (
                             </>
                         )}
 
-                        {paymentMethodsCount === 0 && (
+                        {paymentMethodsCount === 0 && mpLoaded && (
                             <div className="p-4 bg-alert/10 border-2 border-alert/20 rounded-2xl flex items-center gap-2.5">
                                 <XCircle size={18} className="text-alert shrink-0" />
-                                <p className="text-xs font-bold text-alert">El local no tiene métodos de pago configurados</p>
+                                <p className="text-xs font-bold text-alert">
+                                    {mpAvailable && !mpVisible && cashTransferCount === 0
+                                        ? 'Mercado Pago no está disponible para este pedido (entrega programada, delivery por zonas o combo en el carrito). Cambiá el pedido para poder pagar.'
+                                        : NO_METHODS_MESSAGE}
+                                </p>
                             </div>
                         )}
 
