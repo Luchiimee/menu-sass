@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import {
-  Loader2, Wallet, Landmark, CreditCard, Percent, Check, X, Trash2, Pencil, Zap, Lightbulb,
+  Loader2, Wallet, Landmark, CreditCard, Percent, Check, X, Trash2, Pencil, Zap, Lightbulb, AlertTriangle,
 } from 'lucide-react';
 import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
 
@@ -86,6 +86,25 @@ function CardHeader({ icon, title, subtitle, badge, action }: { icon: React.Reac
   );
 }
 
+// Estado de la cuenta de Mercado Pago vinculada (MP Connect, /api/mp/status)
+// available: MP Connect habilitado para este usuario (lo decide el servidor en /api/mp/status)
+type MpStatus =
+  | { status: 'disconnected'; available: boolean }
+  | { status: 'connected' | 'expired' | 'error'; nickname: string | null; expiresAt: string | null; available: boolean };
+
+// Motivos cortos que manda /api/mp/callback o /api/mp/connect en ?reason=
+const MP_ERROR_MESSAGES: Record<string, string> = {
+  denied:   'Cancelaste la autorización en Mercado Pago.',
+  expired:  'La autorización tardó demasiado. Volvé a intentarlo.',
+  state:    'No pudimos validar la conexión. Volvé a intentarlo.',
+  exchange: 'Mercado Pago no aceptó la conexión. Volvé a intentarlo.',
+  plan:     'La conexión con Mercado Pago está disponible desde el plan GO.',
+  account:  'Tu suscripción no está activa. Revisá tu plan para conectar Mercado Pago.',
+  config:   'La conexión con Mercado Pago no está disponible en este momento.',
+  save:     'No pudimos guardar la conexión. Volvé a intentarlo.',
+  no_disponible: 'La conexión con Mercado Pago todavía no está disponible.',
+};
+
 function PagosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,6 +137,10 @@ function PagosContent() {
   });
 
   const hasActiveEfectivoRule = rules.some(r => r.tipo === 'efectivo' && r.id !== editingRuleId);
+
+  const [mpStatus, setMpStatus] = useState<MpStatus | null>(null);
+  const [mpLoading, setMpLoading] = useState(true);
+  const [mpDisconnecting, setMpDisconnecting] = useState(false);
 
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
   const [conflictingRule, setConflictingRule] = useState<any>(null);
@@ -175,6 +198,49 @@ function PagosContent() {
     loadData();
     return () => { mounted = false; };
   }, []);
+
+  // Vuelta del OAuth de Mercado Pago: ?mp=connected | ?mp=error&reason=...
+  useEffect(() => {
+    const mp = searchParams.get('mp');
+    if (!mp) return;
+    if (mp === 'connected') toast.success('¡Mercado Pago conectado!');
+    else toast.error(MP_ERROR_MESSAGES[searchParams.get('reason') ?? ''] ?? 'No se pudo conectar Mercado Pago.');
+    router.replace('/dashboard/pagos?tab=metodos');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadMpStatus = async () => {
+    setMpLoading(true);
+    try {
+      const res = await fetch('/api/mp/status', { cache: 'no-store' });
+      if (!res.ok) throw new Error();
+      setMpStatus(await res.json());
+    } catch {
+      setMpStatus(null);
+    } finally {
+      setMpLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading && !isLocked) loadMpStatus();
+  }, [loading, isLocked]);
+
+  const handleMpDisconnect = async () => {
+    if (!confirm('¿Desconectar tu cuenta de Mercado Pago? Vas a poder volver a conectarla cuando quieras.')) return;
+    setMpDisconnecting(true);
+    try {
+      const res = await fetch('/api/mp/disconnect', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo desconectar');
+      toast.success('Mercado Pago desconectado');
+      setMpStatus(prev => ({ status: 'disconnected', available: prev?.available ?? true }));
+    } catch (err: any) {
+      toast.error(err.message || 'No se pudo desconectar Mercado Pago');
+    } finally {
+      setMpDisconnecting(false);
+    }
+  };
 
   const handleToggleEfectivo = async () => {
     const newValue = !efectivoEnabled;
@@ -428,6 +494,10 @@ function PagosContent() {
               )}
             </div>
 
+            {/* MERCADO PAGO (MP Connect): solo la conexión de la cuenta, sin cobro todavía.
+                Mientras no esté disponible para este usuario (o no se sepa todavía), se
+                muestra como antes: "Próximamente", sin botón. */}
+            {mpLoading || !mpStatus?.available ? (
             <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden opacity-60">
               <CardHeader
                 icon={<CreditCard size={20} />}
@@ -436,6 +506,54 @@ function PagosContent() {
                 badge="Próximamente"
               />
             </div>
+            ) : (
+            <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+              <CardHeader
+                icon={<CreditCard size={20} />}
+                title="Mercado Pago"
+                subtitle={
+                  mpStatus?.status === 'connected'
+                    ? `Conectado como ${mpStatus.nickname || 'tu cuenta de Mercado Pago'}`
+                    : 'Vinculá tu cuenta para cobrar con Mercado Pago.'
+                }
+                action={
+                  mpStatus.status === 'connected' ? (
+                    <button
+                      onClick={handleMpDisconnect}
+                      disabled={mpDisconnecting}
+                      className="px-4 py-2 rounded-xl border border-border text-graphite font-black text-[10px] uppercase tracking-widest hover:bg-surface transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {mpDisconnecting && <Loader2 size={12} className="animate-spin" />}
+                      Desconectar
+                    </button>
+                  ) : mpStatus?.status === 'expired' || mpStatus?.status === 'error' ? (
+                    <a
+                      href="/api/mp/connect"
+                      className="px-4 py-2 rounded-xl bg-ink text-white font-black text-[10px] uppercase tracking-widest hover:bg-black transition-colors inline-block"
+                    >
+                      Reconectar
+                    </a>
+                  ) : (
+                    <a
+                      href="/api/mp/connect"
+                      className="px-4 py-2 rounded-xl bg-fresco text-white font-black text-[10px] uppercase tracking-widest hover:bg-fresco/90 transition-colors inline-block"
+                    >
+                      Conectar Mercado Pago
+                    </a>
+                  )
+                }
+              />
+
+              {(mpStatus.status === 'expired' || mpStatus.status === 'error') && (
+                <div className="px-6 py-4 border-t border-border/60 bg-alert/10 flex items-center gap-2.5">
+                  <AlertTriangle size={16} className="text-alert shrink-0" />
+                  <p className="text-xs font-bold text-alert">
+                    Reconectá tu cuenta: la conexión con Mercado Pago venció o dejó de funcionar.
+                  </p>
+                </div>
+              )}
+            </div>
+            )}
 
             {restaurant.subscription_plan === 'plus' && (
               <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden opacity-60">

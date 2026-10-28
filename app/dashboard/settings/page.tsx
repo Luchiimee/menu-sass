@@ -60,6 +60,19 @@ function SettingsContent() {
 
   const [settingsTab, setSettingsTab] = useState<'seguridad' | 'horarios' | 'impresoras' | 'integraciones'>('seguridad');
 
+  // MP Connect disponible para este usuario: lo decide el servidor (/api/mp/status).
+  // null = cargando o sin respuesta → se muestra "Próximamente".
+  const [mpAvailable, setMpAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/mp/status', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (mounted) setMpAvailable(data?.available === true); })
+      .catch(() => { if (mounted) setMpAvailable(false); });
+    return () => { mounted = false; };
+  }, []);
+
   // --- QZ TRAY ---
   const [qzStatus, setQzStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [availablePrinters, setAvailablePrinters] = useState<string[]>([]);
@@ -965,20 +978,37 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
           <div className="space-y-6 relative">
             {restaurant.subscription_plan === 'light' && <PlanLockOverlay />}
             <div className={`space-y-6 ${restaurant.subscription_plan === 'light' ? 'blur-sm pointer-events-none select-none' : ''}`}>
-              <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
-                <div className="flex items-center gap-4">
-                  <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
-                    <CreditCard size={24} />
+              {/* La conexión de Mercado Pago se administra en Pagos y delivery → Métodos de pago.
+                  "Próximamente" mientras carga o si MP Connect no está disponible (available de /api/mp/status). */}
+              {mpAvailable === true ? (
+                <Link href="/dashboard/pagos?tab=metodos" className="block bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8 hover:border-fresco/40 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
+                      <CreditCard size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="font-bold text-xl text-gray-900">Mercado Pago</h2>
+                      <p className="text-xs text-gray-400 font-medium italic">Conectá tu cuenta desde Pagos y delivery → Métodos de pago.</p>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-fresco shrink-0">Ir a Pagos →</span>
                   </div>
-                  <div className="flex-1">
-                    <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
-                      Mercado Pago
-                      <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
-                    </h2>
-                    <p className="text-xs text-gray-400 font-medium italic">Cobros automáticos directo desde el catálogo digital.</p>
+                </Link>
+              ) : (
+                <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-brasa/10 p-3 rounded-2xl text-brasa">
+                      <CreditCard size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                        Mercado Pago
+                        <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Próximamente</span>
+                      </h2>
+                      <p className="text-xs text-gray-400 font-medium italic">Cobros automáticos directo desde el catálogo digital.</p>
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
               {restaurant.subscription_plan === 'plus' && (
                 <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8">
