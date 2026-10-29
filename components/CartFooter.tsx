@@ -8,6 +8,10 @@ import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
+import {
+    fetchGeo, parseReverseGeocode, parseForwardGeocode, geoFailureMessage, geoPositionErrorMessage,
+    GEO_MESSAGES, GEOLOCATION_OPTIONS, type GeoResult, type ReverseAddress,
+} from '@/lib/geoResult';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -159,7 +163,9 @@ const handleNotificarPagoMesa = async (metodo: string) => {
 
     // --- ZONAS DE DELIVERY ---
     const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
-    const [forcedZone, setForcedZone] = useState<'zone2' | null>(null);
+    // Por qué no se pudo ubicar al cliente (permiso, Google, sin resultados...). Mientras no
+    // haya zona válida el envío queda en 'calculating' y el pedido bloqueado.
+    const [ubicacionError, setUbicacionError] = useState('');
     const [detectingLocation, setDetectingLocation] = useState(false);
 
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
@@ -222,10 +228,12 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             return;
         }
 
+        // Editar la dirección o cambiar el método descarta el aviso anterior
+        setUbicacionError('');
+
         if (metodoEnvio !== 'delivery' || !deliveryZonesEnabled) return;
 
         setClientCoords(null);
-        setForcedZone(null);
     }, [direccionCalle, metodoEnvio, deliveryZonesEnabled]);
 
     // 🔄 Si el parámetro ?mesa= llega después del primer render, forzamos metodoEnvio a 'mesa'
@@ -1038,7 +1046,6 @@ const handleCallWaiter = async () => {
     const zoneStatus = (() => {
       if (metodoEnvio !== 'delivery') return null;
       if (!deliveryZonesEnabled) return 'flat';
-      if (forcedZone) return forcedZone;
       if (!clientCoords || deliveryLat == null || deliveryLng == null) return 'calculating';
       const dist = haversineKm(clientCoords.lat, clientCoords.lng, deliveryLat, deliveryLng);
       if (dist <= deliveryZone1Km) return 'zone1';
@@ -1066,112 +1073,118 @@ const handleCallWaiter = async () => {
   // direcciones incompletas tipo "calle 26 num").
   const direccionListaParaBuscar = !direccionCalle.trim() || /\d+\s*$/.test(direccionCalle.trim());
 
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      const res = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`,
-      );
-      const data = await res.json();
-      if (!data.results?.[0]) return '';
-      const comps = data.results[0].address_components;
-      const get = (type: string) => comps.find((c: any) => c.types.includes(type))?.long_name || '';
-      const route = get('route');
-      const number = get('street_number');
-      const city = get('locality') || get('sublocality') || get('administrative_area_level_2');
-      const street = [route, number].filter(Boolean).join(' ');
-      return city ? `${street}, ${city}` : street;
-    } catch {
-      return '';
-    }
+  // Cualquier falla (permiso, Google, red, sin resultados) deja el envío SIN zona ni precio
+  // ('calculating', envío bloqueado) y se lo explica al cliente: nunca se asigna una zona por
+  // defecto. La interpretación de las respuestas de Google está en lib/geoResult.ts.
+  const reverseGeocode = async (lat: number, lng: number): Promise<GeoResult<ReverseAddress>> => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return { kind: 'error', reason: 'sin_clave' };
+    return fetchGeo(
+      (url, init) => fetch(url, init),
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`,
+      parseReverseGeocode,
+    );
   };
 
   // Geocodifica una dirección de texto vía Google Maps Geocoding API (mismo proveedor que
   // reverseGeocode). Nominatim no tiene granularidad de housenumber para calles de Mercedes
   // ("calle 2 100" y "calle 2 365" resolvían al mismo punto) — Google sí interpola por número.
-  // Devuelve null en error o sin resultados (sin lanzar, para que tanto el flujo GPS como el
-  // click en "Buscar costo de envío" puedan usarlo).
-  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      const fullAddress = deliveryCity ? `${address}, ${deliveryCity}, Argentina` : address;
-      const params = new URLSearchParams({
-        address: fullAddress,
-        key: apiKey ?? '',
-        language: 'es',
-        components: 'country:AR|administrative_area:Buenos Aires',
-      });
+  const geocodeAddress = async (address: string): Promise<GeoResult<{ lat: number; lng: number }>> => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return { kind: 'error', reason: 'sin_clave' };
+    const fullAddress = deliveryCity ? `${address}, ${deliveryCity}, Argentina` : address;
+    const params = new URLSearchParams({
+      address: fullAddress,
+      key: apiKey,
+      language: 'es',
+      components: 'country:AR|administrative_area:Buenos Aires',
+    });
 
-      // Acotamos la búsqueda al radio de la zona más lejana configurada, para que
-      // direcciones cortas/ambiguas ("calle 2 365") no resuelvan a un homónimo en otra
-      // ciudad/provincia. Solo aplica si hay ubicación del local Y zona real configurada —
-      // sin esos dos datos reales, no acotamos (sin fallback inventado).
-      if (deliveryLat != null && deliveryLng != null && deliveryZonesEnabled && deliveryZone2Km) {
-        const radiusKm = Number(deliveryZone2Km);
-        const latPad = radiusKm / 111;
-        const lngPad = radiusKm / (111 * Math.cos((deliveryLat * Math.PI) / 180));
-        const south = deliveryLat - latPad;
-        const north = deliveryLat + latPad;
-        const west  = deliveryLng - lngPad;
-        const east  = deliveryLng + lngPad;
-        params.set('bounds', `${south},${west}|${north},${east}`);
-      }
-
-      const res = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
-      );
-      const data = await res.json();
-      if (!data.results?.[0]) return null;
-      const { lat, lng } = data.results[0].geometry.location;
-      return { lat, lng };
-    } catch {
-      return null;
+    // Acotamos la búsqueda al radio de la zona más lejana configurada, para que
+    // direcciones cortas/ambiguas ("calle 2 365") no resuelvan a un homónimo en otra
+    // ciudad/provincia. Solo aplica si hay ubicación del local Y zona real configurada —
+    // sin esos dos datos reales, no acotamos (sin fallback inventado).
+    if (deliveryLat != null && deliveryLng != null && deliveryZonesEnabled && deliveryZone2Km) {
+      const radiusKm = Number(deliveryZone2Km);
+      const latPad = radiusKm / 111;
+      const lngPad = radiusKm / (111 * Math.cos((deliveryLat * Math.PI) / 180));
+      const south = deliveryLat - latPad;
+      const north = deliveryLat + latPad;
+      const west  = deliveryLng - lngPad;
+      const east  = deliveryLng + lngPad;
+      params.set('bounds', `${south},${west}|${north},${east}`);
     }
+
+    return fetchGeo(
+      (url, init) => fetch(url, init),
+      `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
+      parseForwardGeocode,
+    );
   };
+
+  // Sin la ubicación del local no hay distancia que medir: no se puede asignar zona
+  const localSinUbicacion = deliveryLat == null || deliveryLng == null;
 
   const handleCalcularCosto = async () => {
     setDetectingLocation(true);
     setClientCoords(null);
-    setForcedZone(null);
+    setUbicacionError('');
 
     const myRequestId = ++geocodeRequestId.current;
-    const coords = await geocodeAddress(direccionCalle);
+    const result = await geocodeAddress(direccionCalle);
     if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
-    if (coords) {
-      setClientCoords(coords);
+    if (result.kind !== 'ok') {
+      if (result.kind === 'error') console.error('[CartFooter] geocodificación falló:', result.reason);
+      setUbicacionError(geoFailureMessage(result));
+    } else if (localSinUbicacion) {
+      setUbicacionError(GEO_MESSAGES.localSinUbicacion);
     } else {
-      setForcedZone('zone2');
+      setClientCoords(result.value);
     }
     setDetectingLocation(false);
   };
 
-  const handleUseGps = async () => {
+  const handleUseGps = () => {
     setDetectingLocation(true);
     setClientCoords(null);
-    setForcedZone(null);
+    setUbicacionError('');
+    const myRequestId = ++geocodeRequestId.current;
 
-    const fallbackSinTexto = () => {
-      setForcedZone('zone2');
-      setDetectingLocation(false);
-    };
+    const fail = (message: string) => { setUbicacionError(message); setDetectingLocation(false); };
 
-    if (!navigator.geolocation) { fallbackSinTexto(); return; }
+    if (!navigator.geolocation) { fail(GEO_MESSAGES.gpsNoSoportado); return; }
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const myRequestId = ++geocodeRequestId.current;
+        if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
         const { latitude, longitude } = pos.coords;
+        const result = await reverseGeocode(latitude, longitude);
         if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
-        setClientCoords({ lat: latitude, lng: longitude });
-        const addr = await reverseGeocode(latitude, longitude);
-        if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
-        if (addr) {
-          skipNextAutoGeocode.current = true;
-          setDireccionCalle(addr);
+        // Sin dirección identificada no se asigna zona ni precio: el pedido necesita la
+        // calle escrita, y el cliente la completa a mano.
+        if (result.kind !== 'ok') {
+          if (result.kind === 'error') console.error('[CartFooter] geocodificación inversa falló:', result.reason);
+          fail(GEO_MESSAGES.gpsSinDireccion);
+          return;
         }
-        setDetectingLocation(false);
+        // Se escribe la calle sin que el efecto de edición invalide el resultado
+        skipNextAutoGeocode.current = true;
+        setDireccionCalle(result.value.address);
+        if (localSinUbicacion) {
+          fail(GEO_MESSAGES.localSinUbicacion);
+        } else if (!result.value.hasNumber) {
+          // Sin altura la dirección no sirve para el pedido; el precio se calcula al completarla
+          fail(GEO_MESSAGES.sinAltura);
+        } else {
+          setClientCoords({ lat: latitude, lng: longitude });
+          setDetectingLocation(false);
+        }
       },
-      fallbackSinTexto,
+      (err) => {
+        if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
+        fail(geoPositionErrorMessage(err?.code));
+      },
+      GEOLOCATION_OPTIONS,
     );
   };
 
@@ -1640,6 +1653,30 @@ return (
                                 {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <Calculator size={14} />}
                                 Calcular costo
                               </button>
+                            )}
+                            {/* No se pudo ubicar al cliente: sin zona ni precio, con las salidas posibles */}
+                            {deliveryZonesEnabled && ubicacionError && zoneStatus === 'calculating' && (
+                              <div role="alert" className="px-4 py-3 bg-alert/10 rounded-2xl border border-alert/20 space-y-1.5">
+                                <div className="flex items-start gap-2">
+                                  <XCircle size={14} className="text-alert shrink-0 mt-0.5" />
+                                  <span className="text-[11px] font-black text-alert">{ubicacionError}</span>
+                                </div>
+                                {ubicacionError !== GEO_MESSAGES.sinAltura && (
+                                  <ul className="text-[11px] text-graphite list-disc pl-8 space-y-0.5">
+                                    <li>Completá tu calle y número a mano y tocá "Calcular costo".</li>
+                                    <li>
+                                      Elegí{' '}
+                                      <button type="button" onClick={() => setMetodoEnvio('retiro')} className="font-black underline">retiro en el local</button>.
+                                    </li>
+                                    <li>
+                                      {phone ? (
+                                        <button type="button" onClick={() => window.open(`whatsapp://send?phone=${String(phone).replace(/\D/g, '')}`)} className="font-black underline">Escribile al local</button>
+                                      ) : 'Contactá al local'}
+                                      {' '}para coordinar el envío.
+                                    </li>
+                                  </ul>
+                                )}
+                              </div>
                             )}
                             {/* Feedback de error de zona */}
                             {deliveryZonesEnabled && zoneStatus === 'outside' && (
