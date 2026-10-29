@@ -42,7 +42,7 @@ export type MpTokenResponse = {
 
 export type MpTokenResult =
   | { ok: true; data: MpTokenResponse }
-  | { ok: false; detail: string }; // detail: sin tokens, apto para logs y last_error
+  | { ok: false; detail: string; httpStatus?: number; code?: string }; // detail: sin tokens, apto para logs y last_error; httpStatus/code solo si MP respondió
 
 // POST /oauth/token (canje de code o refresh). Devuelve un detalle corto si falla.
 export async function requestMpToken(body: Record<string, string>): Promise<MpTokenResult> {
@@ -56,7 +56,12 @@ export async function requestMpToken(body: Record<string, string>): Promise<MpTo
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data?.access_token || !data?.refresh_token) {
       const code = data?.error || data?.message || 'respuesta_invalida';
-      return { ok: false, detail: `oauth_token http=${res.status} ${String(code).slice(0, 80)}` };
+      return {
+        ok: false,
+        detail: `oauth_token http=${res.status} ${String(code).slice(0, 80)}`,
+        httpStatus: res.status,
+        code: String(data?.error ?? '').slice(0, 80),
+      };
     }
     return {
       ok: true,
