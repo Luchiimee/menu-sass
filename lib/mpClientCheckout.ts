@@ -109,6 +109,7 @@ const MESSAGES: Record<string, string> = {
   direccion_invalida: 'Revisá la dirección de entrega.',
   notas_invalidas: 'Tu aclaración es demasiado larga.',
   body_demasiado_grande: 'Tu carrito es demasiado grande para pagarlo online.',
+  mp_temporalmente_no_disponible: 'No pudimos iniciar el pago, probá de nuevo en unos segundos',
   mp_error: 'Mercado Pago no respondió. Intentá de nuevo en unos minutos.',
   error_datos: 'Tuvimos un problema para procesar tu pedido. Intentá de nuevo.',
 };

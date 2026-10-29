@@ -169,3 +169,21 @@ export async function refreshIfNeededCore(
 
   return { token: result.data.access_token, refreshed: true };
 }
+
+// Qué hace POST /api/checkout/mp con el resultado de refreshIfNeeded:
+//  - token ok → seguir;
+//  - fallo de cifrado o transitorio → 503 reintentable; el pendiente NO se marca failed
+//    (vence solo) y las credenciales no se tocan;
+//  - sin credenciales o rechazo real de MP → 409 mp_no_conectado, pendiente failed.
+export type CheckoutTokenOutcome =
+  | { kind: 'ok'; token: string }
+  | { kind: 'retry'; status: 503; error: 'mp_temporalmente_no_disponible'; markPendingFailed: false }
+  | { kind: 'not_connected'; status: 409; error: 'mp_no_conectado'; markPendingFailed: true };
+
+export function checkoutTokenOutcome(r: SellerTokenResult): CheckoutTokenOutcome {
+  if (r.token) return { kind: 'ok', token: r.token };
+  if (r.failure === 'crypto' || r.failure === 'transient') {
+    return { kind: 'retry', status: 503, error: 'mp_temporalmente_no_disponible', markPendingFailed: false };
+  }
+  return { kind: 'not_connected', status: 409, error: 'mp_no_conectado', markPendingFailed: true };
+}

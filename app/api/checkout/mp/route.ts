@@ -13,7 +13,7 @@
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { getSellerAccessToken } from '@/lib/mpSellerToken';
+import { refreshIfNeeded, checkoutTokenOutcome } from '@/lib/mpSellerToken';
 import { isMpCheckoutEnabled } from '@/lib/mpCheckoutAccess';
 import { isRestaurantOpen } from '@/lib/businessHours';
 import { CheckoutError, computeOrderTotal } from '@/lib/checkoutPricing';
@@ -181,12 +181,16 @@ export async function POST(req: Request) {
   const pendingId: string = pending.id;
 
   // --- Preference en la cuenta de MP del restaurante ---
-  const token = await getSellerAccessToken(restaurant.id);
-  if (!token) {
-    console.error(`[checkout/mp] ${restaurant.id}: sin token de MP utilizable (pending ${pendingId})`);
-    await markFailed(pendingId);
-    return fail('mp_no_conectado', 409);
+  const tokenResult = await refreshIfNeeded(restaurant.id);
+  const outcome = checkoutTokenOutcome(tokenResult);
+  if (outcome.kind !== 'ok') {
+    console.error(`[checkout/mp] ${restaurant.id}: sin token de MP utilizable (${tokenResult.failure ?? 'desconocido'}, pending ${pendingId})`);
+    // Fallo de cifrado o transitorio: el pendiente queda pending (vence solo) y no se
+    // toca restaurant_mp_credentials; el cliente puede reintentar.
+    if (outcome.markPendingFailed) await markFailed(pendingId);
+    return fail(outcome.error, outcome.status);
   }
+  const token = outcome.token;
 
   const menuUrl = `${appUrl}/${restaurant.slug}`;
   const preference = {

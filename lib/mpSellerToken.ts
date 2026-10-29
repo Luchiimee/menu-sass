@@ -8,10 +8,10 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { encrypt, decrypt } from '@/lib/crypto';
 import { getOAuthConfig, requestMpToken, expiresAtFrom } from '@/lib/mpOAuth';
 import {
-  refreshIfNeededCore, REFRESH_THRESHOLD_MS, type SellerTokenResult,
+  refreshIfNeededCore, checkoutTokenOutcome, REFRESH_THRESHOLD_MS, type SellerTokenResult,
 } from '@/lib/mpSellerTokenCore';
 
-export { REFRESH_THRESHOLD_MS };
+export { REFRESH_THRESHOLD_MS, checkoutTokenOutcome };
 export type { SellerTokenResult };
 
 export function refreshIfNeeded(

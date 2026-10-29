@@ -5,7 +5,7 @@
 //   node scripts/check-mp-seller-token.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
 import crypto from 'node:crypto';
-import { refreshIfNeededCore } from '../lib/mpSellerTokenCore.ts';
+import { refreshIfNeededCore, checkoutTokenOutcome } from '../lib/mpSellerTokenCore.ts';
 
 const RID = '11111111-1111-4111-8111-111111111111';
 const DAY = 24 * 60 * 60 * 1000;
@@ -159,6 +159,29 @@ console.log('caminos que siguen igual');
   deps.encrypt = () => { throw new Error('MP_TOKEN_ENC_KEY inválida'); };
   const r = await refreshIfNeededCore(deps, RID);
   check('refresh OK pero no cifra: fallo crypto y la fila no cambia', r.token === null && r.failure === 'crypto' && db.updates.length === 0 && db.row.status === 'connected');
+}
+
+console.log('checkoutTokenOutcome (qué responde POST /api/checkout/mp)');
+{
+  const ok = checkoutTokenOutcome({ token: 'T', refreshed: false });
+  check('token ok → seguir', ok.kind === 'ok' && ok.token === 'T');
+  for (const failure of ['crypto', 'transient']) {
+    const o = checkoutTokenOutcome({ token: null, refreshed: false, failure });
+    check(`${failure} → 503 mp_temporalmente_no_disponible`, o.kind === 'retry' && o.status === 503 && o.error === 'mp_temporalmente_no_disponible');
+    check(`${failure} → el pendiente NO se marca failed`, o.markPendingFailed === false);
+  }
+  for (const failure of ['no_credentials', 'rejected', undefined]) {
+    const o = checkoutTokenOutcome({ token: null, refreshed: false, failure });
+    check(`${failure ?? 'sin causa'} → 409 mp_no_conectado, pendiente failed`, o.kind === 'not_connected' && o.status === 409 && o.error === 'mp_no_conectado' && o.markPendingFailed === true);
+  }
+  // De punta a punta con la base falsa: sin clave → 503 y la fila intacta
+  const db = makeDb(baseRow());
+  const { deps } = makeDeps(db, { key: false });
+  const o = checkoutTokenOutcome(await refreshIfNeededCore(deps, RID));
+  check('sin MP_TOKEN_ENC_KEY → 503 y fila sin cambios', o.kind === 'retry' && db.updates.length === 0 && db.row.status === 'connected');
+  const db2 = makeDb(baseRow({ status: 'error' }));
+  const o2 = checkoutTokenOutcome(await refreshIfNeededCore(makeDeps(db2).deps, RID));
+  check("fila en 'error' real → 409 mp_no_conectado", o2.kind === 'not_connected' && o2.status === 409);
 }
 
 console.error = origError;
