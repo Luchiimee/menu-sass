@@ -9,6 +9,9 @@ import {
   Loader2, Wallet, Landmark, CreditCard, Percent, Check, X, Trash2, Pencil, Zap, Lightbulb, AlertTriangle,
 } from 'lucide-react';
 import DeliveryZonesConfig from '@/components/dashboard/DeliveryZonesConfig';
+import {
+  canTurnOff, methodsAfterMpDisconnect, LAST_METHOD_MESSAGE, MP_DISABLED_MESSAGE, type OwnerMethods,
+} from '@/lib/paymentMethods';
 
 type Tab = 'metodos' | 'descuentos' | 'delivery';
 type DiscountType = 'envio_gratis' | 'porcentaje' | 'porcentaje_envio_gratis' | 'efectivo';
@@ -120,6 +123,8 @@ function PagosContent() {
 
   const [efectivoEnabled, setEfectivoEnabled] = useState(true);
   const [transferenciaEnabled, setTransferenciaEnabled] = useState(true);
+  // Interruptor "Cobrar con Mercado Pago" (apagado por defecto; solo se ve con la cuenta conectada)
+  const [mpCheckoutEnabled, setMpCheckoutEnabled] = useState(false);
   const [aliasTransferencia, setAliasTransferencia] = useState('');
   const [savingAlias, setSavingAlias] = useState(false);
 
@@ -164,7 +169,7 @@ function PagosContent() {
 
         const { data: rest } = await supabase
           .from('restaurants')
-          .select('id, subscription_plan, efectivo_enabled, transferencia_enabled, alias_transferencia')
+          .select('id, subscription_plan, efectivo_enabled, transferencia_enabled, mp_checkout_enabled, alias_transferencia')
           .eq('user_id', session.user.id)
           .maybeSingle();
 
@@ -178,6 +183,7 @@ function PagosContent() {
 
         setEfectivoEnabled(rest.efectivo_enabled ?? true);
         setTransferenciaEnabled(rest.transferencia_enabled ?? true);
+        setMpCheckoutEnabled(rest.mp_checkout_enabled === true);
         setAliasTransferencia(rest.alias_transferencia || '');
 
         const { data: rulesData } = await supabase
@@ -233,8 +239,18 @@ function PagosContent() {
       const res = await fetch('/api/mp/disconnect', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo desconectar');
-      toast.success('Mercado Pago desconectado');
+      // Cuántos medios quedan activos sin Mercado Pago (se calcula antes de cambiar el estado)
+      const remaining = methodsAfterMpDisconnect(ownerMethods());
       setMpStatus(prev => ({ status: 'disconnected', available: prev?.available ?? true }));
+      // Desconectar apaga el interruptor (no se bloquea). Si falla el guardado no pasa nada
+      // grave: el servidor exige la cuenta conectada igual.
+      if (mpCheckoutEnabled) {
+        setMpCheckoutEnabled(false);
+        const { error: flagError } = await supabase.from('restaurants').update({ mp_checkout_enabled: false }).eq('id', restaurant.id);
+        if (flagError) console.error('No se pudo apagar mp_checkout_enabled:', flagError.message);
+      }
+      if (remaining === 0) toast.error(MP_DISABLED_MESSAGE, { duration: 8000 });
+      else toast.success('Mercado Pago desconectado');
     } catch (err: any) {
       toast.error(err.message || 'No se pudo desconectar Mercado Pago');
     } finally {
@@ -242,8 +258,37 @@ function PagosContent() {
     }
   };
 
+  // Estado de los medios del dueño para la regla "no quedar sin medios activos"
+  // (Mercado Pago cuenta solo si está conectado Y con el interruptor encendido)
+  const ownerMethods = (): OwnerMethods => ({
+    efectivo: efectivoEnabled,
+    transferencia: transferenciaEnabled,
+    mpEnabled: mpCheckoutEnabled,
+    mpConnected: mpStatus?.status === 'connected',
+  });
+
+  const handleToggleMp = async () => {
+    const newValue = !mpCheckoutEnabled;
+    if (!newValue && !canTurnOff(ownerMethods(), 'mercadopago')) {
+      toast.error(LAST_METHOD_MESSAGE);
+      return;
+    }
+    setMpCheckoutEnabled(newValue);
+    const { error } = await supabase.from('restaurants').update({ mp_checkout_enabled: newValue }).eq('id', restaurant.id);
+    if (!error) {
+      toast.success(newValue ? 'Mercado Pago activado' : 'Mercado Pago desactivado', { position: 'bottom-right', duration: 1500 });
+    } else {
+      setMpCheckoutEnabled(!newValue);
+      toast.error('No se pudo guardar');
+    }
+  };
+
   const handleToggleEfectivo = async () => {
     const newValue = !efectivoEnabled;
+    if (!newValue && !canTurnOff(ownerMethods(), 'efectivo')) {
+      toast.error(LAST_METHOD_MESSAGE);
+      return;
+    }
     setEfectivoEnabled(newValue);
     const { error } = await supabase.from('restaurants').update({ efectivo_enabled: newValue }).eq('id', restaurant.id);
     if (!error) {
@@ -256,6 +301,10 @@ function PagosContent() {
 
   const handleToggleTransferencia = async () => {
     const newValue = !transferenciaEnabled;
+    if (!newValue && !canTurnOff(ownerMethods(), 'transferencia')) {
+      toast.error(LAST_METHOD_MESSAGE);
+      return;
+    }
     setTransferenciaEnabled(newValue);
     const { error } = await supabase.from('restaurants').update({ transferencia_enabled: newValue }).eq('id', restaurant.id);
     if (!error) {
@@ -518,6 +567,8 @@ function PagosContent() {
                 }
                 action={
                   mpStatus.status === 'connected' ? (
+                    <div className="flex items-center gap-3">
+                    <ToggleSwitch checked={mpCheckoutEnabled} onChange={handleToggleMp} />
                     <button
                       onClick={handleMpDisconnect}
                       disabled={mpDisconnecting}
@@ -526,6 +577,7 @@ function PagosContent() {
                       {mpDisconnecting && <Loader2 size={12} className="animate-spin" />}
                       Desconectar
                     </button>
+                    </div>
                   ) : mpStatus?.status === 'expired' || mpStatus?.status === 'error' ? (
                     <a
                       href="/api/mp/connect"
@@ -543,6 +595,14 @@ function PagosContent() {
                   )
                 }
               />
+
+              {mpStatus.status === 'connected' && (
+                <div className="px-6 py-4 border-t border-border/60 text-xs text-graphite">
+                  {mpCheckoutEnabled
+                    ? 'Tus clientes ya pueden pagar con Mercado Pago en el checkout (tarjeta o dinero en cuenta).'
+                    : 'Activá el interruptor para ofrecer Mercado Pago en tu checkout. Mientras esté apagado, nadie puede pagar con Mercado Pago.'}
+                </div>
+              )}
 
               {(mpStatus.status === 'expired' || mpStatus.status === 'error') && (
                 <div className="px-6 py-4 border-t border-border/60 bg-alert/10 flex items-center gap-2.5">

@@ -29,6 +29,7 @@ interface CartContextType {
   productExtraCount: (productId: any, extraId: string) => number;
   stepProductExtra: (productId: any, extra: Omit<CartExtra, 'quantity'>, delta: number) => void;
   clearCart: () => void;
+  restoreCart: (items: any[]) => void;
   total: number;
   cartRestaurantId: string | null;
   activeOrderId: string | null;
@@ -122,13 +123,21 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCart([]);
   };
 
+  // Vuelve a cargar un carrito guardado (vuelta fallida de Mercado Pago: la
+  // navegación a MP descarta el estado en memoria). Solo si el carrito está vacío,
+  // y con uniqueId nuevos para no chocar con los que genere este contador.
+  const restoreCart = (items: any[]) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    setCart((prev) => (prev.length > 0 ? prev : items.map((it) => ({ ...it, uniqueId: generateUniqueId(it.id) }))));
+  };
+
   const total = cartTotal(cart);
 
   return (
     <CartContext.Provider value={{
       cart, addToCart, addItem, removeFromCart, updateQuantity, updateExtraQuantity, addExtraToOneUnit,
       productUnits, stepProduct, productExtraCount, stepProductExtra,
-      clearCart, total, cartRestaurantId,
+      clearCart, restoreCart, total, cartRestaurantId,
       activeOrderId, setActiveOrderId
     }}>
       {children}

@@ -1,7 +1,7 @@
 // POST /api/checkout/mp — checkout online con Mercado Pago (MP Connect, fase 2).
 // PÚBLICO: lo llama el cliente del menú, sin sesión. Recalcula el total desde la
 // base (lib/checkoutPricing.ts), guarda el pedido en pending_mp_orders y crea una
-// preference en la cuenta de MP del restaurante. Devuelve solo { init_point }.
+// preference en la cuenta de MP del restaurante. Devuelve solo { init_point, ref, total }.
 // El pedido real (orders) lo crea el webhook en la fase 3: acá no se toca orders.
 //
 // TODO(rate limit): esta ruta es pública y escribe en la base y llama a MP por
@@ -13,10 +13,11 @@
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { getSellerAccessToken } from '@/lib/mpSellerToken';
+import { refreshIfNeeded, checkoutTokenOutcome } from '@/lib/mpSellerToken';
 import { isMpCheckoutEnabled } from '@/lib/mpCheckoutAccess';
 import { isRestaurantOpen } from '@/lib/businessHours';
 import { CheckoutError, computeOrderTotal } from '@/lib/checkoutPricing';
+import { totalsMatch } from '@/lib/mpClientCheckout';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +89,12 @@ export async function POST(req: Request) {
   if (address === undefined) return fail('direccion_invalida', 400);
   if (notes === undefined) return fail('notas_invalidas', 400);
   if (couponCode === undefined) return fail('cupon_invalido', 400);
+  // Opcional: el total que ve el cliente. Si no coincide con el calculado, no se crea nada.
+  const expectedTotal = body.expected_total;
+  if (expectedTotal !== undefined && expectedTotal !== null
+    && !(typeof expectedTotal === 'number' && Number.isFinite(expectedTotal))) {
+    return fail('total_esperado_invalido', 400);
+  }
 
   const db = getSupabaseAdmin();
 
@@ -135,6 +142,11 @@ export async function POST(req: Request) {
     return fail('error_datos', 500);
   }
 
+  // El cliente vio otro total (menú o cupón cambiaron): se frena ANTES de escribir nada
+  if (typeof expectedTotal === 'number' && !totalsMatch(expectedTotal, priced.total)) {
+    return NextResponse.json({ error: 'total_distinto', total: priced.total }, { status: 409 });
+  }
+
   // --- Pedido pendiente ---
   const expiresAt = new Date(Date.now() + PENDING_TTL_MS);
   const { data: pending, error: insertError } = await db
@@ -169,12 +181,16 @@ export async function POST(req: Request) {
   const pendingId: string = pending.id;
 
   // --- Preference en la cuenta de MP del restaurante ---
-  const token = await getSellerAccessToken(restaurant.id);
-  if (!token) {
-    console.error(`[checkout/mp] ${restaurant.id}: sin token de MP utilizable (pending ${pendingId})`);
-    await markFailed(pendingId);
-    return fail('mp_no_conectado', 409);
+  const tokenResult = await refreshIfNeeded(restaurant.id);
+  const outcome = checkoutTokenOutcome(tokenResult);
+  if (outcome.kind !== 'ok') {
+    console.error(`[checkout/mp] ${restaurant.id}: sin token de MP utilizable (${tokenResult.failure ?? 'desconocido'}, pending ${pendingId})`);
+    // Fallo de cifrado o transitorio: el pendiente queda pending (vence solo) y no se
+    // toca restaurant_mp_credentials; el cliente puede reintentar.
+    if (outcome.markPendingFailed) await markFailed(pendingId);
+    return fail(outcome.error, outcome.status);
   }
+  const token = outcome.token;
 
   const menuUrl = `${appUrl}/${restaurant.slug}`;
   const preference = {
@@ -191,12 +207,18 @@ export async function POST(req: Request) {
     // rid: el webhook lo usa para elegir el token del vendedor y lo contrasta con
     // pending_mp_orders.restaurant_id (la firma de MP no lo cubre)
     notification_url: `${appUrl}/api/mp/webhook?rid=${restaurant.id}`,
+    // ref = id del pendiente: la pantalla de retorno lo usa con /api/checkout/mp/status.
+    // Es nuestro; los parámetros que MP agrega a la vuelta (status, payment_id...) no se usan.
     back_urls: {
-      success: `${menuUrl}?mp=success`,
-      pending: `${menuUrl}?mp=pending`,
-      failure: `${menuUrl}?mp=failure`,
+      success: `${menuUrl}?mp=success&ref=${pendingId}`,
+      pending: `${menuUrl}?mp=pending&ref=${pendingId}`,
+      failure: `${menuUrl}?mp=failure&ref=${pendingId}`,
     },
     auto_return: 'approved',
+    // Sin pagos en efectivo (Rapipago, Pago Fácil...): se acreditan horas después y la
+    // fila pending vence a los 30 min. Campo según la doc de Checkout Pro:
+    // payment_methods.excluded_payment_types: [{ id: 'ticket' }].
+    payment_methods: { excluded_payment_types: [{ id: 'ticket' }] },
     expires: true,
     expiration_date_from: new Date().toISOString(),
     expiration_date_to: expiresAt.toISOString(),
@@ -243,5 +265,5 @@ export async function POST(req: Request) {
     console.error(`[checkout/mp] no se pudo guardar mp_preference_id (pending ${pendingId}):`, updateError.message);
   }
 
-  return NextResponse.json({ init_point: initPoint });
+  return NextResponse.json({ init_point: initPoint, ref: pendingId, total: priced.total });
 }

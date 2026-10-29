@@ -33,6 +33,7 @@ import SpotlightHero from "@/components/templates/SpotlightHero";
 import AddToCartBtn from "@/components/AddToCartBtn";
 import CartFooter from "@/components/CartFooter";
 import ClearCartLogic from "@/components/ClearCartLogic";
+import MpReturn from "@/components/MpReturn";
 import { CartProvider, useCart } from "@/context/CartContext";
 import MarketProTemplate from "@/components/templates/MarketProTemplate";
 import AlternaPro from "@/components/templates/AlternaPro";
@@ -1742,6 +1743,7 @@ case "spotlight":
       >
         <style dangerouslySetInnerHTML={{ __html: memoizedStyles }} />
         <ClearCartLogic currentRestaurantId={restaurant.id} />
+        <MpReturn restaurantId={restaurant.id} restaurantPhone={restaurant.phone} />
 
         {/* 🚀 NOTIFICACIÓN PREMIUM CORREGIDA (Centrada y con Salida) */}
         {notificacion && (

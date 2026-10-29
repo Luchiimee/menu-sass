@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { getSellerAccessToken } from '@/lib/mpSellerToken';
+import { refreshIfNeeded } from '@/lib/mpSellerToken';
 import { handleWebhookRequest, type FetchPaymentResult } from '@/lib/mpWebhookCore';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,9 @@ const MAX_BODY_BYTES = 64 * 1024;
 
 // GET /v1/payments/{id} con el token del vendedor. Nunca se loguea el cuerpo.
 async function fetchPayment(restaurantId: string, paymentId: string): Promise<FetchPaymentResult> {
-  const token = await getSellerAccessToken(restaurantId);
+  const { token, failure } = await refreshIfNeeded(restaurantId);
+  // Falla de este servidor (clave de cifrado) o transitoria: MP reintenta el aviso
+  if (!token && (failure === 'crypto' || failure === 'transient')) return { kind: 'transient' };
   if (!token) return { kind: 'no_token' };
   try {
     const res = await fetch(`${MP_PAYMENTS_URL}/${paymentId}`, {

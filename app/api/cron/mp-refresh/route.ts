@@ -1,6 +1,7 @@
 // GET /api/cron/mp-refresh — cron diario de MP Connect.
 // Refresca los tokens de vendedor que vencen en menos de 30 días y marca
-// 'expired' los que fallan (lo hace refreshIfNeeded). También expira los pedidos
+// 'error' los que MP rechaza (lo hace refreshIfNeeded; un fallo de cifrado o de red
+// no cambia la fila). También expira los pedidos
 // pendientes de pago vencidos (pending_mp_orders). No devuelve ni loguea
 // tokens: solo conteos e ids de restaurante.
 
