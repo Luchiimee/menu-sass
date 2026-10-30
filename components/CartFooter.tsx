@@ -10,7 +10,8 @@ import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE 
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, geoFailureMessage, geoPositionErrorMessage,
-    GEO_MESSAGES, GEOLOCATION_OPTIONS, type GeoResult, type ReverseAddress,
+    gpsPocoPrecisaMessage, isGpsAccurate, GEO_MESSAGES, GEOLOCATION_OPTIONS,
+    type GeoResult, type ReverseAddress, type ForwardLocation,
 } from '@/lib/geoResult';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1078,7 +1079,7 @@ const handleCallWaiter = async () => {
   // defecto. La interpretación de las respuestas de Google está en lib/geoResult.ts.
   const reverseGeocode = async (lat: number, lng: number): Promise<GeoResult<ReverseAddress>> => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return { kind: 'error', reason: 'sin_clave' };
+    if (!apiKey) return { kind: 'error', motivo: 'sin_clave' };
     return fetchGeo(
       (url, init) => fetch(url, init),
       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`,
@@ -1089,9 +1090,9 @@ const handleCallWaiter = async () => {
   // Geocodifica una dirección de texto vía Google Maps Geocoding API (mismo proveedor que
   // reverseGeocode). Nominatim no tiene granularidad de housenumber para calles de Mercedes
   // ("calle 2 100" y "calle 2 365" resolvían al mismo punto) — Google sí interpola por número.
-  const geocodeAddress = async (address: string): Promise<GeoResult<{ lat: number; lng: number }>> => {
+  const geocodeAddress = async (address: string): Promise<GeoResult<ForwardLocation>> => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return { kind: 'error', reason: 'sin_clave' };
+    if (!apiKey) return { kind: 'error', motivo: 'sin_clave' };
     const fullAddress = deliveryCity ? `${address}, ${deliveryCity}, Argentina` : address;
     const params = new URLSearchParams({
       address: fullAddress,
@@ -1134,16 +1135,20 @@ const handleCallWaiter = async () => {
     const result = await geocodeAddress(direccionCalle);
     if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
     if (result.kind !== 'ok') {
-      if (result.kind === 'error') console.error('[CartFooter] geocodificación falló:', result.reason);
+      if (result.kind === 'error') console.error('[CartFooter] geocodificación falló:', result.motivo);
       setUbicacionError(geoFailureMessage(result));
     } else if (localSinUbicacion) {
       setUbicacionError(GEO_MESSAGES.localSinUbicacion);
     } else {
-      setClientCoords(result.value);
+      setClientCoords({ lat: result.value.lat, lng: result.value.lng });
     }
     setDetectingLocation(false);
   };
 
+  // "Buscar por GPS". clientCoords (y con él la zona y el precio) se guarda recién cuando la
+  // geocodificación inversa devolvió una dirección completa (calle y número). Ante cualquier
+  // falla (permiso, timeout, precisión, Google, sin altura) no se asigna zona, el botón sigue
+  // visible y el cliente puede escribir su dirección a mano.
   const handleUseGps = () => {
     setDetectingLocation(true);
     setClientCoords(null);
@@ -1157,28 +1162,26 @@ const handleCallWaiter = async () => {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
-        const { latitude, longitude } = pos.coords;
+        const { latitude, longitude, accuracy } = pos.coords;
+        // Una posición por Wi-Fi o IP puede errar por kilómetros: cambiaría la zona
+        if (!isGpsAccurate(accuracy)) { fail(gpsPocoPrecisaMessage(accuracy)); return; }
+
         const result = await reverseGeocode(latitude, longitude);
         if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
-        // Sin dirección identificada no se asigna zona ni precio: el pedido necesita la
-        // calle escrita, y el cliente la completa a mano.
         if (result.kind !== 'ok') {
-          if (result.kind === 'error') console.error('[CartFooter] geocodificación inversa falló:', result.reason);
+          if (result.kind === 'error') console.error('[CartFooter] geocodificación inversa falló:', result.motivo);
           fail(GEO_MESSAGES.gpsSinDireccion);
           return;
         }
-        // Se escribe la calle sin que el efecto de edición invalide el resultado
+        // Calle sin número: no se escribe una dirección a medias, se pide la altura
+        if (result.value.address === null) { fail(GEO_MESSAGES.sinAltura); return; }
+        if (localSinUbicacion) { fail(GEO_MESSAGES.localSinUbicacion); return; }
+
+        // Se escribe la dirección sin que el efecto de edición invalide el resultado
         skipNextAutoGeocode.current = true;
         setDireccionCalle(result.value.address);
-        if (localSinUbicacion) {
-          fail(GEO_MESSAGES.localSinUbicacion);
-        } else if (!result.value.hasNumber) {
-          // Sin altura la dirección no sirve para el pedido; el precio se calcula al completarla
-          fail(GEO_MESSAGES.sinAltura);
-        } else {
-          setClientCoords({ lat: latitude, lng: longitude });
-          setDetectingLocation(false);
-        }
+        setClientCoords({ lat: latitude, lng: longitude });
+        setDetectingLocation(false);
       },
       (err) => {
         if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
