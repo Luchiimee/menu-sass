@@ -1148,7 +1148,7 @@ const handleCallWaiter = async () => {
   // "Buscar por GPS". clientCoords (y con él la zona y el precio) se guarda recién cuando la
   // geocodificación inversa devolvió una dirección completa (calle y número). Ante cualquier
   // falla (permiso, timeout, precisión, Google, sin altura) no se asigna zona, el botón sigue
-  // visible y el cliente puede escribir su dirección a mano.
+  // visible y lo que el cliente haya escrito en "Calle y número" no se toca.
   const handleUseGps = () => {
     setDetectingLocation(true);
     setClientCoords(null);
@@ -1177,9 +1177,14 @@ const handleCallWaiter = async () => {
         if (result.value.address === null) { fail(GEO_MESSAGES.sinAltura); return; }
         if (localSinUbicacion) { fail(GEO_MESSAGES.localSinUbicacion); return; }
 
-        // Se escribe la dirección sin que el efecto de edición invalide el resultado
-        skipNextAutoGeocode.current = true;
-        setDireccionCalle(result.value.address);
+        // Reemplaza lo que haya escrito el cliente sin que el efecto de edición invalide el
+        // resultado. Solo se marca si el texto cambia: con la misma dirección el efecto no corre,
+        // y una marca sin consumir haría ignorar la próxima edición real (precio viejo).
+        const address = result.value.address;
+        setDireccionCalle((prev) => {
+          if (prev !== address) skipNextAutoGeocode.current = true;
+          return address;
+        });
         setClientCoords({ lat: latitude, lng: longitude });
         setDetectingLocation(false);
       },
@@ -1617,17 +1622,20 @@ return (
                     {metodoEnvio === 'delivery' && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                             {/* Costo de envío */}
-                            {deliveryZonesEnabled && zoneStatus === 'calculating' ? (
+                            {/* GPS: siempre disponible con envío por zonas, haya o no texto escrito.
+                                Con zona ya calculada (o fuera de zona) sirve para volver a ubicarse. */}
+                            {deliveryZonesEnabled && (
                               <button
                                 type="button"
                                 onClick={handleUseGps}
-                                disabled={detectingLocation || direccionCalle.trim() !== ''}
+                                disabled={detectingLocation}
                                 className="bg-[#F0FAF6] border border-[#B8E8D4] text-fresco rounded-xl py-2 px-4 flex items-center gap-2 w-full justify-center font-semibold text-sm disabled:opacity-40 active:scale-95 transition-all"
                               >
                                 {detectingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                                Buscar por GPS
+                                {zoneStatus === 'calculating' ? 'Buscar por GPS' : 'Volver a ubicarme'}
                               </button>
-                            ) : deliveryZonesEnabled && zoneStatus === 'outside' ? null : (
+                            )}
+                            {deliveryZonesEnabled && (zoneStatus === 'calculating' || zoneStatus === 'outside') ? null : (
                               <div className="px-4 py-3 bg-green-50 rounded-[14px] border-2 border-green-200">
                                 <div className="flex justify-between items-center">
                                   <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Costo de Envío</span>
