@@ -25,8 +25,11 @@ const MapView = dynamic(() => import('./DeliveryMapInner'), {
 const MAP_FALLBACK_CENTER = { lat: -34.6037, lng: -58.3816 };
 
 const ZONE_COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#0ea5e9'];
-// Sin la tabla delivery_zones (SQL 14 sin correr) solo existen las columnas de 2 zonas
-const MAX_ZONES_WITHOUT_TABLE = 2;
+// Zonas que deja cargar el panel. El checkout (CartFooter) y el servidor todavía aplican solo
+// las columnas delivery_zone1/2, así que más de 2 cobrarían distinto de lo configurado.
+// Subir cuando CartFooter y el servidor usen deliveryZones.ts (el motor y el SQL ya admiten
+// MAX_ZONES = 6).
+const MAX_ZONES_PANEL = 2;
 
 // Lo que edita el dueño: texto, para poder escribir libremente; se valida al guardar
 type ZoneDraft = { km: string; cost: string };
@@ -65,7 +68,8 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   const [locating, setLocating] = useState(false);
 
   const located = lat != null && lng != null;
-  const maxZonesAllowed = tableMissing ? MAX_ZONES_WITHOUT_TABLE : MAX_ZONES;
+  // Nunca más que el motor; hoy el límite real es el del panel
+  const maxZonesAllowed = Math.min(MAX_ZONES_PANEL, MAX_ZONES);
 
   // Cargar valores actuales de la DB
   useEffect(() => {
@@ -285,7 +289,8 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
     } catch (err) {
       if (isMissingTableError(err as { code?: string; message?: string })) {
         setTableMissing(true);
-        toast.error('La tabla de zonas todavía no está activada: por ahora podés guardar hasta 2 zonas.');
+        // El próximo guardado ya no intenta la tabla y escribe solo las columnas de restaurants
+        toast.error('No se guardó: la tabla de zonas todavía no está activada. Tocá "Guardar zonas" de nuevo.');
       } else {
         toast.error('Error al guardar las zonas');
       }
@@ -486,15 +491,10 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
             <p className="text-[10px] text-gray-400 font-medium">
               Cada zona cubre hasta su radio en línea recta desde el local. Al guardar se ordenan de menor a mayor.
             </p>
-            {tableMissing && (
-              <p className="text-[10px] text-gray-500 font-medium">
-                Por ahora podés configurar hasta {MAX_ZONES_WITHOUT_TABLE} zonas.
-              </p>
-            )}
-            {zones.length > 2 && (
-              <p className="text-[11px] font-bold text-brasa">
-                Por ahora el checkout aplica solo las zonas 1 y 2: más allá de la zona 2 tus clientes ven
-                &quot;no llegamos a tu zona&quot;. Las zonas 3 a {MAX_ZONES} se van a aplicar con la próxima actualización.
+            {zones.length > MAX_ZONES_PANEL && (
+              // Solo si ya hay más guardadas (p. ej. cargadas a mano en la tabla): no se pueden guardar así
+              <p className="text-[11px] font-bold text-alert">
+                Por ahora el checkout usa hasta {MAX_ZONES_PANEL} zonas. Quitá las que sobran para poder guardar.
               </p>
             )}
           </div>
