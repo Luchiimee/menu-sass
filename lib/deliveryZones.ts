@@ -132,10 +132,15 @@ export function legacyZones(row: LegacyZoneColumns | null | undefined): { max_km
 // igual antes y después de correr el SQL.
 // ---------------------------------------------------------------------------
 
-export type ZonesSource =
+export type StoredZonesSource =
   | { source: 'tabla'; zones: NormalizedZones }
   | { source: 'columnas'; zones: NormalizedZones; tableMissing: boolean }
   | { source: 'error'; motivo: 'error_datos' };
+
+// 'desactivado': el local cobra tarifa fija (delivery_cost), no hay zonas que aplicar
+export type ZonesSource = StoredZonesSource | { source: 'desactivado' };
+
+export type ZonesRestaurant = { id: string; delivery_zones_enabled?: unknown } & LegacyZoneColumns;
 
 // "La tabla no existe": 42P01 de Postgres o PGRST205 de PostgREST (no está en el schema cache)
 export function isMissingTableError(error: { code?: string; message?: string } | null | undefined): boolean {
@@ -144,10 +149,20 @@ export function isMissingTableError(error: { code?: string; message?: string } |
   return /does not exist|could not find the table/i.test(String(error.message ?? ''));
 }
 
-export async function readDeliveryZones(
+// Zonas para COBRAR. Con el interruptor apagado o null devuelve 'desactivado' sin zonas
+// (ni consulta la tabla): las columnas de los locales con tarifa fija tienen los valores por
+// defecto (3 y 7 km a $0) y no deben usarse como zonas reales. Solo `true` activa las zonas.
+export async function readDeliveryZones(db: SupabaseClient, restaurant: ZonesRestaurant): Promise<ZonesSource> {
+  if (restaurant.delivery_zones_enabled !== true) return { source: 'desactivado' };
+  return readZonesForEditing(db, restaurant);
+}
+
+// Zonas guardadas SIN mirar el interruptor: solo para que el panel del dueño muestre los
+// valores editables aunque las zonas estén apagadas. Para cobrar, usar readDeliveryZones.
+export async function readZonesForEditing(
   db: SupabaseClient,
   restaurant: { id: string } & LegacyZoneColumns
-): Promise<ZonesSource> {
+): Promise<StoredZonesSource> {
   const { data, error } = await db
     .from('delivery_zones')
     .select('position, max_km, cost')

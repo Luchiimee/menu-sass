@@ -3,7 +3,7 @@
 //   node scripts/check-delivery-zones.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
 import {
-  haversineKm, normalizeZones, resolveZone, legacyZones, readDeliveryZones, isMissingTableError, toNumber,
+  haversineKm, normalizeZones, resolveZone, legacyZones, readDeliveryZones, readZonesForEditing, isMissingTableError, toNumber,
   MAX_ZONES, MAX_ZONE_KM,
 } from '../lib/deliveryZones.ts';
 
@@ -132,7 +132,7 @@ function fakeDb({ rows = [], error = null } = {}) {
   };
   return db;
 }
-const legacySnappy = { id: 'r1', delivery_zone1_km: '1.5', delivery_zone1_cost: '3500', delivery_zone2_km: '3', delivery_zone2_cost: '6000' };
+const legacySnappy = { id: 'r1', delivery_zones_enabled: true, delivery_zone1_km: '1.5', delivery_zone1_cost: '3500', delivery_zone2_km: '3', delivery_zone2_cost: '6000' };
 {
   const r = await readDeliveryZones(fakeDb({ rows: [...snappyRows, { position: 3, max_km: '5', cost: '9000' }] }), legacySnappy);
   check('con filas en la tabla → source tabla (3 zonas)', r.source === 'tabla' && r.zones.ok && r.zones.zones.length === 3);
@@ -156,6 +156,51 @@ const legacySnappy = { id: 'r1', delivery_zone1_km: '1.5', delivery_zone1_cost: 
   check('otro error de base → error (no inventa zonas)', r.source === 'error');
 }
 check('isMissingTableError(null) → false', !isMissingTableError(null));
+
+console.log('readDeliveryZones: interruptor delivery_zones_enabled');
+// Casa Delia / Doña Coca: tarifa fija, columnas de zona con los valores por defecto (3 y 7 km a $0)
+const tarifaFija = (enabled) => ({ id: 'r2', delivery_zones_enabled: enabled, delivery_zone1_km: '3', delivery_zone1_cost: '0', delivery_zone2_km: '7', delivery_zone2_cost: '0' });
+{
+  const db = fakeDb({ rows: [] });
+  const r = await readDeliveryZones(db, tarifaFija(false));
+  check('local con tarifa fija (false) → desactivado, sin zonas', r.source === 'desactivado' && !('zones' in r));
+  check('… y ni siquiera consulta la tabla', db.queried === null);
+}
+{
+  const r = await readDeliveryZones(fakeDb(), tarifaFija(null));
+  check('interruptor null → desactivado', r.source === 'desactivado');
+}
+{
+  const r = await readDeliveryZones(fakeDb(), tarifaFija(undefined));
+  check('interruptor ausente → desactivado', r.source === 'desactivado');
+}
+{
+  const r = await readDeliveryZones(fakeDb(), tarifaFija('true'));
+  check("solo true activa: 'true' (texto) → desactivado", r.source === 'desactivado');
+}
+{
+  // Aunque la tabla tuviera filas (el dueño apagó las zonas), con el interruptor apagado no hay zonas
+  const r = await readDeliveryZones(fakeDb({ rows: snappyRows }), { ...legacySnappy, delivery_zones_enabled: false });
+  check('apagado con filas en la tabla → desactivado igual', r.source === 'desactivado');
+}
+{
+  const r = await readDeliveryZones(fakeDb({ rows: snappyRows }), legacySnappy);
+  check('activado con tabla → tabla', r.source === 'tabla' && r.zones.ok && r.zones.zones[0].cost === 3500);
+}
+{
+  const r = await readDeliveryZones(fakeDb({ rows: [] }), legacySnappy);
+  check('activado sin filas → columnas', r.source === 'columnas' && r.zones.ok && r.zones.zones[1].maxKm === 3);
+}
+
+console.log('readZonesForEditing (panel: valores editables sin mirar el interruptor)');
+{
+  const r = await readZonesForEditing(fakeDb({ rows: [] }), tarifaFija(false));
+  check('tarifa fija → columnas con los valores guardados (3 y 7 km)', r.source === 'columnas' && r.zones.ok && r.zones.zones[0].maxKm === 3 && r.zones.zones[1].maxKm === 7);
+}
+{
+  const r = await readZonesForEditing(fakeDb({ rows: snappyRows }), { ...legacySnappy, delivery_zones_enabled: false });
+  check('apagado con filas → muestra las de la tabla', r.source === 'tabla' && r.zones.ok && r.zones.zones.length === 2);
+}
 
 if (failures) { console.error(`\n${failures} caso(s) con FALLA`); process.exit(1); }
 console.log('\nTodos los casos OK');

@@ -6,7 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { MapPin, Search, Save, Loader2, LocateFixed, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  readDeliveryZones, legacyZones, normalizeZones, toNumber, isMissingTableError,
+  readZonesForEditing, legacyZones, normalizeZones, toNumber, isMissingTableError,
   MAX_ZONES, MAX_ZONE_KM, ZONE_ERROR_MESSAGES, type DeliveryZone,
 } from '@/lib/deliveryZones';
 
@@ -89,8 +89,9 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
           setLng(dbLng);
         }
 
-        // Zonas: tabla delivery_zones o, si no hay filas / no existe, columnas viejas
-        const source = await readDeliveryZones(supabase, { id: restaurantId, ...data });
+        // Zonas: tabla delivery_zones o, si no hay filas / no existe, columnas viejas. Se leen
+        // aunque el interruptor esté apagado, para mostrar los valores editables (no para cobrar).
+        const source = await readZonesForEditing(supabase, { id: restaurantId, ...data });
         if (source.source === 'error') {
           setLoadFailed(true);
         } else {
