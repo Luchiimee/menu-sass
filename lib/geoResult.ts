@@ -144,6 +144,16 @@ export async function fetchGeo<T>(
   return parse(data);
 }
 
+// Habilita "Calcular costo": al menos 4 caracteres (sin espacios sobrantes) y algún dígito en
+// cualquier posición, así "Calle 28 1112, Mercedes" (con la ciudad que escribe el GPS al
+// final) también sirve. Es solo un filtro de forma: "calle 2" pasa, y lo frena después
+// parseForwardGeocode (sin número ni punto preciso → sin_altura, sin precio).
+export const MIN_ADDRESS_LENGTH = 4;
+export function canCalculateCost(text: unknown): boolean {
+  const t = typeof text === 'string' ? text.trim() : '';
+  return t.length >= MIN_ADDRESS_LENGTH && /\d/.test(t);
+}
+
 // ---------------------------------------------------------------------------
 // Mensajes para el cliente
 // ---------------------------------------------------------------------------
