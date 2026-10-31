@@ -8,17 +8,23 @@
 export type GeoResult<T> =
   | { kind: 'ok'; value: T }
   | { kind: 'sin_resultado' }               // Google respondió bien pero no hay dirección para esto
+  | { kind: 'sin_altura' }                  // solo calle, localidad o punto aproximado: falta la altura
+  | { kind: 'parcial' }                     // partial_match: Google no encontró exactamente lo escrito
   | { kind: 'error'; motivo: string };      // no se pudo consultar: clave, facturación, cuota, red, timeout
 
+export type GeoFailure = Exclude<GeoResult<never>, { kind: 'ok' }>;
+
 export type ReverseAddress = {
-  // "Calle 2 1234, Mercedes". null si Google no trajo la altura: no se escribe una
-  // dirección a medias, se pide el número.
-  address: string | null;
-  hasNumber: boolean;
+  address: string;        // "Calle 2 1234, Mercedes": siempre con calle y número
   locationType: string;   // ROOFTOP, RANGE_INTERPOLATED, GEOMETRIC_CENTER, APPROXIMATE ('' si no vino)
 };
 
 export type ForwardLocation = { lat: number; lng: number; locationType: string };
+
+// Puntos que sirven para medir la distancia a una dirección. GEOMETRIC_CENTER (centro de
+// una calle o un barrio) y APPROXIMATE (la localidad) pueden quedar a kilómetros de la
+// casa: con eso "calle 2" sin altura caía en la zona 1.
+export const PRECISE_LOCATION_TYPES = ['ROOFTOP', 'RANGE_INTERPOLATED'];
 
 export const GEO_TIMEOUT_MS = 10000;
 // getCurrentPosition sin timeout puede quedar colgado para siempre
@@ -72,29 +78,42 @@ export function parseReverseGeocode(data: any): GeoResult<ReverseAddress> {
     const city = localityOf(result);
     return {
       kind: 'ok',
-      value: { address: city ? `${street}, ${city}` : street, hasNumber: true, locationType: locationOf(result) },
+      value: { address: city ? `${street}, ${city}` : street, locationType: locationOf(result) },
     };
   }
 
-  for (const result of results) {
-    if (componentOf(result, 'route')) {
-      return { kind: 'ok', value: { address: null, hasNumber: false, locationType: locationOf(result) } };
-    }
-  }
+  // Hay calle pero ningún resultado trae el número: no se escribe una dirección a medias
+  if (results.some((r) => componentOf(r, 'route'))) return { kind: 'sin_altura' };
   return { kind: 'sin_resultado' };
 }
 
-// Geocodificación directa: primer resultado con coordenadas finitas.
+// Geocodificación directa. Solo sirve un resultado con número (street_number en
+// address_components) y punto preciso (ROOFTOP o RANGE_INTERPOLATED): se toma el primero
+// que cumpla. Si ninguno cumple (calle sin altura, localidad, centro aproximado) →
+// sin_altura, sin coordenadas. Si el que cumple trae partial_match, Google no encontró
+// exactamente lo escrito (pudo cambiar la calle o el número) → parcial, sin coordenadas.
 export function parseForwardGeocode(data: any): GeoResult<ForwardLocation> {
   const bad = checkStatus(data);
   if (bad) return bad;
-  const loc = data.results[0]?.geometry?.location;
-  const lat = Number(loc?.lat);
-  const lng = Number(loc?.lng);
-  if (!loc || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return { kind: 'error', motivo: 'respuesta_invalida' };
+  const results: any[] = data.results;
+
+  const coordsOf = (r: any) => {
+    const loc = r?.geometry?.location;
+    const lat = Number(loc?.lat);
+    const lng = Number(loc?.lng);
+    return loc && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  };
+  // Un primer resultado sin coordenadas es una respuesta rota, no una dirección imprecisa
+  if (!coordsOf(results[0])) return { kind: 'error', motivo: 'respuesta_invalida' };
+
+  for (const result of results) {
+    const coords = coordsOf(result);
+    const locationType = str(result?.geometry?.location_type);
+    if (!coords || !PRECISE_LOCATION_TYPES.includes(locationType) || !componentOf(result, 'street_number')) continue;
+    if (result?.partial_match === true) return { kind: 'parcial' };
+    return { kind: 'ok', value: { ...coords, locationType } };
   }
-  return { kind: 'ok', value: { lat, lng, locationType: str(data.results[0]?.geometry?.location_type) } };
+  return { kind: 'sin_altura' };
 }
 
 // fetch + parseo sin lanzar. El motivo del error nunca incluye la URL ni el mensaje de la
@@ -132,7 +151,9 @@ export async function fetchGeo<T>(
 export const GEO_MESSAGES = {
   sinResultado: 'No encontramos esa dirección.',
   error: 'No pudimos ubicar tu dirección en este momento.',
-  sinAltura: 'Encontramos tu calle pero no el número. Escribí la calle y la altura y tocá "Calcular costo".',
+  sinAltura: 'Encontramos tu calle pero no el número.',
+  sinAlturaManual: 'Necesitamos la calle y la altura para calcular el envío.',
+  parcial: 'No encontramos exactamente esa dirección. Revisá la calle y la altura.',
   localSinUbicacion: 'Este local todavía no configuró su ubicación de entrega, por eso no podemos calcular el envío.',
   gpsNoSoportado: 'Tu navegador no permite obtener la ubicación.',
   gpsDenegado: 'No pudimos acceder a tu ubicación: el permiso está bloqueado.',
@@ -146,8 +167,25 @@ export function gpsPocoPrecisaMessage(accuracy: unknown): string {
   return `Tu ubicación es muy poco precisa${m} para calcular el envío.`;
 }
 
-export function geoFailureMessage(result: { kind: 'sin_resultado' } | { kind: 'error'; motivo: string }): string {
-  return result.kind === 'sin_resultado' ? GEO_MESSAGES.sinResultado : GEO_MESSAGES.error;
+// Aviso del checkout cuando no se puede asignar zona. `opciones` elige qué salidas se le
+// ofrecen al cliente: 'altura' (completar la altura, usar el GPS, elegir retiro) cuando la
+// dirección está incompleta o dudosa; 'general' (escribirla a mano, retiro, contactar al
+// local) cuando no se pudo consultar o no hay resultado.
+export type AvisoOpciones = 'altura' | 'general';
+export type UbicacionAviso = { mensaje: string; opciones: AvisoOpciones };
+
+// Falla de la dirección escrita a mano ("Calcular costo")
+export function avisoDireccionManual(result: GeoFailure): UbicacionAviso {
+  if (result.kind === 'sin_altura') return { mensaje: GEO_MESSAGES.sinAlturaManual, opciones: 'altura' };
+  if (result.kind === 'parcial') return { mensaje: GEO_MESSAGES.parcial, opciones: 'altura' };
+  if (result.kind === 'sin_resultado') return { mensaje: GEO_MESSAGES.sinResultado, opciones: 'general' };
+  return { mensaje: GEO_MESSAGES.error, opciones: 'general' };
+}
+
+// Falla de la geocodificación inversa del GPS
+export function avisoGps(result: GeoFailure): UbicacionAviso {
+  if (result.kind === 'sin_altura') return { mensaje: GEO_MESSAGES.sinAltura, opciones: 'altura' };
+  return { mensaje: GEO_MESSAGES.gpsSinDireccion, opciones: 'general' };
 }
 
 // GeolocationPositionError.code: 1 permiso denegado, 2 posición no disponible, 3 timeout

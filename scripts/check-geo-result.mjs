@@ -3,7 +3,7 @@
 //   node scripts/check-geo-result.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
 import {
-  parseReverseGeocode, parseForwardGeocode, fetchGeo, geoFailureMessage, geoPositionErrorMessage,
+  parseReverseGeocode, parseForwardGeocode, fetchGeo, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
   gpsPocoPrecisaMessage, isGpsAccurate, GEO_MESSAGES, GEOLOCATION_OPTIONS, GPS_MAX_ACCURACY_M,
 } from '../lib/geoResult.ts';
 
@@ -23,7 +23,7 @@ const reverse = (status, results) => ({ status, results });
 console.log('geocodificación inversa');
 {
   const r = parseReverseGeocode(reverse('OK', [res(full, 'ROOFTOP')]));
-  check('OK con ROOFTOP → "Calle 2 1234, Mercedes"', r.kind === 'ok' && r.value.address === 'Calle 2 1234, Mercedes' && r.value.hasNumber);
+  check('OK con ROOFTOP → "Calle 2 1234, Mercedes"', r.kind === 'ok' && r.value.address === 'Calle 2 1234, Mercedes');
   check('conserva location_type ROOFTOP', r.kind === 'ok' && r.value.locationType === 'ROOFTOP');
 }
 {
@@ -32,7 +32,7 @@ console.log('geocodificación inversa');
 }
 {
   const r = parseReverseGeocode(reverse('OK', [res(onlyRoute, 'GEOMETRIC_CENTER')]));
-  check('solo route → ok pero SIN dirección (se pide la altura)', r.kind === 'ok' && r.value.address === null && !r.value.hasNumber);
+  check('solo route → sin_altura, sin dirección (se pide la altura)', r.kind === 'sin_altura');
 }
 {
   const r = parseReverseGeocode(reverse('OK', [res(onlyLocality, 'APPROXIMATE')]));
@@ -44,11 +44,11 @@ console.log('geocodificación inversa');
 }
 {
   const r = parseReverseGeocode(reverse('OK', [res(onlyRoute), res(full)]));
-  check('elige el primer resultado con route Y número, aunque no sea el primero', r.kind === 'ok' && r.value.address === 'Calle 2 1234, Mercedes' && r.value.hasNumber);
+  check('elige el primer resultado con route Y número, aunque no sea el primero', r.kind === 'ok' && r.value.address === 'Calle 2 1234, Mercedes');
 }
 {
   const r = parseReverseGeocode(reverse('OK', [res(onlyLocality), res(onlyRoute)]));
-  check('sin ninguno con número: el primero con calle (pide altura)', r.kind === 'ok' && r.value.address === null);
+  check('sin ninguno con número pero con calle → sin_altura', r.kind === 'sin_altura');
 }
 {
   const r = parseReverseGeocode(reverse('OK', [res([comp('1234', 'street_number')])]));
@@ -83,6 +83,74 @@ check('REQUEST_DENIED → error', parseForwardGeocode({ status: 'REQUEST_DENIED'
 check('OVER_QUERY_LIMIT → error', parseForwardGeocode({ status: 'OVER_QUERY_LIMIT', results: [] }).kind === 'error');
 check('OK sin geometry → error', parseForwardGeocode({ status: 'OK', results: [{}] }).kind === 'error');
 check('lat no numérica → error', parseForwardGeocode({ status: 'OK', results: [{ geometry: { location: { lat: 'x', lng: 1 } } }] }).kind === 'error');
+
+console.log('geocodificación directa: calidad del punto ("Calle 28 1124, Mercedes")');
+// Forma de la respuesta de Google para una dirección con altura: el resultado
+// street_address primero y después los de route y locality. Los valores (coordenadas,
+// place_id, código postal) son de ejemplo: NO salen de una llamada real.
+const mercedes = [
+  comp('Mercedes', 'locality', 'political'),
+  comp('Mercedes', 'administrative_area_level_2', 'political'),
+  comp('Provincia de Buenos Aires', 'administrative_area_level_1', 'political'),
+  comp('Argentina', 'country', 'political'),
+];
+const streetResult = (location_type, extra = {}) => ({
+  address_components: [comp('1124', 'street_number'), comp('Calle 28', 'route'), ...mercedes, comp('B6600', 'postal_code')],
+  formatted_address: 'C. 28 1124, B6600 Mercedes, Provincia de Buenos Aires, Argentina',
+  geometry: { location: { lat: -34.6561, lng: -59.4302 }, location_type },
+  place_id: 'EJEMPLO_street_address',
+  types: ['street_address'],
+  ...extra,
+});
+const routeResult = {
+  address_components: [comp('Calle 28', 'route'), ...mercedes],
+  formatted_address: 'C. 28, Mercedes, Provincia de Buenos Aires, Argentina',
+  geometry: { location: { lat: -34.6512, lng: -59.4380 }, location_type: 'GEOMETRIC_CENTER' },
+  place_id: 'EJEMPLO_route',
+  types: ['route'],
+};
+const localityResult = {
+  address_components: mercedes,
+  formatted_address: 'Mercedes, Provincia de Buenos Aires, Argentina',
+  geometry: { location: { lat: -34.6515, lng: -59.4307 }, location_type: 'APPROXIMATE' },
+  place_id: 'EJEMPLO_locality',
+  types: ['locality', 'political'],
+};
+const forward = (results) => parseForwardGeocode({ status: 'OK', results });
+{
+  const r = forward([streetResult('ROOFTOP'), routeResult, localityResult]);
+  check('ROOFTOP con número → ok con las coordenadas de la casa', r.kind === 'ok' && r.value.lat === -34.6561 && r.value.lng === -59.4302 && r.value.locationType === 'ROOFTOP');
+}
+{
+  const r = forward([streetResult('RANGE_INTERPOLATED'), routeResult, localityResult]);
+  check('RANGE_INTERPOLATED con número → ok', r.kind === 'ok' && r.value.locationType === 'RANGE_INTERPOLATED');
+}
+{
+  const r = forward([routeResult, localityResult]);
+  check('GEOMETRIC_CENTER de una ruta ("calle 28" sin altura) → sin_altura, sin coordenadas', r.kind === 'sin_altura' && !('value' in r));
+}
+{
+  const r = forward([localityResult]);
+  check('APPROXIMATE de la localidad → sin_altura', r.kind === 'sin_altura');
+}
+{
+  const r = forward([streetResult('ROOFTOP', { partial_match: true }), routeResult]);
+  check('partial_match true → parcial, sin coordenadas', r.kind === 'parcial' && !('value' in r));
+}
+{
+  const sinNumero = { ...streetResult('ROOFTOP'), address_components: [comp('Calle 28', 'route'), ...mercedes], types: ['premise'] };
+  const r = forward([sinNumero, localityResult]);
+  check('ROOFTOP sin street_number → sin_altura', r.kind === 'sin_altura');
+}
+{
+  const conNumeroAproximado = streetResult('APPROXIMATE');
+  check('con número pero APPROXIMATE → sin_altura', forward([conNumeroAproximado]).kind === 'sin_altura');
+}
+{
+  const r = forward([routeResult, streetResult('ROOFTOP')]);
+  check('el resultado preciso no es el primero → igual lo usa', r.kind === 'ok' && r.value.lat === -34.6561);
+}
+check('no usa formatted_address para decidir la altura', forward([{ ...routeResult, formatted_address: 'C. 28 1124, Mercedes' }]).kind === 'sin_altura');
 
 console.log('fetchGeo (red falsa)');
 const okRes = (body, init = {}) => async () => ({ ok: true, status: 200, json: async () => body, ...init });
@@ -130,7 +198,15 @@ check('sin accuracy no sirve', !isGpsAccurate(undefined) && !isGpsAccurate(NaN) 
 check('el mensaje incluye el error en metros', gpsPocoPrecisaMessage(1500.4).includes('±1500 m'));
 
 console.log('mensajes');
-check('sin_resultado y error tienen mensajes distintos', geoFailureMessage({ kind: 'sin_resultado' }) !== geoFailureMessage({ kind: 'error', motivo: 'x' }));
+check('sin_resultado y error tienen mensajes distintos', avisoDireccionManual({ kind: 'sin_resultado' }).mensaje !== avisoDireccionManual({ kind: 'error', motivo: 'x' }).mensaje);
+{
+  const a = avisoDireccionManual({ kind: 'sin_altura' });
+  check('dirección manual sin altura → mensaje pedido y opciones de altura', a.mensaje === 'Necesitamos la calle y la altura para calcular el envío.' && a.opciones === 'altura');
+}
+check('parcial → pide revisar, opciones de altura', avisoDireccionManual({ kind: 'parcial' }).opciones === 'altura' && avisoDireccionManual({ kind: 'parcial' }).mensaje === GEO_MESSAGES.parcial);
+check('error de Google → opciones generales', avisoDireccionManual({ kind: 'error', motivo: 'REQUEST_DENIED' }).opciones === 'general');
+check('GPS sin altura → opciones de altura', avisoGps({ kind: 'sin_altura' }).opciones === 'altura');
+check('GPS con error → sin dirección, opciones generales', avisoGps({ kind: 'error', motivo: 'red' }).mensaje === GEO_MESSAGES.gpsSinDireccion && avisoGps({ kind: 'error', motivo: 'red' }).opciones === 'general');
 check('permiso denegado', geoPositionErrorMessage(1) === GEO_MESSAGES.gpsDenegado);
 check('posición no disponible', geoPositionErrorMessage(2) === GEO_MESSAGES.gpsNoDisponible);
 check('timeout', geoPositionErrorMessage(3) === GEO_MESSAGES.gpsTimeout);

@@ -9,9 +9,9 @@ import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import {
-    fetchGeo, parseReverseGeocode, parseForwardGeocode, geoFailureMessage, geoPositionErrorMessage,
+    fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, GEO_MESSAGES, GEOLOCATION_OPTIONS,
-    type GeoResult, type ReverseAddress, type ForwardLocation,
+    type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -166,7 +166,7 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
     // Por qué no se pudo ubicar al cliente (permiso, Google, sin resultados...). Mientras no
     // haya zona válida el envío queda en 'calculating' y el pedido bloqueado.
-    const [ubicacionError, setUbicacionError] = useState('');
+    const [ubicacionAviso, setUbicacionAviso] = useState<UbicacionAviso | null>(null);
     const [detectingLocation, setDetectingLocation] = useState(false);
 
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
@@ -230,7 +230,7 @@ const handleNotificarPagoMesa = async (metodo: string) => {
         }
 
         // Editar la dirección o cambiar el método descarta el aviso anterior
-        setUbicacionError('');
+        setUbicacionAviso(null);
 
         if (metodoEnvio !== 'delivery' || !deliveryZonesEnabled) return;
 
@@ -1129,16 +1129,16 @@ const handleCallWaiter = async () => {
   const handleCalcularCosto = async () => {
     setDetectingLocation(true);
     setClientCoords(null);
-    setUbicacionError('');
+    setUbicacionAviso(null);
 
     const myRequestId = ++geocodeRequestId.current;
     const result = await geocodeAddress(direccionCalle);
     if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
     if (result.kind !== 'ok') {
       if (result.kind === 'error') console.error('[CartFooter] geocodificación falló:', result.motivo);
-      setUbicacionError(geoFailureMessage(result));
+      setUbicacionAviso(avisoDireccionManual(result));
     } else if (localSinUbicacion) {
-      setUbicacionError(GEO_MESSAGES.localSinUbicacion);
+      setUbicacionAviso({ mensaje: GEO_MESSAGES.localSinUbicacion, opciones: 'general' });
     } else {
       setClientCoords({ lat: result.value.lat, lng: result.value.lng });
     }
@@ -1152,10 +1152,13 @@ const handleCallWaiter = async () => {
   const handleUseGps = () => {
     setDetectingLocation(true);
     setClientCoords(null);
-    setUbicacionError('');
+    setUbicacionAviso(null);
     const myRequestId = ++geocodeRequestId.current;
 
-    const fail = (message: string) => { setUbicacionError(message); setDetectingLocation(false); };
+    const fail = (mensaje: string, opciones: AvisoOpciones = 'general') => {
+      setUbicacionAviso({ mensaje, opciones });
+      setDetectingLocation(false);
+    };
 
     if (!navigator.geolocation) { fail(GEO_MESSAGES.gpsNoSoportado); return; }
 
@@ -1170,11 +1173,11 @@ const handleCallWaiter = async () => {
         if (myRequestId !== geocodeRequestId.current) { setDetectingLocation(false); return; } // respuesta vieja
         if (result.kind !== 'ok') {
           if (result.kind === 'error') console.error('[CartFooter] geocodificación inversa falló:', result.motivo);
-          fail(GEO_MESSAGES.gpsSinDireccion);
+          // Calle sin número (sin_altura): no se escribe una dirección a medias, se pide la altura
+          const aviso = avisoGps(result);
+          fail(aviso.mensaje, aviso.opciones);
           return;
         }
-        // Calle sin número: no se escribe una dirección a medias, se pide la altura
-        if (result.value.address === null) { fail(GEO_MESSAGES.sinAltura); return; }
         if (localSinUbicacion) { fail(GEO_MESSAGES.localSinUbicacion); return; }
 
         // Reemplaza lo que haya escrito el cliente sin que el efecto de edición invalide el
@@ -1666,13 +1669,22 @@ return (
                               </button>
                             )}
                             {/* No se pudo ubicar al cliente: sin zona ni precio, con las salidas posibles */}
-                            {deliveryZonesEnabled && ubicacionError && zoneStatus === 'calculating' && (
+                            {deliveryZonesEnabled && ubicacionAviso && zoneStatus === 'calculating' && (
                               <div role="alert" className="px-4 py-3 bg-alert/10 rounded-2xl border border-alert/20 space-y-1.5">
                                 <div className="flex items-start gap-2">
                                   <XCircle size={14} className="text-alert shrink-0 mt-0.5" />
-                                  <span className="text-[11px] font-black text-alert">{ubicacionError}</span>
+                                  <span className="text-[11px] font-black text-alert">{ubicacionAviso.mensaje}</span>
                                 </div>
-                                {ubicacionError !== GEO_MESSAGES.sinAltura && (
+                                {ubicacionAviso.opciones === 'altura' ? (
+                                  <ul className="text-[11px] text-graphite list-disc pl-8 space-y-0.5">
+                                    <li>Completá la altura (por ejemplo "Calle 28 1124") y tocá "Calcular costo".</li>
+                                    <li>Usá "Buscar por GPS" si estás en el lugar de entrega.</li>
+                                    <li>
+                                      Elegí{' '}
+                                      <button type="button" onClick={() => setMetodoEnvio('retiro')} className="font-black underline">retiro en el local</button>.
+                                    </li>
+                                  </ul>
+                                ) : (
                                   <ul className="text-[11px] text-graphite list-disc pl-8 space-y-0.5">
                                     <li>Completá tu calle y número a mano y tocá "Calcular costo".</li>
                                     <li>
