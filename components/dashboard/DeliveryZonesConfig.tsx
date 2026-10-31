@@ -3,8 +3,12 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { MapPin, Search, Save, Loader2, LocateFixed } from 'lucide-react';
+import { MapPin, Search, Save, Loader2, LocateFixed, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  readDeliveryZones, legacyZones, normalizeZones, toNumber, isMissingTableError,
+  MAX_ZONES, MAX_ZONE_KM, ZONE_ERROR_MESSAGES, type DeliveryZone,
+} from '@/lib/deliveryZones';
 
 // Carga dinámica obligatoria: Leaflet usa APIs del browser que no existen en SSR
 const MapView = dynamic(() => import('./DeliveryMapInner'), {
@@ -16,9 +20,23 @@ const MapView = dynamic(() => import('./DeliveryMapInner'), {
   ),
 });
 
-// Buenos Aires como coordenada inicial si el restaurante no tiene ubicación guardada
-const DEFAULT_LAT = -34.6037;
-const DEFAULT_LNG = -58.3816;
+// Centro del mapa mientras el local no fue ubicado. Es SOLO para mostrar: nunca se guarda
+// como ubicación del local (antes se guardaba y las zonas quedaban medidas desde CABA).
+const MAP_FALLBACK_CENTER = { lat: -34.6037, lng: -58.3816 };
+
+const ZONE_COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#0ea5e9'];
+// Sin la tabla delivery_zones (SQL 14 sin correr) solo existen las columnas de 2 zonas
+const MAX_ZONES_WITHOUT_TABLE = 2;
+
+// Lo que edita el dueño: texto, para poder escribir libremente; se valida al guardar
+type ZoneDraft = { km: string; cost: string };
+
+const numText = (value: unknown) => {
+  const n = toNumber(value);
+  return Number.isFinite(n) ? String(n) : '';
+};
+const draftsFromZones = (zones: DeliveryZone[]): ZoneDraft[] =>
+  zones.map((z) => ({ km: String(z.maxKm), cost: String(z.cost) }));
 
 interface Props {
   restaurantId: string;
@@ -31,19 +49,23 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
   );
 
   const [zonesEnabled, setZonesEnabled] = useState(false);
-  const [lat, setLat] = useState(DEFAULT_LAT);
-  const [lng, setLng] = useState(DEFAULT_LNG);
+  // null = el local nunca fue ubicado
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
   const [addressInput, setAddressInput] = useState('');
   const [addressNumber, setAddressNumber] = useState('');
-  const [zone1Km, setZone1Km] = useState(3);
-  const [zone1Cost, setZone1Cost] = useState('');
-  const [zone2Km, setZone2Km] = useState(7);
-  const [zone2Cost, setZone2Cost] = useState('');
+  const [zones, setZones] = useState<ZoneDraft[]>([{ km: '3', cost: '' }, { km: '7', cost: '' }]);
+  const [tableMissing, setTableMissing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [savedConfigInvalid, setSavedConfigInvalid] = useState(false);
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [locating, setLocating] = useState(false);
+
+  const located = lat != null && lng != null;
+  const maxZonesAllowed = tableMissing ? MAX_ZONES_WITHOUT_TABLE : MAX_ZONES;
 
   // Cargar valores actuales de la DB
   useEffect(() => {
@@ -59,12 +81,30 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
       if (data) {
         setZonesEnabled(!!data.delivery_zones_enabled);
         if (data.city) setCity(data.city);
-        if (data.delivery_lat != null) setLat(data.delivery_lat);
-        if (data.delivery_lng != null) setLng(data.delivery_lng);
-        if (data.delivery_zone1_km != null) setZone1Km(data.delivery_zone1_km);
-        if (data.delivery_zone1_cost != null) setZone1Cost(String(data.delivery_zone1_cost));
-        if (data.delivery_zone2_km != null) setZone2Km(data.delivery_zone2_km);
-        if (data.delivery_zone2_cost != null) setZone2Cost(String(data.delivery_zone2_cost));
+        // Las columnas numeric llegan como texto
+        const dbLat = toNumber(data.delivery_lat);
+        const dbLng = toNumber(data.delivery_lng);
+        if (Number.isFinite(dbLat) && Number.isFinite(dbLng)) {
+          setLat(dbLat);
+          setLng(dbLng);
+        }
+
+        // Zonas: tabla delivery_zones o, si no hay filas / no existe, columnas viejas
+        const source = await readDeliveryZones(supabase, { id: restaurantId, ...data });
+        if (source.source === 'error') {
+          setLoadFailed(true);
+        } else {
+          setTableMissing(source.source === 'columnas' && source.tableMissing);
+          if (source.zones.ok) {
+            setZones(draftsFromZones(source.zones.zones));
+          } else {
+            // Configuración guardada inválida (p. ej. costo vacío): se muestran los valores
+            // de las columnas viejas para que el dueño la corrija
+            setZones(legacyZones(data).map((z) => ({ km: numText(z.max_km), cost: numText(z.cost) })));
+            setSavedConfigInvalid(!!data.delivery_zones_enabled);
+          }
+        }
+
         const saved = data.delivery_address || '';
         const parts = saved.trim().split(' ');
         const lastPart = parts[parts.length - 1];
@@ -148,30 +188,109 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
     );
   };
 
-  // Guardar las 6 columnas de zonas en DB
+  // --- Edición de zonas ---
+  const updateZone = (index: number, field: keyof ZoneDraft, value: string) => {
+    setZones((prev) => prev.map((z, i) => (i === index ? { ...z, [field]: value } : z)));
+  };
+  const addZone = () => {
+    setZones((prev) => {
+      if (prev.length >= maxZonesAllowed) return prev;
+      const lastKm = toNumber(prev[prev.length - 1]?.km);
+      const nextKm = Number.isFinite(lastKm) ? Math.min(MAX_ZONE_KM, lastKm + 1) : 1;
+      return [...prev, { km: String(nextKm), cost: '' }];
+    });
+  };
+  const removeZone = (index: number) => {
+    setZones((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  };
+
+  const zonesCheck = normalizeZones(zones.map((z) => ({ max_km: z.km, cost: z.cost })));
+  const mapZonesKm = zones.map((z) => toNumber(z.km)).filter((km) => Number.isFinite(km) && km > 0).sort((a, b) => a - b);
+
+  // Guardar: restaurants (flag, ubicación, dirección, ciudad y espejo de las zonas 1 y 2 en
+  // las columnas viejas, que lee el checkout) y la tabla delivery_zones si existe
   const handleSave = async () => {
+    if (zonesEnabled && !located) {
+      toast.error('Ubicá tu local (buscá la dirección, usá "Mi ubicación" o arrastrá el pin) antes de activar las zonas.');
+      return;
+    }
+    let normalized: DeliveryZone[] | null = null;
+    if (zonesEnabled) {
+      // Sin saber qué hay guardado, escribir la tabla podría pisar zonas del dueño
+      if (loadFailed) {
+        toast.error('No pudimos leer tus zonas guardadas. Recargá la página antes de guardar.');
+        return;
+      }
+      if (!zonesCheck.ok) {
+        toast.error(ZONE_ERROR_MESSAGES[zonesCheck.error]);
+        return;
+      }
+      if (zonesCheck.zones.length > maxZonesAllowed) {
+        toast.error(`Por ahora podés guardar hasta ${maxZonesAllowed} zonas.`);
+        return;
+      }
+      normalized = zonesCheck.zones;
+    }
+
     setSaving(true);
-    const { error } = await supabase
-      .from('restaurants')
-      .update({
+    try {
+      if (normalized && !tableMissing) {
+        const now = new Date().toISOString();
+        const { error: upsertError } = await supabase
+          .from('delivery_zones')
+          .upsert(
+            normalized.map((z) => ({ restaurant_id: restaurantId, position: z.position, max_km: z.maxKm, cost: z.cost, updated_at: now })),
+            { onConflict: 'restaurant_id,position' },
+          );
+        if (upsertError) throw upsertError;
+        // Zonas que sobran (el dueño borró alguna)
+        const { error: deleteError } = await supabase
+          .from('delivery_zones')
+          .delete()
+          .eq('restaurant_id', restaurantId)
+          .gt('position', normalized.length);
+        if (deleteError) throw deleteError;
+      }
+
+      const update: Record<string, unknown> = {
         delivery_zones_enabled: zonesEnabled,
-        delivery_lat: lat,
-        delivery_lng: lng,
-        delivery_zone1_km: zone1Km,
-        delivery_zone1_cost: zone1Cost !== '' ? Number(zone1Cost) : null,
-        delivery_zone2_km: zone2Km,
-        delivery_zone2_cost: zone2Cost !== '' ? Number(zone2Cost) : null,
         delivery_address: `${addressInput} ${addressNumber}`.trim(),
         city: city || null,
-      })
-      .eq('id', restaurantId);
+      };
+      // Sin ubicación real no se escriben coordenadas (nada de CABA por defecto)
+      if (located) {
+        update.delivery_lat = lat;
+        update.delivery_lng = lng;
+      }
+      if (normalized) {
+        // Espejo para el checkout actual (CartFooter lee solo estas columnas). Con una sola
+        // zona, la 2 se iguala a la 1: el checkout nunca la alcanza y fuera de ella no llega.
+        const z1 = normalized[0];
+        const z2 = normalized[1] ?? normalized[0];
+        update.delivery_zone1_km = z1.maxKm;
+        update.delivery_zone1_cost = z1.cost;
+        update.delivery_zone2_km = z2.maxKm;
+        update.delivery_zone2_cost = z2.cost;
+      }
 
-    if (error) {
-      toast.error('Error al guardar las zonas');
-    } else {
-      toast.success('Zonas de delivery guardadas');
+      const { error } = await supabase.from('restaurants').update(update).eq('id', restaurantId);
+      if (error) throw error;
+
+      if (normalized) {
+        setZones(draftsFromZones(normalized)); // quedan ordenadas por radio
+        setSavedConfigInvalid(false);
+      }
+      toast.success(zonesEnabled ? 'Zonas de delivery guardadas' : 'Configuración guardada');
+    } catch (err) {
+      if (isMissingTableError(err as { code?: string; message?: string })) {
+        setTableMissing(true);
+        toast.error('La tabla de zonas todavía no está activada: por ahora podés guardar hasta 2 zonas.');
+      } else {
+        toast.error('Error al guardar las zonas');
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   // useCallback para que el ref del Marker no se regenere en cada render
@@ -216,9 +335,26 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
         </button>
       </div>
 
+      {loadFailed && (
+        <div className="flex items-start gap-2 p-4 bg-alert/10 border border-alert/20 rounded-2xl">
+          <AlertTriangle size={16} className="text-alert shrink-0 mt-0.5" />
+          <p className="text-xs font-bold text-alert">No pudimos leer tus zonas guardadas. Recargá la página antes de guardar cambios.</p>
+        </div>
+      )}
+
       {/* Sección expandida cuando las zonas están activas */}
       {zonesEnabled && (
         <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+          {!located && (
+            <div className="flex items-start gap-2 p-4 bg-alert/10 border border-alert/20 rounded-2xl">
+              <AlertTriangle size={16} className="text-alert shrink-0 mt-0.5" />
+              <p className="text-xs font-bold text-alert">
+                Todavía no ubicaste tu local. Buscá la dirección, tocá &quot;Mi ubicación&quot; o arrastrá el pin:
+                sin la ubicación real no se pueden activar las zonas.
+              </p>
+            </div>
+          )}
+
           {/* Buscador de dirección */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">
@@ -270,112 +406,101 @@ export default function DeliveryZonesConfig({ restaurantId }: Props) {
           {/* Mapa */}
           <div className="rounded-[1.5rem] overflow-hidden border border-gray-100 shadow-sm">
             <MapView
-              lat={lat}
-              lng={lng}
-              zone1Km={zone1Km}
-              zone2Km={zone2Km}
+              lat={lat ?? MAP_FALLBACK_CENTER.lat}
+              lng={lng ?? MAP_FALLBACK_CENTER.lng}
+              zonesKm={located ? mapZonesKm : []}
+              zoneColors={ZONE_COLORS}
               onPositionChange={handlePositionChange}
             />
           </div>
 
           {/* Configuración de zonas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Zona 1 */}
-            <div className="bg-[#F0FAF6] border border-[#E8F7F1] rounded-2xl p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-fresco" />
-                <p className="text-xs font-black text-[#17A06D] uppercase tracking-widest">Zona 1</p>
-              </div>
-
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Radio</span>
-                  <span className="text-sm font-black text-[#17A06D]">{zone1Km.toFixed(1)} km</span>
+          <div className="space-y-3">
+            {savedConfigInvalid && (
+              <p className="text-[11px] font-bold text-alert">
+                Tu configuración guardada tiene un error (por ejemplo, una zona sin precio). Revisala y guardá de nuevo.
+              </p>
+            )}
+            {zones.map((zone, i) => (
+              <div key={i} className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-wrap items-end gap-3">
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[84px]">
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: ZONE_COLORS[i] }} />
+                  <p className="text-xs font-black text-gray-700 uppercase tracking-widest">Zona {i + 1}</p>
                 </div>
-                <input
-                  type="range"
-                  min={0.5}
-                  max={15}
-                  step={0.5}
-                  value={zone1Km}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setZone1Km(v);
-                    if (zone2Km <= v) setZone2Km(v + 0.5);
-                  }}
-                  className="w-full accent-fresco"
-                />
-                <div className="flex justify-between text-[9px] text-gray-300 font-bold mt-0.5">
-                  <span>0.5 km</span>
-                  <span>15 km</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 block">
-                  Precio de envío
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                <div className="flex-1 min-w-[120px]">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 block">Hasta (km)</label>
                   <input
                     type="number"
-                    value={zone1Cost}
-                    onChange={(e) => setZone1Cost(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-7 pr-4 py-3 bg-white border border-[#E8F7F1] rounded-xl text-sm font-black outline-none focus:border-fresco transition-colors"
+                    inputMode="decimal"
+                    min={0.1}
+                    max={MAX_ZONE_KM}
+                    step={0.1}
+                    value={zone.km}
+                    onChange={(e) => updateZone(i, 'km', e.target.value)}
+                    className="w-full px-3 py-3 bg-white border border-gray-200 rounded-xl text-sm font-black outline-none focus:border-fresco transition-colors"
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Zona 2 */}
-            <div className="bg-brasa/10 border border-brasa/10 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-brasa" />
-                <p className="text-xs font-black text-brasa uppercase tracking-widest">Zona 2</p>
-              </div>
-
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Radio</span>
-                  <span className="text-sm font-black text-brasa">{zone2Km.toFixed(1)} km</span>
+                <div className="flex-1 min-w-[120px]">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 block">Precio de envío</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={zone.cost}
+                      onChange={(e) => updateZone(i, 'cost', e.target.value)}
+                      placeholder="Obligatorio"
+                      className="w-full pl-7 pr-3 py-3 bg-white border border-gray-200 rounded-xl text-sm font-black outline-none focus:border-fresco transition-colors"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min={zone1Km + 0.5}
-                  max={30}
-                  step={0.5}
-                  value={zone2Km}
-                  onChange={(e) => setZone2Km(Number(e.target.value))}
-                  className="w-full accent-brasa"
-                />
-                <div className="flex justify-between text-[9px] text-gray-300 font-bold mt-0.5">
-                  <span>{(zone1Km + 0.5).toFixed(1)} km</span>
-                  <span>30 km</span>
-                </div>
+                {zones.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeZone(i)}
+                    aria-label={`Quitar zona ${i + 1}`}
+                    className="p-3 text-gray-400 hover:text-alert transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
+            ))}
 
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 block">
-                  Precio de envío
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
-                  <input
-                    type="number"
-                    value={zone2Cost}
-                    onChange={(e) => setZone2Cost(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-7 pr-4 py-3 bg-white border border-brasa/10 rounded-xl text-sm font-black outline-none focus:border-brasa transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
+            {zones.length < maxZonesAllowed && (
+              <button
+                type="button"
+                onClick={addZone}
+                className="w-full py-3 border-2 border-dashed border-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:border-fresco hover:text-fresco transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={14} />
+                Agregar zona
+              </button>
+            )}
+
+            {!zonesCheck.ok && (
+              <p className="text-[11px] font-bold text-alert">{ZONE_ERROR_MESSAGES[zonesCheck.error]}</p>
+            )}
+            <p className="text-[10px] text-gray-400 font-medium">
+              Cada zona cubre hasta su radio en línea recta desde el local. Al guardar se ordenan de menor a mayor.
+            </p>
+            {tableMissing && (
+              <p className="text-[10px] text-gray-500 font-medium">
+                Por ahora podés configurar hasta {MAX_ZONES_WITHOUT_TABLE} zonas.
+              </p>
+            )}
+            {zones.length > 2 && (
+              <p className="text-[11px] font-bold text-brasa">
+                Por ahora el checkout aplica solo las zonas 1 y 2: más allá de la zona 2 tus clientes ven
+                &quot;no llegamos a tu zona&quot;. Las zonas 3 a {MAX_ZONES} se van a aplicar con la próxima actualización.
+              </p>
+            )}
           </div>
 
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || loadFailed}
             className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

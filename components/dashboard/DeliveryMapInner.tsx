@@ -25,12 +25,12 @@ function MapRecenter({ lat, lng }: { lat: number; lng: number }) {
 interface Props {
   lat: number;
   lng: number;
-  zone1Km: number;
-  zone2Km: number;
+  zonesKm: number[];      // radios de las zonas, de menor a mayor
+  zoneColors: string[];   // un color por zona (mismo orden)
   onPositionChange: (lat: number, lng: number) => void;
 }
 
-export default function DeliveryMapInner({ lat, lng, zone1Km, zone2Km, onPositionChange }: Props) {
+export default function DeliveryMapInner({ lat, lng, zonesKm, zoneColors, onPositionChange }: Props) {
   const markerRef = useRef<L.Marker>(null);
 
   const eventHandlers = useMemo(
@@ -59,28 +59,22 @@ export default function DeliveryMapInner({ lat, lng, zone1Km, zone2Km, onPositio
       />
       <MapRecenter lat={lat} lng={lng} />
 
-      {/* Zona 1 — azul */}
-      {zone1Km > 0 && (
-        <Circle
-          center={[lat, lng]}
-          radius={zone1Km * 1000}
-          pathOptions={{ color: '#4f46e5', fillColor: '#4f46e5', fillOpacity: 0.08, weight: 2 }}
-        />
-      )}
-
-      {/* Zona 2 — ámbar, punteado */}
-      {zone2Km > zone1Km && (
-        <Circle
-          center={[lat, lng]}
-          radius={zone2Km * 1000}
-          pathOptions={{
-            color: '#f59e0b',
-            fillColor: '#f59e0b',
-            fillOpacity: 0.05,
-            weight: 2,
-            dashArray: '6 4',
-          }}
-        />
+      {/* Un círculo por zona; de la segunda en adelante, punteados */}
+      {zonesKm.map((km, i) =>
+        km > 0 ? (
+          <Circle
+            key={i}
+            center={[lat, lng]}
+            radius={km * 1000}
+            pathOptions={{
+              color: zoneColors[i] ?? '#4f46e5',
+              fillColor: zoneColors[i] ?? '#4f46e5',
+              fillOpacity: i === 0 ? 0.08 : 0.05,
+              weight: 2,
+              ...(i > 0 ? { dashArray: '6 4' } : {}),
+            }}
+          />
+        ) : null,
       )}
 
       {/* Pin draggable del local */}
