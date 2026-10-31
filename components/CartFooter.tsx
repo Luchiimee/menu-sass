@@ -10,7 +10,7 @@ import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE 
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
-    gpsPocoPrecisaMessage, isGpsAccurate, GEO_MESSAGES, GEOLOCATION_OPTIONS,
+    gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
     type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
 const supabase = createBrowserClient(
@@ -1070,9 +1070,9 @@ const handleCallWaiter = async () => {
     ? `${direccionCalle} (entre ${direccionEntreCalles})`
     : direccionCalle;
 
-  // Habilita "Calcular costo" cuando la dirección termina en un número (evita geocodificar
-  // direcciones incompletas tipo "calle 26 num").
-  const direccionListaParaBuscar = !direccionCalle.trim() || /\d+\s*$/.test(direccionCalle.trim());
+  // Habilita "Calcular costo" con un dígito en cualquier posición (la ciudad que agrega el GPS al
+  // final ya no lo bloquea). La calidad del punto la decide geocodeAddress (lib/geoResult.ts).
+  const direccionListaParaBuscar = canCalculateCost(direccionCalle);
 
   // Cualquier falla (permiso, Google, red, sin resultados) deja el envío SIN zona ni precio
   // ('calculating', envío bloqueado) y se lo explica al cliente: nunca se asigna una zona por

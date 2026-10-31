@@ -5,6 +5,7 @@
 import {
   parseReverseGeocode, parseForwardGeocode, fetchGeo, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
   gpsPocoPrecisaMessage, isGpsAccurate, GEO_MESSAGES, GEOLOCATION_OPTIONS, GPS_MAX_ACCURACY_M,
+  canCalculateCost,
 } from '../lib/geoResult.ts';
 
 let failures = 0;
@@ -196,6 +197,23 @@ check('justo en el límite sirve', isGpsAccurate(GPS_MAX_ACCURACY_M));
 check('1500 m (típico de Wi-Fi/IP) no sirve', !isGpsAccurate(1500));
 check('sin accuracy no sirve', !isGpsAccurate(undefined) && !isGpsAccurate(NaN) && !isGpsAccurate(null));
 check('el mensaje incluye el error en metros', gpsPocoPrecisaMessage(1500.4).includes('±1500 m'));
+
+console.log('canCalculateCost (habilita "Calcular costo")');
+check('"Calle 28 1112, Mercedes" (ciudad al final, como la escribe el GPS) → sí', canCalculateCost('Calle 28 1112, Mercedes'));
+check('"Calle 28 1112" → sí', canCalculateCost('Calle 28 1112'));
+check('"calle 2" → sí (la validación de calidad la frena después)', canCalculateCost('calle 2'));
+check('"Mitre 2" → sí', canCalculateCost('Mitre 2'));
+check('"Calle sin número" → no', !canCalculateCost('Calle sin número'));
+check('texto vacío → no', !canCalculateCost(''));
+check('solo espacios → no', !canCalculateCost('    '));
+check('"  12  " (menos de 4 caracteres sin espacios) → no', !canCalculateCost('  12  '));
+check('espacios sobrantes no cuentan: "  Mitre 2  " → sí', canCalculateCost('  Mitre 2  '));
+check('no es texto → no', !canCalculateCost(undefined) && !canCalculateCost(null) && !canCalculateCost(1234));
+{
+  // Lo que deja pasar el filtro de forma lo frena la calidad del punto: "calle 2" sin altura
+  const calle2 = parseForwardGeocode({ status: 'OK', results: [routeResult, localityResult] });
+  check('"calle 2" habilitado pero Google devuelve solo la calle → sin_altura, sin precio', canCalculateCost('calle 2') && calle2.kind === 'sin_altura');
+}
 
 console.log('mensajes');
 check('sin_resultado y error tienen mensajes distintos', avisoDireccionManual({ kind: 'sin_resultado' }).mensaje !== avisoDireccionManual({ kind: 'error', motivo: 'x' }).mensaje);
