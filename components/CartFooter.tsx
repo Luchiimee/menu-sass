@@ -8,6 +8,7 @@ import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
+import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -1320,7 +1321,9 @@ const handleCallWaiter = async () => {
                 table_number: metodoEnvio === 'mesa' ? nroMesa : null, 
                 description: aclaraciones, 
                 coupon_code: appliedCoupon?.code || null,
-                discount_amount: montoDescuento || 0,
+                // Todo el descuento aplicado (cupón + automático por efectivo / porcentaje);
+                // antes guardaba solo el cupón y el automático quedaba escondido en total
+                discount_amount: round2(montoDescuento + autoDescuento),
                 scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
                 shift_id: resolvedShiftId ?? null,
             }).select().single();
