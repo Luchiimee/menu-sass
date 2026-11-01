@@ -4,8 +4,6 @@
 
 :root {
   --font-display: var(--font-space-grotesk);
-  --font-body: var(--font-hanken-grotesk);
-  --font-mono: var(--font-space-mono);
 
   --color-fresco: #1BB179;
   --color-brasa: #9A5532;
