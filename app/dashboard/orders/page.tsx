@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { displayTableLabel } from "@/lib/tableUtils";
 import { getCashShiftRange } from "@/lib/cashUtils";
+import { orderDisplayTotals, itemsSubtotal } from "@/lib/orderTotals";
 import {
   Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
   CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
@@ -366,10 +367,16 @@ const loadOrders = async () => {
   // HTML del ticket compartido entre window.print() y QZ Tray
   const getTicketHTML = (order: any, paperWidth: string = '80mm'): string => {
     const bodyWidth = paperWidth === '58mm' ? 160 : 280;
-    const subtotalProductos = order.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-    const costoEnvio = Number(order.delivery_cost || 0);
-    const montoDescuento = Number(order.discount_amount || 0);
-    const totalFinal = Number(order.total);
+    // Montos del pedido guardado: subtotal con extras y descuento completo (cupón + automático,
+    // o por diferencia en pedidos viejos), sin recalcular envío ni total
+    const totals = orderDisplayTotals(order);
+    const subtotalProductos = totals ? totals.subtotal : itemsSubtotal(order.items);
+    const costoEnvio = totals ? totals.envio : Number(order.delivery_cost || 0);
+    const montoDescuento = totals ? totals.descuento : 0;
+    const totalTexto = totals ? `$${totals.total.toLocaleString()}` : '—';
+    // Con lo guardado no se puede separar el cupón del descuento automático: si hubo cupón se
+    // nombra, pero el monto es el descuento total
+    const rotuloDescuento = order.coupon_code ? `DESCUENTO (CUPÓN ${String(order.coupon_code).toUpperCase()})` : 'DESCUENTO';
     const itemsHtml = order.items.map((item: any) => `
         <div style="margin-bottom: 5px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between;">
@@ -406,9 +413,9 @@ const loadOrders = async () => {
                 </div>
                 <div style="font-size: 13px; line-height: 1.6;">
                     <div style="display: flex; justify-content: space-between;"><span>SUBTOTAL PRODUCTOS:</span><span>$${subtotalProductos.toLocaleString()}</span></div>
-                    ${montoDescuento > 0 ? `<div style="display: flex; justify-content: space-between; color: #000;"><span>CUPÓN (${order.coupon_code?.toUpperCase() || 'DESC'}):</span><span>-$${montoDescuento.toLocaleString()}</span></div>` : ''}
+                    ${montoDescuento > 0 ? `<div style="display: flex; justify-content: space-between; color: #000;"><span>${rotuloDescuento}:</span><span>-$${montoDescuento.toLocaleString()}</span></div>` : ''}
                     ${costoEnvio > 0 ? `<div style="display: flex; justify-content: space-between;"><span>ENVÍO / DELIVERY:</span><span>+$${costoEnvio.toLocaleString()}</span></div>` : ''}
-                    <div style="border-top: 2px dashed #000; padding-top: 8px; margin-top: 5px; font-size: 22px; font-weight: bold; display: flex; justify-content: space-between;"><span>TOTAL:</span><span>$${totalFinal.toLocaleString()}</span></div>
+                    <div style="border-top: 2px dashed #000; padding-top: 8px; margin-top: 5px; font-size: 22px; font-weight: bold; display: flex; justify-content: space-between;"><span>TOTAL:</span><span>${totalTexto}</span></div>
                 </div>
                 <p style="text-align: center; font-size: 10px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 10px;">GRACIAS POR TU COMPRA<br>Snappy Tu Menú Digital</p>
             </body>
