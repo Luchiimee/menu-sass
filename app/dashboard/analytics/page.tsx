@@ -71,7 +71,7 @@ export default function AnalyticsPage() {
     if (!currentShift) return null;
     if (currentShift.closed_at && currentShift.summary) return currentShift.summary;
     const apertura = orders.find((o: any) => o.order_type === 'apertura');
-    return buildShiftSummary(orders, expenses, deliveryCost, Number(apertura?.total ?? 0));
+    return buildShiftSummary(orders, expenses, Number(apertura?.total ?? 0));
   }, [orders, expenses, currentShift, deliveryCost]);
 
   const loadShiftData = async (shift_id: string) => {

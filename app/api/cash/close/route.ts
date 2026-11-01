@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   // Obtener el restaurant del usuario autenticado
   const { data: rest } = await supabase
     .from('restaurants')
-    .select('id, delivery_cost')
+    .select('id')
     .eq('user_id', user.id)
     .single();
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   const [{ data: orders }, { data: expenses }] = await Promise.all([
     supabase
       .from('orders')
-      .select('id, order_type, payment_method, total, status')
+      .select('id, order_type, payment_method, total, status, delivery_cost')
       .eq('shift_id', shift_id)
       .not('status', 'in', '("pendiente","cancelado")'),
     supabase
@@ -56,7 +56,6 @@ export async function POST(req: Request) {
   const summary = buildShiftSummary(
     orders ?? [],
     expenses ?? [],
-    Number(rest.delivery_cost ?? 0),
     Number(shift.opening_balance ?? 0)
   );
 

@@ -7,6 +7,8 @@ export interface ShiftOrder {
   payment_method: string;
   total: number | string;
   status: string;
+  // Envío cobrado en el pedido (orders.delivery_cost). null / ausente = 0
+  delivery_cost?: number | string | null;
 }
 
 export interface ShiftExpense {
@@ -40,9 +42,51 @@ export interface ShiftSummary {
   totalSales: number;
   netProfit: number;
   orderCount: number;
+  // Cómo se calculó deliveryCostTotal. 'cobrado' = suma de orders.delivery_cost (lo que se le
+  // entrega al repartidor). Los cierres guardados antes de este cambio NO lo tienen: su
+  // deliveryCostTotal es cantidad de envíos × restaurants.delivery_cost (tarifa fija) y se
+  // muestran tal cual, sin recalcular.
+  deliveryBasis?: 'cobrado';
 }
 
 const SALE_TYPES: SaleOrderType[] = ['mesa', 'retiro', 'delivery', 'mostrador'];
+const EXCLUDED_STATUSES = ['pendiente', 'cancelado'];
+
+// Número desde number o string numérico; null, '' u otra cosa → 0
+function amountOf(value: unknown): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+const isCountedSale = (o: { order_type: string; status: string }) =>
+  SALE_TYPES.includes(o.order_type as SaleOrderType) && !EXCLUDED_STATUSES.includes(o.status);
+
+/**
+ * Envío cobrado en los pedidos de venta (sin pendientes ni cancelados): plata del repartidor,
+ * no del local. Solo cuentan los pedidos de envío (order_type 'delivery'); mesa, retiro,
+ * mostrador y apertura no restan nada aunque tuvieran un delivery_cost cargado.
+ * count = envíos con costo cobrado mayor a 0. Limitación conocida: un envío gratis (0) no resta
+ * nada aunque el local le pague al repartidor.
+ */
+export function deliveryCollected(
+  orders: { order_type: string; status: string; delivery_cost?: unknown }[]
+): { count: number; total: number } {
+  let count = 0;
+  let total = 0;
+  for (const o of orders) {
+    if (!isCountedSale(o) || o.order_type !== 'delivery') continue;
+    const cost = amountOf(o.delivery_cost);
+    if (cost > 0) {
+      count += 1;
+      total += cost;
+    }
+  }
+  return { count, total };
+}
 
 /**
  * Calcula el rango ISO (UTC) del "día de caja" para una fecha y hora de cierre dadas.
@@ -105,18 +149,15 @@ export function getExpectedCloseTime(openedAt: string, closeHour: string): Date 
 /**
  * Construye el snapshot de resumen de cierre.
  * Este objeto se guarda en cash_shifts.summary (JSONB) al momento del cierre.
+ * El costo de delivery es lo cobrado en cada pedido (deliveryCollected), no la tarifa fija:
+ * el envío lo paga el cliente y se le entrega al repartidor.
  */
 export function buildShiftSummary(
   orders: ShiftOrder[],
   expenses: ShiftExpense[],
-  deliveryCost: number,
   openingBalance = 0
 ): ShiftSummary {
-  const EXCLUDED_STATUSES = ['pendiente', 'cancelado'];
-  const sales = orders.filter(o =>
-    SALE_TYPES.includes(o.order_type as SaleOrderType) &&
-    !EXCLUDED_STATUSES.includes(o.status)
-  );
+  const sales = orders.filter(isCountedSale);
 
   const salesByType: ShiftSummary['salesByType'] = {
     mesa:      { count: 0, total: 0 },
@@ -142,8 +183,7 @@ export function buildShiftSummary(
     if (pm in byPaymentMethod) byPaymentMethod[pm] += amount;
   }
 
-  const deliveryCount = salesByType.delivery.count;
-  const deliveryCostTotal = deliveryCount * (deliveryCost || 0);
+  const { count: deliveryCount, total: deliveryCostTotal } = deliveryCollected(sales);
   const totalExpenses = expenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
   const totalSales = Object.values(salesByType).reduce((acc, v) => acc + v.total, 0);
   const netProfit = totalSales - deliveryCostTotal - totalExpenses;
@@ -158,5 +198,6 @@ export function buildShiftSummary(
     totalSales,
     netProfit,
     orderCount: sales.length,
+    deliveryBasis: 'cobrado',
   };
 }
