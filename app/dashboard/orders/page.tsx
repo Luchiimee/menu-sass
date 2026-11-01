@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { displayTableLabel } from "@/lib/tableUtils";
 import { getCashShiftRange } from "@/lib/cashUtils";
 import { orderDisplayTotals, itemsSubtotal } from "@/lib/orderTotals";
+import OrderTotalsBreakdown from "@/components/dashboard/OrderTotalsBreakdown";
 import {
   Loader2, ShoppingBag, Clock, CheckCircle, XCircle, Bike, Store, MapPin,
   CreditCard, Banknote, Trash2, ChefHat, Check, User, MessageCircle,
@@ -918,9 +919,12 @@ useEffect(() => {
                                 {isCalling ? 'Llamando al mozo' : isPendingAcceptance ? '¡Nuevo Pedido!' : isWaitingPayment ? 'Pago Pendiente' : isOccupied ? 'Ocupada' : 'Disponible'}
                               </p>
                               {isOccupied && (
-                                <p className={`text-sm font-black leading-tight ${isCalling ? 'text-white' : 'text-gray-900'}`}>
-                                  ${activeOrder.total}
-                                </p>
+                                <>
+                                  <OrderTotalsBreakdown order={activeOrder} tone={isCalling ? 'inverse' : 'light'} align="left" />
+                                  <p className={`text-sm font-black leading-tight ${isCalling ? 'text-white' : 'text-gray-900'}`}>
+                                    ${activeOrder.total}
+                                  </p>
+                                </>
                               )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedTableForDetail({ ...mesa, activeOrder }); }}
@@ -1038,6 +1042,7 @@ useEffect(() => {
                                 {order.coupon_code && (
                                     <div className="mb-2"><span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-100 uppercase italic">Cupón: {order.coupon_code}</span></div>
                                 )}
+                                <OrderTotalsBreakdown order={order} className="mb-1" />
                                 <p className="font-black text-2xl text-gray-900 tracking-tighter">${order.total}</p>
                                 <p className="text-[11px] text-gray-500 mt-1 font-black bg-gray-100 px-2 py-0.5 rounded-lg w-fit ml-auto tracking-tighter italic">
                                     {new Date(order.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -1449,6 +1454,7 @@ useEffect(() => {
                 <div className="p-6 bg-gray-900 text-white rounded-t-[2.5rem] animate-in slide-in-from-bottom-5 duration-300">
                     <div className="flex justify-between items-end mb-4 px-2">
                         <div className="flex flex-col">
+                            <OrderTotalsBreakdown order={selectedTableForDetail.activeOrder} tone="dark" align="left" className="mb-1.5 min-w-[140px]" />
                             <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Total acumulado</span>
                             <span className="text-2xl font-black italic tracking-tighter text-white">
                                 ${selectedTableForDetail.activeOrder.total}
