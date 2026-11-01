@@ -8,6 +8,7 @@ import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
+import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -86,8 +87,10 @@ export default function CartFooter({
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
     const [pagoConfirmado, setPagoConfirmado] = useState(false);
-    // Datos reales del pedido pagado con MP (el carrito en memoria no sobrevive a la ida a MP)
-    const [mpOrder, setMpOrder] = useState<{ total: number; delivery: number; items: any[] } | null>(null);
+    // Montos y renglones del pedido GUARDADO en orders, para cualquier medio de pago: el
+    // seguimiento los muestra tal cual (no recalcula con el carrito ni con la tarifa fija).
+    // null hasta que responde syncStatus.
+    const [savedOrder, setSavedOrder] = useState<{ total: unknown; delivery_cost: unknown; discount_amount: unknown; items: any[] } | null>(null);
     const orderStatusRef = useRef(orderStatus);
     useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
@@ -344,12 +347,14 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     }, [activeOrderId, planType, metodoEnvio]);
 
 useEffect(() => {
+    // Otro pedido (o ninguno): no mostrar los montos del anterior mientras llega el nuevo
+    setSavedOrder(null);
     if (activeOrderId) {
         const syncStatus = async () => {
             // AGREGAR: payment_status a la consulta select
             const { data } = await supabase
                 .from('orders')
-                .select('status, payment_method, payment_status, pago_confirmado, order_type, total, delivery_cost, items')
+                .select('status, payment_method, payment_status, pago_confirmado, order_type, total, delivery_cost, discount_amount, items')
                 .eq('id', activeOrderId)
                 .maybeSingle();
 
@@ -357,15 +362,18 @@ useEffect(() => {
                 setOrderStatus(data.status);
                 setMetodoPago(data.payment_method);
                 setPagoConfirmado(!!data.pago_confirmado);
+                // total, envío, descuento y renglones guardados (con descuentos y zona reales)
+                setSavedOrder({
+                    total: data.total,
+                    delivery_cost: data.delivery_cost,
+                    discount_amount: data.discount_amount,
+                    items: Array.isArray(data.items) ? data.items : [],
+                });
                 if (data.payment_method === 'mercadopago') {
-                    // total y envío reales del servidor (con descuentos y zona) y los renglones guardados
-                    setMpOrder({ total: Number(data.total) || 0, delivery: Number(data.delivery_cost) || 0, items: Array.isArray(data.items) ? data.items : [] });
                     if (data.order_type === 'delivery' || data.order_type === 'retiro') {
                         setMetodoEnvio(data.order_type);
                         localStorage.setItem('metodoEnvio', data.order_type);
                     }
-                } else {
-                    setMpOrder(null);
                 }
 
                 // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación, 
@@ -491,21 +499,10 @@ const handleCallWaiter = async () => {
     }
 };
 
-        const trackingSubtotal = cart.reduce((acc: number, item: any) => {
-            const extras = (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0);
-            return acc + (item.price + extras) * item.quantity;
-        }, 0);
-        const trackingEnvio = metodoEnvio === 'delivery' ? Number(deliveryCost) || 0 : 0;
-        const trackingTotal = trackingSubtotal + trackingEnvio;
-        // Pedido de MP: total, envío y renglones salen de orders, no del carrito local
-        const summaryEnvio = mpOrder ? mpOrder.delivery : trackingEnvio;
-        const summaryTotal = mpOrder ? mpOrder.total : trackingTotal;
-        const summaryDiscount = mpOrder
-            ? mpOrder.items.reduce((acc: number, item: any) => {
-                const extras = (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0);
-                return acc + (item.price + extras) * item.quantity;
-            }, 0) + mpOrder.delivery - mpOrder.total
-            : 0;
+        // Resumen del seguimiento: montos del pedido guardado (orderDisplayTotals). null mientras
+        // no respondió syncStatus: se muestra "…", nunca números calculados con el carrito.
+        const savedTotals = orderDisplayTotals(savedOrder);
+        const summaryItems = savedOrder ? savedOrder.items : cart;
 
         const trackingActiveStep =
             orderStatus === 'recibido'   ? 1 :
@@ -728,27 +725,27 @@ const handleCallWaiter = async () => {
                                 {/* Separador + Resumen del pedido */}
                                 <div className="border-t border-slate-100 my-3" />
                                 <div className="space-y-2">
-                                    {(mpOrder ? mpOrder.items : cart).map((item: any, idx: number) => (
+                                    {summaryItems.map((item: any, idx: number) => (
                                         <div key={item.uniqueId ?? idx} className="flex justify-between text-[13px] text-slate-600">
                                             <span>{item.quantity}x {item.name}</span>
                                             <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
                                         </div>
                                     ))}
-                                    {summaryEnvio > 0 && (
+                                    {savedTotals && savedTotals.envio > 0 && (
                                         <div className="flex justify-between text-[13px] text-slate-600">
                                             <span>Envío</span>
-                                            <span>{formatPrice(summaryEnvio)}</span>
+                                            <span>{formatPrice(savedTotals.envio)}</span>
                                         </div>
                                     )}
-                                    {summaryDiscount > 0.5 && (
+                                    {savedTotals && savedTotals.descuento > 0 && (
                                         <div className="flex justify-between text-[13px] text-green-600">
                                             <span>Descuento</span>
-                                            <span>-{formatPrice(summaryDiscount)}</span>
+                                            <span>-{formatPrice(savedTotals.descuento)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
                                         <span>Total</span>
-                                        <span className="text-green-700">{formatPrice(summaryTotal)}</span>
+                                        <span className="text-green-700">{savedTotals ? formatPrice(savedTotals.total) : '…'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -801,15 +798,21 @@ const handleCallWaiter = async () => {
                                 {/* Separador + Resumen del pedido */}
                                 <div className="border-t border-slate-100 my-3" />
                                 <div className="space-y-2">
-                                    {cart.map((item: any) => (
-                                        <div key={item.uniqueId} className="flex justify-between text-[13px] text-slate-600">
+                                    {summaryItems.map((item: any, idx: number) => (
+                                        <div key={item.uniqueId ?? idx} className="flex justify-between text-[13px] text-slate-600">
                                             <span>{item.quantity}x {item.name}</span>
                                             <span>{formatPrice((item.price + (item.extrasList || []).reduce((a: number, b: any) => a + b.price * b.quantity, 0)) * item.quantity)}</span>
                                         </div>
                                     ))}
+                                    {savedTotals && savedTotals.descuento > 0 && (
+                                        <div className="flex justify-between text-[13px] text-green-600">
+                                            <span>Descuento</span>
+                                            <span>-{formatPrice(savedTotals.descuento)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between font-black text-[15px] pt-2 border-t border-slate-100">
                                         <span>Total</span>
-                                        <span className="text-green-700">{formatPrice(trackingTotal)}</span>
+                                        <span className="text-green-700">{savedTotals ? formatPrice(savedTotals.total) : '…'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1320,7 +1323,9 @@ const handleCallWaiter = async () => {
                 table_number: metodoEnvio === 'mesa' ? nroMesa : null, 
                 description: aclaraciones, 
                 coupon_code: appliedCoupon?.code || null,
-                discount_amount: montoDescuento || 0,
+                // Todo el descuento aplicado (cupón + automático por efectivo / porcentaje);
+                // antes guardaba solo el cupón y el automático quedaba escondido en total
+                discount_amount: round2(montoDescuento + autoDescuento),
                 scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
                 shift_id: resolvedShiftId ?? null,
             }).select().single();
@@ -1383,6 +1388,11 @@ if (telCliente.trim()) {
             // Calculamos el subtotal de la comida YA con el descuento
             const subtotalNeto = subtotal - montoDescuento;
             mensaje += `✨ *Subtotal c/ Descuento:* ${formatPrice(subtotalNeto)}\n`;
+        }
+
+        // Descuento automático (pago en efectivo / por monto): sin esta línea el total no cerraba
+        if (autoDescuento > 0) {
+            mensaje += `🏷️ *Descuento aplicado:* −${formatPrice(autoDescuento)}\n`;
         }
 
         if (envio > 0) {
