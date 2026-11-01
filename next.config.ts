@@ -20,12 +20,13 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**', // Esto permite cargar imágenes de Supabase y Google
-      },
-    ],
+    // Sin hosts remotos: next/image solo se usa con logos locales (/logo.svg, /logo-snappy.svg).
+    // Antes había { hostname: '**' }, que dejaba pasar CUALQUIER sitio https por el optimizador
+    // (/_next/image?url=...), aunque la app no lo usara: es la superficie de varios avisos de
+    // seguridad de Next (SSRF, DoS y ejecución de código en Image Optimization). Las imágenes de
+    // Supabase y Cloudinary se muestran con <img> común y no pasan por acá. Si algún día un
+    // <Image> usa un src remoto, agregar SOLO ese host exacto con protocol 'https'.
+    remotePatterns: [],
   },
   // Borramos las secciones de 'eslint' y 'typescript' para no ignorar nada.
 };
