@@ -3,8 +3,9 @@
 //
 // La fuente de verdad es orders.total (lo que el cliente confirmó). Hasta este cambio,
 // discount_amount guardaba solo el cupón: el descuento automático (efectivo / porcentaje)
-// quedaba únicamente dentro de total. Para esos pedidos viejos el descuento se obtiene por
-// diferencia: productos + envío − total. Nunca se recalculan envío ni total.
+// quedaba únicamente dentro de total. Para esos pedidos viejos (y los de Mercado Pago, que
+// siguen guardando solo el cupón) el descuento se completa por diferencia:
+// productos + envío − total. Nunca se recalculan envío ni total.
 
 export type OrderTotalsInput = {
   items?: unknown;
@@ -50,10 +51,12 @@ export function orderDisplayTotals(order: OrderTotalsInput | null | undefined): 
 
   const subtotal = round2(itemsSubtotal(order.items));
   const envio = Math.max(0, round2(orZero(order.delivery_cost)));
+  // Descuento: el guardado o, si es mayor, la diferencia con el total. discount_amount puede
+  // tener solo una parte (pedidos viejos y los de Mercado Pago guardan solo el cupón): como el
+  // total es la fuente de verdad, lo que falta para cerrar también es descuento.
   const saved = toNumber(order.discount_amount);
-  const descuento = Number.isFinite(saved) && saved > 0
-    ? round2(saved)
-    : Math.max(0, round2(subtotal + envio - total));
+  const byDifference = Math.max(0, round2(subtotal + envio - total));
+  const descuento = Number.isFinite(saved) && saved > 0 ? Math.max(round2(saved), byDifference) : byDifference;
 
   return { subtotal, envio, descuento, total: round2(total) };
 }

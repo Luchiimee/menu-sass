@@ -34,7 +34,17 @@ console.log('orderDisplayTotals');
 {
   // Pedido viejo con cupón: discount_amount = solo el cupón (100), el efectivo (100) quedó en total
   const r = orderDisplayTotals({ items: [item(1000, 1)], delivery_cost: 500, discount_amount: 100, total: 1300 });
-  check('viejo con cupón y efectivo: usa el guardado (solo cupón, 100) — límite conocido', r?.descuento === 100);
+  check('viejo con cupón y efectivo: guardado 100 (solo cupón) pero la diferencia da 200 → 200', r?.descuento === 200);
+}
+{
+  // Mercado Pago (mpWebhookCore guarda solo el cupón): 10% cupón + 10% regla de porcentaje
+  const r = orderDisplayTotals({ items: [item(1000, 1)], delivery_cost: 800, discount_amount: 100, total: 1600 });
+  check('Mercado Pago con cupón + regla: no muestra menos que la diferencia (200)', r?.descuento === 200);
+}
+{
+  // Dato inconsistente: guardado mayor que la diferencia → se respeta el guardado
+  const r = orderDisplayTotals({ items: [item(1000, 1)], delivery_cost: 0, discount_amount: 150, total: 900 });
+  check('guardado mayor que la diferencia → el guardado', r?.descuento === 150);
 }
 {
   const r = orderDisplayTotals({ items: [item(1000, 2, [{ name: 'Queso', price: 200, quantity: 1 }])], delivery_cost: 0, discount_amount: 0, total: 2160 });
