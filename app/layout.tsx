@@ -1,12 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Hanken_Grotesk, Space_Mono } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import Script from 'next/script';
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400","500","600","700"], variable: "--font-space-grotesk" });
-const hankenGrotesk = Hanken_Grotesk({ subsets: ["latin"], weight: ["400","500","600","700"], variable: "--font-hanken-grotesk" });
-const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400","700"], variable: "--font-space-mono" });
 
 export const metadata: Metadata = {
   title: "Snappy | Tu Menú Digital",
@@ -38,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${spaceGrotesk.variable} ${hankenGrotesk.variable} ${spaceMono.variable}`}>
+    <html lang="es" className={spaceGrotesk.variable}>
       <head>
         {/* --- FIX ANTIBARRAS iOS (Dentro del Head y corregido) --- */}
         <Script id="ios-pwa-fix" strategy="beforeInteractive">
