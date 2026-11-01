@@ -1390,6 +1390,11 @@ if (telCliente.trim()) {
             mensaje += `✨ *Subtotal c/ Descuento:* ${formatPrice(subtotalNeto)}\n`;
         }
 
+        // Descuento automático (pago en efectivo / por monto): sin esta línea el total no cerraba
+        if (autoDescuento > 0) {
+            mensaje += `🏷️ *Descuento aplicado:* −${formatPrice(autoDescuento)}\n`;
+        }
+
         if (envio > 0) {
             // El signo + es clave para que entiendan que el envío suma después del descuento
             mensaje += `🚚 *Costo de Envío:* +${formatPrice(envio)}\n`;
