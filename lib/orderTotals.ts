@@ -32,12 +32,14 @@ export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+type PricedLine = { price?: unknown; quantity?: unknown; extrasList?: unknown };
+
 // Productos con extras: (precio + Σ extra.precio × extra.cantidad) × cantidad, como el checkout
 export function itemsSubtotal(items: unknown): number {
   if (!Array.isArray(items)) return 0;
-  return items.reduce((acc: number, item: any) => {
+  return (items as PricedLine[]).reduce((acc: number, item) => {
     const extras = Array.isArray(item?.extrasList)
-      ? item.extrasList.reduce((a: number, e: any) => a + orZero(e?.price) * orZero(e?.quantity), 0)
+      ? (item.extrasList as PricedLine[]).reduce((a: number, e) => a + orZero(e?.price) * orZero(e?.quantity), 0)
       : 0;
     return acc + (orZero(item?.price) + extras) * orZero(item?.quantity);
   }, 0);
