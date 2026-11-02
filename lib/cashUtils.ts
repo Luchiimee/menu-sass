@@ -1,5 +1,6 @@
 export type SaleOrderType = 'mesa' | 'retiro' | 'delivery' | 'mostrador';
-export type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia';
+export type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | 'mercadopago';
+const PAYMENT_METHODS: PaymentMethod[] = ['efectivo', 'tarjeta', 'transferencia', 'mercadopago'];
 
 export interface ShiftOrder {
   id: string;
@@ -34,6 +35,10 @@ export interface ShiftSummary {
     efectivo: number;
     tarjeta: number;
     transferencia: number;
+    // Opcionales: los cierres guardados antes de este cambio no los tienen (en esos, los pedidos
+    // de Mercado Pago no se sumaban en ningún medio). Los resúmenes nuevos siempre los traen.
+    mercadopago?: number;
+    otros?: number; // cualquier payment_method desconocido, para que la suma nunca se pierda
   };
   openingBalance: number;
   deliveryCount: number;
@@ -166,10 +171,13 @@ export function buildShiftSummary(
     mostrador: { count: 0, total: 0 },
   };
 
-  const byPaymentMethod: ShiftSummary['byPaymentMethod'] = {
+  // Invariante: la suma de byPaymentMethod es igual a totalSales (cada venta cae en un medio)
+  const byPaymentMethod: Required<ShiftSummary['byPaymentMethod']> = {
     efectivo: 0,
     tarjeta: 0,
     transferencia: 0,
+    mercadopago: 0,
+    otros: 0,
   };
 
   for (const o of sales) {
@@ -179,8 +187,10 @@ export function buildShiftSummary(
       salesByType[type].count += 1;
       salesByType[type].total += amount;
     }
-    const pm = o.payment_method as PaymentMethod;
-    if (pm in byPaymentMethod) byPaymentMethod[pm] += amount;
+    // Lista explícita (no `in`): 'otros' o una clave del prototipo no deben colarse
+    const pm = PAYMENT_METHODS.find((m) => m === o.payment_method);
+    if (pm) byPaymentMethod[pm] += amount;
+    else byPaymentMethod.otros += amount;
   }
 
   const { count: deliveryCount, total: deliveryCostTotal } = deliveryCollected(sales);
