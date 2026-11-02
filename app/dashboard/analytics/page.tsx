@@ -34,7 +34,6 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(true);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
-  const [deliveryCost, setDeliveryCost] = useState(0);
   const [cashCloseHour, setCashCloseHour] = useState('00:00');
   const [selectedDate, setSelectedDate] = useState(getARDate);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -71,8 +70,8 @@ export default function AnalyticsPage() {
     if (!currentShift) return null;
     if (currentShift.closed_at && currentShift.summary) return currentShift.summary;
     const apertura = orders.find((o: any) => o.order_type === 'apertura');
-    return buildShiftSummary(orders, expenses, deliveryCost, Number(apertura?.total ?? 0));
-  }, [orders, expenses, currentShift, deliveryCost]);
+    return buildShiftSummary(orders, expenses, Number(apertura?.total ?? 0));
+  }, [orders, expenses, currentShift]);
 
   const loadShiftData = async (shift_id: string) => {
     const [{ data: ords }, expRes] = await Promise.all([
@@ -97,14 +96,13 @@ export default function AnalyticsPage() {
 
       const { data: rest } = await supabase
         .from('restaurants')
-        .select('id, subscription_plan, delivery_cost, cash_close_hour, current_shift_id')
+        .select('id, subscription_plan, cash_close_hour, current_shift_id')
         .eq('user_id', user.id)
         .single();
 
       if (!rest) return;
 
       setRestaurantId(rest.id);
-      setDeliveryCost(Number(rest.delivery_cost ?? 0));
       const closeHour = rest.cash_close_hour?.slice(0, 5) ?? '00:00';
       setCashCloseHour(closeHour);
       setHasActiveShift(!!rest.current_shift_id);
@@ -512,11 +510,14 @@ export default function AnalyticsPage() {
                     </span>
                   </div>
 
-                  {/* Costo delivery — solo si aplica */}
-                  {deliveryCost > 0 && (
+                  {/* Envíos: lo cobrado en cada pedido, que se le entrega al repartidor. Un cierre
+                      guardado antes de este cambio (sin deliveryBasis) se muestra con sus números
+                      originales, calculados con la tarifa fija, sin recalcular. */}
+                  {liveSummary.deliveryCostTotal > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                        Costo delivery{liveSummary.deliveryCount > 0 ? ` (${liveSummary.deliveryCount})` : ''}
+                        {liveSummary.deliveryBasis === 'cobrado' ? 'Envíos (al repartidor)' : 'Costo delivery (tarifa fija)'}
+                        {liveSummary.deliveryCount > 0 ? ` (${liveSummary.deliveryCount})` : ''}
                       </span>
                       <span className={`text-sm font-black ${liveSummary.deliveryCostTotal > 0 ? 'text-alert' : 'text-gray-400'}`}>
                         -{fp(liveSummary.deliveryCostTotal)}

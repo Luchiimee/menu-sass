@@ -24,7 +24,6 @@ export async function GET(request: Request) {
       opened_at,
       opening_balance,
       restaurants (
-        delivery_cost,
         cash_close_hour,
         subscription_plan,
         cash_auto_close_enabled
@@ -57,7 +56,6 @@ export async function GET(request: Request) {
   const results: { shift_id: string; status: 'ok' | 'error'; detail?: string }[] = [];
 
   for (const shift of toClose) {
-    const rest = shift.restaurants as any;
     const shift_id = shift.id;
 
     try {
@@ -78,7 +76,7 @@ export async function GET(request: Request) {
       const [{ data: orders }, { data: expenses }] = await Promise.all([
         supabase
           .from('orders')
-          .select('id, order_type, payment_method, total, status')
+          .select('id, order_type, payment_method, total, status, delivery_cost')
           .eq('shift_id', shift_id)
           .neq('status', 'cancelado'),
         supabase
@@ -90,7 +88,6 @@ export async function GET(request: Request) {
       const summary = buildShiftSummary(
         orders ?? [],
         expenses ?? [],
-        Number(rest.delivery_cost ?? 0),
         Number(shift.opening_balance ?? 0)
       );
 
