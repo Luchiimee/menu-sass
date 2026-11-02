@@ -373,7 +373,8 @@ export default function AnalyticsPage() {
               <div className="bg-white p-5 md:p-6 rounded-3xl border border-[#DEDDD3] shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><CreditCard size={80} className="text-graphite" /></div>
                 <p className="text-xs font-bold text-graphite uppercase mb-1 flex items-center gap-1"><ArrowUpRight size={14} /> Digital</p>
-                <p className="text-3xl md:text-4xl font-black text-ink">{fp(liveSummary.byPaymentMethod.tarjeta + liveSummary.byPaymentMethod.transferencia)}</p>
+                {/* Mercado Pago entra en Digital; un cierre guardado sin esa clave queda como se guardó */}
+                <p className="text-3xl md:text-4xl font-black text-ink">{fp(liveSummary.byPaymentMethod.tarjeta + liveSummary.byPaymentMethod.transferencia + (liveSummary.byPaymentMethod.mercadopago ?? 0))}</p>
                 <p className="text-[10px] text-gray-400 mt-2 font-medium">Transferencias y tarjetas</p>
               </div>
               <div className="bg-fresco p-5 md:p-6 rounded-3xl shadow-xl shadow-[#E8F7F1] flex flex-col justify-center">
@@ -484,7 +485,15 @@ export default function AnalyticsPage() {
                       { key: 'efectivo',       label: 'Efectivo',       color: 'text-green-600' },
                       { key: 'tarjeta',         label: 'Tarjeta',        color: 'text-fresco' },
                       { key: 'transferencia',   label: 'Transferencia',  color: 'text-brasa' },
-                    ].map(({ key, label, color }) => (
+                      { key: 'mercadopago',     label: 'Mercado Pago',   color: 'text-sky-600' },
+                      { key: 'otros',           label: 'Otros',          color: 'text-gray-500' },
+                    ].filter(({ key }) => {
+                      const bpm = liveSummary.byPaymentMethod as Record<string, number | undefined>;
+                      // Cierres viejos no tienen 'mercadopago': sin fila. "Otros" solo si hubo algo.
+                      if (key === 'mercadopago') return bpm.mercadopago !== undefined;
+                      if (key === 'otros') return (bpm.otros ?? 0) > 0;
+                      return true;
+                    }).map(({ key, label, color }) => (
                       <div key={key} className="flex justify-between items-center py-1.5">
                         <span className={`text-xs font-black uppercase ${color}`}>{label}</span>
                         <span className="font-black text-gray-900 text-sm">{fp((liveSummary.byPaymentMethod as any)[key])}</span>
