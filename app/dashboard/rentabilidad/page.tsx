@@ -9,7 +9,19 @@ import {
   Loader2, TrendingUp, X, Calendar as CalendarIcon,
   AlertCircle, Package, CheckCircle2, DollarSign, Zap,
 } from 'lucide-react';
-import { getCashShiftRange } from '@/lib/cashUtils';
+import { getCashShiftRange, deliveryCollected } from '@/lib/cashUtils';
+import { orderDisplayTotals } from '@/lib/orderTotals';
+
+// Pedido del período con sus montos guardados (envíos cobrados y descuentos)
+type PeriodOrder = {
+  order_type: string;
+  status: string;
+  total: number | string | null;
+  delivery_cost: number | string | null;
+  discount_amount: number | string | null;
+  items: unknown;
+  shift_id: string | null;
+};
 import { hasBetaAccess } from '@/lib/access';
 
 type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
@@ -44,8 +56,11 @@ export default function RentabilidadPage() {
   const [isLocked, setIsLocked] = useState(true);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [cashCloseHour, setCashCloseHour] = useState('00:00');
-  const [deliveryCost, setDeliveryCost] = useState(0);
-  const [deliveryOrderCount, setDeliveryOrderCount] = useState(0);
+  // Envío cobrado en los pedidos del período: plata del repartidor, se muestra como dato y no
+  // se resta (la facturación ya es solo de productos)
+  const [deliveryCollectedTotal, setDeliveryCollectedTotal] = useState(0);
+  // Descuentos de los pedidos del período (cupón + automático; por diferencia en pedidos viejos)
+  const [periodDiscounts, setPeriodDiscounts] = useState(0);
   // Pedidos aceptados del período: total y cuántos tienen turno de caja.
   // Si hay pedidos pero ninguno con turno, no aparecen en el reporte.
   const [periodOrderCount, setPeriodOrderCount] = useState(0);
@@ -101,7 +116,7 @@ export default function RentabilidadPage() {
 
       const { data: rest } = await supabase
         .from('restaurants')
-        .select('id, subscription_plan, cash_close_hour, delivery_cost')
+        .select('id, subscription_plan, cash_close_hour')
         .eq('user_id', user.id)
         .single();
 
@@ -109,7 +124,6 @@ export default function RentabilidadPage() {
       setRestaurantId(rest.id);
       const closeHour = rest.cash_close_hour?.slice(0, 5) ?? '00:00';
       setCashCloseHour(closeHour);
-      setDeliveryCost(Number(rest.delivery_cost ?? 0));
 
       // Gate por plan: Light siempre bloqueado, GO solo con beta access, Plus liberado.
       // Sin excepción de admin acá — ADMIN_EMAILS solo evita el redirect de trial/cancelado.
@@ -120,7 +134,7 @@ export default function RentabilidadPage() {
 
       const { start, end } = getRange(p, closeHour);
 
-      const [{ data: rows }, { data: prods }, deliveryRes, shiftsRes, periodOrdersRes, periodOrdersWithShiftRes] = await Promise.all([
+      const [{ data: rows }, { data: prods }, periodOrdersDetailRes, shiftsRes, periodOrdersRes, periodOrdersWithShiftRes] = await Promise.all([
         supabase
           .from('order_item_costs')
           .select(`product_name, product_id, quantity, unit_cost_frozen, unit_price_frozen, orders!inner(created_at, status)`)
@@ -134,12 +148,12 @@ export default function RentabilidadPage() {
           .select('id, name, price, cost')
           .eq('restaurant_id', rest.id)
           .order('name', { ascending: true }),
-        // Pedidos delivery en el período (para calcular costo de delivery)
+        // Pedidos aceptados del período con sus montos guardados: envíos cobrados (dato
+        // informativo) y descuentos. No toca order_item_costs.
         supabase
           .from('orders')
-          .select('id', { count: 'exact', head: true })
+          .select('order_type, status, total, delivery_cost, discount_amount, items, shift_id')
           .eq('restaurant_id', rest.id)
-          .eq('order_type', 'delivery')
           .gte('created_at', start)
           .lte('created_at', end)
           .not('status', 'in', '("pendiente","cancelado")'),
@@ -169,7 +183,15 @@ export default function RentabilidadPage() {
           .not('shift_id', 'is', null),
       ]);
 
-      setDeliveryOrderCount(deliveryRes.count ?? 0);
+      const periodOrders = (periodOrdersDetailRes.data ?? []) as PeriodOrder[];
+      // Envíos: los pedidos de envío del período, como hasta ahora (con o sin turno)
+      setDeliveryCollectedTotal(deliveryCollected(periodOrders).total);
+      // Descuentos: solo los pedidos con turno, los mismos que forman la facturación
+      setPeriodDiscounts(
+        periodOrders
+          .filter((o) => o.shift_id != null)
+          .reduce((acc, o) => acc + (orderDisplayTotals(o)?.descuento ?? 0), 0),
+      );
       setPeriodOrderCount(periodOrdersRes.count ?? 0);
       setPeriodOrdersWithShiftCount(periodOrdersWithShiftRes.count ?? 0);
 
@@ -243,8 +265,9 @@ export default function RentabilidadPage() {
     return { withCost, withoutCost, summary: { totalRevenue, totalCost, grossProfit } };
   }, [items]);
 
-  const deliveryCostTotal = deliveryOrderCount * deliveryCost;
-  const netReal = summary.totalRevenue - summary.totalCost - deliveryCostTotal - totalExpenses;
+  // El envío no se resta: lo paga el cliente y pasa al repartidor, y la facturación ya es solo
+  // de productos. Los descuentos sí, porque la facturación usa el precio de lista de los ítems.
+  const netReal = summary.totalRevenue - periodDiscounts - summary.totalCost - totalExpenses;
 
   const PERIODS: { id: Period; label: string }[] = [
     { id: 'today',     label: 'Hoy' },
@@ -390,16 +413,16 @@ export default function RentabilidadPage() {
                     <span className="text-gray-400 font-bold uppercase">Facturación total</span>
                     <span className="text-white font-black">{fp(summary.totalRevenue)}</span>
                   </div>
+                  {periodDiscounts > 0 && (
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400 font-bold uppercase">− Descuentos</span>
+                      <span className="text-alert font-black">−{fp(periodDiscounts)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-[11px]">
                     <span className="text-gray-400 font-bold uppercase">− Costo productos</span>
                     <span className="text-alert font-black">−{fp(summary.totalCost)}</span>
                   </div>
-                  {deliveryCostTotal > 0 && (
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-400 font-bold uppercase">− Delivery ({deliveryOrderCount} × {fp(deliveryCost)})</span>
-                      <span className="text-alert font-black">−{fp(deliveryCostTotal)}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-[11px]">
                     <span className="text-gray-400 font-bold uppercase">− Gastos operativos</span>
                     <span className="text-alert font-black">−{fp(totalExpenses)}</span>
@@ -410,6 +433,11 @@ export default function RentabilidadPage() {
                       {fp(netReal)}
                     </span>
                   </div>
+                  {deliveryCollectedTotal > 0 && (
+                    <p className="text-[10px] text-gray-500 font-medium pt-1">
+                      Envíos cobrados: {fp(deliveryCollectedTotal)} (pasan al repartidor)
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
