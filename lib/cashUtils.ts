@@ -146,6 +146,37 @@ export function getExpectedCloseTime(openedAt: string, closeHour: string): Date 
   return nextDayClose;
 }
 
+// 'HH:MM' desde restaurants.cash_close_hour ('HH:MM:SS', 'HH:MM', null o vacío → '00:00'),
+// el mismo valor por defecto que usan Caja, Rentabilidad y el cron
+export function normalizeCloseHour(closeHour: string | null | undefined): string {
+  const hhmm = typeof closeHour === 'string' ? closeHour.trim().slice(0, 5) : '';
+  return /^\d{2}:\d{2}$/.test(hhmm) ? hhmm : '00:00';
+}
+
+/**
+ * ¿El turno abierto ya pasó su hora de cierre? Es la primera cash_close_hour (hora Argentina)
+ * posterior a la apertura, la misma que usa el cron (getExpectedCloseTime). Sirve para avisarle
+ * al dueño que quedó una caja vieja abierta: no cierra nada.
+ */
+export function isShiftStale(openedAt: string, closeHour: string | null | undefined, now: Date = new Date()): boolean {
+  const opened = new Date(openedAt);
+  if (Number.isNaN(opened.getTime())) return false;
+  return now.getTime() >= getExpectedCloseTime(openedAt, normalizeCloseHour(closeHour)).getTime();
+}
+
+/**
+ * Fecha de Caja ('YYYY-MM-DD', hora Argentina) a la que pertenece un turno: el día D tal que la
+ * apertura cae en [D a closeHour, D+1 a closeHour), como arma los rangos getCashShiftRange.
+ * Ej.: cierre 03:00 y apertura el 02/11 a la 01:00 → caja del 01/11.
+ */
+export function shiftBusinessDate(openedAt: string, closeHour: string | null | undefined): string {
+  const opened = new Date(openedAt);
+  const artDate = new Date(opened.getTime() - 3 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const start = new Date(`${artDate}T${normalizeCloseHour(closeHour)}:00-03:00`);
+  if (opened >= start) return artDate;
+  return new Date(start.getTime() - 24 * 60 * 60 * 1000 - 3 * 60 * 60 * 1000).toISOString().split('T')[0];
+}
+
 /**
  * Construye el snapshot de resumen de cierre.
  * Este objeto se guarda en cash_shifts.summary (JSONB) al momento del cierre.
