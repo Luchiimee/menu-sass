@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getCashShiftRange, deliveryCollected } from '@/lib/cashUtils';
 import { orderDisplayTotals } from '@/lib/orderTotals';
+import { fetchAllPages } from '@/lib/fetchAllPages';
 
 // Pedido del período con sus montos guardados (envíos cobrados y descuentos)
 type PeriodOrder = {
@@ -54,6 +55,8 @@ export default function RentabilidadPage() {
 
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(true);
+  // Se llegó al tope de páginas de alguna consulta: el reporte no incluye todo el período
+  const [partialData, setPartialData] = useState(false);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [cashCloseHour, setCashCloseHour] = useState('00:00');
   // Envío cobrado en los pedidos del período: plata del repartidor, se muestra como dato y no
@@ -134,15 +137,31 @@ export default function RentabilidadPage() {
 
       const { start, end } = getRange(p, closeHour);
 
-      const [{ data: rows }, { data: prods }, periodOrdersDetailRes, shiftsRes, periodOrdersRes, periodOrdersWithShiftRes] = await Promise.all([
-        supabase
+      // Ítems y pedidos del período se leen paginados (Supabase corta en 1000 filas sin avisar).
+      // Orden estable por id para que las páginas no repitan ni salteen filas.
+      const itemCostsPage = (ordered: boolean) => (from: number, to: number) => {
+        const q = supabase
           .from('order_item_costs')
           .select(`product_name, product_id, quantity, unit_cost_frozen, unit_price_frozen, orders!inner(created_at, status)`)
           .eq('restaurant_id', rest.id)
           .gte('orders.created_at', start)
           .lte('orders.created_at', end)
           .not('orders.status', 'in', '("pendiente","cancelado")')
-          .not('orders.shift_id', 'is', null),
+          .not('orders.shift_id', 'is', null);
+        return (ordered ? q.order('id', { ascending: true }) : q).range(from, to);
+      };
+      const fetchItemCosts = async () => {
+        const res = await fetchAllPages(itemCostsPage(true));
+        // Sin columna id (42703): se pide sin orden, como antes, pero paginado
+        if (res.error?.code === '42703') {
+          console.warn('[rentabilidad] order_item_costs sin columna id: paginando sin orden estable');
+          return fetchAllPages(itemCostsPage(false));
+        }
+        return res;
+      };
+
+      const [itemCostsRes, { data: prods }, periodOrdersDetailRes, shiftsRes, periodOrdersRes, periodOrdersWithShiftRes] = await Promise.all([
+        fetchItemCosts(),
         supabase
           .from('products')
           .select('id, name, price, cost')
@@ -150,13 +169,15 @@ export default function RentabilidadPage() {
           .order('name', { ascending: true }),
         // Pedidos aceptados del período con sus montos guardados: envíos cobrados (dato
         // informativo) y descuentos. No toca order_item_costs.
-        supabase
+        fetchAllPages((from, to) => supabase
           .from('orders')
           .select('order_type, status, total, delivery_cost, discount_amount, items, shift_id')
           .eq('restaurant_id', rest.id)
           .gte('created_at', start)
           .lte('created_at', end)
-          .not('status', 'in', '("pendiente","cancelado")'),
+          .not('status', 'in', '("pendiente","cancelado")')
+          .order('id', { ascending: true })
+          .range(from, to)),
         // Turnos abiertos en el período (para traer los gastos)
         supabase
           .from('cash_shifts')
@@ -183,7 +204,11 @@ export default function RentabilidadPage() {
           .not('shift_id', 'is', null),
       ]);
 
-      const periodOrders = (periodOrdersDetailRes.data ?? []) as PeriodOrder[];
+      if (itemCostsRes.error) console.error('[rentabilidad] error leyendo order_item_costs:', itemCostsRes.error.message);
+      if (periodOrdersDetailRes.error) console.error('[rentabilidad] error leyendo pedidos:', periodOrdersDetailRes.error.message);
+      setPartialData(itemCostsRes.truncated || periodOrdersDetailRes.truncated);
+      const rows = itemCostsRes.data;
+      const periodOrders = periodOrdersDetailRes.data as PeriodOrder[];
       // Envíos: los pedidos de envío del período, como hasta ahora (con o sin turno)
       setDeliveryCollectedTotal(deliveryCollected(periodOrders).total);
       // Descuentos: solo los pedidos con turno, los mismos que forman la facturación
@@ -371,6 +396,16 @@ export default function RentabilidadPage() {
                 </div>
               )}
             </div>
+
+            {/* Tope de páginas alcanzado: mejor avisar que mostrar un período incompleto en silencio */}
+            {partialData && (
+              <div role="alert" className="flex items-start gap-2 p-4 bg-alert/10 border border-alert/20 rounded-2xl">
+                <AlertCircle size={16} className="text-alert shrink-0 mt-0.5" />
+                <p className="text-xs font-bold text-alert">
+                  Mostrando datos parciales: el período tiene demasiados pedidos para cargarlos todos. Elegí un período más corto para ver los números completos.
+                </p>
+              </div>
+            )}
 
             {/* SUMMARY CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
