@@ -169,7 +169,7 @@ export default function AnalyticsPage() {
       await loadData(selectedDate);
     } else {
       const err = await res.json();
-      alert(err.error ?? 'Error al abrir la caja');
+      alert(err.error ?? 'Error al abrir el turno');
     }
     setSaving(false);
   };
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
       await loadData(selectedDate);
     } else {
       const err = await res.json();
-      alert(err.error ?? 'Error al cerrar la caja');
+      alert(err.error ?? 'Error al cerrar el turno');
     }
     setSaving(false);
   };
@@ -318,12 +318,12 @@ export default function AnalyticsPage() {
             <div className="flex gap-2 w-full md:w-auto flex-wrap justify-end">
               {!hasActiveShift && (
                 <button onClick={() => setShowAperturaModal(true)} className="flex-1 md:flex-none px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-orange-500 text-white shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95 transition-all">
-                  <Calculator size={18} /> Iniciar Caja
+                  <Calculator size={18} /> Iniciar turno
                 </button>
               )}
               {currentShift && isShiftOpen && hasActiveShift && (
                 <button onClick={() => setShowCloseConfirm(true)} className="flex-1 md:flex-none px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-alert text-white shadow-lg shadow-alert/10 hover:bg-alert active:scale-95 transition-all">
-                  <Lock size={16} /> Cerrar Caja
+                  <Lock size={16} /> Cerrar turno
                 </button>
               )}
               {currentShift && isShiftOpen && (
@@ -338,7 +338,7 @@ export default function AnalyticsPage() {
               )}
               {currentShift && !isShiftOpen && (
                 <span className="px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest bg-gray-100 text-gray-500 flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-green-500" /> Caja Cerrada
+                  <CheckCircle2 size={14} className="text-green-500" /> Turno cerrado
                 </span>
               )}
             </div>
@@ -359,10 +359,10 @@ export default function AnalyticsPage() {
         {!currentShift && (
           <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-16 text-center">
             <Calculator size={40} className="text-gray-200 mx-auto mb-4" />
-            <p className="font-black text-gray-400 uppercase tracking-widest text-sm">Sin caja para este día</p>
+            <p className="font-black text-gray-400 uppercase tracking-widest text-sm">Sin turnos para este día</p>
             {!hasActiveShift && (
               <button onClick={() => setShowAperturaModal(true)} className="mt-6 px-8 py-3 bg-orange-500 text-white rounded-2xl font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-100 active:scale-95">
-                Iniciar Caja
+                Iniciar turno
               </button>
             )}
           </div>
@@ -444,7 +444,7 @@ export default function AnalyticsPage() {
                 <div className="bg-green-500 p-3 rounded-2xl shrink-0"><CheckCircle2 size={22} /></div>
                 <div className="space-y-1">
                   <p className="font-black uppercase tracking-tight">
-                    Caja cerrada — {currentShift.close_type === 'auto' ? 'Cierre automático' : 'Cierre manual'}
+                    Turno cerrado — {currentShift.close_type === 'auto' ? 'Cierre automático' : 'Cierre manual'}
                   </p>
                   <p className="text-[11px] text-gray-400 font-bold">
                     Abierto: {new Date(currentShift.opened_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} hs
@@ -655,7 +655,7 @@ export default function AnalyticsPage() {
       {showAperturaModal && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95">
-            <h2 className="text-2xl font-black text-gray-900 mb-2">Iniciar Caja</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Iniciar turno</h2>
             <p className="text-gray-500 text-sm mb-6 leading-tight">Ingresá el monto de efectivo (cambio) con el que arrancás el turno.</p>
             <div className="relative mb-6">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-3xl font-black text-gray-300">$</span>
@@ -664,7 +664,7 @@ export default function AnalyticsPage() {
             <div className="flex gap-3">
               <button onClick={() => setShowAperturaModal(false)} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancelar</button>
               <button onClick={handleOpenCaja} disabled={saving} className="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-bold text-lg hover:bg-orange-600 transition-all shadow-lg shadow-orange-100 active:scale-95 disabled:opacity-50">
-                {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Abrir Caja'}
+                {saving ? <Loader2 className="animate-spin mx-auto" /> : 'Abrir turno'}
               </button>
             </div>
           </div>
@@ -675,7 +675,7 @@ export default function AnalyticsPage() {
       {showCloseConfirm && (
         <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95">
-            <h2 className="text-2xl font-black text-gray-900 mb-2">¿Cerrar Caja?</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">¿Cerrar turno?</h2>
             <p className="text-gray-500 text-sm mb-6 leading-tight">El resumen del turno quedará congelado. No podrás agregar más ventas ni gastos.</p>
             <div className="flex gap-3">
               <button onClick={() => setShowCloseConfirm(false)} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancelar</button>

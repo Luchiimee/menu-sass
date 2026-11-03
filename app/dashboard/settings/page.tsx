@@ -743,7 +743,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                   <div>
                     <h2 className="font-bold text-xl text-gray-900">Horario de Cierre de Caja</h2>
                     <p className="text-xs text-gray-400 font-medium italic">
-                      Define cuándo termina tu "día de caja" (independiente del horario del menú)
+                      Define cuándo termina tu día de caja (independiente del horario del menú). Un mismo día puede tener varios turnos
                     </p>
                   </div>
                 </div>
@@ -775,8 +775,8 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     <p className="font-black text-sm text-gray-900">Cierre automático</p>
                     <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                       {restaurant.cash_auto_close_enabled
-                        ? 'La caja se cierra sola a la hora configurada'
-                        : 'Solo cierre manual — el botón "Cerrar Caja" del panel'}
+                        ? 'Cierra el turno abierto en el próximo cierre automático (una vez por día)'
+                        : 'Solo cierre manual — el botón "Cerrar turno" de Caja'}
                     </p>
                   </div>
                   <button
@@ -792,7 +792,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                 </div>
 
                 <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                  El cambio de horario aplica desde el próximo turno de caja
+                  El cambio de horario aplica desde el próximo turno
                 </p>
               </section>
             )}
