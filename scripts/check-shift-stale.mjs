@@ -3,7 +3,7 @@
 //
 //   node scripts/check-shift-stale.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
-import { isShiftStale, shiftBusinessDate, normalizeCloseHour } from '../lib/cashUtils.ts';
+import { isShiftStale, shiftBusinessDate, normalizeCloseHour, shouldReassignShift } from '../lib/cashUtils.ts';
 
 let failures = 0;
 function check(name, cond) {
@@ -49,6 +49,15 @@ check('abierto 02/11 03:00 exacto, cierre 03:00 → 2026-11-02', shiftBusinessDa
 check('abierto 01/11 23:30, cierre 22:00 → 2026-11-01', shiftBusinessDate(iso('2026-11-01T23:30:00'), '22:00') === '2026-11-01');
 check('abierto 01/11 21:00, cierre 22:00 → caja del 2026-10-31', shiftBusinessDate(iso('2026-11-01T21:00:00'), '22:00') === '2026-10-31');
 check('sin hora → 00:00', shiftBusinessDate(iso('2026-11-01T18:58:00'), null) === '2026-11-01');
+
+console.log('shouldReassignShift (al tomar un pedido)');
+const cerrado = iso('2026-11-01T23:59:00');
+check('pendiente con turno cerrado → sí', shouldReassignShift('pendiente', cerrado));
+check('pendiente con turno abierto (closed_at null) → no', !shouldReassignShift('pendiente', null));
+check('pendiente sin turno (no hay closed_at) → no', !shouldReassignShift('pendiente', undefined));
+check('recibido, entregado y cancelado con turno cerrado → no',
+  !shouldReassignShift('recibido', cerrado) && !shouldReassignShift('entregado', cerrado) && !shouldReassignShift('cancelado', cerrado));
+check("closed_at inválido ('no-es-fecha', '') → no", !shouldReassignShift('pendiente', 'no-es-fecha') && !shouldReassignShift('pendiente', ''));
 
 if (failures) { console.error(`\n${failures} caso(s) con FALLA`); process.exit(1); }
 console.log('\nTodos los casos OK');

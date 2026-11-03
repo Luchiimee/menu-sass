@@ -183,6 +183,18 @@ export function shiftBusinessDate(openedAt: string, closeHour: string | null | u
 }
 
 /**
+ * ¿Hay que pasar el pedido a un turno vigente al tomarlo? Solo si sigue pendiente y su turno ya
+ * se cerró: los cierres excluyen los pendientes, así que si no se mueve no cuenta en ninguna caja.
+ * orderShiftClosedAt = cash_shifts.closed_at del turno del pedido (null si el turno sigue abierto
+ * o si el pedido no tiene turno). Una fecha inválida no mueve nada.
+ */
+export function shouldReassignShift(orderStatus: string, orderShiftClosedAt: string | null | undefined): boolean {
+  if (orderStatus !== 'pendiente') return false;
+  if (typeof orderShiftClosedAt !== 'string' || orderShiftClosedAt.trim() === '') return false;
+  return !Number.isNaN(new Date(orderShiftClosedAt).getTime());
+}
+
+/**
  * Construye el snapshot de resumen de cierre.
  * Este objeto se guarda en cash_shifts.summary (JSONB) al momento del cierre.
  * El costo de delivery es lo cobrado en cada pedido (deliveryCollected), no la tarifa fija:
