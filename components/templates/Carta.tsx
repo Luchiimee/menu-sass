@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Search, Plus, Minus, Store, X, UtensilsCrossed, Check } from 'lucide-react';
+import { Search, Plus, Minus, Store, X, UtensilsCrossed, Check, Video } from 'lucide-react';
 import { useCart } from "@/context/CartContext";
 import { getProductDisplayPrice } from "@/lib/productPricing";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { videoThumbnailUrl } from "@/lib/videoThumbnail";
 import { pickReadableColor } from "@/lib/colorUtils";
 
 // Productos/categorías de ejemplo (estilo brasserie) usados cuando el restaurante todavía no cargó su carta
@@ -316,11 +317,18 @@ const Carta: React.FC<Props> = ({
                   const cartItem = getCartItem(p.id);
                   const { amount, isFrom } = getProductDisplayPrice(p);
                   const imgUrl = getOptimizedImageUrl(p.image_url, 300, 70);
+                  // Sin foto pero con video: fotograma .jpg de Cloudinary (como la miniatura del panel)
+                  const videoThumb = !imgUrl && p.video_url ? videoThumbnailUrl(p.video_url, 300) : null;
 
                   return (
                     <div key={p.id} className="carta-card">
                       {imgUrl ? (
                         <img src={imgUrl} alt={p.name} loading="lazy" className="carta-card-img" />
+                      ) : videoThumb ? (
+                        <div style={{ position: 'relative' }}>
+                          <img src={videoThumb} alt={p.name} loading="lazy" className="carta-card-img" style={{ display: 'block' }} />
+                          <span className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-black/45 flex items-center justify-center" aria-hidden="true"><Video size={11} className="text-white" /></span>
+                        </div>
                       ) : (
                         <div className="carta-card-img carta-img-fallback">
                           <UtensilsCrossed size={28} strokeWidth={1.5} style={{ opacity: 0.5 }} />
