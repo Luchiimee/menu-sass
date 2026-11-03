@@ -95,5 +95,46 @@ for (const [local, flat] of [['Casa Delia', 3100], ['Doña Coca', 2000]]) {
   check(`${local}: con un envío gratis difiere en exactamente la tarifa (${flat})`, oldDelivery(conGratis, flat) - g.deliveryCostTotal === flat);
 }
 
+console.log('por método de pago: la suma siempre es igual al total vendido');
+const pmSum = (s) => Object.values(s.byPaymentMethod).reduce((a, v) => a + v, 0);
+const cierra = (s) => Math.abs(pmSum(s) - s.totalSales) < 1e-9;
+const pago = (payment_method, total, extra = {}) => order('retiro', total, 0, { payment_method, ...extra });
+{
+  const s = buildShiftSummary([pago('mercadopago', 250)], [], 0);
+  check('pedido de Mercado Pago solo → byPaymentMethod.mercadopago 250 y la suma cierra', s.byPaymentMethod.mercadopago === 250 && cierra(s));
+}
+{
+  const s = buildShiftSummary([pago('mercadopago', 250), pago('efectivo', 1000), pago('transferencia', 500)], [], 0);
+  check('MP + efectivo + transferencia → cada uno en su clave y la suma cierra (1750)',
+    s.byPaymentMethod.mercadopago === 250 && s.byPaymentMethod.efectivo === 1000 && s.byPaymentMethod.transferencia === 500 && s.totalSales === 1750 && cierra(s));
+}
+{
+  const s = buildShiftSummary([pago('cripto', 300), pago('efectivo', 100)], [], 0);
+  check('método desconocido → va a "otros" y la suma cierra', s.byPaymentMethod.otros === 300 && cierra(s));
+}
+{
+  const s = buildShiftSummary([pago('toString', 70), pago('otros', 30)], [], 0);
+  check('"toString" u "otros" como método no rompen el objeto: van a "otros"', s.byPaymentMethod.otros === 100 && typeof s.byPaymentMethod.toString === 'function' && cierra(s));
+}
+{
+  // Cierre real del 01/11 de Burgers Snappy: efectivo 6225 + 8100, transferencia 250, MP 250
+  const s = buildShiftSummary([
+    order('delivery', 6225, 6000),
+    order('delivery', 8100, 6000),
+    pago('transferencia', 250),
+    order('delivery', 250, 0, { payment_method: 'mercadopago' }),
+  ], [], 0);
+  check('caso real 01/11: efectivo 14325, transferencia 250, MP 250', s.byPaymentMethod.efectivo === 14325 && s.byPaymentMethod.transferencia === 250 && s.byPaymentMethod.mercadopago === 250);
+  check('… suma 14825 = total vendido 14825', pmSum(s) === 14825 && s.totalSales === 14825);
+}
+{
+  const s = buildShiftSummary([pago('efectivo', 0.1), pago('mercadopago', 0.2), pago('tarjeta', 1234.56)], [], 0);
+  check('con decimales la suma también cierra', cierra(s));
+}
+check('resumen nuevo trae siempre mercadopago y otros (aunque sean 0)', (() => {
+  const s = buildShiftSummary([pago('efectivo', 100)], [], 0);
+  return s.byPaymentMethod.mercadopago === 0 && s.byPaymentMethod.otros === 0;
+})());
+
 if (failures) { console.error(`\n${failures} caso(s) con FALLA`); process.exit(1); }
 console.log('\nTodos los casos OK');
