@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import Script from 'next/script';
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400","500","600","700"], variable: "--font-space-grotesk" });
+// Space Grotesk variable (subset latin, @fontsource-variable/space-grotesk 5.3.0, SIL OFL: fonts/OFL.txt).
+// Local para que el build no dependa de bajarla de Google. Pesos 400-700, los mismos que se cargaban antes.
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-latin-wght-normal.woff2",
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
+  variable: "--font-space-grotesk",
+});
 
 export const metadata: Metadata = {
   title: "Snappy | Tu Menú Digital",
