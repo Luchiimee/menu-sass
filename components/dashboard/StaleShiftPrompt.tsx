@@ -7,7 +7,7 @@
 // caja (silencia el aviso 12 h) o decidir después (hasta la próxima carga del panel).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { AlertTriangle } from 'lucide-react';
 import { hasBetaAccess } from '@/lib/access';
@@ -33,13 +33,19 @@ const ddmm = (isoDate: string) => {
 
 type StaleShift = { id: string; businessDate: string };
 
+// En Caja no se muestra: tapa el botón de cerrar el turno, que es lo que el aviso propone
+const isCashScreen = (pathname: string | null) => !!pathname && pathname.startsWith('/dashboard/analytics');
+
 export default function StaleShiftPrompt() {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = useRef(createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )).current;
   const [stale, setStale] = useState<StaleShift | null>(null);
+  // Pantalla en la que se hizo la revisión: un resultado de otra pantalla no se muestra
+  const [checkedPath, setCheckedPath] = useState<string | null>(null);
   // "Decidir después": no volver a mostrar hasta que se recargue el panel
   const dismissedThisLoad = useRef(false);
 
@@ -80,19 +86,30 @@ export default function StaleShiftPrompt() {
     }
   }, [supabase]);
 
+  // Se revisa de nuevo en cada cambio de pantalla (así, después de cerrar el turno en Caja, no
+  // vuelve a aparecer). En Caja no se revisa, y lo que llegue de una revisión de la pantalla
+  // anterior se descarta.
   useEffect(() => {
+    if (isCashScreen(pathname)) return;
+    let active = true;
     const run = () => {
       check().then((result) => {
-        if (result !== undefined && !dismissedThisLoad.current) setStale(result);
+        if (active && result !== undefined && !dismissedThisLoad.current) {
+          setStale(result);
+          setCheckedPath(pathname);
+        }
       });
     };
     run();
     const onOrder = () => { run(); };
     window.addEventListener('order-received', onOrder);
-    return () => window.removeEventListener('order-received', onOrder);
-  }, [check]);
+    return () => {
+      active = false;
+      window.removeEventListener('order-received', onOrder);
+    };
+  }, [check, pathname]);
 
-  if (!stale) return null;
+  if (!stale || isCashScreen(pathname) || checkedPath !== pathname) return null;
 
   // "de ayer" si el turno es de ayer; si es más viejo, con su fecha
   const yesterday = new Date(new Date(`${todayAR()}T12:00:00-03:00`).getTime() - 24 * 60 * 60 * 1000)
@@ -101,7 +118,6 @@ export default function StaleShiftPrompt() {
   const cuando = isYesterday ? 'de ayer' : `del ${ddmm(stale.businessDate)}`;
 
   const goClose = () => {
-    dismissedThisLoad.current = true;
     setStale(null);
     router.push(`/dashboard/analytics?fecha=${stale.businessDate}`);
   };
