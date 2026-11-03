@@ -1931,7 +1931,8 @@ return (
                         <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-tighter"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                         {appliedCoupon && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento</span><span>-{formatPrice(montoDescuento)}</span></div>}
                         {autoDescuento > 0 && <div className="flex justify-between items-center text-[11px] font-black uppercase text-green-600 italic"><span>Descuento aplicado</span><span>-{formatPrice(autoDescuento)}</span></div>}
-                        {zoneStatus !== 'outside' && (
+                        {/* Solo en envío: en retiro y mesa no hay envío (ni "envío gratis") */}
+                        {metodoEnvio === 'delivery' && zoneStatus !== 'outside' && (
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
                                 <span className="text-slate-400">Envío</span>
                                 <span className={zoneStatus === 'calculating' && !autoFreeShipping ? 'text-graphite' : 'text-slate-400'}>
