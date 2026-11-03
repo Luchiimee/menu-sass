@@ -775,7 +775,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
                     <p className="font-black text-sm text-gray-900">Cierre automático</p>
                     <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                       {restaurant.cash_auto_close_enabled
-                        ? 'Cierra el turno abierto a la hora configurada'
+                        ? 'Cierra el turno abierto en el próximo cierre automático (una vez por día)'
                         : 'Solo cierre manual — el botón "Cerrar turno" de Caja'}
                     </p>
                   </div>
