@@ -16,6 +16,8 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
   const [variationsQuantities, setVariationsQuantities] = useState<{ [key: number]: number }>({});
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  // Misma vista ampliada, con el video del producto (solo si no tiene foto). Al cerrar se desmonta.
+  const [lightboxVideo, setLightboxVideo] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const { cart } = useCart();
 
@@ -350,7 +352,7 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
                 const videoThumb = !imgUrl && p.video_url ? videoThumbnailUrl(p.video_url, 300) : null;
                 return (
                   <div key={p.id} className="arg-card-row">
-                    <div className="arg-card-photo" onClick={() => p.image_url && setLightboxImage(p.image_url)} style={{ cursor: p.image_url ? 'pointer' : 'default' }}>
+                    <div className="arg-card-photo" onClick={() => { if (p.image_url) setLightboxImage(p.image_url); else if (videoThumb) setLightboxVideo(p.video_url); }} style={{ cursor: p.image_url || videoThumb ? 'pointer' : 'default' }}>
                       <div className="arg-card-photo-inner">
                         {imgUrl ? <img src={imgUrl} alt={p.name} loading="lazy" /> : videoThumb ? (
                           <>
@@ -402,6 +404,15 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
             <X size={20} />
           </button>
           <img src={getOptimizedImageUrl(lightboxImage, 800, 80)} alt="" className="max-w-full max-h-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {lightboxVideo && (
+        <div className="fixed inset-0 z-[300] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200" onClick={() => setLightboxVideo(null)}>
+          <button onClick={() => setLightboxVideo(null)} className="absolute top-6 right-6 z-10 bg-white/10 text-white p-2 rounded-full">
+            <X size={20} />
+          </button>
+          <video src={lightboxVideo} controls autoPlay playsInline loop className="max-w-full max-h-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 
