@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Plus, Minus, Store, X, Utensils, Clock, ImagePlus } from 'lucide-react';
+import { Search, Plus, Minus, Store, X, Utensils, Clock, ImagePlus, Video } from 'lucide-react';
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { videoThumbnailUrl } from '@/lib/videoThumbnail';
 import { useCart } from '@/context/CartContext';
 
 export default function Argentina({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
@@ -15,6 +16,8 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
   const [variationsQuantities, setVariationsQuantities] = useState<{ [key: number]: number }>({});
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  // Misma vista ampliada, con el video del producto (solo si no tiene foto). Al cerrar se desmonta.
+  const [lightboxVideo, setLightboxVideo] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const { cart } = useCart();
 
@@ -345,11 +348,18 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
               {catProducts.map((p: any) => {
                 const { amount, isFrom } = getProductDisplayPrice(p);
                 const imgUrl = getOptimizedImageUrl(p.image_url, 300, 70);
+                // Sin foto pero con video: fotograma .jpg de Cloudinary (como la miniatura del panel)
+                const videoThumb = !imgUrl && p.video_url ? videoThumbnailUrl(p.video_url, 300) : null;
                 return (
                   <div key={p.id} className="arg-card-row">
-                    <div className="arg-card-photo" onClick={() => p.image_url && setLightboxImage(p.image_url)} style={{ cursor: p.image_url ? 'pointer' : 'default' }}>
+                    <div className="arg-card-photo" onClick={() => { if (p.image_url) setLightboxImage(p.image_url); else if (videoThumb) setLightboxVideo(p.video_url); }} style={{ cursor: p.image_url || videoThumb ? 'pointer' : 'default' }}>
                       <div className="arg-card-photo-inner">
-                        {imgUrl ? <img src={imgUrl} alt={p.name} loading="lazy" /> : <div className="arg-ph-fallback"><Utensils size={22} strokeWidth={1.5} color="#0E2A45" style={{ opacity: 0.55 }} /></div>}
+                        {imgUrl ? <img src={imgUrl} alt={p.name} loading="lazy" /> : videoThumb ? (
+                          <>
+                            <img src={videoThumb} alt={p.name} loading="lazy" />
+                            <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/45 flex items-center justify-center" aria-hidden="true"><Video size={11} className="text-white" /></span>
+                          </>
+                        ) : <div className="arg-ph-fallback"><Utensils size={22} strokeWidth={1.5} color="#0E2A45" style={{ opacity: 0.55 }} /></div>}
                       </div>
                       {getTotalQtyForProduct(p.id) > 0 && (
                         <span className="absolute top-1 right-1 z-20 text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white" style={{ backgroundColor: dorado, color: doradoText }}>
@@ -394,6 +404,15 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
             <X size={20} />
           </button>
           <img src={getOptimizedImageUrl(lightboxImage, 800, 80)} alt="" className="max-w-full max-h-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {lightboxVideo && (
+        <div className="fixed inset-0 z-[300] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200" onClick={() => setLightboxVideo(null)}>
+          <button onClick={() => setLightboxVideo(null)} className="absolute top-6 right-6 z-10 bg-white/10 text-white p-2 rounded-full">
+            <X size={20} />
+          </button>
+          <video src={lightboxVideo} controls autoPlay playsInline loop className="max-w-full max-h-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 
