@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Plus, Minus, Store, X, Utensils, Clock, ImagePlus } from 'lucide-react';
+import { Search, Plus, Minus, Store, X, Utensils, Clock, ImagePlus, Video } from 'lucide-react';
 import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { videoThumbnailUrl } from '@/lib/videoThumbnail';
 import { useCart } from '@/context/CartContext';
 
 export default function Argentina({ restaurant, products, categories, fetchedExtras, onAddToCart, isOpen, isMockup = false, setShowInfo, mesaLabel = null }: any) {
@@ -345,11 +346,18 @@ export default function Argentina({ restaurant, products, categories, fetchedExt
               {catProducts.map((p: any) => {
                 const { amount, isFrom } = getProductDisplayPrice(p);
                 const imgUrl = getOptimizedImageUrl(p.image_url, 300, 70);
+                // Sin foto pero con video: fotograma .jpg de Cloudinary (como la miniatura del panel)
+                const videoThumb = !imgUrl && p.video_url ? videoThumbnailUrl(p.video_url, 300) : null;
                 return (
                   <div key={p.id} className="arg-card-row">
                     <div className="arg-card-photo" onClick={() => p.image_url && setLightboxImage(p.image_url)} style={{ cursor: p.image_url ? 'pointer' : 'default' }}>
                       <div className="arg-card-photo-inner">
-                        {imgUrl ? <img src={imgUrl} alt={p.name} loading="lazy" /> : <div className="arg-ph-fallback"><Utensils size={22} strokeWidth={1.5} color="#0E2A45" style={{ opacity: 0.55 }} /></div>}
+                        {imgUrl ? <img src={imgUrl} alt={p.name} loading="lazy" /> : videoThumb ? (
+                          <>
+                            <img src={videoThumb} alt={p.name} loading="lazy" />
+                            <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/45 flex items-center justify-center" aria-hidden="true"><Video size={11} className="text-white" /></span>
+                          </>
+                        ) : <div className="arg-ph-fallback"><Utensils size={22} strokeWidth={1.5} color="#0E2A45" style={{ opacity: 0.55 }} /></div>}
                       </div>
                       {getTotalQtyForProduct(p.id) > 0 && (
                         <span className="absolute top-1 right-1 z-20 text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white" style={{ backgroundColor: dorado, color: doradoText }}>
