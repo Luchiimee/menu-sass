@@ -36,6 +36,9 @@ export default function AnalyticsPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [cashCloseHour, setCashCloseHour] = useState('00:00');
   const [selectedDate, setSelectedDate] = useState(getARDate);
+  // ?fecha=AAAA-MM-DD abre Caja en ese día (lo usa el aviso de caja vieja abierta). Se lee la URL
+  // antes de la primera carga para no cargar hoy y enseguida otra fecha.
+  const [dateReady, setDateReady] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const [shifts, setShifts] = useState<any[]>([]);
@@ -139,7 +142,13 @@ export default function AnalyticsPage() {
     }
   };
 
-  useEffect(() => { loadData(selectedDate); }, [selectedDate]);
+  useEffect(() => {
+    const fecha = new URLSearchParams(window.location.search).get('fecha');
+    if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha <= getARDate()) setSelectedDate(fecha);
+    setDateReady(true);
+  }, []);
+
+  useEffect(() => { if (dateReady) loadData(selectedDate); }, [selectedDate, dateReady]);
 
   const goToShift = async (idx: number) => {
     setShiftIdx(idx);

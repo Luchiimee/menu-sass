@@ -7,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { displayTableLabel } from "@/lib/tableUtils";
-import { getCashShiftRange } from "@/lib/cashUtils";
+import { getCashShiftRange, shouldReassignShift } from "@/lib/cashUtils";
 import { orderDisplayTotals, itemsSubtotal } from "@/lib/orderTotals";
 import OrderTotalsBreakdown from "@/components/dashboard/OrderTotalsBreakdown";
 import {
@@ -306,6 +306,36 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
   const updateStatus = async (id: string, newStatus: string) => {
     setOrders(prev => prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)));
     await supabase.from("orders").update({ status: newStatus }).eq("id", id);
+  };
+
+  // "Tomar Pedido" (pendiente → recibido). Si el turno del pedido ya se cerró, el pedido pasa al
+  // turno vigente en el mismo update: los cierres excluyen los pendientes y, si no, no contaría
+  // en ninguna caja. El turno se lee solo acá, no por cada pedido de la lista.
+  const takeOrder = async (order: any) => {
+    const update: { status: string; shift_id?: string } = { status: 'recibido' };
+    setOrders(prev => prev.map((o) => (o.id === order.id ? { ...o, status: 'recibido' } : o)));
+    if (order.status === 'pendiente' && order.shift_id && restaurantId) {
+      const { data: shift } = await supabase
+        .from('cash_shifts')
+        .select('closed_at')
+        .eq('id', order.shift_id)
+        .maybeSingle();
+      if (shouldReassignShift(order.status, shift?.closed_at)) {
+        const { data: newShiftId, error: shiftError } = await supabase.rpc('get_or_create_shift', {
+          p_restaurant_id: restaurantId,
+        });
+        if (shiftError || !newShiftId) {
+          console.error('[orders] get_or_create_shift falló — el pedido queda en su turno cerrado:', {
+            order_id: order.id,
+            error_message: shiftError?.message,
+          });
+        } else {
+          update.shift_id = newShiftId;
+        }
+      }
+    }
+    if (update.shift_id) setOrders(prev => prev.map((o) => (o.id === order.id ? { ...o, shift_id: update.shift_id } : o)));
+    await supabase.from("orders").update(update).eq("id", order.id);
   };
 
   const confirmarPagoTransferencia = async (id: string) => {
@@ -1131,7 +1161,7 @@ useEffect(() => {
             {order.status === "pendiente" && (
                 <div className="flex gap-2">
                     <button onClick={() => updateStatus(order.id, "cancelado")} className="bg-alert/10 text-alert hover:bg-alert/10 px-4 py-3 rounded-xl text-xs font-black uppercase flex-1">Rechazar</button>
-                    <button onClick={() => { updateStatus(order.id, "recibido"); if (thermalPrintingEnabled) { handleThermalPrint(order); } }} className="bg-fresco text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
+                    <button onClick={() => { takeOrder(order); if (thermalPrintingEnabled) { handleThermalPrint(order); } }} className="bg-fresco text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex-1 flex items-center justify-center gap-2">
                         <Check size={14} /> Tomar Pedido
                     </button>
                 </div>

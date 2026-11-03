@@ -13,6 +13,7 @@ import {
 
 import MobileNav from '@/components/MobileNav';
 import OrderListener from '@/components/OrderListener';
+import StaleShiftPrompt from '@/components/dashboard/StaleShiftPrompt';
 import { isAdminEmail, hasAdminSnappyAccess, hasBetaAccess } from '@/lib/access';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -264,7 +265,8 @@ const menuItems = [
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       <OrderListener />
-      
+      <StaleShiftPrompt />
+
       <MobileNav 
         displayName={restaurant.name}
         displaySubtext={restaurant.plan ? `Plan ${restaurant.plan.toUpperCase()}` : 'Sin Plan'}
