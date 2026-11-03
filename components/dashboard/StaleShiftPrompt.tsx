@@ -139,20 +139,20 @@ export default function StaleShiftPrompt() {
           </div>
           <div>
             <h2 id="stale-shift-title" className="font-black text-ink text-base leading-tight">
-              Quedó la caja del {ddmm(stale.businessDate)} abierta. ¿Querés cerrarla y empezar una nueva?
+              Quedó el turno del {ddmm(stale.businessDate)} abierto. ¿Querés cerrarlo y empezar uno nuevo?
             </h2>
             <p className="text-xs text-graphite font-medium mt-2">
-              Mientras siga abierta, los pedidos nuevos entran en esa caja. Este aviso no cambia nada:
-              los pedidos que ya entraron quedan en la caja que ya tienen.
+              Mientras siga abierto, los pedidos nuevos entran en ese turno. Este aviso no cambia nada:
+              los pedidos que ya entraron quedan en el turno que ya tienen.
             </p>
           </div>
         </div>
         <div className="flex flex-col gap-2">
           <button onClick={goClose} className="w-full py-3 bg-ink text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all">
-            Cerrar la caja {cuando}
+            Cerrar el turno {cuando}
           </button>
           <button onClick={keepGoing} className="w-full py-3 bg-gray-100 text-gray-700 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all">
-            Continuar con la {cuando}
+            Continuar con el {cuando}
           </button>
           <button onClick={later} className="w-full py-2 text-gray-400 font-black text-[11px] uppercase tracking-widest">
             Decidir después
