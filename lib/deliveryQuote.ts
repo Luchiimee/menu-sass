@@ -58,17 +58,17 @@ export function signQuote(
 const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
 
 function parsePayload(body: string): QuotePayload | null {
-  let data: any;
+  let data: unknown;
   try {
     data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
   } catch {
     return null;
   }
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
-  const { restaurantId, address, lat, lng, distanceM, zonePosition, cost, exp } = data;
+  const { restaurantId, address, lat, lng, distanceM, zonePosition, cost, exp } = data as Record<string, unknown>;
   if (typeof restaurantId !== 'string' || restaurantId === '' || typeof address !== 'string' || address === '') return null;
   if (![lat, lng, distanceM, zonePosition, cost, exp].every(isNum)) return null;
-  return { restaurantId, address, lat, lng, distanceM, zonePosition, cost, exp };
+  return { restaurantId, address, lat, lng, distanceM, zonePosition, cost, exp } as QuotePayload;
 }
 
 // Vigente mientras now < exp: justo en exp ya está vencida.
