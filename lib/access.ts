@@ -22,7 +22,7 @@ export const ADMIN_SNAPPY_ACCESS_EMAILS = [
 // Pasar a true recién cuando las fases 2 a 4 (checkout online, pedidos
 // pagados, webhooks) estén en producción. Mientras sea false, solo los admins
 // (ADMIN_EMAILS) pueden conectar.
-export const MP_CONNECT_PUBLIC = false;
+export const MP_CONNECT_PUBLIC = true;
 
 // Acceso anticipado a Caja y Rentabilidad independientemente del plan.
 export const BETA_ACCESS_EMAILS = [
