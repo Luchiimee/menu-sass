@@ -6,8 +6,10 @@
 //
 // Diferencias deliberadas con el navegador:
 //   - timeout de 4 s (AbortController) y sin reintentos;
-//   - si el punto que devuelve Google cae fuera de los bounds (Google los usa solo como
-//     preferencia), es 'fuera_de_bounds': el navegador lo dejaba pasar.
+//   - si el punto que devuelve Google cae lejos de los bounds (Google los usa solo como
+//     preferencia), es 'fuera_de_bounds': un homónimo en otra ciudad. "Lejos" es el radio de la
+//     zona más lejana + FAR_MARGIN_KM; una dirección real apenas más allá de la última zona NO es
+//     fuera_de_bounds: vuelve ok y la zona la decide resolveZone (fuera de cobertura).
 //
 // Clave: GOOGLE_MAPS_SERVER_API_KEY (o apiKey por parámetro, para los tests). Nunca se incluye
 // la clave ni la URL en el resultado, en errores ni en logs. Sin imports con alias (@/): se prueba
@@ -16,6 +18,8 @@
 import { parseForwardGeocode } from './geoResult.ts';
 
 export const SERVER_GEOCODE_TIMEOUT_MS = 4000;
+// Margen para descartar homónimos: más allá de la zona más lejana + 20 km no es esta ciudad
+export const FAR_MARGIN_KM = 20;
 const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 
 export type GeocodeFailureReason =
@@ -76,6 +80,7 @@ export async function geocodeAddress(input: GeocodeInput): Promise<ServerGeocode
     ? boundsFor(center, maxRadiusKm)
     : null;
   if (box) params.set('bounds', `${box.south},${box.west}|${box.north},${box.east}`);
+  const farBox = box && center ? boundsFor(center, (maxRadiusKm as number) + FAR_MARGIN_KM) : null;
 
   const fetchImpl: FetchLike = input.fetchImpl ?? ((url, init) => fetch(url, init));
   const controller = new AbortController();
@@ -104,7 +109,7 @@ export async function geocodeAddress(input: GeocodeInput): Promise<ServerGeocode
   switch (parsed.kind) {
     case 'ok': {
       const { lat, lng, locationType, formatted } = parsed.value;
-      if (box && !inBox(box, lat, lng)) return { ok: false, reason: 'fuera_de_bounds' };
+      if (farBox && !inBox(farBox, lat, lng)) return { ok: false, reason: 'fuera_de_bounds' };
       return { ok: true, lat, lng, formatted: formatted ?? '', precision: locationType };
     }
     case 'sin_altura':

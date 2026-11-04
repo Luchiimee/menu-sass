@@ -80,8 +80,15 @@ check('partial_match → parcial',
   (await run(fakeFetch({ status: 'OK', results: [street(-34.65, -59.43, 'ROOFTOP', { partial_match: true })] }))).reason === 'parcial');
 check('ZERO_RESULTS → sin_resultados', (await run(fakeFetch({ status: 'ZERO_RESULTS', results: [] }))).reason === 'sin_resultados');
 check('OK sin results → sin_resultados', (await run(fakeFetch({ status: 'OK', results: [] }))).reason === 'sin_resultados');
-check('punto fuera de los bounds (homónimo en otra ciudad) → fuera_de_bounds',
+check('punto lejos de los bounds (homónimo en otra ciudad, ~140 km) → fuera_de_bounds',
   (await run(fakeFetch({ status: 'OK', results: [street(-34.9, -57.95)] }))).reason === 'fuera_de_bounds');
+{
+  // Calle 30 3654: ~3,6 km del local, apenas más allá de la zona de 3 km → ok (la zona la decide resolveZone)
+  const r = await run(fakeFetch({ status: 'OK', results: [street(-34.6669, -59.4719)] }));
+  check('dirección real apenas fuera de la última zona → ok, no fuera_de_bounds', r.ok === true);
+  check('a 22 km (radio 3 + 20 = 23) todavía no es fuera_de_bounds', (await run(fakeFetch({ status: 'OK', results: [street(-34.6479 + 22 / 111, -59.4408)] }))).ok === true);
+  check('a 24 km ya es fuera_de_bounds', (await run(fakeFetch({ status: 'OK', results: [street(-34.6479 + 24 / 111, -59.4408)] }))).reason === 'fuera_de_bounds');
+}
 {
   const f = fakeFetch({ status: 'OK', results: [] });
   const r = await run(f, { address: '   ' });
