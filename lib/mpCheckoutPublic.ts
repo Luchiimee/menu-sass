@@ -7,9 +7,8 @@
 // Qué NO devuelven nunca: payload, montos, datos del cliente, restaurant_id, ids de
 // MP, ni el motivo por el que MP no está disponible (ni emails admin).
 //
-// TODO(rate limit): ambos son públicos. El repo no tiene rate limit todavía; poner
-// reglas de límite (firewall de Vercel sobre /api/checkout/mp/*) o un contador por
-// IP y por id ANTES de abrir MP_CONNECT_PUBLIC. El cliente debe hacer backoff ante 429.
+// Límite de uso: las rutas (app/api/checkout/mp/available y /status) limitan por IP con
+// lib/rateLimit.ts antes de llamar a estas funciones. El cliente hace backoff ante 429.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 

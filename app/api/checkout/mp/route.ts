@@ -4,9 +4,10 @@
 // preference en la cuenta de MP del restaurante. Devuelve solo { init_point, ref, total }.
 // El pedido real (orders) lo crea el webhook en la fase 3: acá no se toca orders.
 //
-// TODO(rate limit): esta ruta es pública y escribe en la base y llama a MP por
-// cada request. El repo no tiene rate limit todavía: ponerlo (por IP y por
-// restaurante) ANTES de abrir MP_CONNECT_PUBLIC. Hoy solo la usan los admins.
+// Límite de uso (lib/rateLimit.ts, docs/sql/15_rate_limits.sql): por IP al entrar y por
+// restaurante justo antes de escribir el pendiente. Al pasarse: 429 con Retry-After, sin
+// escribir nada ni llamar a MP. Si no se puede contar (función ausente, base caída, falta
+// RATE_LIMIT_IP_SALT): 503 sin crear nada (falla cerrado).
 //
 // Nunca se loguean tokens, el body del cliente ni respuestas de MP: solo
 // códigos y ids.
@@ -18,6 +19,8 @@ import { isMpCheckoutEnabled } from '@/lib/mpCheckoutAccess';
 import { isRestaurantOpen } from '@/lib/businessHours';
 import { CheckoutError, computeOrderTotal } from '@/lib/checkoutPricing';
 import { totalsMatch } from '@/lib/mpClientCheckout';
+import { limitByIp, limitByRestaurant } from '@/lib/rateLimit';
+import { RATE_LIMITS } from '@/lib/rateLimitCore';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +63,10 @@ export async function POST(req: Request) {
     console.error('[checkout/mp] falta NEXT_PUBLIC_APP_URL: no se puede armar notification_url ni back_urls');
     return fail('config', 500);
   }
+
+  // --- Límite por IP (antes de leer el body o la base) ---
+  const ipLimited = await limitByIp(req, 'checkout', RATE_LIMITS.checkoutPerIp, 'closed');
+  if (ipLimited) return ipLimited;
 
   // --- Body ---
   let body: any;
@@ -146,6 +153,10 @@ export async function POST(req: Request) {
   if (typeof expectedTotal === 'number' && !totalsMatch(expectedTotal, priced.total)) {
     return NextResponse.json({ error: 'total_distinto', total: priced.total }, { status: 409 });
   }
+
+  // --- Límite por restaurante: solo cuentan los pedidos que llegarían a crear un pago ---
+  const restaurantLimited = await limitByRestaurant(restaurant.id, RATE_LIMITS.checkoutPerRestaurant, 'closed');
+  if (restaurantLimited) return restaurantLimited;
 
   // --- Pedido pendiente ---
   const expiresAt = new Date(Date.now() + PENDING_TTL_MS);
