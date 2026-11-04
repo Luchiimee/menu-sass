@@ -5,7 +5,7 @@
 //
 // Falla (exit 1) si algún caso esperado no da.
 
-import { computeOrderTotal, CheckoutError, isProductPurchasable } from '../lib/checkoutPricing.ts';
+import { computeOrderTotal, CheckoutError, isProductPurchasable, shippingCost } from '../lib/checkoutPricing.ts';
 
 // ---------- base falsa: from().select().eq().in().maybeSingle() ----------
 function makeDb(tables) {
@@ -65,8 +65,8 @@ function report(name, ok, detail) {
   console.log(`${name} → ${ok ? 'OK' : 'FALLA'}${detail ? ` (${detail})` : ''}`);
   if (!ok) failed++;
 }
-const run = (tables, cart, type = 'delivery', coupon = null) =>
-  computeOrderTotal(R1, cart, type, { db: makeDb(tables), couponCode: coupon, now: NOW });
+const run = (tables, cart, type = 'delivery', coupon = null, distanceKm) =>
+  computeOrderTotal(R1, cart, type, { db: makeDb(tables), couponCode: coupon, now: NOW, distanceKm });
 
 async function expectError(name, code, fn) {
   try {
@@ -149,14 +149,65 @@ await expectError('variationIndex fuera de rango', 'variacion_invalida',
   () => run(baseTables(), [{ productId: 'kilo', variationIndex: 9, extras: [], quantity: 1 }]));
 await expectError('variationIndex en producto por unidad', 'variacion_invalida',
   () => run(baseTables(), [{ productId: 'burger', variationIndex: 0, extras: [], quantity: 1 }]));
-{
+// --- Envío por zonas: la zona sale de la distancia (deps.distanceKm), nunca zona 2 por las dudas ---
+const zonesTables = (over = {}) => {
   const t = baseTables();
-  t.restaurants[0].delivery_zones_enabled = true;
-  const r = await run(t, [{ productId: 'burger', extras: [], quantity: 1 }], 'delivery');
-  report('envío por zonas → siempre zona 2 ($1.500)', r.shipping === 1500, `envío ${r.shipping}`);
-  t.restaurants[0].subscription_plan = 'light';
-  const r2 = await run(t, [{ productId: 'burger', extras: [], quantity: 1 }], 'delivery');
-  report('plan light ignora zonas → costo fijo ($800)', r2.shipping === 800, `envío ${r2.shipping}`);
+  Object.assign(t.restaurants[0], {
+    delivery_zones_enabled: true, delivery_lat: -34.6, delivery_lng: -58.4,
+    delivery_zone1_km: '3', delivery_zone1_cost: '1000', delivery_zone2_km: '7', delivery_zone2_cost: '1500',
+    ...over,
+  });
+  return t;
+};
+const BURGER = [{ productId: 'burger', extras: [], quantity: 1 }];
+{
+  const r = await run(zonesTables(), BURGER, 'delivery', null, 2);
+  report('zona 1 (2 km) → $1.000', r.shipping === 1000 && r.total === 10000 && r.deliveryZone?.position === 1 && r.deliveryZone?.distanceM === 2000, `envío ${r.shipping}`);
+  const r2 = await run(zonesTables(), BURGER, 'delivery', null, 5);
+  report('zona 2 (5 km) → $1.500', r2.shipping === 1500 && r2.deliveryZone?.position === 2, `envío ${r2.shipping}`);
+}
+{
+  const at = async (km) => (await run(zonesTables(), BURGER, 'delivery', null, km)).shipping;
+  report('borde zona 1: 3 km justo → zona 1', (await at(3)) === 1000);
+  report('borde zona 1: 3,0004 km (redondea a 3000 m) → zona 1', (await at(3.0004)) === 1000);
+  report('borde zona 1: 3,001 km → zona 2', (await at(3.001)) === 1500);
+  report('borde zona 2: 7 km justo → zona 2', (await at(7)) === 1500);
+}
+await expectError('borde zona 2: 7,001 km → fuera de cobertura', 'fuera_de_cobertura', () => run(zonesTables(), BURGER, 'delivery', null, 7.001));
+await expectError('fuera de zona (12 km)', 'fuera_de_cobertura', () => run(zonesTables(), BURGER, 'delivery', null, 12));
+await expectError('zonas activas sin distancia → ya no cobra la zona 2', 'falta_ubicacion', () => run(zonesTables(), BURGER, 'delivery'));
+await expectError('zonas activas con distancia null', 'falta_ubicacion', () => run(zonesTables(), BURGER, 'delivery', null, null));
+await expectError('distancia negativa o NaN', 'falta_ubicacion', () => run(zonesTables(), BURGER, 'delivery', null, -1));
+await expectError('local sin delivery_lat/lng (aunque venga distancia)', 'local_sin_ubicacion',
+  () => run(zonesTables({ delivery_lat: null, delivery_lng: null }), BURGER, 'delivery', null, 2));
+await expectError('costo de zona sin cargar → no cobra 0', 'zonas_mal_configuradas',
+  () => run(zonesTables({ delivery_zone1_cost: null }), BURGER, 'delivery', null, 2));
+{
+  const free = (over) => { const t = zonesTables(over); t.discount_rules = [{ id: 'g', restaurant_id: R1, activo: true, tipo: 'envio_gratis', monto_minimo: '5000' }]; return t; };
+  const r = await run(free(), BURGER, 'delivery', null, 5);
+  report('envío gratis por monto dentro de zona → $0 (con su zona)', r.shipping === 0 && r.total === 9000 && r.deliveryZone?.position === 2, `envío ${r.shipping}`);
+  await expectError('envío gratis por monto con la distancia fuera de cobertura → igual se rechaza', 'fuera_de_cobertura',
+    () => run(free(), BURGER, 'delivery', null, 9));
+}
+{
+  const r = await run(baseTables(), BURGER, 'delivery');
+  report('sin zonas → tarifa fija ($800), sin distancia', r.shipping === 800 && r.deliveryZone === null, `envío ${r.shipping}`);
+  const r2 = await run(baseTables(), BURGER, 'delivery', null, 25);
+  report('sin zonas, con una distancia cualquiera → tarifa fija igual', r2.shipping === 800);
+  const t = zonesTables(); t.restaurants[0].subscription_plan = 'light';
+  const r3 = await run(t, BURGER, 'delivery');
+  report('plan light ignora zonas → costo fijo ($800)', r3.shipping === 800, `envío ${r3.shipping}`);
+  const r4 = await run(zonesTables(), BURGER, 'retiro');
+  report('retiro con zonas activas y sin distancia → sin envío, no se rechaza', r4.shipping === 0 && r4.total === 9000 && r4.deliveryZone === null);
+}
+await expectError('mesa con zonas activas → sigue sin soporte', 'mesa_no_soportada', () => run(zonesTables(), BURGER, 'mesa', null, 2));
+{
+  // shippingCost directo (función pura)
+  const rest = zonesTables().restaurants[0];
+  report('shippingCost: retiro → 0 sin mirar zonas', JSON.stringify(shippingCost(rest, 'retiro', false)) === JSON.stringify({ ok: true, cost: 0, zone: null }));
+  const z1 = shippingCost(rest, 'delivery', false, 1);
+  report('shippingCost: zona 1 → costo y zona', z1.ok && z1.cost === 1000 && z1.zone.position === 1 && z1.zone.maxKm === 3);
+  report('shippingCost: sin distancia → falta_ubicacion', shippingCost(rest, 'delivery', false).reason === 'falta_ubicacion');
 }
 {
   const t = baseTables();

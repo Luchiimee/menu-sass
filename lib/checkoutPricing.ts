@@ -6,7 +6,8 @@
 // body. Réplica de la lógica de components/CartFooter.tsx (subtotal, cupón,
 // reglas automáticas, envío) con estas diferencias deliberadas:
 //   - la regla de efectivo NO se aplica (el pago online no es efectivo);
-//   - el envío por zonas es SIEMPRE zona 2 (ver shippingCost);
+//   - el envío por zonas sale de la distancia que recibe (deps.distanceKm): sin ella no se
+//     cobra ninguna zona, se rechaza (ver shippingCost);
 //   - el descuento total se limita al 100% del subtotal y total <= 0 es error;
 //   - se redondea a 2 decimales UNA sola vez, al final.
 //
@@ -14,6 +15,7 @@
 // pasando un cliente de base falso en `deps.db`.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { legacyZones, resolveZone, toNumber } from './deliveryZones.ts';
 
 export const MAX_CART_ITEMS = 50;
 export const MAX_QUANTITY = 50;
@@ -31,6 +33,11 @@ export type CheckoutErrorCode =
   | 'extra_invalido'
   | 'cupon_invalido'
   | 'total_invalido'
+  // envío por zonas (ver shippingCost)
+  | 'falta_ubicacion'
+  | 'fuera_de_cobertura'
+  | 'local_sin_ubicacion'
+  | 'zonas_mal_configuradas'
   | 'error_datos';
 
 export class CheckoutError extends Error {
@@ -70,6 +77,8 @@ export type OrderTotal = {
   autoDiscount: number;
   discountTotal: number;
   shipping: number;
+  // Zona del envío (solo envío por zonas): para guardarla con el pedido en una etapa siguiente
+  deliveryZone: { position: number; maxKm: number; distanceM: number } | null;
   total: number;
 };
 
@@ -77,6 +86,9 @@ export type PricingDeps = {
   db: SupabaseClient;
   couponCode?: string | null;
   now?: Date;
+  // Distancia en línea recta del cliente al local, en km. La calcula el llamador (otra etapa);
+  // con envío por zonas y sin distancia el pedido se rechaza.
+  distanceKm?: number | null;
 };
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -144,20 +156,52 @@ export function parseCheckoutCart(raw: unknown): CheckoutCartItem[] {
 }
 
 // ---------------------------------------------------------------------------
-// Envío
+// Envío. Sin zonas (o plan Light): la tarifa fija de siempre. Con zonas: la zona sale de la
+// distancia (deps.distanceKm) con el mismo motor que el checkout (lib/deliveryZones.ts, columnas
+// delivery_zone1_* / delivery_zone2_*). Ya NO se cobra la zona 2 por las dudas: sin distancia,
+// sin ubicación del local, con zonas mal cargadas o fuera de cobertura no hay precio y el pedido
+// se rechaza. El envío gratis por monto pone el costo en 0, pero la cobertura se controla igual.
 // ---------------------------------------------------------------------------
-// TODO(opción A — geocodificar en servidor antes de abrir al público): hoy el
-// servidor NO recibe coordenadas ni geocodifica la dirección, así que con envío
-// por zonas se cobra SIEMPRE la zona 2 (la más cara), igual que hace
-// CartFooter cuando la dirección no se encuentra (forcedZone = 'zone2').
-// Lo que hace hoy el CartFooter fuera de la zona 2: zoneStatus = 'outside',
-// envío = 0 y el botón queda bloqueado ("Lo sentimos, no llegamos a tu zona").
-// Acá ese caso no puede darse porque nunca se mide distancia.
-function shippingCost(restaurant: any, orderType: CheckoutOrderType, freeShipping: boolean): number {
-  if (orderType !== 'delivery' || freeShipping) return 0;
+export type ShippingRestaurant = {
+  subscription_plan?: unknown;
+  delivery_cost?: unknown;
+  delivery_zones_enabled?: unknown;
+  delivery_lat?: unknown;
+  delivery_lng?: unknown;
+  delivery_zone1_km?: unknown;
+  delivery_zone1_cost?: unknown;
+  delivery_zone2_km?: unknown;
+  delivery_zone2_cost?: unknown;
+};
+
+export type ShippingResult =
+  | { ok: true; cost: number; zone: { position: number; maxKm: number; distanceM: number } | null }
+  | { ok: false; reason: 'falta_ubicacion' | 'fuera_de_cobertura' | 'local_sin_ubicacion' | 'zonas_mal_configuradas' };
+
+export function shippingCost(
+  restaurant: ShippingRestaurant,
+  orderType: CheckoutOrderType,
+  freeShipping: boolean,
+  distanceKm?: number | null
+): ShippingResult {
+  if (orderType !== 'delivery') return { ok: true, cost: 0, zone: null };
+
   const zonesEnabled = restaurant.subscription_plan !== 'light' && !!restaurant.delivery_zones_enabled;
-  const cost = zonesEnabled ? restaurant.delivery_zone2_cost : restaurant.delivery_cost;
-  return Number(cost) || 0;
+  if (!zonesEnabled) return { ok: true, cost: freeShipping ? 0 : Number(restaurant.delivery_cost) || 0, zone: null };
+
+  if (!Number.isFinite(toNumber(restaurant.delivery_lat)) || !Number.isFinite(toNumber(restaurant.delivery_lng))) {
+    return { ok: false, reason: 'local_sin_ubicacion' };
+  }
+  if (distanceKm === undefined || distanceKm === null) return { ok: false, reason: 'falta_ubicacion' };
+
+  const resolution = resolveZone(legacyZones(restaurant), distanceKm);
+  if (!resolution.covered) {
+    if (resolution.reason === 'fuera_de_cobertura') return { ok: false, reason: 'fuera_de_cobertura' };
+    if (resolution.reason === 'configuracion_invalida') return { ok: false, reason: 'zonas_mal_configuradas' };
+    return { ok: false, reason: 'falta_ubicacion' }; // distancia_invalida (negativa, NaN)
+  }
+  const { zone, distanceM } = resolution;
+  return { ok: true, cost: freeShipping ? 0 : zone.cost, zone: { position: zone.position, maxKm: zone.maxKm, distanceM } };
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +271,7 @@ export async function computeOrderTotal(
   // --- Restaurante ---
   const { data: restaurant, error: restError } = await db
     .from('restaurants')
-    .select('id, subscription_plan, delivery_cost, delivery_zones_enabled, delivery_zone2_cost')
+    .select('id, subscription_plan, delivery_cost, delivery_zones_enabled, delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost')
     .eq('id', restaurantId)
     .maybeSingle();
   if (restError) throw new CheckoutError('error_datos', `restaurante: ${restError.message}`);
@@ -336,7 +380,9 @@ export async function computeOrderTotal(
   // --- Total ---
   // El descuento total no puede pasar del 100% del subtotal.
   const discountTotal = Math.min(couponDiscount + autoDiscount, subtotal);
-  const shipping = shippingCost(restaurant, type, freeShipping);
+  const shippingResult = shippingCost(restaurant, type, freeShipping, deps.distanceKm);
+  if (!shippingResult.ok) throw new CheckoutError(shippingResult.reason);
+  const shipping = shippingResult.cost;
   const totalRaw = subtotal - discountTotal + shipping;
   if (!Number.isFinite(totalRaw) || totalRaw <= 0) throw new CheckoutError('total_invalido');
 
@@ -353,6 +399,7 @@ export async function computeOrderTotal(
     autoDiscount: round2(autoDiscount),
     discountTotal: round2(discountTotal),
     shipping: round2(shipping),
+    deliveryZone: shippingResult.zone,
     total,
   };
 }
