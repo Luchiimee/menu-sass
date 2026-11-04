@@ -7,6 +7,8 @@
 //   checkout:ip:<hash>   POST /api/checkout/mp, por IP
 //   checkout:rid:<uuid>  POST /api/checkout/mp, por restaurante
 //   public:ip:<hash>     GET /api/checkout/mp/available y /status, por IP
+//   quote:ip:<hash>      POST /api/checkout/mp/quote, por IP
+//   quote:rid:<uuid>     POST /api/checkout/mp/quote, por restaurante
 // La IP nunca se guarda ni se loguea: solo su sha-256 con sal (RATE_LIMIT_IP_SALT).
 
 import { createHash } from 'node:crypto';
@@ -20,9 +22,12 @@ export const RATE_LIMITS = {
   checkoutPerRestaurant: { limit: 60, windowSeconds: 10 * 60 },
   // Consultas del checkout (¿hay MP? / estado del pago)
   publicPerIp: { limit: 60, windowSeconds: 60 },
+  // Cotizar un envío: cada una puede costar una llamada a Google Geocoding (más bajo que el pago)
+  quotePerIp: { limit: 6, windowSeconds: 10 * 60 },
+  quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
 } satisfies Record<string, LimitRule>;
 
-export type LimitScope = 'checkout' | 'public';
+export type LimitScope = 'checkout' | 'public' | 'quote';
 
 // En Vercel, x-real-ip y x-forwarded-for los pone la plataforma con la IP del cliente
 // (sobrescribe lo que mande el cliente). Se prefiere x-real-ip; si no, la primera de
@@ -44,8 +49,8 @@ export function ipKey(scope: LimitScope, ipHash: string | null): string {
   return `${scope}:ip:${ipHash ?? 'desconocida'}`;
 }
 
-export function restaurantKey(restaurantId: string): string {
-  return `checkout:rid:${restaurantId.toLowerCase()}`;
+export function restaurantKey(restaurantId: string, scope: Exclude<LimitScope, 'public'> = 'checkout'): string {
+  return `${scope}:rid:${restaurantId.toLowerCase()}`;
 }
 
 export type LimitCheckResult = { allowed: boolean; retryAfter: number };
