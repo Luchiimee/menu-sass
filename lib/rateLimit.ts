@@ -60,7 +60,7 @@ export function limitByIp(req: Request, scope: LimitScope, rule: LimitRule, fail
   return enforce([{ key: ipKeyFor(req, scope), rule, label: `${scope}:ip` }], failMode, extra);
 }
 
-// Límite por restaurante (POST /api/checkout/mp).
-export function limitByRestaurant(restaurantId: string, rule: LimitRule, failMode: FailMode) {
-  return enforce([{ key: restaurantKey(restaurantId), rule, label: 'checkout:rid' }], failMode);
+// Límite por restaurante (POST /api/checkout/mp y /quote).
+export function limitByRestaurant(restaurantId: string, rule: LimitRule, failMode: FailMode, scope: 'checkout' | 'quote' = 'checkout') {
+  return enforce([{ key: restaurantKey(restaurantId, scope), rule, label: `${scope}:rid` }], failMode);
 }

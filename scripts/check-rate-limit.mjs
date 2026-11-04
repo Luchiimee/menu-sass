@@ -19,6 +19,8 @@ console.log('límites iniciales');
 check('POST: 10 por IP cada 10 minutos', RATE_LIMITS.checkoutPerIp.limit === 10 && RATE_LIMITS.checkoutPerIp.windowSeconds === 600);
 check('POST: 60 por restaurante cada 10 minutos', RATE_LIMITS.checkoutPerRestaurant.limit === 60 && RATE_LIMITS.checkoutPerRestaurant.windowSeconds === 600);
 check('/available y /status: 60 por IP por minuto', RATE_LIMITS.publicPerIp.limit === 60 && RATE_LIMITS.publicPerIp.windowSeconds === 60);
+check('cotización: 6 por IP cada 10 minutos (más bajo que el pago)', RATE_LIMITS.quotePerIp.limit === 6 && RATE_LIMITS.quotePerIp.windowSeconds === 600 && RATE_LIMITS.quotePerIp.limit < RATE_LIMITS.checkoutPerIp.limit);
+check('cotización: 40 por restaurante cada 10 minutos', RATE_LIMITS.quotePerRestaurant.limit === 40 && RATE_LIMITS.quotePerRestaurant.windowSeconds === 600 && RATE_LIMITS.quotePerRestaurant.limit < RATE_LIMITS.checkoutPerRestaurant.limit);
 
 console.log('IP del cliente');
 check('x-real-ip primero', clientIp(headers({ 'x-real-ip': '1.2.3.4', 'x-forwarded-for': '9.9.9.9' })) === '1.2.3.4');
@@ -39,6 +41,10 @@ console.log('claves');
 check('checkout por IP', ipKey('checkout', h1) === `checkout:ip:${h1}`);
 check('consultas por IP (separada del checkout)', ipKey('public', h1) === `public:ip:${h1}` && ipKey('public', h1) !== ipKey('checkout', h1));
 check('sin IP → contador compartido "desconocida"', ipKey('checkout', null) === 'checkout:ip:desconocida');
+check('cotización por IP (separada del pago)', ipKey('quote', h1) === `quote:ip:${h1}` && ipKey('quote', h1) !== ipKey('checkout', h1));
+check('cotización por restaurante (separada del pago)',
+  restaurantKey('E6904DF6-2EA2-4C53-A57A-FEEF6243FC00', 'quote') === 'quote:rid:e6904df6-2ea2-4c53-a57a-feef6243fc00'
+  && restaurantKey('e6904df6-2ea2-4c53-a57a-feef6243fc00') === 'checkout:rid:e6904df6-2ea2-4c53-a57a-feef6243fc00');
 check('por restaurante, en minúsculas',
   restaurantKey('0350A66F-ABA3-4EC0-B5C0-DA24B104B750') === 'checkout:rid:0350a66f-aba3-4ec0-b5c0-da24b104b750');
 check('largo dentro del límite de la tabla (≤ 200)', ipKey('checkout', h1).length <= 200 && restaurantKey('0350a66f-aba3-4ec0-b5c0-da24b104b750').length <= 200);
