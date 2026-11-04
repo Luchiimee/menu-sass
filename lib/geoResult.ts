@@ -19,7 +19,8 @@ export type ReverseAddress = {
   locationType: string;   // ROOFTOP, RANGE_INTERPOLATED, GEOMETRIC_CENTER, APPROXIMATE ('' si no vino)
 };
 
-export type ForwardLocation = { lat: number; lng: number; locationType: string };
+// formatted: formatted_address de Google ('' si no vino). El checkout no lo usa; lo muestra el servidor.
+export type ForwardLocation = { lat: number; lng: number; locationType: string; formatted?: string };
 
 // Puntos que sirven para medir la distancia a una dirección. GEOMETRIC_CENTER (centro de
 // una calle o un barrio) y APPROXIMATE (la localidad) pueden quedar a kilómetros de la
@@ -111,7 +112,7 @@ export function parseForwardGeocode(data: any): GeoResult<ForwardLocation> {
     const locationType = str(result?.geometry?.location_type);
     if (!coords || !PRECISE_LOCATION_TYPES.includes(locationType) || !componentOf(result, 'street_number')) continue;
     if (result?.partial_match === true) return { kind: 'parcial' };
-    return { kind: 'ok', value: { ...coords, locationType } };
+    return { kind: 'ok', value: { ...coords, locationType, formatted: str(result?.formatted_address) } };
   }
   return { kind: 'sin_altura' };
 }
