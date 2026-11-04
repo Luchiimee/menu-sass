@@ -8,6 +8,10 @@
 // escribió. Secreto: CHECKOUT_QUOTE_SECRET (nunca se incluye en errores ni logs).
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { normalizeQuoteAddress } from './quoteAddress.ts';
+
+// Se re-exporta: los que ya la importaban de acá siguen igual
+export { normalizeQuoteAddress };
 
 export const QUOTE_TTL_MS = 15 * 60 * 1000;
 const MAX_TOKEN_LENGTH = 2000;
@@ -26,11 +30,6 @@ export type QuotePayload = {
 export type QuoteVerification =
   | { ok: true; payload: QuotePayload }
   | { ok: false; reason: 'firma_invalida' | 'vencida' | 'formato_invalido' };
-
-// Minúsculas, sin espacios de más (para comparar la dirección cotizada con la del pago)
-export function normalizeQuoteAddress(address: string): string {
-  return String(address ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
-}
 
 const b64url = (buf: Buffer) => buf.toString('base64url');
 const hmac = (data: string, secret: string) => createHmac('sha256', secret).update(data).digest();
