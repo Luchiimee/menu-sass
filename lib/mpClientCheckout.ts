@@ -119,6 +119,12 @@ const MESSAGES: Record<string, string> = {
   fuera_de_cobertura: 'Lo sentimos, no llegamos a tu zona.',
   local_sin_ubicacion: 'Este local todavía no puede cobrar envíos online. Elegí otro medio de pago.',
   zonas_mal_configuradas: 'Este local todavía no puede cobrar envíos online. Elegí otro medio de pago.',
+  // Cotización de envío (lib/checkoutQuoteGate.ts)
+  cotizacion_requerida: 'Calculá el costo de envío antes de pagar.',
+  cotizacion_invalida: 'No pudimos validar el costo de envío. Calculalo de nuevo.',
+  cotizacion_vencida: 'El costo de envío venció. Calculalo de nuevo para pagar.',
+  cotizacion_no_coincide: 'La dirección cambió desde que calculaste el envío. Calculalo de nuevo.',
+  cotizacion_no_disponible: 'No podemos cobrar envíos online en este momento. Elegí otro medio de pago.',
 };
 
 export function mpErrorMessage(code: unknown): string {

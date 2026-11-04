@@ -104,6 +104,7 @@ console.log('mpErrorMessage');
   check('sin código → genérico', mpErrorMessage(undefined).startsWith('No pudimos'));
   check('límite de uso (429) → mensaje propio', mpErrorMessage('demasiados_intentos').startsWith('Hiciste demasiados intentos'));
   check('límite sin poder contar (503) → mensaje propio', mpErrorMessage('limite_no_disponible').startsWith('No pudimos iniciar el pago en este momento'));
+  check('cotización de envío: los 5 códigos con mensaje propio', ['cotizacion_requerida', 'cotizacion_invalida', 'cotizacion_vencida', 'cotizacion_no_coincide', 'cotizacion_no_disponible'].every((c) => mpErrorMessage(c) !== mpErrorMessage('lo_que_sea')) && mpErrorMessage('cotizacion_vencida').includes('venció'));
   check('envío por zonas: falta_ubicacion y fuera_de_cobertura con mensaje propio', mpErrorMessage('falta_ubicacion').includes('ubicación') && mpErrorMessage('fuera_de_cobertura').includes('no llegamos'));
   check('combo_no_soportado explica qué hacer', /combo/i.test(mpErrorMessage('combo_no_soportado')));
   check('mp_temporalmente_no_disponible (503 reintentable)', mpErrorMessage('mp_temporalmente_no_disponible') === 'No pudimos iniciar el pago, probá de nuevo en unos segundos');

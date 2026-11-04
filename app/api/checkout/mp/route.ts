@@ -4,6 +4,11 @@
 // preference en la cuenta de MP del restaurante. Devuelve solo { init_point, ref, total }.
 // El pedido real (orders) lo crea el webhook en la fase 3: acá no se toca orders.
 //
+// Envío por zonas: exige la cotización firmada de POST /api/checkout/mp/quote (body.quote),
+// que valida lib/checkoutQuoteGate.ts antes de calcular el total. La distancia sale de la
+// cotización contra la ubicación actual del local; el costo se recalcula con la configuración
+// actual (si cambió, expected_total no coincide → 409 total_distinto).
+//
 // Límite de uso (lib/rateLimit.ts, docs/sql/15_rate_limits.sql): por IP al entrar y por
 // restaurante justo antes de escribir el pendiente. Al pasarse: 429 con Retry-After, sin
 // escribir nada ni llamar a MP. Si no se puede contar (función ausente, base caída, falta
@@ -20,6 +25,7 @@ import { isRestaurantOpen } from '@/lib/businessHours';
 import { CheckoutError, computeOrderTotal } from '@/lib/checkoutPricing';
 import { totalsMatch } from '@/lib/mpClientCheckout';
 import { limitByIp, limitByRestaurant } from '@/lib/rateLimit';
+import { checkDeliveryQuote } from '@/lib/checkoutQuoteGate';
 import { RATE_LIMITS } from '@/lib/rateLimitCore';
 
 export const dynamic = 'force-dynamic';
@@ -108,7 +114,7 @@ export async function POST(req: Request) {
   // --- Restaurante ---
   const { data: restaurant, error: restError } = await db
     .from('restaurants')
-    .select('id, name, slug, always_open, is_open, business_hours')
+    .select('id, name, slug, always_open, is_open, business_hours, subscription_plan, delivery_zones_enabled, delivery_lat, delivery_lng')
     .eq('id', restaurantId)
     .maybeSingle();
   if (restError) {
@@ -133,10 +139,23 @@ export async function POST(req: Request) {
   }
   if (!cred || cred.status !== 'connected') return fail('mp_no_conectado', 409);
 
+  // --- Cotización de envío (solo envío con zonas): firma barata, antes del límite por restaurante ---
+  const quoteCheck = checkDeliveryQuote({
+    orderType,
+    restaurant,
+    address: address ?? '',
+    quote: body.quote,
+    secret: process.env.CHECKOUT_QUOTE_SECRET,
+  });
+  if (!quoteCheck.ok) {
+    if (quoteCheck.error === 'cotizacion_no_disponible') console.error('[checkout/mp] falta CHECKOUT_QUOTE_SECRET: no se puede validar la cotización');
+    return fail(quoteCheck.error, quoteCheck.status);
+  }
+
   // --- Total (recalculado desde la base) ---
   let priced;
   try {
-    priced = await computeOrderTotal(restaurant.id, body.cart, orderType, { db, couponCode });
+    priced = await computeOrderTotal(restaurant.id, body.cart, orderType, { db, couponCode, distanceKm: quoteCheck.distanceKm });
   } catch (err: any) {
     if (err instanceof CheckoutError) {
       if (err.code === 'error_datos') {
@@ -181,6 +200,8 @@ export async function POST(req: Request) {
           shipping: priced.shipping,
           total: priced.total,
         },
+        // Auditoría del envío por zonas (el webhook no la lee): sin el token completo
+        ...(quoteCheck.audit ? { delivery: { ...quoteCheck.audit, charged_shipping: priced.shipping } } : {}),
       },
     })
     .select('id')
