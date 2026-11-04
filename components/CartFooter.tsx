@@ -14,7 +14,11 @@ import {
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
     type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
-import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, QUOTE_SAFETY_MARGIN_MS, type MpQuote } from '@/lib/mpQuoteClient';
+import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, isQuoteUsable, mpShipping, QUOTE_SAFETY_MARGIN_MS, type MpQuote, type ParsedQuote } from '@/lib/mpQuoteClient';
+
+// Mercado Pago con envío por zonas (etapa 5): con false, Mercado Pago vuelve a ocultarse con envío por
+// zonas, exactamente como antes. Es la línea para volver atrás.
+const MP_WITH_ZONES = true;
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -178,7 +182,8 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     // solo si Mercado Pago está disponible. Un solo pedido por dirección: con error no se vuelve a pedir
     // hasta que cambie la dirección o el método de entrega.
     const [mpQuote, setMpQuote] = useState<MpQuote | null>(null);
-    const [quoteStatus, setQuoteStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+    // expired: venció sin cambiar la dirección; se guarda para seguir mostrando su precio y se recotiza al pagar
+    const [quoteStatus, setQuoteStatus] = useState<'idle' | 'loading' | 'ok' | 'error' | 'expired'>('idle');
     const [quoteError, setQuoteError] = useState<{ code: string; message: string; retryAfterSeconds?: number } | null>(null);
 
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
@@ -202,11 +207,22 @@ const handleNotificarPagoMesa = async (metodo: string) => {
         return () => { cancelled = true; };
     }, [restaurantId, planType]);
 
-    // Se oculta con: mesa, entrega programada, delivery por zonas (el servidor cobra siempre
-    // la zona 2 y el total no coincidiría) o un carrito que no se puede convertir (combo).
+    // Se oculta con: mesa, entrega programada o un carrito que no se puede convertir (combo). Con
+    // envío por zonas, solo aparece con una cotización del servidor para la dirección (MP_WITH_ZONES).
     const mpCart = convertCartForMp(cart);
-    const mpVisible = mpAvailable && !tableIdFromQR && metodoEnvio !== 'mesa' && entregaTipo !== 'programada'
-        && !(metodoEnvio === 'delivery' && deliveryZonesEnabled) && mpCart.ok;
+    const mpBase = mpAvailable && !tableIdFromQR && metodoEnvio !== 'mesa' && entregaTipo !== 'programada' && mpCart.ok;
+    const zonesDelivery = metodoEnvio === 'delivery' && !!deliveryZonesEnabled;
+    // Con envío por zonas, Mercado Pago necesita una cotización del servidor para esta dirección. Si
+    // venció sin que cambie la dirección (o se está recotizando al pagar), sigue visible con su precio:
+    // si no, la preselección cambiaría el medio de pago a mitad del pago.
+    const quoteUsable = isQuoteUsable(mpQuote, direccionCalle, Date.now());
+    const quoteRenewable = (quoteStatus === 'expired' || quoteStatus === 'loading') && !!mpQuote && mpQuote.address === normalizeStreetForQuote(direccionCalle);
+    const mpVisible = MP_WITH_ZONES
+        ? mpBase && (!zonesDelivery || quoteUsable || quoteRenewable)
+        : mpBase && !zonesDelivery;
+    // Cotizando: Mercado Pago aparece desactivado. Error: no aparece y se explica por qué.
+    const mpQuoting = MP_WITH_ZONES && mpBase && zonesDelivery && quoteStatus === 'loading';
+    const mpQuoteFailed = MP_WITH_ZONES && mpBase && zonesDelivery && quoteStatus === 'error' && !!quoteError;
     // Preselección: se mantiene el medio elegido si sigue disponible; si no, el primero
     // disponible (con uno solo, queda preseleccionado). Con un pedido activo, metodoPago
     // viene de la base y no se toca.
@@ -497,60 +513,60 @@ useEffect(() => {
       return 'outside';
     })();
 
-    // Pide la cotización una sola vez por dirección (opción B). Las respuestas viejas se descartan.
-    useEffect(() => {
-        if (quoteStatus !== 'idle' || !restaurantId) return;
-        if (!shouldRequestQuote({ metodoEnvio, deliveryZonesEnabled: !!deliveryZonesEnabled, mpAvailable, zoneStatus, direccionCalle, currentQuote: mpQuote, now: Date.now() })) return;
+    // Pide una cotización al servidor para la dirección actual y la guarda. null = la respuesta llegó
+    // tarde (cambió la dirección o el método mientras tanto) y se descartó.
+    const requestQuote = async (): Promise<(ParsedQuote & { address?: string }) | null> => {
+        if (!restaurantId) return null;
         const myRequestId = ++quoteRequestId.current;
         const address = normalizeStreetForQuote(direccionCalle);
         // Lo que se manda: la calle tal cual (sin "(entre …)"); el servidor la normaliza igual
         const street = direccionCalle.replace(/\s*\(\s*entre\b.*$/i, '').trim();
-        (async () => {
-            setQuoteStatus('loading');
-            let status = 0;
-            let json: unknown = null;
-            let retryAfter: string | null = null;
-            try {
-                const res = await fetch('/api/checkout/mp/quote', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ restaurant_id: restaurantId, address: street }),
-                });
-                status = res.status;
-                retryAfter = res.headers.get('Retry-After');
-                json = await res.json().catch(() => null);
-            } catch {
-                status = 0;
-            }
-            if (myRequestId !== quoteRequestId.current) return; // respuesta vieja
-            const parsed = parseQuoteResponse(status, json, retryAfter);
-            if (parsed.ok) {
-                setMpQuote({ ...parsed.quote, address });
-                setQuoteStatus('ok');
-                setQuoteError(null);
-            } else {
-                setMpQuote(null);
-                setQuoteStatus('error');
-                setQuoteError({ code: parsed.code, message: parsed.message, retryAfterSeconds: parsed.retryAfterSeconds });
-            }
-            // Solo para probar (se saca en el commit 3): estado, sin dirección ni token
-            console.debug('[CartFooter] cotización de envío:', parsed.ok ? `ok zona ${parsed.quote.zone.position} ${parsed.quote.cost}` : `error ${parsed.code}`);
-        })();
+        setQuoteStatus('loading');
+        let status = 0;
+        let json: unknown = null;
+        let retryAfter: string | null = null;
+        try {
+            const res = await fetch('/api/checkout/mp/quote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restaurant_id: restaurantId, address: street }),
+            });
+            status = res.status;
+            retryAfter = res.headers.get('Retry-After');
+            json = await res.json().catch(() => null);
+        } catch {
+            status = 0;
+        }
+        if (myRequestId !== quoteRequestId.current) return null; // respuesta vieja
+        const parsed = parseQuoteResponse(status, json, retryAfter);
+        if (parsed.ok) {
+            setMpQuote({ ...parsed.quote, address });
+            setQuoteStatus('ok');
+            setQuoteError(null);
+            return { ...parsed, address };
+        }
+        setMpQuote(null);
+        setQuoteStatus('error');
+        setQuoteError({ code: parsed.code, message: parsed.message, retryAfterSeconds: parsed.retryAfterSeconds });
+        return parsed;
+    };
+
+    // Una sola cotización por dirección y método (opción B): no se recotiza sola al vencer ni tras un error.
+    useEffect(() => {
+        if (quoteStatus !== 'idle') return;
+        if (!shouldRequestQuote({ metodoEnvio, deliveryZonesEnabled: !!deliveryZonesEnabled, mpAvailable, zoneStatus, direccionCalle, currentQuote: mpQuote, now: Date.now() })) return;
+        void requestQuote();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- requestQuote se arma en cada render con el mismo estado
     }, [quoteStatus, restaurantId, metodoEnvio, deliveryZonesEnabled, mpAvailable, zoneStatus, direccionCalle, mpQuote]);
 
-    // La cotización se descarta sola al dejar de servir (60 s antes de vencer, el mismo margen que
-    // isQuoteUsable) y vuelve a idle: si la zona sigue válida, el efecto de arriba pide otra.
+    // Al dejar de servir (60 s antes de vencer, el margen de isQuoteUsable) queda como vencida: NO se
+    // pide otra sola; se recotiza al tocar "Pagar con Mercado Pago".
     useEffect(() => {
-        if (!mpQuote) return;
+        if (!mpQuote || quoteStatus !== 'ok') return;
         const ms = Math.max(0, mpQuote.expiresAt - QUOTE_SAFETY_MARGIN_MS - Date.now());
-        const timer = setTimeout(() => {
-            quoteRequestId.current++;
-            setMpQuote(null);
-            setQuoteStatus('idle');
-            setQuoteError(null);
-        }, ms);
+        const timer = setTimeout(() => setQuoteStatus('expired'), ms);
         return () => clearTimeout(timer);
-    }, [mpQuote]);
+    }, [mpQuote, quoteStatus]);
 
 if (initializing) return <div className="hidden" />;
 
@@ -1141,7 +1157,13 @@ const handleCallWaiter = async () => {
       if (zoneStatus === 'zone2') return Number(deliveryZone2Cost) || 0;
       return 0; // 'calculating' o 'outside'
     })();
-    const totalFinal = subtotal - montoDescuento - autoDescuento + envio;
+    // Pagando con Mercado Pago y envío por zonas, el envío es el de la cotización del servidor (0 con envío
+    // gratis por monto, la misma regla que aplica el pago). Con efectivo y transferencia, el del navegador.
+    const mpZoneShipping = metodoPago === 'mercadopago' && mpVisible && zonesDelivery && mpQuote ? mpShipping(mpQuote, autoFreeShipping) : null;
+    const envioMostrado = mpZoneShipping ?? envio;
+    const totalFinal = subtotal - montoDescuento - autoDescuento + envioMostrado;
+    // El precio del servidor difiere del que calculó el navegador (borde de zona, GPS…)
+    const mpShippingDiffers = mpZoneShipping !== null && !autoFreeShipping && !!mpQuote && mpQuote.cost !== envio;
     const cashTransferCount = (efectivoEnabled ? 1 : 0) + (transferenciaEnabled ? 1 : 0);
     const paymentMethodsCount = cashTransferCount + (mpVisible ? 1 : 0);
 
@@ -1282,8 +1304,12 @@ const handleCallWaiter = async () => {
   // Pago online con Mercado Pago (MP Connect). El servidor recalcula el total desde la base y
   // crea la preference; acá solo se validan los datos, se guarda el respaldo y se redirige.
   // NO vacía el carrito: si algo falla (o el pago no se completa) el cliente no pierde nada.
-  const handlePayWithMp = async () => {
-    if (isSending) return;
+  const handlePayWithMp = () => payWithMp({ retried: false, quoteOverride: null });
+
+  // retried: ya se recotizó una vez por cotizacion_vencida / cotizacion_no_coincide.
+  // quoteOverride: la cotización recién pedida (el estado todavía no se actualizó en este render).
+  const payWithMp = async ({ retried, quoteOverride }: { retried: boolean; quoteOverride: MpQuote | null }) => {
+    if (isSending && !retried) return;
     setMpError('');
     const fail = (msg: string) => { setMpError(msg); setIsSending(false); };
     if (!mpVisible || !mpCart.ok) return fail(mpErrorMessage('no_disponible'));
@@ -1300,6 +1326,22 @@ const handleCallWaiter = async () => {
     if (aclaraciones.trim().length > 500) return fail('La aclaración es demasiado larga (máximo 500 caracteres).');
 
     setIsSending(true);
+    // Envío por zonas: hace falta una cotización vigente. Si venció (o falta menos de 60 s) se pide otra;
+    // si el precio cambió respecto del que se mostraba, se muestra y no se paga hasta otro toque.
+    let quoteForPay: MpQuote | null = null;
+    if (zonesDelivery) {
+        quoteForPay = quoteOverride ?? (isQuoteUsable(mpQuote, direccionCalle, Date.now()) ? mpQuote : null);
+        if (!quoteForPay) {
+            const shownCost = mpQuote?.cost ?? null;
+            const fresh = await requestQuote();
+            if (!fresh) return fail(mpErrorMessage('cotizacion_requerida'));
+            if (!fresh.ok) return fail(fresh.message);
+            if (!autoFreeShipping && fresh.quote.cost !== shownCost) {
+                return fail(`El envío para pago online es ${formatPrice(fresh.quote.cost)}. Revisá el total y tocá "Pagar con Mercado Pago" de nuevo.`);
+            }
+            quoteForPay = { ...fresh.quote, address: fresh.address ?? normalizeStreetForQuote(direccionCalle) };
+        }
+    }
     try {
         const res = await fetch('/api/checkout/mp', {
             method: 'POST',
@@ -1314,6 +1356,8 @@ const handleCallWaiter = async () => {
                 coupon_code: appliedCoupon?.code || '',
                 cart: mpCart.items,
                 expected_total: totalFinal, // el servidor frena si calcula otro total
+                // Solo con envío por zonas; address es direccionCompleta (el servidor acepta "(entre …)")
+                ...(quoteForPay ? { quote: quoteForPay.token } : {}),
             }),
         });
         const data = await res.json().catch(() => ({}));
@@ -1321,8 +1365,24 @@ const handleCallWaiter = async () => {
             `El total cambió: ahora es ${formatPrice(Number(serverTotal))} y vos veías ${formatPrice(totalFinal)}. Revisá tu pedido y volvé a intentar.`;
 
         if (!res.ok) {
-            if (data?.error === 'total_distinto') return fail(totalChanged(data.total));
-            return fail(mpErrorMessage(data?.error));
+            const code = data?.error;
+            if (zonesDelivery && (code === 'cotizacion_vencida' || code === 'cotizacion_no_coincide')) {
+                // Se descarta y se pide otra UNA vez; con el mismo precio se reintenta el pago
+                if (retried) return fail(mpErrorMessage(code));
+                const fresh = await requestQuote();
+                if (!fresh) return fail(mpErrorMessage(code));
+                if (!fresh.ok) return fail(fresh.message);
+                if (!autoFreeShipping && fresh.quote.cost !== quoteForPay?.cost) {
+                    return fail(`El envío para pago online es ${formatPrice(fresh.quote.cost)}. Revisá el total y tocá "Pagar con Mercado Pago" de nuevo.`);
+                }
+                return payWithMp({ retried: true, quoteOverride: { ...fresh.quote, address: fresh.address ?? normalizeStreetForQuote(direccionCalle) } });
+            }
+            if (code === 'total_distinto') {
+                // Descarta la cotización y vuelve a cotizar para mostrar el envío actual (sin pagar)
+                if (zonesDelivery) await requestQuote();
+                return fail(totalChanged(data.total));
+            }
+            return fail(mpErrorMessage(code));
         }
 
         let target: URL;
@@ -1939,6 +1999,16 @@ return (
 </button>
 )}
 
+{mpQuoting && !mpVisible && (
+<button
+    type="button"
+    disabled
+    className={`py-4 px-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all opacity-60 border-slate-200 text-slate-500 bg-white ${cashTransferCount === 2 ? 'col-span-2' : ''}`}
+>
+    <Loader2 size={16} className="animate-spin" /> Calculando envío para pago online…
+</button>
+)}
+
 {mpVisible && (
 <button
     onClick={() => setMetodoPago('mercadopago')}
@@ -1955,12 +2025,23 @@ return (
                             </>
                         )}
 
-                        {paymentMethodsCount === 0 && mpLoaded && (
+                        {mpQuoteFailed && (
+                            <p role="alert" className="text-[11px] font-bold text-alert ml-2">
+                                Mercado Pago no está disponible para esta dirección: {quoteError!.message}
+                            </p>
+                        )}
+                        {mpShippingDiffers && (
+                            <p className="text-[11px] font-bold text-[#007EB5] ml-2">
+                                El envío para pago online es {formatPrice(mpQuote!.cost)}
+                            </p>
+                        )}
+
+                        {paymentMethodsCount === 0 && mpLoaded && !mpQuoting && (
                             <div className="p-4 bg-alert/10 border-2 border-alert/20 rounded-2xl flex items-center gap-2.5">
                                 <XCircle size={18} className="text-alert shrink-0" />
                                 <p className="text-xs font-bold text-alert">
                                     {mpAvailable && !mpVisible && cashTransferCount === 0
-                                        ? 'Mercado Pago no está disponible para este pedido (entrega programada, delivery por zonas o combo en el carrito). Cambiá el pedido para poder pagar.'
+                                        ? 'Mercado Pago no está disponible para este pedido (entrega programada, combo en el carrito o no pudimos calcular el envío para pago online). Cambiá el pedido para poder pagar.'
                                         : NO_METHODS_MESSAGE}
                                 </p>
                             </div>
@@ -2017,8 +2098,8 @@ return (
                                         ? 'Envío gratis 🎉'
                                         : zoneStatus === 'calculating'
                                         ? 'Calculando...'
-                                        : envio > 0
-                                        ? formatPrice(envio)
+                                        : envioMostrado > 0
+                                        ? formatPrice(envioMostrado)
                                         : 'Envío gratis 🎉'}
                                 </span>
                             </div>
