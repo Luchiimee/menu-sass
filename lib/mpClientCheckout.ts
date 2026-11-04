@@ -112,6 +112,8 @@ const MESSAGES: Record<string, string> = {
   mp_temporalmente_no_disponible: 'No pudimos iniciar el pago, probá de nuevo en unos segundos',
   mp_error: 'Mercado Pago no respondió. Intentá de nuevo en unos minutos.',
   error_datos: 'Tuvimos un problema para procesar tu pedido. Intentá de nuevo.',
+  demasiados_intentos: 'Hiciste demasiados intentos. Esperá unos minutos y probá de nuevo.',
+  limite_no_disponible: 'No pudimos iniciar el pago en este momento. Probá de nuevo en unos minutos.',
 };
 
 export function mpErrorMessage(code: unknown): string {

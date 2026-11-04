@@ -102,6 +102,8 @@ console.log('mpErrorMessage');
   check('código conocido', mpErrorMessage('cerrado').includes('cerrado'));
   check('código desconocido → mensaje genérico', mpErrorMessage('lo_que_sea') === 'No pudimos iniciar el pago. Intentá de nuevo.');
   check('sin código → genérico', mpErrorMessage(undefined).startsWith('No pudimos'));
+  check('límite de uso (429) → mensaje propio', mpErrorMessage('demasiados_intentos').startsWith('Hiciste demasiados intentos'));
+  check('límite sin poder contar (503) → mensaje propio', mpErrorMessage('limite_no_disponible').startsWith('No pudimos iniciar el pago en este momento'));
   check('combo_no_soportado explica qué hacer', /combo/i.test(mpErrorMessage('combo_no_soportado')));
   check('mp_temporalmente_no_disponible (503 reintentable)', mpErrorMessage('mp_temporalmente_no_disponible') === 'No pudimos iniciar el pago, probá de nuevo en unos segundos');
   check('mp_no_conectado sigue igual', mpErrorMessage('mp_no_conectado').includes('Elegí otro medio de pago'));
