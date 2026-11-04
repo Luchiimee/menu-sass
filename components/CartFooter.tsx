@@ -14,6 +14,7 @@ import {
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
     type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
+import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, QUOTE_SAFETY_MARGIN_MS, type MpQuote } from '@/lib/mpQuoteClient';
 const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -172,6 +173,14 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [ubicacionAviso, setUbicacionAviso] = useState<UbicacionAviso | null>(null);
     const [detectingLocation, setDetectingLocation] = useState(false);
 
+    // --- COTIZACIÓN DE ENVÍO PARA MERCADO PAGO (etapa 5, todavía sin mostrarse) ---
+    // La pide el servidor (POST /api/checkout/mp/quote) apenas el navegador calculó una zona válida y
+    // solo si Mercado Pago está disponible. Un solo pedido por dirección: con error no se vuelve a pedir
+    // hasta que cambie la dirección o el método de entrega.
+    const [mpQuote, setMpQuote] = useState<MpQuote | null>(null);
+    const [quoteStatus, setQuoteStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+    const [quoteError, setQuoteError] = useState<{ code: string; message: string; retryAfterSeconds?: number } | null>(null);
+
     // --- 4. MÉTODO DE ENVÍO Y MESA (CON MEMORIA PARA EL REFRESCO) ---
     const [metodoEnvio, setMetodoEnvio] = useState(tableIdFromQR ? 'mesa' : 'delivery');
     const [nroMesa, setNroMesa] = useState(mesaLabel || '')
@@ -216,6 +225,8 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     // esto y captura su propio valor. Si al resolver ya no coincide con el valor global, la
     // respuesta es vieja y se descarta — evita que una respuesta tardía pise una más nueva.
     const geocodeRequestId = useRef(0);
+    // Igual que geocodeRequestId, para los pedidos de cotización
+    const quoteRequestId = useRef(0);
     // Cuando el flujo GPS reescribe direccionCalle vía reverse-geocode, marcamos esto para que
     // el efecto de abajo no lo interprete como "el usuario editó la dirección" y no invalide
     // el resultado (ya correcto) que acaba de traer el GPS.
@@ -227,6 +238,13 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     // que no quede un costo/zona desactualizado en pantalla — el cálculo real ocurre al
     // apretar "Buscar costo de envío" (o el flujo GPS).
     useEffect(() => {
+        // La cotización es de una dirección y un método: cualquier cambio la descarta (también
+        // cuando el GPS reescribe la dirección) y permite pedir otra.
+        quoteRequestId.current++;
+        setMpQuote(null);
+        setQuoteStatus('idle');
+        setQuoteError(null);
+
         if (skipNextAutoGeocode.current) {
             skipNextAutoGeocode.current = false;
             return;
@@ -466,6 +484,74 @@ useEffect(() => {
             return () => clearTimeout(timer);
         }
     }, [metodoEnvio, restaurantId]);
+
+    // Zona según el navegador. Va antes de los return tempranos de abajo porque la usa el efecto de la
+    // cotización (los hooks no pueden quedar después de un return condicional).
+    const zoneStatus = (() => {
+      if (metodoEnvio !== 'delivery') return null;
+      if (!deliveryZonesEnabled) return 'flat';
+      if (!clientCoords || deliveryLat == null || deliveryLng == null) return 'calculating';
+      const dist = haversineKm(clientCoords.lat, clientCoords.lng, deliveryLat, deliveryLng);
+      if (dist <= deliveryZone1Km) return 'zone1';
+      if (dist <= deliveryZone2Km) return 'zone2';
+      return 'outside';
+    })();
+
+    // Pide la cotización una sola vez por dirección (opción B). Las respuestas viejas se descartan.
+    useEffect(() => {
+        if (quoteStatus !== 'idle' || !restaurantId) return;
+        if (!shouldRequestQuote({ metodoEnvio, deliveryZonesEnabled: !!deliveryZonesEnabled, mpAvailable, zoneStatus, direccionCalle, currentQuote: mpQuote, now: Date.now() })) return;
+        const myRequestId = ++quoteRequestId.current;
+        const address = normalizeStreetForQuote(direccionCalle);
+        // Lo que se manda: la calle tal cual (sin "(entre …)"); el servidor la normaliza igual
+        const street = direccionCalle.replace(/\s*\(\s*entre\b.*$/i, '').trim();
+        (async () => {
+            setQuoteStatus('loading');
+            let status = 0;
+            let json: unknown = null;
+            let retryAfter: string | null = null;
+            try {
+                const res = await fetch('/api/checkout/mp/quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurant_id: restaurantId, address: street }),
+                });
+                status = res.status;
+                retryAfter = res.headers.get('Retry-After');
+                json = await res.json().catch(() => null);
+            } catch {
+                status = 0;
+            }
+            if (myRequestId !== quoteRequestId.current) return; // respuesta vieja
+            const parsed = parseQuoteResponse(status, json, retryAfter);
+            if (parsed.ok) {
+                setMpQuote({ ...parsed.quote, address });
+                setQuoteStatus('ok');
+                setQuoteError(null);
+            } else {
+                setMpQuote(null);
+                setQuoteStatus('error');
+                setQuoteError({ code: parsed.code, message: parsed.message, retryAfterSeconds: parsed.retryAfterSeconds });
+            }
+            // Solo para probar (se saca en el commit 3): estado, sin dirección ni token
+            console.debug('[CartFooter] cotización de envío:', parsed.ok ? `ok zona ${parsed.quote.zone.position} ${parsed.quote.cost}` : `error ${parsed.code}`);
+        })();
+    }, [quoteStatus, restaurantId, metodoEnvio, deliveryZonesEnabled, mpAvailable, zoneStatus, direccionCalle, mpQuote]);
+
+    // La cotización se descarta sola al dejar de servir (60 s antes de vencer, el mismo margen que
+    // isQuoteUsable) y vuelve a idle: si la zona sigue válida, el efecto de arriba pide otra.
+    useEffect(() => {
+        if (!mpQuote) return;
+        const ms = Math.max(0, mpQuote.expiresAt - QUOTE_SAFETY_MARGIN_MS - Date.now());
+        const timer = setTimeout(() => {
+            quoteRequestId.current++;
+            setMpQuote(null);
+            setQuoteStatus('idle');
+            setQuoteError(null);
+        }, ms);
+        return () => clearTimeout(timer);
+    }, [mpQuote]);
+
 if (initializing) return <div className="hidden" />;
 
 if (activeOrderId && !isVisible) {
@@ -1047,15 +1133,6 @@ const handleCallWaiter = async () => {
         autoDescuento += subtotal * Number(efectivoRule!.porcentaje) / 100;
     }
 
-    const zoneStatus = (() => {
-      if (metodoEnvio !== 'delivery') return null;
-      if (!deliveryZonesEnabled) return 'flat';
-      if (!clientCoords || deliveryLat == null || deliveryLng == null) return 'calculating';
-      const dist = haversineKm(clientCoords.lat, clientCoords.lng, deliveryLat, deliveryLng);
-      if (dist <= deliveryZone1Km) return 'zone1';
-      if (dist <= deliveryZone2Km) return 'zone2';
-      return 'outside';
-    })();
     const envio = (() => {
       if (autoFreeShipping) return 0;
       if (metodoEnvio !== 'delivery') return 0;
