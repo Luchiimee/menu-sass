@@ -114,6 +114,11 @@ const MESSAGES: Record<string, string> = {
   error_datos: 'Tuvimos un problema para procesar tu pedido. Intentá de nuevo.',
   demasiados_intentos: 'Hiciste demasiados intentos. Esperá unos minutos y probá de nuevo.',
   limite_no_disponible: 'No pudimos iniciar el pago en este momento. Probá de nuevo en unos minutos.',
+  // Envío por zonas (lib/checkoutPricing.ts shippingCost)
+  falta_ubicacion: 'Necesitamos tu ubicación para calcular el costo de envío.',
+  fuera_de_cobertura: 'Lo sentimos, no llegamos a tu zona.',
+  local_sin_ubicacion: 'Este local todavía no puede cobrar envíos online. Elegí otro medio de pago.',
+  zonas_mal_configuradas: 'Este local todavía no puede cobrar envíos online. Elegí otro medio de pago.',
 };
 
 export function mpErrorMessage(code: unknown): string {
