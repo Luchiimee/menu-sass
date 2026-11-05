@@ -20,11 +20,11 @@ export const ADMIN_SNAPPY_ACCESS_EMAILS = [
 
 // Mercado Pago Connect (cada restaurante vincula su cuenta de MP).
 // Las fases 2 a 4 (checkout online, pedidos pagados, webhooks) y el límite de uso
-// de /api/checkout/mp/* (lib/rateLimit.ts) ya están hechos. Antes de pasar a true:
-// correr docs/sql/15_rate_limits.sql y cargar RATE_LIMIT_IP_SALT en Vercel (sin la
-// función o la sal, POST /api/checkout/mp responde 503). Mientras sea false, solo
-// los admins (ADMIN_EMAILS) pueden conectar. El plan GO o Plus se exige siempre.
-export const MP_CONNECT_PUBLIC = false;
+// de /api/checkout/mp/* (lib/rateLimit.ts) ya están hechos. Con true, cualquier local
+// con plan GO o Plus puede conectar su cuenta de MP; el plan se exige siempre en el
+// servidor, y cobrar en el checkout requiere además que el dueño encienda
+// mp_checkout_enabled.
+export const MP_CONNECT_PUBLIC = true;
 
 // Acceso anticipado a Caja y Rentabilidad independientemente del plan.
 export const BETA_ACCESS_EMAILS = [
