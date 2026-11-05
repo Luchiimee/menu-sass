@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isValidWebhookSecret } from '@/lib/webhookAuth';
+import { sendEmail } from '@/lib/email/send';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,6 +98,25 @@ const welcomeHtml = (email: string) => `
 </html>
 `;
 
+// Versión de texto plano del mismo mail (clientes sin HTML y filtros de spam).
+const welcomeText = (email: string) => `¡Ya sos parte de Snappy!
+
+Tu cuenta está confirmada y tu menú digital está listo para arrancar.
+
+Con Snappy podés:
+- Cargar tu carta con fotos, precios y categorías
+- Recibir pedidos de delivery, retiro y mesas
+- Personalizar los colores y el estilo de tu menú
+- Ver el análisis de ventas en tiempo real
+
+Empezar ahora: https://snappy.uno/dashboard
+
+Recibiste este email porque te registraste en snappy.uno con la cuenta ${email}.
+Si no fuiste vos, podés ignorar este mensaje.
+
+© ${new Date().getFullYear()} Snappy · hola@snappy.uno
+`;
+
 // Database Webhook de Supabase (auth.users). Exige el header
 // x-webhook-secret = SUPABASE_WEBHOOK_SECRET (lib/webhookAuth.ts).
 export async function POST(request: Request) {
@@ -142,44 +162,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ skipped: 'already sent' });
   }
 
-  // Enviar email vía EnvíaloSimple
-  const apiKey = process.env.ENVIALOSIMPLE_API_KEY;
-  if (!apiKey) {
-    console.error('[webhook/bienvenida] ENVIALOSIMPLE_API_KEY no está definida en las variables de entorno');
-    return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
-  }
-  console.log(`[webhook/bienvenida] ENVIALOSIMPLE_API_KEY presente (${apiKey.length} chars), enviando a ${email}`);
+  // Enviar el email (proveedor según EMAIL_PROVIDER: resend por defecto, ver lib/email/send.ts)
+  const sent = await sendEmail({
+    to:      email,
+    subject: '¡Bienvenido a Snappy! Tu menú digital está listo',
+    html:    welcomeHtml(email),
+    text:    welcomeText(email),
+  });
 
-  let emailRes: Response;
-  try {
-    emailRes = await fetch('https://backend.envialosimple.email/api/v1/mail/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        from:    'hola@snappy.uno',
-        to:      email,
-        subject: '¡Bienvenido a Snappy! Tu menú digital está listo',
-        html:    welcomeHtml(email),
-      }),
-    });
-  } catch (fetchError) {
-    console.error('[webhook/bienvenida] Error de red al llamar EnvíaloSimple:', fetchError);
-    return NextResponse.json({ error: 'Network error calling email service' }, { status: 500 });
-  }
-
-  if (!emailRes.ok) {
-    const errBody = await emailRes.text();
-    console.error(
-      `[webhook/bienvenida] EnvíaloSimple respondió ${emailRes.status} ${emailRes.statusText}:`,
-      errBody
-    );
-    return NextResponse.json(
-      { error: 'Failed to send email', status: emailRes.status, detail: errBody },
-      { status: 500 }
-    );
+  if (!sent.ok) {
+    console.error(`[webhook/bienvenida] No se pudo enviar el email (user_id=${userId}): ${sent.error}`);
+    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
   }
 
   // Marcar como enviado para evitar duplicados
