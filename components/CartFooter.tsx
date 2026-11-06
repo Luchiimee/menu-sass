@@ -15,6 +15,7 @@ import {
     type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
 import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, isQuoteUsable, mpShipping, QUOTE_SAFETY_MARGIN_MS, type MpQuote, type ParsedQuote } from '@/lib/mpQuoteClient';
+import { isScheduledDeliveryActive } from '@/lib/scheduledDelivery';
 
 // Mercado Pago con envío por zonas (etapa 5): con false, Mercado Pago vuelve a ocultarse con envío por
 // zonas, exactamente como antes. Es la línea para volver atrás.
@@ -102,7 +103,9 @@ export default function CartFooter({
     const [initializing, setInitializing] = useState(true);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     // Reemplazá el estado de entregaTipo por este:
-const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'programada' : 'inmediata');
+// Turnos activos = interruptor del dueño + plan (un local Light con el interruptor activo en la base lo ignora)
+const scheduledActive = isScheduledDeliveryActive(scheduled_delivery_enabled, planType, isAdmin);
+const [entregaTipo, setEntregaTipo] = useState(scheduledActive ? 'programada' : 'inmediata');
     const [selectedSlot, setSelectedSlot] = useState('');
 
     // --- 2. FUNCIONES AUXILIARES (DEFINIDAS ARRIBA PARA EVITAR ERRORES) ---
@@ -1416,7 +1419,7 @@ const handleCallWaiter = async () => {
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
     const nombreCompleto = metodoEnvio === 'mesa' ? nombre.trim() : `${nombre.trim()} ${apellido.trim()}`;
     // 🚀 VALIDACIÓN: Si eligió programar pero no seleccionó un horario
-    if (metodoEnvio !== 'mesa' && entregaTipo === 'programada' && !selectedSlot) {
+    if (metodoEnvio !== 'mesa' && scheduledActive && entregaTipo === 'programada' && !selectedSlot) {
         return alert("Por favor, seleccioná un horario para tu entrega programada.");
     }
 
@@ -1463,7 +1466,7 @@ const handleCallWaiter = async () => {
                 // Todo el descuento aplicado (cupón + automático por efectivo / porcentaje);
                 // antes guardaba solo el cupón y el automático quedaba escondido en total
                 discount_amount: round2(montoDescuento + autoDescuento),
-                scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
+                scheduled_delivery_time: scheduledActive && entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
                 shift_id: resolvedShiftId ?? null,
             }).select().single();
 
@@ -1492,7 +1495,7 @@ if (telCliente.trim()) {
         // 🚀 AGREGAMOS EL HORARIO AL WHATSAPP
       // 🚀 BUSCÁ ESTA PARTE EN handleSendOrder:
     if (metodoEnvio !== 'mesa') {
-        const infoHorario = (scheduled_delivery_enabled && selectedSlot) 
+        const infoHorario = (scheduledActive && selectedSlot) 
             ? `📅 PROGRAMADO (${selectedSlot} hs)` 
             : '🚀 LO ANTES POSIBLE';
         mensaje += `⏰ *Horario:* ${infoHorario}\n`;
@@ -1883,7 +1886,7 @@ return (
                     )}
                 </div>
 {/* 📅 SECCIÓN DE TURNOS (SÓLO APARECE SI ESTÁ ACTIVADO) */}
-      {metodoEnvio !== 'mesa' && scheduled_delivery_enabled && (planType !== 'light' || isAdmin) && (
+      {metodoEnvio !== 'mesa' && scheduledActive && (
         <div className="space-y-4 p-6 bg-[#F0FAF6]/40 rounded-[2.5rem] border border-[#E8F7F1]/50 mb-6 animate-in slide-in-from-top-4">
             <div className="flex items-center gap-2 mb-1">
                 <div className="w-8 h-8 rounded-full bg-fresco text-white flex items-center justify-center shadow-lg shadow-surface">
