@@ -11,7 +11,6 @@ function check(name, cond) {
 }
 
 const KEY_R = 'clave-resend-secreta-123';
-const KEY_E = 'clave-envialo-secreta-456';
 const msg = { to: 'dueno@x.com', subject: 'Hola', html: '<p>hola</p>', text: 'hola' };
 const respond = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 
@@ -84,27 +83,6 @@ console.log('resend');
   check('EMAIL_PROVIDER se normaliza (espacios y mayúsculas)', f.calls.length === 1 && f.calls[0].url.includes('resend.com'));
 }
 
-console.log('envialosimple (respaldo)');
-{
-  const f = fakeFetch(() => respond(200, { id: 'es_1' }));
-  const r = await sendEmail(msg, { fetchImpl: f, env: { EMAIL_PROVIDER: 'envialosimple', ENVIALOSIMPLE_API_KEY: KEY_E, RESEND_API_KEY: KEY_R } });
-  check('ok', r.ok === true && r.id === 'es_1');
-  check('POST a backend.envialosimple.email', f.calls[0].url === 'https://backend.envialosimple.email/api/v1/mail/send');
-  check('usa su propia clave, no la de Resend', f.calls[0].init.headers.Authorization === `Bearer ${KEY_E}`);
-  const body = JSON.parse(f.calls[0].init.body);
-  check('remitente hola@snappy.uno, mismo cuerpo de antes (sin text)', body.from === 'hola@snappy.uno' && body.to === msg.to && body.html === msg.html && !('text' in body));
-}
-{
-  const f = fakeFetch(() => respond(401, { message: 'x' }));
-  const r = await sendEmail(msg, { fetchImpl: f, env: { EMAIL_PROVIDER: 'envialosimple', ENVIALOSIMPLE_API_KEY: KEY_E } });
-  check('error → envialosimple_http_401', r.ok === false && r.error === 'envialosimple_http_401');
-}
-{
-  const f = fakeFetch(() => respond(200, {}));
-  const r = await sendEmail(msg, { fetchImpl: f, env: { EMAIL_PROVIDER: 'envialosimple' } });
-  check('sin ENVIALOSIMPLE_API_KEY → envialosimple_not_configured', r.ok === false && r.error === 'envialosimple_not_configured' && f.calls.length === 0);
-}
-
 console.log('consola y proveedor desconocido');
 {
   const f = fakeFetch(() => respond(200, {}));
@@ -117,6 +95,12 @@ console.log('consola y proveedor desconocido');
   const f = fakeFetch(() => respond(200, {}));
   const r = await sendEmail(msg, { fetchImpl: f, env: { EMAIL_PROVIDER: 'sendgrid', RESEND_API_KEY: KEY_R } });
   check('proveedor desconocido → unknown_provider, sin red', r.ok === false && r.error === 'unknown_provider' && f.calls.length === 0);
+}
+{
+  // EnvíaloSimple ya no existe como proveedor
+  const f = fakeFetch(() => respond(200, {}));
+  const r = await sendEmail(msg, { fetchImpl: f, env: { EMAIL_PROVIDER: 'envialosimple', ENVIALOSIMPLE_API_KEY: 'x', RESEND_API_KEY: KEY_R } });
+  check('EMAIL_PROVIDER=envialosimple → unknown_provider, sin red', r.ok === false && r.error === 'unknown_provider' && f.calls.length === 0);
 }
 
 console.log('las claves no aparecen en ningún resultado ni log');
