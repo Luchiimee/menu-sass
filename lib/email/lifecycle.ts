@@ -11,6 +11,7 @@
 // Importa solo con rutas relativas (sin alias) para probarla sin red: scripts/check-lifecycle-emails.mjs.
 
 import { addDays, diasDesde, fechaLargaArg } from './dates.ts';
+import { whatsappLink } from './contact.ts';
 import { emailButton, emailLayout, escapeHtml } from './layout.ts';
 
 export const TRIAL_DAYS = 14;
@@ -20,6 +21,8 @@ export const TRIAL_FOLLOWUP_FROM_DAY = 20;
 export const TRIAL_FOLLOWUP_TO_DAY = 30;
 
 export const PLAN_URL = 'https://snappy.uno/dashboard/plan';
+export const WA_TEXT_ENDING = 'Hola, tengo una duda sobre mi prueba de Snappy';
+export const WA_TEXT_FOLLOWUP = 'Hola, probé Snappy y quiero ayuda para empezar';
 
 export type EmailKind = 'trial_ending' | 'trial_followup';
 
@@ -102,7 +105,11 @@ export function trialEndingEmail(data: { name: string | null; endDate: Date }): 
                 tu menú y tus pedidos siguen funcionando sin cortes.
               </p>
 
-              ${emailButton(PLAN_URL, 'Cargar tarjeta →')}
+              ${emailButton(PLAN_URL, 'Cargar mi tarjeta')}
+
+              <p style="margin:24px 0 0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                ¿Dudas? <a href="${whatsappLink(WA_TEXT_ENDING)}" style="color:#1BB179;text-decoration:none;">Escribinos por WhatsApp</a>
+              </p>
 
               <hr style="border:none;border-top:1px solid #ECEBE3;margin:40px 0;" />
 
@@ -117,7 +124,9 @@ Te quedan unos días para cargar una tarjeta y seguir usando Snappy en ${name}.
 
 Tu prueba de 14 días se vence el ${fecha}. Si cargás una tarjeta antes, tu menú y tus pedidos siguen funcionando sin cortes.
 
-Cargar tarjeta: ${PLAN_URL}
+Cargar mi tarjeta: ${PLAN_URL}
+
+¿Dudas? Escribinos por WhatsApp: ${whatsappLink(WA_TEXT_ENDING)}
 
 Recibiste este email porque tenés una cuenta en snappy.uno.
 
@@ -136,11 +145,15 @@ export function trialFollowupEmail(data: { name: string | null }): LifecycleEmai
                 La prueba de <strong>${escapeHtml(name)}</strong> en Snappy terminó. ¿Necesitás ayuda?
               </p>
               <p style="margin:0 0 32px;font-size:15px;color:#15160E;line-height:1.6;">
-                Si algo no te cerró o te quedó una duda, respondé este mail y te damos una mano.
+                Si algo no te cerró o te quedó una duda, escribinos por WhatsApp y te damos una mano.
                 Cuando quieras retomar, elegí un plan y tu menú vuelve a estar activo.
               </p>
 
-              ${emailButton(PLAN_URL, 'Ver planes →')}
+              ${emailButton(whatsappLink(WA_TEXT_FOLLOWUP), 'Hablar por WhatsApp')}
+
+              <p style="margin:24px 0 0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                O mirá los planes: <a href="${PLAN_URL}" style="color:#1BB179;text-decoration:none;">snappy.uno/dashboard/plan</a>
+              </p>
 
               <hr style="border:none;border-top:1px solid #ECEBE3;margin:40px 0;" />
 
@@ -153,9 +166,11 @@ export function trialFollowupEmail(data: { name: string | null }): LifecycleEmai
 
 La prueba de ${name} en Snappy terminó. ¿Necesitás ayuda?
 
-Si algo no te cerró o te quedó una duda, respondé este mail y te damos una mano. Cuando quieras retomar, elegí un plan y tu menú vuelve a estar activo.
+Si algo no te cerró o te quedó una duda, escribinos por WhatsApp y te damos una mano. Cuando quieras retomar, elegí un plan y tu menú vuelve a estar activo.
 
-Ver planes: ${PLAN_URL}
+Hablar por WhatsApp: ${whatsappLink(WA_TEXT_FOLLOWUP)}
+
+O mirá los planes: ${PLAN_URL}
 
 Recibiste este email porque tenés una cuenta en snappy.uno.
 

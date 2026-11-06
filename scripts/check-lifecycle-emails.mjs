@@ -4,9 +4,10 @@
 
 import { diaArg, diasDesde, addDays, fechaLargaArg } from '../lib/email/dates.ts';
 import {
-  selectTrialEnding, selectTrialFollowup, trialEndingEmail, trialFollowupEmail, trialEndDate, dedupeKey, PLAN_URL,
+  selectTrialEnding, selectTrialFollowup, trialEndingEmail, trialFollowupEmail, trialEndDate, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
 } from '../lib/email/lifecycle.ts';
 import { escapeHtml } from '../lib/email/layout.ts';
+import { WHATSAPP_NUMBER, whatsappLink } from '../lib/email/contact.ts';
 
 let failures = 0;
 function check(name, cond) {
@@ -100,18 +101,32 @@ console.log('fecha de fin de la prueba (hora Argentina)');
   check('dedupe_key = <kind>:<restaurant_id>', dedupeKey('trial_ending', 'abc') === 'trial_ending:abc');
 }
 
+console.log('contacto por WhatsApp');
+{
+  check('número único', WHATSAPP_NUMBER === '5492324313123');
+  check('link con el texto codificado', whatsappLink('Hola, probé Snappy y quiero ayuda para empezar') ===
+    'https://wa.me/5492324313123?text=Hola%2C%20prob%C3%A9%20Snappy%20y%20quiero%20ayuda%20para%20empezar');
+  check('el texto decodifica al original', decodeURIComponent(new URL(whatsappLink('¿Qué tal? & más')).searchParams.get('text')) === '¿Qué tal? & más');
+  check('el link no tiene espacios ni comillas ni &', !/[\s"'<>&]/.test(whatsappLink('a b "c" <d> & e')));
+}
+
 console.log('plantillas');
 {
   const end = trialEndDate('2026-11-02T02:30:00Z');
   const a = trialEndingEmail({ name: 'Pizzería Ñandú', endDate: end });
   check('ending: asunto con la fecha', a.subject.includes('15 de noviembre de 2026'));
   check('ending: html y texto con la fecha', a.html.includes('15 de noviembre de 2026') && a.text.includes('15 de noviembre de 2026'));
-  check('ending: botón a /dashboard/plan', a.html.includes(`href="${PLAN_URL}"`) && a.text.includes(PLAN_URL));
+  check('ending: botón principal "Cargar mi tarjeta" a /dashboard/plan', a.html.includes(`href="${PLAN_URL}"`) && a.html.includes('Cargar mi tarjeta') && a.text.includes(PLAN_URL));
+  check('ending: link chico de WhatsApp', a.html.includes(`href="${whatsappLink(WA_TEXT_ENDING)}"`) && a.html.includes('¿Dudas?') && a.text.includes(whatsappLink(WA_TEXT_ENDING)));
   check('ending: mismo layout (header negro, logo, footer)', a.html.includes('#15160E') && a.html.includes('logo-snappy.svg') && a.html.includes('hola@snappy.uno'));
 
   const f = trialFollowupEmail({ name: 'Pizzería Ñandú' });
   check('followup: asunto y texto', f.subject.includes('venció') && f.text.includes('¿Necesitás ayuda?'));
-  check('followup: botón a https://snappy.uno/dashboard/plan', f.html.includes('href="https://snappy.uno/dashboard/plan"'));
+  check('followup: botón principal "Hablar por WhatsApp" con el texto precargado',
+    f.html.includes(`href="${whatsappLink('Hola, probé Snappy y quiero ayuda para empezar')}"`) && f.html.includes('Hablar por WhatsApp'));
+  check('followup: link secundario al plan', f.html.includes('href="https://snappy.uno/dashboard/plan"') && f.text.includes(PLAN_URL));
+  check('followup: invita a escribir por WhatsApp', f.text.includes('escribinos por WhatsApp'));
+  check('ningún mail pide "responder este mail"', ![a.html, a.text, f.html, f.text].some((x) => /respond/i.test(x)));
 
   const evil = '<script>alert(1)</script> & "x"';
   for (const [n, m] of [['ending', trialEndingEmail({ name: evil, endDate: end })], ['followup', trialFollowupEmail({ name: evil })]]) {
