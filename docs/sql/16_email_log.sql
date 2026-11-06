@@ -5,7 +5,7 @@
 -- (rama feat/lifecycle-emails). No lo ejecuta ningún script.
 --
 -- Qué guarda: una fila por mail que Snappy decide mandar a un local.
---   kind        'trial_ending' | 'trial_followup'
+--   kind        'trial_ending' | 'trial_followup' | 'thanks' (gracias al cargar la tarjeta)
 --   dedupe_key  '<kind>:<restaurant_id>'  → un mail de cada tipo por local, para siempre
 --   status      'pending' (reservado, por enviar) | 'sent' | 'failed'
 -- El unique (kind, dedupe_key) hace de candado: dos corridas del cron a la vez no pueden
@@ -20,7 +20,7 @@ begin;
 
 create table public.email_log (
   id            uuid        primary key default gen_random_uuid(),
-  kind          text        not null check (kind in ('trial_ending', 'trial_followup')),
+  kind          text        not null check (kind in ('trial_ending', 'trial_followup', 'thanks')),
   dedupe_key    text        not null check (char_length(dedupe_key) between 1 and 200),
   restaurant_id uuid        references public.restaurants (id) on delete set null,
   to_email      text        not null,
