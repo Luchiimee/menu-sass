@@ -10,11 +10,12 @@
 //
 // Importa solo con rutas relativas (sin alias) para probarla sin red: scripts/check-lifecycle-emails.mjs.
 
-import { addDays, diasDesde, fechaLargaArg, inicioDiaArg } from './dates.ts';
+import { diasDesde, fechaLargaArg } from './dates.ts';
+import { TRIAL_DAYS, trialExpiresAt, trialLastDay as trialLastDayOf } from '../trial.ts';
 import { whatsappLink } from './contact.ts';
 import { emailButton, emailLayout, escapeHtml } from './layout.ts';
 
-export const TRIAL_DAYS = 14;
+export { TRIAL_DAYS };
 export const TRIAL_ENDING_FROM_DAY = 10;
 export const TRIAL_ENDING_TO_DAY = 13;
 export const TRIAL_FOLLOWUP_FROM_DAY = 20;
@@ -81,16 +82,14 @@ export function selectTrialFollowup(rows: LifecycleRestaurant[], now: Date, admi
   );
 }
 
-// La prueba termina a las 00:00 (hora Argentina) del día 15 contado desde el alta, con el día del
-// alta como día 1: es decir, 14 días de calendario completos. Devuelve ese instante (el fin es
-// exclusivo: a partir de ahí la prueba está vencida).
+// Fin y último día de la prueba: la regla vive en lib/trial.ts (00:00 AR del día 15 desde el alta).
+// Estas dos funciones solo se quedan con la firma de los mails (created_at siempre presente).
 export function trialEndDate(createdAt: string): Date {
-  return addDays(inicioDiaArg(new Date(createdAt)), TRIAL_DAYS);
+  return trialExpiresAt(createdAt) as Date;
 }
 
-// Último día con prueba (el día 14, inclusive), para mostrarlo en el mail.
 export function trialLastDay(createdAt: string): Date {
-  return new Date(trialEndDate(createdAt).getTime() - 1);
+  return trialLastDayOf(createdAt) as Date;
 }
 
 export type LifecycleEmail = { subject: string; html: string; text: string };
