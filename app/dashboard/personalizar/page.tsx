@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
 import { isAdminEmail } from '@/lib/access';
+import { canUseScheduledDelivery, normalizeDeliveryConfig } from '@/lib/scheduledDelivery';
 
 import UrbanoDark from '../../../components/templates/UrbanoDark';
 import PopVibrant from '../../../components/templates/PopVibrant';
@@ -463,6 +464,10 @@ snappylink_title: '',
   },
   reservations_enabled: false
 });
+// Turnos de entrega: no incluidos en el plan Light (salvo admin). Sin acceso, el interruptor
+  // se ve apagado y bloqueado, aunque en la base haya quedado activo.
+  const turnosAccess = canUseScheduledDelivery(currentPlan, isAdmin);
+  const turnosOn = turnosAccess && !!data.scheduled_delivery_enabled;
 const getLinksLimit = () => {
     const plan = data?.subscription_plan?.toLowerCase() || 'light';
     if (plan === 'light') return 2;
@@ -564,7 +569,11 @@ const getLinksLimit = () => {
         
      scheduled_delivery_enabled: rest.scheduled_delivery_enabled ?? false,
   scheduled_delivery_slots: rest.scheduled_delivery_slots ?? {},
-  scheduled_delivery_config: rest.scheduled_delivery_config ?? { interval_minutes: 30, buffer_minutes: 15 },
+  // Lee también las claves viejas ({ interval, buffer }) para que el desplegable muestre lo que realmente rige
+  scheduled_delivery_config: (() => {
+    const n = normalizeDeliveryConfig(rest.scheduled_delivery_config);
+    return { ...(rest.scheduled_delivery_config ?? {}), interval_minutes: n.intervalMinutes, buffer_minutes: n.bufferMinutes };
+  })(),
   reservations_enabled: rest.reservations_enabled ?? false,
   hero_dessert_id: rest.hero_dessert_id || null,
         hero_drink_id: rest.hero_drink_id || null,
@@ -800,6 +809,13 @@ const confirmReset = () => {
     // desde /dashboard/pagos — los excluimos para no pisarlos con datos viejos de este form
     const { id, created_at, categories, products, fetched_extras, alias_transferencia, efectivo_enabled, transferencia_enabled, ...updates } = data;
     const restaurantUpdates = { ...updates };
+    // Turnos de entrega no incluidos en Light (salvo admin): nunca se guardan activos
+    if (!canUseScheduledDelivery(currentPlan, isAdmin)) restaurantUpdates.scheduled_delivery_enabled = false;
+    // Config de turnos: se guardan las claves nuevas (interval_minutes / buffer_minutes) sin borrar las viejas
+    {
+      const n = normalizeDeliveryConfig(restaurantUpdates.scheduled_delivery_config);
+      restaurantUpdates.scheduled_delivery_config = { ...(restaurantUpdates.scheduled_delivery_config ?? {}), interval_minutes: n.intervalMinutes, buffer_minutes: n.bufferMinutes };
+    }
     
     Object.keys(restaurantUpdates).forEach(key => {
       if (key.startsWith('snappylink_') || key === 'is_bio_active') {
@@ -1425,7 +1441,7 @@ const confirmReset = () => {
 })()}
 
 {/* 📅 GESTIÓN DE TURNOS Y BLOQUES HORARIOS */}
-<section className="p-6 bg-white border-2 border-[#E8F7F1] rounded-[2.5rem] space-y-6 shadow-sm">
+<section className={`p-6 border-2 rounded-[2.5rem] space-y-6 shadow-sm ${turnosAccess ? 'bg-white border-[#E8F7F1]' : 'bg-gray-50 border-gray-200 opacity-80'}`}>
     <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
             <div className="p-2.5 bg-fresco rounded-2xl text-white shadow-lg">
@@ -1433,29 +1449,39 @@ const confirmReset = () => {
             </div>
             
             <div className="text-left">
-                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none">Turnos de Entrega</h3>
+                <h3 className="font-black text-xs uppercase tracking-tighter italic text-gray-900 leading-none flex items-center gap-2">Turnos de Entrega {!turnosAccess && <Lock size={10} className="text-gray-400" />}</h3>
                 <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Configurá tus franjas horarias</p>
             </div>
         </div>
         
+        {turnosAccess ? (
         <button 
             type="button"
             onClick={() => { setData({...data, scheduled_delivery_enabled: !data.scheduled_delivery_enabled}); setUnsavedChanges(true); }}
-            className={`w-12 h-6 rounded-full flex items-center px-1 transition-all ${data.scheduled_delivery_enabled ? 'bg-fresco' : 'bg-gray-200'}`}
+            className={`w-12 h-6 rounded-full flex items-center px-1 transition-all ${turnosOn ? 'bg-fresco' : 'bg-gray-200'}`}
         >
-            <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${data.scheduled_delivery_enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${turnosOn ? 'translate-x-6' : 'translate-x-0'}`} />
         </button>
+        ) : (
+        <Link href="/dashboard/plan" className="bg-gray-900 text-white px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md">
+            <Zap size={10} className="text-yellow-400 fill-yellow-400"/> Subir a GO
+        </Link>
+        )}
     </div>
 {/* 🚀 LÍNEA 934: TEXTO INFORMATIVO DE FUNCIONAMIENTO */}
-<div className={`p-4 rounded-[1.5rem] border-2 transition-all duration-500 ${data.scheduled_delivery_enabled ? 'bg-[#F0FAF6] border-[#E8F7F1]' : 'bg-gray-50 border-gray-100'}`}>
+<div className={`p-4 rounded-[1.5rem] border-2 transition-all duration-500 ${turnosOn ? 'bg-[#F0FAF6] border-[#E8F7F1]' : 'bg-gray-50 border-gray-100'}`}>
     <div className="flex gap-3 text-left">
-        <div className={`p-1.5 rounded-full h-fit flex-shrink-0 ${data.scheduled_delivery_enabled ? 'bg-fresco text-white' : 'bg-gray-200 text-gray-400'}`}>
+        <div className={`p-1.5 rounded-full h-fit flex-shrink-0 ${turnosOn ? 'bg-fresco text-white' : 'bg-gray-200 text-gray-400'}`}>
             <HelpCircle size={14} />
         </div>
         <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Información del sistema</p>
             <p className="text-[11px] font-bold text-gray-600 leading-snug">
-                {data.scheduled_delivery_enabled ? (
+                {!turnosAccess ? (
+                    <span className="animate-in fade-in">
+                        <strong className="text-gray-900 uppercase italic">Plan GO o superior:</strong> Los turnos de entrega no están incluidos en el plan Light. Tus clientes no verán horarios.
+                    </span>
+                ) : turnosOn ? (
                     <span className="animate-in fade-in">
                         <strong className="text-fresco uppercase italic">Modo Agenda Activo:</strong> Tus clientes deberán elegir un turno específico para recibir o retirar su pedido.
                     </span>
@@ -1468,7 +1494,7 @@ const confirmReset = () => {
         </div>
     </div>
 </div>
-    {data.scheduled_delivery_enabled && (
+    {turnosOn && (
         <div className="space-y-6 animate-in fade-in duration-300">
          
          {/* --- CONFIGURACIÓN TÉCNICA REBAUTIZADA --- */}

@@ -15,6 +15,8 @@ import {
     type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
 import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, isQuoteUsable, mpShipping, QUOTE_SAFETY_MARGIN_MS, type MpQuote, type ParsedQuote } from '@/lib/mpQuoteClient';
+import { isScheduledDeliveryActive, normalizeDeliveryConfig } from '@/lib/scheduledDelivery';
+import { generateSlots, NEXT_DAY_SUFFIX } from '@/lib/deliverySlots';
 
 // Mercado Pago con envío por zonas (etapa 5): con false, Mercado Pago vuelve a ocultarse con envío por
 // zonas, exactamente como antes. Es la línea para volver atrás.
@@ -102,7 +104,9 @@ export default function CartFooter({
     const [initializing, setInitializing] = useState(true);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     // Reemplazá el estado de entregaTipo por este:
-const [entregaTipo, setEntregaTipo] = useState(scheduled_delivery_enabled ? 'programada' : 'inmediata');
+// Turnos activos = interruptor del dueño + plan (un local Light con el interruptor activo en la base lo ignora)
+const scheduledActive = isScheduledDeliveryActive(scheduled_delivery_enabled, planType, isAdmin);
+const [entregaTipo, setEntregaTipo] = useState(scheduledActive ? 'programada' : 'inmediata');
     const [selectedSlot, setSelectedSlot] = useState('');
 
     // --- 2. FUNCIONES AUXILIARES (DEFINIDAS ARRIBA PARA EVITAR ERRORES) ---
@@ -1416,7 +1420,7 @@ const handleCallWaiter = async () => {
     if (metodoEnvio === 'mesa' && !nroMesa) return alert("Por favor, seleccioná una mesa.");
     const nombreCompleto = metodoEnvio === 'mesa' ? nombre.trim() : `${nombre.trim()} ${apellido.trim()}`;
     // 🚀 VALIDACIÓN: Si eligió programar pero no seleccionó un horario
-    if (metodoEnvio !== 'mesa' && entregaTipo === 'programada' && !selectedSlot) {
+    if (metodoEnvio !== 'mesa' && scheduledActive && entregaTipo === 'programada' && !selectedSlot) {
         return alert("Por favor, seleccioná un horario para tu entrega programada.");
     }
 
@@ -1463,7 +1467,7 @@ const handleCallWaiter = async () => {
                 // Todo el descuento aplicado (cupón + automático por efectivo / porcentaje);
                 // antes guardaba solo el cupón y el automático quedaba escondido en total
                 discount_amount: round2(montoDescuento + autoDescuento),
-                scheduled_delivery_time: entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
+                scheduled_delivery_time: scheduledActive && entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
                 shift_id: resolvedShiftId ?? null,
             }).select().single();
 
@@ -1492,7 +1496,7 @@ if (telCliente.trim()) {
         // 🚀 AGREGAMOS EL HORARIO AL WHATSAPP
       // 🚀 BUSCÁ ESTA PARTE EN handleSendOrder:
     if (metodoEnvio !== 'mesa') {
-        const infoHorario = (scheduled_delivery_enabled && selectedSlot) 
+        const infoHorario = (scheduledActive && selectedSlot) 
             ? `📅 PROGRAMADO (${selectedSlot} hs)` 
             : '🚀 LO ANTES POSIBLE';
         mensaje += `⏰ *Horario:* ${infoHorario}\n`;
@@ -1883,7 +1887,7 @@ return (
                     )}
                 </div>
 {/* 📅 SECCIÓN DE TURNOS (SÓLO APARECE SI ESTÁ ACTIVADO) */}
-      {metodoEnvio !== 'mesa' && scheduled_delivery_enabled && (planType !== 'light' || isAdmin) && (
+      {metodoEnvio !== 'mesa' && scheduledActive && (
         <div className="space-y-4 p-6 bg-[#F0FAF6]/40 rounded-[2.5rem] border border-[#E8F7F1]/50 mb-6 animate-in slide-in-from-top-4">
             <div className="flex items-center gap-2 mb-1">
                 <div className="w-8 h-8 rounded-full bg-fresco text-white flex items-center justify-center shadow-lg shadow-surface">
@@ -1900,32 +1904,10 @@ return (
             {/* LISTA DE TURNOS GENERADOS DINÁMICAMENTE */}
             <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in zoom-in duration-300">
                 {(() => {
-                    const config = scheduled_delivery_config || { interval_minutes: 30, buffer_minutes: 15 };
-                    const interval = config.interval_minutes;
-                    const buffer = config.buffer_minutes;
-                    const now = new Date();
-                    const daysMap: any = { 0: 'domingo', 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado' };
-                    const todayName = daysMap[now.getDay()];
-                    const todayRanges = scheduled_delivery_slots?.[todayName] || [];
-                    const availableBlocks: string[] = [];
-
-                    todayRanges.forEach((range: any) => {
-                        const [startH, startM] = range.from.split(':');
-                        const [endH, endM] = range.to.split(':');
-                        let blockTime = new Date();
-                        blockTime.setHours(parseInt(startH), parseInt(startM), 0, 0);
-                        const limitTime = new Date();
-                        limitTime.setHours(parseInt(endH), parseInt(endM), 0, 0);
-
-                        while (blockTime < limitTime) {
-                            const minAllowedTime = new Date(now.getTime() + buffer * 60000);
-                            if (blockTime > minAllowedTime) {
-                                const timeString = blockTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-                                availableBlocks.push(timeString);
-                            }
-                            blockTime = new Date(blockTime.getTime() + interval * 60000);
-                        }
-                    });
+                    // Acepta la config vieja ({ interval, buffer }) además de interval_minutes / buffer_minutes
+                    const config = normalizeDeliveryConfig(scheduled_delivery_config);
+                    // Hora y día en Argentina; soporta franjas hasta 00:00 y que cruzan la medianoche (lib/deliverySlots.ts)
+                    const availableBlocks = generateSlots(new Date(), scheduled_delivery_slots, config.intervalMinutes, config.bufferMinutes);
 
                     if (availableBlocks.length === 0) {
                         return (
@@ -1937,18 +1919,18 @@ return (
                         );
                     }
 
-                    return availableBlocks.map((time) => (
+                    return availableBlocks.map((slot) => (
                         <button 
-                            key={time}
+                            key={slot.label}
                             type="button"
-                            onClick={() => setSelectedSlot(time)}
+                            onClick={() => setSelectedSlot(slot.label)}
                             className={`px-4 py-2.5 rounded-2xl border-2 text-[11px] font-black transition-all ${
-                                selectedSlot === time 
+                                selectedSlot === slot.label 
                                 ? 'border-fresco bg-white text-fresco shadow-md scale-105' 
                                 : 'border-white bg-white/40 text-gray-400'
                             }`}
                         >
-                            {time} hs
+                            {slot.time} hs{slot.nextDay ? ` ${NEXT_DAY_SUFFIX}` : ''}
                         </button>
                     ));
                 })()}
