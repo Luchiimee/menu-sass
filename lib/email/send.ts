@@ -1,7 +1,7 @@
-// Envío de mails transaccionales de Snappy, sin atarse a un proveedor.
+// Envío de mails transaccionales de Snappy por Resend.
 //
-//   EMAIL_PROVIDER = 'resend' (por defecto) | 'envialosimple' (respaldo mientras dure la
-//                    migración) | 'console' (pruebas: imprime asunto y destinatario, no manda nada)
+//   EMAIL_PROVIDER = 'resend' (por defecto) | 'console' (pruebas: imprime asunto y destinatario,
+//                    no manda nada). Cualquier otro valor da el error unknown_provider.
 //
 // Resend va por fetch directo a la API (sin el paquete npm). Nunca se devuelven ni se loguean las
 // claves ni el cuerpo de la respuesta del proveedor: el error es un código corto
@@ -10,11 +10,8 @@
 // Sin imports (ni alias) para poder probarla sin red: scripts/check-email-send.mjs.
 
 export const EMAIL_FROM = 'Equipo Snappy <hola@updates.snappy.uno>';
-// Remitente del respaldo: el dominio que ya tenía verificado EnvíaloSimple.
-const ENVIALOSIMPLE_FROM = 'hola@snappy.uno';
 
 const RESEND_URL = 'https://api.resend.com/emails';
-const ENVIALOSIMPLE_URL = 'https://backend.envialosimple.email/api/v1/mail/send';
 export const EMAIL_TIMEOUT_MS = 8000;
 
 export type EmailMessage = {
@@ -34,24 +31,6 @@ export type SendEmailOptions = {
   timeoutMs?: number;
 };
 
-type ProviderRequest = { url: string; headers: Record<string, string>; body: string };
-
-function buildRequest(provider: string, msg: EmailMessage, apiKey: string): ProviderRequest {
-  if (provider === 'resend') {
-    return {
-      url: RESEND_URL,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ from: EMAIL_FROM, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text }),
-    };
-  }
-  // envialosimple: mismo cuerpo que mandaba la ruta de bienvenida (sin `text`).
-  return {
-    url: ENVIALOSIMPLE_URL,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ from: ENVIALOSIMPLE_FROM, to: msg.to, subject: msg.subject, html: msg.html }),
-  };
-}
-
 export async function sendEmail(msg: EmailMessage, opts: SendEmailOptions = {}): Promise<SendEmailResult> {
   const env = opts.env ?? process.env;
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -63,25 +42,24 @@ export async function sendEmail(msg: EmailMessage, opts: SendEmailOptions = {}):
     return { ok: true, id: 'console' };
   }
 
-  if (provider !== 'resend' && provider !== 'envialosimple') {
+  if (provider !== 'resend') {
     return { ok: false, error: 'unknown_provider' };
   }
 
-  const apiKey = provider === 'resend' ? env.RESEND_API_KEY : env.ENVIALOSIMPLE_API_KEY;
-  if (!apiKey) return { ok: false, error: `${provider}_not_configured` };
+  const apiKey = env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: 'resend_not_configured' };
 
-  const req = buildRequest(provider, msg, apiKey);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetchImpl(req.url, {
+    const res = await fetchImpl(RESEND_URL, {
       method: 'POST',
-      headers: req.headers,
-      body: req.body,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ from: EMAIL_FROM, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text }),
       signal: controller.signal,
     });
-    if (!res.ok) return { ok: false, error: `${provider}_http_${res.status}` };
+    if (!res.ok) return { ok: false, error: `resend_http_${res.status}` };
 
     let id: string | null = null;
     try {

@@ -162,7 +162,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ skipped: 'already sent' });
   }
 
-  // Enviar el email (proveedor según EMAIL_PROVIDER: resend por defecto, ver lib/email/send.ts)
+  // Enviar el email (Resend, ver lib/email/send.ts)
   const sent = await sendEmail({
     to:      email,
     subject: '¡Bienvenido a Snappy! Tu menú digital está listo',
