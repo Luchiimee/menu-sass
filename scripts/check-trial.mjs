@@ -93,5 +93,45 @@ console.log('bloqueo (isTrialBlocking)');
   check('created_at nulo → no bloquea', !isTrialBlocking({ ...base, createdAt: null }));
 }
 
+console.log('tabla vieja (planAccess: ceil(días) >= 14) vs. nueva');
+{
+  // regla vieja de lib/planAccess.ts, copiada para comparar
+  const DAY_MS = 86400000;
+  const vieja = (createdAt, now) => 14 - Math.ceil(Math.abs(now.getTime() - new Date(createdAt).getTime()) / DAY_MS) <= 0;
+  const nueva = (createdAt, now) => isTrialExpired(createdAt, now);
+
+  // bloquea desde: primer instante en que cada regla da "vencida" (búsqueda por minuto)
+  const desde = (fn, iso) => {
+    let t = new Date(iso).getTime() + 12 * DAY_MS;
+    const fin = t + 4 * DAY_MS;
+    for (; t < fin; t += 60000) if (fn(iso, new Date(t))) return new Date(t).toISOString();
+    return null;
+  };
+  const filas = {
+    '00:10': ['2026-11-19T03:11:00.000Z', FIN],
+    '15:00': ['2026-11-19T18:01:00.000Z', FIN],
+    '23:30': ['2026-11-20T02:31:00.000Z', FIN],
+  };
+  for (const [hora, [esperadaVieja, esperadaNueva]] of Object.entries(filas)) {
+    const v = desde(vieja, ALTAS[hora]);
+    const n = desde(nueva, ALTAS[hora]);
+    console.log(`       alta ${hora} AR: vieja bloquea desde ${v}  nueva desde ${n}`);
+    check(`alta ${hora}: la vieja bloqueaba 13 días después del alta (un día antes)`, v === esperadaVieja);
+    check(`alta ${hora}: la nueva bloquea a las 00:00 AR del día 15`, n === esperadaNueva);
+  }
+  // el día 14 completo: vieja bloqueada, nueva abierta
+  for (const hora of Object.keys(ALTAS)) {
+    const mediodiaDia14 = at('2026-11-19T20:00:00Z'); // 17:00 AR del día 14
+    check(`alta ${hora}, día 14 por la tarde: vieja bloquea (salvo alta tardía), nueva no`,
+      !nueva(ALTAS[hora], mediodiaDia14) && (hora === '23:30' ? !vieja(ALTAS[hora], mediodiaDia14) : vieja(ALTAS[hora], mediodiaDia14)));
+  }
+  // día 13: ambas abiertas; día 16: ambas bloqueadas
+  for (const hora of Object.keys(ALTAS)) {
+    const d13 = at('2026-11-18T15:00:00Z'), d16 = at('2026-11-21T15:00:00Z');
+    check(`alta ${hora}: día 13 abierto y día 16 bloqueado en ambas reglas`,
+      !vieja(ALTAS[hora], d13) && !nueva(ALTAS[hora], d13) && vieja(ALTAS[hora], d16) && nueva(ALTAS[hora], d16));
+  }
+}
+
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallo(s)`);
 process.exit(failures === 0 ? 0 : 1);

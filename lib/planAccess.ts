@@ -1,8 +1,10 @@
 // Control de plan del lado del servidor para API routes.
 //
-// Misma regla que app/dashboard/layout.tsx:125-138:
-//   - prueba vencida: status 'trialing' y 14 días desde created_at (mismo
-//     cálculo con Math.ceil que el layout);
+// Misma intención que app/dashboard/layout.tsx:125-138 (que todavía usa la cuenta vieja con
+// Math.ceil: se migra a lib/trial en otro paso):
+//   - prueba vencida: status 'trialing' y la prueba terminó a las 00:00 hora Argentina del
+//     día 15 desde created_at (regla única en lib/trial.ts); un local con tarjeta guardada
+//     (mp_card_id) no se bloquea: espera el cobro del cron;
 //   - 'paused' o 'cancelled';
 //   - la ventana de gracia (grace_period_until futura) nunca bloquea;
 //   - los admins (ADMIN_EMAILS) no se bloquean por estado, pero SÍ por plan
@@ -11,24 +13,16 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { isPlanId, type PlanId } from '@/lib/plans';
 import { isAdminEmail } from '@/lib/access';
-
-const TRIAL_DAYS = 14;
-const DAY_MS = 1000 * 60 * 60 * 24;
+import { isTrialBlocking } from '@/lib/trial';
 
 export type PlanAccessResult =
   | { ok: true; restaurant: { id: string; plan: PlanId } }
   | { ok: false; status: 403 | 404 | 500; reason: 'no_restaurant' | 'plan' | 'trial_expired' | 'paused' | 'cancelled' | 'error' };
 
-function isTrialExpired(createdAt: string | null): boolean {
-  if (!createdAt) return false; // el layout asume 14 días restantes sin created_at
-  const diffDays = Math.ceil(Math.abs(Date.now() - new Date(createdAt).getTime()) / DAY_MS);
-  return TRIAL_DAYS - diffDays <= 0;
-}
-
 export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promise<PlanAccessResult> {
   const { data: rest, error } = await getSupabaseAdmin()
     .from('restaurants')
-    .select('id, subscription_plan, subscription_status, created_at, grace_period_until, owner_email')
+    .select('id, subscription_plan, subscription_status, created_at, grace_period_until, owner_email, mp_card_id')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -50,7 +44,7 @@ export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promi
     const status = rest.subscription_status;
     if (status === 'paused') return { ok: false, status: 403, reason: 'paused' };
     if (status === 'cancelled') return { ok: false, status: 403, reason: 'cancelled' };
-    if (status === 'trialing' && isTrialExpired(rest.created_at)) {
+    if (isTrialBlocking({ status, createdAt: rest.created_at, hasCard: !!rest.mp_card_id, now: new Date() })) {
       return { ok: false, status: 403, reason: 'trial_expired' };
     }
   }
