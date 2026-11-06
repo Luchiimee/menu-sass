@@ -29,6 +29,11 @@ export function diasDesde(createdAt: string | Date | null | undefined, now: Date
   return Math.round((b - a) / DAY_MS);
 }
 
+// Instante en que empieza (00:00 hora Argentina) el día argentino de esa fecha.
+export function inicioDiaArg(date: Date): Date {
+  return new Date(`${diaArg(date)}T00:00:00-03:00`);
+}
+
 // Suma días exactos (24 hs cada uno; Argentina no tiene horario de verano).
 export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * DAY_MS);

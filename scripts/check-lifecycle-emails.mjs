@@ -2,9 +2,9 @@
 //
 //   node scripts/check-lifecycle-emails.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
-import { diaArg, diasDesde, addDays, fechaLargaArg } from '../lib/email/dates.ts';
+import { diaArg, diasDesde, addDays, fechaLargaArg, inicioDiaArg } from '../lib/email/dates.ts';
 import {
-  selectTrialEnding, selectTrialFollowup, trialEndingEmail, trialFollowupEmail, trialEndDate, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
+  selectTrialEnding, selectTrialFollowup, trialEndingEmail, trialFollowupEmail, trialEndDate, trialLastDay, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
 } from '../lib/email/lifecycle.ts';
 import { escapeHtml } from '../lib/email/layout.ts';
 import { WHATSAPP_NUMBER, whatsappLink } from '../lib/email/contact.ts';
@@ -94,10 +94,19 @@ console.log('trial_followup: exclusiones');
 
 console.log('fecha de fin de la prueba (hora Argentina)');
 {
-  // alta el 1/11 a las 23:30 AR (02:30Z del 2/11): el fin es el 15/11 a las 23:30 AR, no el 16
-  const fin = trialEndDate('2026-11-02T02:30:00Z');
-  check('alta 23:30 AR → fin el 15 de noviembre', fechaLargaArg(fin) === '15 de noviembre de 2026');
-  check('alta 00:10 AR → fin 14 días después', fechaLargaArg(trialEndDate('2026-11-01T03:10:00Z')) === '15 de noviembre de 2026');
+  // fin = 00:00 AR del día 15 contado desde el alta (día del alta = día 1) = 03:00Z
+  check('inicioDiaArg: 00:00 AR = 03:00Z', inicioDiaArg(new Date('2026-11-01T20:00:00Z')).toISOString() === '2026-11-01T03:00:00.000Z');
+  check('alta 12:00 AR del 1/11 → fin 03:00Z del 15/11', trialEndDate('2026-11-01T15:00:00Z').toISOString() === '2026-11-15T03:00:00.000Z');
+  check('alta 12:00 AR del 1/11 → último día: 14 de noviembre', fechaLargaArg(trialLastDay('2026-11-01T15:00:00Z')) === '14 de noviembre de 2026');
+  // alta a las 23:30 AR del 1/11 (02:30Z del 2/11): sigue siendo el día 1 → termina igual el 14
+  check('alta 23:30 AR del 1/11 → último día 14 de noviembre', fechaLargaArg(trialLastDay('2026-11-02T02:30:00Z')) === '14 de noviembre de 2026');
+  check('alta 23:30 AR del 1/11 → fin 03:00Z del 15/11', trialEndDate('2026-11-02T02:30:00Z').toISOString() === '2026-11-15T03:00:00.000Z');
+  // alta a las 00:10 AR del 2/11 (03:10Z): ya es el día 2 → termina el 15
+  check('alta 00:10 AR del 2/11 → último día 15 de noviembre', fechaLargaArg(trialLastDay('2026-11-02T03:10:00Z')) === '15 de noviembre de 2026');
+  // el día 14 es el último con prueba y el 15 ya no (por día de calendario, diasDesde 13 y 14)
+  const alta = '2026-11-01T15:00:00Z';
+  check('el día 13 desde el alta (14.º día) todavía tiene prueba', new Date('2026-11-14T20:00:00Z') < trialEndDate(alta) && diasDesde(alta, new Date('2026-11-14T20:00:00Z')) === 13);
+  check('el día 14 desde el alta (15.º día) ya no', new Date('2026-11-15T03:00:00Z') >= trialEndDate(alta) && diasDesde(alta, new Date('2026-11-15T20:00:00Z')) === 14);
   check('dedupe_key = <kind>:<restaurant_id>', dedupeKey('trial_ending', 'abc') === 'trial_ending:abc');
 }
 
@@ -112,10 +121,11 @@ console.log('contacto por WhatsApp');
 
 console.log('plantillas');
 {
-  const end = trialEndDate('2026-11-02T02:30:00Z');
-  const a = trialEndingEmail({ name: 'Pizzería Ñandú', endDate: end });
-  check('ending: asunto con la fecha', a.subject.includes('15 de noviembre de 2026'));
-  check('ending: html y texto con la fecha', a.html.includes('15 de noviembre de 2026') && a.text.includes('15 de noviembre de 2026'));
+  const end = trialLastDay('2026-11-01T15:00:00Z');
+  const a = trialEndingEmail({ name: 'Pizzería Ñandú', lastDay: end });
+  check('ending: asunto con la fecha', a.subject.includes('14 de noviembre de 2026'));
+  check('ending: dice "termina el ... inclusive"', a.text.includes('termina el 14 de noviembre de 2026 inclusive') && a.subject.includes('termina el'));
+  check('ending: html y texto con la fecha', a.html.includes('14 de noviembre de 2026') && a.text.includes('14 de noviembre de 2026'));
   check('ending: botón principal "Cargar mi tarjeta" a /dashboard/plan', a.html.includes(`href="${PLAN_URL}"`) && a.html.includes('Cargar mi tarjeta') && a.text.includes(PLAN_URL));
   check('ending: link chico de WhatsApp', a.html.includes(`href="${whatsappLink(WA_TEXT_ENDING)}"`) && a.html.includes('¿Dudas?') && a.text.includes(whatsappLink(WA_TEXT_ENDING)));
   check('ending: mismo layout (header negro, logo, footer)', a.html.includes('#15160E') && a.html.includes('logo-snappy.svg') && a.html.includes('hola@snappy.uno'));
@@ -129,7 +139,7 @@ console.log('plantillas');
   check('ningún mail pide "responder este mail"', ![a.html, a.text, f.html, f.text].some((x) => /respond/i.test(x)));
 
   const evil = '<script>alert(1)</script> & "x"';
-  for (const [n, m] of [['ending', trialEndingEmail({ name: evil, endDate: end })], ['followup', trialFollowupEmail({ name: evil })]]) {
+  for (const [n, m] of [['ending', trialEndingEmail({ name: evil, lastDay: end })], ['followup', trialFollowupEmail({ name: evil })]]) {
     check(`${n}: el nombre se escapa en el html`, !m.html.includes('<script>') && m.html.includes('&lt;script&gt;') && m.html.includes('&amp;'));
   }
   check('sin nombre → "tu local"', trialFollowupEmail({ name: null }).text.includes('tu local'));

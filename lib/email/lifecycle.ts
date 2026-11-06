@@ -10,7 +10,7 @@
 //
 // Importa solo con rutas relativas (sin alias) para probarla sin red: scripts/check-lifecycle-emails.mjs.
 
-import { addDays, diasDesde, fechaLargaArg } from './dates.ts';
+import { addDays, diasDesde, fechaLargaArg, inicioDiaArg } from './dates.ts';
 import { whatsappLink } from './contact.ts';
 import { emailButton, emailLayout, escapeHtml } from './layout.ts';
 
@@ -81,18 +81,25 @@ export function selectTrialFollowup(rows: LifecycleRestaurant[], now: Date, admi
   );
 }
 
-// Fin de la prueba: created_at + 14 días exactos.
+// La prueba termina a las 00:00 (hora Argentina) del día 15 contado desde el alta, con el día del
+// alta como día 1: es decir, 14 días de calendario completos. Devuelve ese instante (el fin es
+// exclusivo: a partir de ahí la prueba está vencida).
 export function trialEndDate(createdAt: string): Date {
-  return addDays(new Date(createdAt), TRIAL_DAYS);
+  return addDays(inicioDiaArg(new Date(createdAt)), TRIAL_DAYS);
+}
+
+// Último día con prueba (el día 14, inclusive), para mostrarlo en el mail.
+export function trialLastDay(createdAt: string): Date {
+  return new Date(trialEndDate(createdAt).getTime() - 1);
 }
 
 export type LifecycleEmail = { subject: string; html: string; text: string };
 
 const display = (name?: string | null) => (name && name.trim() ? name.trim() : 'tu local');
 
-export function trialEndingEmail(data: { name: string | null; endDate: Date }): LifecycleEmail {
+export function trialEndingEmail(data: { name: string | null; lastDay: Date }): LifecycleEmail {
   const name = display(data.name);
-  const fecha = fechaLargaArg(data.endDate);
+  const fecha = fechaLargaArg(data.lastDay);
   const html = emailLayout('Tu prueba de Snappy está por vencer', `
               <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#15160E;letter-spacing:-0.5px;line-height:1.2;">
                 Tu prueba está por terminar
@@ -101,7 +108,7 @@ export function trialEndingEmail(data: { name: string | null; endDate: Date }): 
                 Te quedan unos días para cargar una tarjeta y seguir usando Snappy en <strong>${escapeHtml(name)}</strong>.
               </p>
               <p style="margin:0 0 32px;font-size:15px;color:#15160E;line-height:1.6;">
-                Tu prueba de 14 días se vence el <strong>${fecha}</strong>. Si cargás una tarjeta antes,
+                Tu prueba de 14 días termina el <strong>${fecha}</strong> inclusive. Si cargás una tarjeta antes,
                 tu menú y tus pedidos siguen funcionando sin cortes.
               </p>
 
@@ -122,7 +129,7 @@ export function trialEndingEmail(data: { name: string | null; endDate: Date }): 
 
 Te quedan unos días para cargar una tarjeta y seguir usando Snappy en ${name}.
 
-Tu prueba de 14 días se vence el ${fecha}. Si cargás una tarjeta antes, tu menú y tus pedidos siguen funcionando sin cortes.
+Tu prueba de 14 días termina el ${fecha} inclusive. Si cargás una tarjeta antes, tu menú y tus pedidos siguen funcionando sin cortes.
 
 Cargar mi tarjeta: ${PLAN_URL}
 
@@ -132,7 +139,7 @@ Recibiste este email porque tenés una cuenta en snappy.uno.
 
 © ${new Date().getFullYear()} Snappy · hola@snappy.uno
 `;
-  return { subject: `Tu prueba de Snappy vence el ${fecha}`, html, text };
+  return { subject: `Tu prueba de Snappy termina el ${fecha}`, html, text };
 }
 
 export function trialFollowupEmail(data: { name: string | null }): LifecycleEmail {
