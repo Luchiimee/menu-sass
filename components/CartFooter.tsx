@@ -16,6 +16,7 @@ import {
 } from '@/lib/geoResult';
 import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, isQuoteUsable, mpShipping, QUOTE_SAFETY_MARGIN_MS, type MpQuote, type ParsedQuote } from '@/lib/mpQuoteClient';
 import { isScheduledDeliveryActive } from '@/lib/scheduledDelivery';
+import { generateSlots, NEXT_DAY_SUFFIX } from '@/lib/deliverySlots';
 
 // Mercado Pago con envío por zonas (etapa 5): con false, Mercado Pago vuelve a ocultarse con envío por
 // zonas, exactamente como antes. Es la línea para volver atrás.
@@ -1904,31 +1905,8 @@ return (
             <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in zoom-in duration-300">
                 {(() => {
                     const config = scheduled_delivery_config || { interval_minutes: 30, buffer_minutes: 15 };
-                    const interval = config.interval_minutes;
-                    const buffer = config.buffer_minutes;
-                    const now = new Date();
-                    const daysMap: any = { 0: 'domingo', 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado' };
-                    const todayName = daysMap[now.getDay()];
-                    const todayRanges = scheduled_delivery_slots?.[todayName] || [];
-                    const availableBlocks: string[] = [];
-
-                    todayRanges.forEach((range: any) => {
-                        const [startH, startM] = range.from.split(':');
-                        const [endH, endM] = range.to.split(':');
-                        let blockTime = new Date();
-                        blockTime.setHours(parseInt(startH), parseInt(startM), 0, 0);
-                        const limitTime = new Date();
-                        limitTime.setHours(parseInt(endH), parseInt(endM), 0, 0);
-
-                        while (blockTime < limitTime) {
-                            const minAllowedTime = new Date(now.getTime() + buffer * 60000);
-                            if (blockTime > minAllowedTime) {
-                                const timeString = blockTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-                                availableBlocks.push(timeString);
-                            }
-                            blockTime = new Date(blockTime.getTime() + interval * 60000);
-                        }
-                    });
+                    // Hora y día en Argentina; soporta franjas hasta 00:00 y que cruzan la medianoche (lib/deliverySlots.ts)
+                    const availableBlocks = generateSlots(new Date(), scheduled_delivery_slots, config.interval_minutes, config.buffer_minutes);
 
                     if (availableBlocks.length === 0) {
                         return (
@@ -1940,18 +1918,18 @@ return (
                         );
                     }
 
-                    return availableBlocks.map((time) => (
+                    return availableBlocks.map((slot) => (
                         <button 
-                            key={time}
+                            key={slot.label}
                             type="button"
-                            onClick={() => setSelectedSlot(time)}
+                            onClick={() => setSelectedSlot(slot.label)}
                             className={`px-4 py-2.5 rounded-2xl border-2 text-[11px] font-black transition-all ${
-                                selectedSlot === time 
+                                selectedSlot === slot.label 
                                 ? 'border-fresco bg-white text-fresco shadow-md scale-105' 
                                 : 'border-white bg-white/40 text-gray-400'
                             }`}
                         >
-                            {time} hs
+                            {slot.time} hs{slot.nextDay ? ` ${NEXT_DAY_SUFFIX}` : ''}
                         </button>
                     ));
                 })()}
