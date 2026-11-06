@@ -13,7 +13,7 @@ import {
 import Link from 'next/link';
 import BioModern from '../../../components/templates/bio/BioModern';
 import { isAdminEmail } from '@/lib/access';
-import { canUseScheduledDelivery } from '@/lib/scheduledDelivery';
+import { canUseScheduledDelivery, normalizeDeliveryConfig } from '@/lib/scheduledDelivery';
 
 import UrbanoDark from '../../../components/templates/UrbanoDark';
 import PopVibrant from '../../../components/templates/PopVibrant';
@@ -569,7 +569,11 @@ const getLinksLimit = () => {
         
      scheduled_delivery_enabled: rest.scheduled_delivery_enabled ?? false,
   scheduled_delivery_slots: rest.scheduled_delivery_slots ?? {},
-  scheduled_delivery_config: rest.scheduled_delivery_config ?? { interval_minutes: 30, buffer_minutes: 15 },
+  // Lee también las claves viejas ({ interval, buffer }) para que el desplegable muestre lo que realmente rige
+  scheduled_delivery_config: (() => {
+    const n = normalizeDeliveryConfig(rest.scheduled_delivery_config);
+    return { ...(rest.scheduled_delivery_config ?? {}), interval_minutes: n.intervalMinutes, buffer_minutes: n.bufferMinutes };
+  })(),
   reservations_enabled: rest.reservations_enabled ?? false,
   hero_dessert_id: rest.hero_dessert_id || null,
         hero_drink_id: rest.hero_drink_id || null,
@@ -807,6 +811,11 @@ const confirmReset = () => {
     const restaurantUpdates = { ...updates };
     // Turnos de entrega no incluidos en Light (salvo admin): nunca se guardan activos
     if (!canUseScheduledDelivery(currentPlan, isAdmin)) restaurantUpdates.scheduled_delivery_enabled = false;
+    // Config de turnos: se guardan las claves nuevas (interval_minutes / buffer_minutes) sin borrar las viejas
+    {
+      const n = normalizeDeliveryConfig(restaurantUpdates.scheduled_delivery_config);
+      restaurantUpdates.scheduled_delivery_config = { ...(restaurantUpdates.scheduled_delivery_config ?? {}), interval_minutes: n.intervalMinutes, buffer_minutes: n.bufferMinutes };
+    }
     
     Object.keys(restaurantUpdates).forEach(key => {
       if (key.startsWith('snappylink_') || key === 'is_bio_active') {

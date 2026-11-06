@@ -15,7 +15,7 @@ import {
     type GeoResult, type ReverseAddress, type ForwardLocation, type UbicacionAviso, type AvisoOpciones,
 } from '@/lib/geoResult';
 import { shouldRequestQuote, parseQuoteResponse, normalizeStreetForQuote, isQuoteUsable, mpShipping, QUOTE_SAFETY_MARGIN_MS, type MpQuote, type ParsedQuote } from '@/lib/mpQuoteClient';
-import { isScheduledDeliveryActive } from '@/lib/scheduledDelivery';
+import { isScheduledDeliveryActive, normalizeDeliveryConfig } from '@/lib/scheduledDelivery';
 import { generateSlots, NEXT_DAY_SUFFIX } from '@/lib/deliverySlots';
 
 // Mercado Pago con envío por zonas (etapa 5): con false, Mercado Pago vuelve a ocultarse con envío por
@@ -1904,9 +1904,10 @@ return (
             {/* LISTA DE TURNOS GENERADOS DINÁMICAMENTE */}
             <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in zoom-in duration-300">
                 {(() => {
-                    const config = scheduled_delivery_config || { interval_minutes: 30, buffer_minutes: 15 };
+                    // Acepta la config vieja ({ interval, buffer }) además de interval_minutes / buffer_minutes
+                    const config = normalizeDeliveryConfig(scheduled_delivery_config);
                     // Hora y día en Argentina; soporta franjas hasta 00:00 y que cruzan la medianoche (lib/deliverySlots.ts)
-                    const availableBlocks = generateSlots(new Date(), scheduled_delivery_slots, config.interval_minutes, config.buffer_minutes);
+                    const availableBlocks = generateSlots(new Date(), scheduled_delivery_slots, config.intervalMinutes, config.bufferMinutes);
 
                     if (availableBlocks.length === 0) {
                         return (
