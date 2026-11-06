@@ -2,41 +2,14 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isValidWebhookSecret } from '@/lib/webhookAuth';
 import { sendEmail } from '@/lib/email/send';
+import { emailLayout, emailButton } from '@/lib/email/layout';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const welcomeHtml = (email: string) => `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bienvenido a Snappy</title>
-</head>
-<body style="margin:0;padding:0;background-color:#F5F5EF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F5EF;padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-
-          <!-- HEADER NEGRO -->
-          <tr>
-            <td style="background-color:#15160E;border-radius:24px 24px 0 0;padding:40px 48px;text-align:center;">
-              <img src="https://snappy.uno/logo-snappy.svg" alt="Snappy" width="48" height="48"
-                style="display:block;margin:0 auto 16px;" />
-              <span style="color:#F5F5EF;font-size:22px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;">
-                Snappy
-              </span>
-            </td>
-          </tr>
-
-          <!-- CONTENIDO BLANCO -->
-          <tr>
-            <td style="background-color:#FFFFFF;padding:48px;border-radius:0 0 24px 24px;">
-
+const welcomeHtml = (email: string) => emailLayout('Bienvenido a Snappy', `
               <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#15160E;letter-spacing:-0.5px;line-height:1.2;">
                 ¡Ya sos parte de Snappy! 🎉
               </h1>
@@ -55,18 +28,7 @@ const welcomeHtml = (email: string) => `
               </ul>
 
               <!-- CTA -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center">
-                    <a href="https://snappy.uno/dashboard"
-                      style="display:inline-block;background-color:#1BB179;color:#0C2D1F;text-decoration:none;
-                             font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase;
-                             padding:16px 40px;border-radius:16px;">
-                      Empezar ahora →
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              ${emailButton('https://snappy.uno/dashboard', 'Empezar ahora →')}
 
               <!-- SEPARADOR -->
               <hr style="border:none;border-top:1px solid #ECEBE3;margin:40px 0;" />
@@ -77,26 +39,7 @@ const welcomeHtml = (email: string) => `
                 con la cuenta <strong>${email}</strong>.<br />
                 Si no fuiste vos, podés ignorar este mensaje.
               </p>
-
-            </td>
-          </tr>
-
-          <!-- FOOTER -->
-          <tr>
-            <td style="padding:24px 0;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#86877B;">
-                © ${new Date().getFullYear()} Snappy · hola@snappy.uno
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`;
+`);
 
 // Versión de texto plano del mismo mail (clientes sin HTML y filtros de spam).
 const welcomeText = (email: string) => `¡Ya sos parte de Snappy!
