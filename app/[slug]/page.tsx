@@ -35,6 +35,7 @@ import CartFooter from "@/components/CartFooter";
 import ClearCartLogic from "@/components/ClearCartLogic";
 import MpReturn from "@/components/MpReturn";
 import { CartProvider, useCart } from "@/context/CartContext";
+import { isTrialBlocking } from "@/lib/trial";
 import MarketProTemplate from "@/components/templates/MarketProTemplate";
 import AlternaPro from "@/components/templates/AlternaPro";
 import UrbanoDark from "@/components/templates/UrbanoDark";
@@ -2755,15 +2756,13 @@ export default function MenuPage({
   const ownerEmail = restaurant.owner_email || '';
   const isAdminRestaurant = ADMIN_EMAILS.includes(ownerEmail);
 
-  // Calculamos si el trial expiró
-  const trialStart = restaurant.trial_start_date
-    ? new Date(restaurant.trial_start_date)
-    : new Date(restaurant.created_at);
-  const today = new Date();
-  const diffDays = Math.floor(
-    (today.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const trialExpired = restaurant.subscription_status === 'trialing' && diffDays >= 14;
+  // Calculamos si el trial expiró (regla única en lib/trial; un trialing con tarjeta espera el cobro)
+  const trialExpired = isTrialBlocking({
+    status: restaurant.subscription_status,
+    createdAt: restaurant.created_at,
+    hasCard: !!restaurant.mp_card_id,
+    now: new Date(),
+  });
 
   // Ventana de gracia: si existe y es futura, el menú público nunca se bloquea
   const inGracePeriod = !!(
