@@ -4,7 +4,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-20 font-sans text-gray-800 leading-relaxed">
       <h1 className="text-4xl font-black mb-8 uppercase italic tracking-tighter">Política de Privacidad — Snappy</h1>
-      <p className="text-sm text-gray-500 mb-10 italic">Última actualización: 10 de abril de 2026</p>
+      <p className="text-sm text-gray-500 mb-10 italic">Última actualización: 7 de noviembre de 2026</p>
 
       <section className="space-y-6">
         <div>
@@ -19,6 +19,7 @@ export default function PrivacyPolicy() {
             <li>Gestionar tu cuenta y el acceso al panel de control.</li>
             <li>Procesar tus suscripciones a través de Mercado Pago.</li>
             <li>Enviarte notificaciones importantes sobre tus pedidos o estado del servicio.</li>
+            <li>Enviarte mails de servicio: bienvenida, recupero de contraseña, avisos de la prueba y de tu cuenta, y un agradecimiento cuando cargás tu tarjeta. Si te registraste y no te suscribiste, te mandamos una sola vez un mail de seguimiento para ofrecerte ayuda; ese mail incluye un link para darte de baja y no recibir más este tipo de mails.</li>
             <li>Personalizar tu menú digital y el link público (slug).</li>
           </ul>
         </div>
@@ -30,7 +31,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">4. Servicios de terceros</h2>
-          <p>Snappy utiliza servicios externos como Mercado Pago (para cobros) y Supabase (para base de datos y autenticación). Estos servicios tienen sus propias políticas de privacidad y solo acceden a los datos necesarios para su función específica.</p>
+          <p>Snappy utiliza servicios externos como Mercado Pago (para cobros), Supabase (para base de datos y autenticación) y Resend (para el envío de mails). Estos servicios tienen sus propias políticas de privacidad y solo acceden a los datos necesarios para su función específica.</p>
         </div>
 
         <div>

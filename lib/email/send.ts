@@ -19,6 +19,8 @@ export type EmailMessage = {
   subject: string;
   html: string;
   text: string;
+  // Headers extra del mail (p. ej. List-Unsubscribe). Opcional: sin headers el body queda igual que siempre.
+  headers?: Record<string, string>;
 };
 
 export type SendEmailResult =
@@ -56,7 +58,10 @@ export async function sendEmail(msg: EmailMessage, opts: SendEmailOptions = {}):
     const res = await fetchImpl(RESEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ from: EMAIL_FROM, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text }),
+      body: JSON.stringify({
+        from: EMAIL_FROM, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text,
+        ...(msg.headers && Object.keys(msg.headers).length > 0 ? { headers: msg.headers } : {}),
+      }),
       signal: controller.signal,
     });
     if (!res.ok) return { ok: false, error: `resend_http_${res.status}` };

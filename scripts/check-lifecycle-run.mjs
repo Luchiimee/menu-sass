@@ -4,6 +4,7 @@
 //   node scripts/check-lifecycle-run.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
 import { runLifecycleEmails, maskEmail, MAX_SENDS_PER_RUN } from '../lib/email/lifecycleRun.ts';
+import { verifyUnsubToken } from '../lib/email/unsubscribe.ts';
 
 let failures = 0;
 function check(name, cond) {
@@ -12,6 +13,7 @@ function check(name, cond) {
 }
 
 const ADMINS = ['admin@snappy.uno'];
+const SECRET = 'secreto-de-prueba-para-la-baja-123';
 const NOW = new Date('2026-11-20T15:00:00Z');
 const created = (n) => new Date(NOW.getTime() - n * 86400000).toISOString();
 const rest = (id, dias, over = {}) => ({
@@ -21,14 +23,21 @@ const rest = (id, dias, over = {}) => ({
 });
 
 // Base falsa: `table` son las filas de restaurants, `log` el email_log con su unique (kind, dedupe_key).
-function fakeDb(table, { logged = [], reread = {} } = {}) {
+function fakeDb(table, { logged = [], reread = {}, unsub = [], unsubFails = false } = {}) {
   const log = new Map(logged.map((k) => [k, { status: 'sent' }]));
-  const calls = { reserve: 0, markSent: 0, markFailed: 0 };
+  const unsubList = new Set(unsub.map((e) => e.toLowerCase()));
+  const calls = { reserve: 0, markSent: 0, markFailed: 0, unsub: [] };
   const db = {
     async listCandidates() { return table; },
     // `reread`: cómo está el local cuando se vuelve a leer (simula cambios entre la selección y el envío)
     async getRestaurant(id) { return reread[id] ?? table.find((r) => r.id === id) ?? null; },
     async loggedKeys(keys) { return new Set(keys.filter((k) => log.has(k))); },
+    // lista de bajas: de los emails pedidos (en minúsculas), devuelve los que están dados de baja
+    async unsubscribed(emails) {
+      calls.unsub.push(...emails);
+      if (unsubFails) throw new Error('boom lista de bajas con datos');
+      return new Set(emails.filter((e) => unsubList.has(e)));
+    },
     async reserve(row) {
       calls.reserve++;
       if (log.has(row.dedupe_key)) return 'duplicate';
@@ -48,7 +57,15 @@ function fakeSend(handler = () => ({ ok: true, id: 're_1' })) {
   return fn;
 }
 
-const run = (db, send, extra = {}) => runLifecycleEmails({ db, send, now: NOW, adminEmails: ADMINS, dry: false, ...extra });
+const run = (db, send, extra = {}) => runLifecycleEmails({ db, send, now: NOW, adminEmails: ADMINS, dry: false, unsubSecret: SECRET, ...extra });
+
+// captura console.error para verificar qué se loguea
+async function withErrors(fn) {
+  const lines = [];
+  const orig = console.error;
+  console.error = (...a) => lines.push(a.map(String).join(' '));
+  try { return { result: await fn(), lines }; } finally { console.error = orig; }
+}
 
 console.log('email enmascarado');
 {
@@ -97,6 +114,81 @@ console.log('unique(kind, dedupe_key): carrera entre dos corridas');
   const r = await run(db, send);
   check('el insert rechazado por el unique se omite sin enviar', calls.reserve === 1 && send.sent.length === 0 && r.skipped.duplicate === 1);
   check('no toca la fila de la otra corrida', log.get('trial_ending:a1').status === 'pending' && calls.markSent === 0 && calls.markFailed === 0);
+}
+
+console.log('baja del mail B (trial_followup)');
+{
+  // mismo dueño con un local en el día 11 (mail A) y otro en el día 25 (mail B), dado de baja
+  const rows = [
+    rest('a9', 11, { owner_email: 'Dup@X.com' }),
+    rest('b9', 25, { owner_email: 'dup@x.com' }),
+    rest('b8', 26),
+  ];
+  const { db, log, calls } = fakeDb(rows, { unsub: ['dup@x.com'] });
+  const send = fakeSend();
+  const r = await run(db, send);
+  check('el B de quien se dio de baja no se envía ni se reserva', !send.sent.some((m) => m.to === 'dup@x.com') && !log.has('trial_followup:b9'));
+  check('se cuenta como omitido por baja', r.skipped.unsubscribed === 1);
+  check('el A al mismo email NO se ve afectado', send.sent.some((m) => m.to === 'Dup@X.com' && m.subject.includes('termina el')) && log.get('trial_ending:a9')?.status === 'sent');
+  check('los otros B se mandan', send.sent.some((m) => m.to === 'b8@gmail.com') && log.get('trial_followup:b8')?.status === 'sent');
+  check('la lista se consulta solo para los B (nunca para el A)', calls.unsub.length === 2 && calls.unsub.includes('dup@x.com') && calls.unsub.includes('b8@gmail.com') && !calls.unsub.includes('a9@gmail.com'));
+}
+{
+  // la consulta de bajas falla: ante la duda no se envía el B (y no corta al A)
+  const { db, log } = fakeDb([rest('a1', 11), rest('b1', 25)], { unsubFails: true });
+  const send = fakeSend();
+  const { result: r, lines } = await withErrors(() => run(db, send));
+  check('lista de bajas caída: el B no sale y no se reserva', !send.sent.some((m) => m.to === 'b1@gmail.com') && !log.has('trial_followup:b1') && r.failed === 1);
+  check('el A sí sale', send.sent.some((m) => m.to === 'a1@gmail.com'));
+  check('no se loguea el detalle del error', !lines.join(' ').includes('datos'));
+}
+
+console.log('mail B: link de baja visible y headers');
+{
+  const { db } = fakeDb([rest('b1', 25), rest('a1', 11)]);
+  const send = fakeSend();
+  await run(db, send);
+  const b = send.sent.find((m) => m.to === 'b1@gmail.com');
+  const a = send.sent.find((m) => m.to === 'a1@gmail.com');
+  const pageUrl = /https:\/\/snappy\.uno\/baja\?t=([A-Za-z0-9_.-]+)/;
+  check('el HTML lleva el link de baja', pageUrl.test(b.html));
+  check('el texto lleva el link de baja', pageUrl.test(b.text));
+  check('el link de baja firma el email del destinatario', verifyUnsubToken(b.html.match(pageUrl)[1], SECRET) === 'b1@gmail.com');
+  check('header List-Unsubscribe con el link de un clic', /^<https:\/\/snappy\.uno\/api\/baja\?t=[A-Za-z0-9_.-]+>$/.test(b.headers['List-Unsubscribe']));
+  check('el token del header también es del destinatario', verifyUnsubToken(b.headers['List-Unsubscribe'].match(/t=([^>]+)>/)[1], SECRET) === 'b1@gmail.com');
+  check('List-Unsubscribe-Post: List-Unsubscribe=One-Click', b.headers['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click');
+  check('sin mailto: (no hay casilla de contacto en lib/email/contact.ts)', !b.headers['List-Unsubscribe'].includes('mailto:'));
+  check('el secreto no aparece en el mail', !JSON.stringify(b).includes(SECRET));
+  check('el A no lleva link de baja ni headers', !a.html.includes('/baja') && !a.text.includes('/baja') && a.headers === undefined);
+}
+
+console.log('sin EMAIL_UNSUB_SECRET: se omiten todos los B');
+for (const empty of [undefined, null, '', '   ']) {
+  const { db, log, calls } = fakeDb([rest('a1', 11), rest('b1', 25), rest('b2', 26)]);
+  const send = fakeSend();
+  const { result: r, lines } = await withErrors(() => run(db, send, { unsubSecret: empty }));
+  const tag = JSON.stringify(empty);
+  check(`secreto ${tag}: ningún B se envía ni se reserva`, !send.sent.some((m) => m.subject.includes('venció')) && !log.has('trial_followup:b1') && !log.has('trial_followup:b2') && r.skipped.no_secret === 2);
+  check(`secreto ${tag}: el A sale igual`, send.sent.length === 1 && send.sent[0].to === 'a1@gmail.com' && r.sent === 1);
+  check(`secreto ${tag}: no consulta la lista de bajas`, calls.unsub.length === 0);
+  check(`secreto ${tag}: se loguea un código corto sin datos personales`, lines.some((l) => l.includes('UNSUB_SECRET_MISSING')) && !lines.join(' ').includes('@') && !lines.join(' ').includes('b1'));
+}
+
+console.log('dry=1: omitidos por baja o por falta de secreto, enmascarados');
+{
+  const { db, calls, log } = fakeDb([rest('a1', 11), rest('b1', 25), rest('b2', 26)], { unsub: ['b2@gmail.com'] });
+  const send = fakeSend();
+  const r = await run(db, send, { dry: true });
+  check('b2 (de baja) figura como omitido enmascarado', r.omitted.length === 1 && r.omitted[0].restaurant_id === 'b2' && r.omitted[0].reason === 'unsubscribed' && r.omitted[0].email === 'b***@gmail.com');
+  check('candidatos: el A y el B que no se dio de baja', r.candidates.length === 2 && !r.candidates.some((c) => c.restaurant_id === 'b2'));
+  check('no aparece ningún mail completo', !/[a-z0-9]+@gmail\.com/.test(JSON.stringify(r).replace(/[a-z]\*\*\*@gmail\.com/g, '')));
+  check('dry no envía ni escribe', send.sent.length === 0 && calls.reserve === 0 && log.size === 0);
+}
+{
+  const { db } = fakeDb([rest('a1', 11), rest('b1', 25), rest('b2', 26)]);
+  const { result: r } = await withErrors(() => run(db, fakeSend(), { dry: true, unsubSecret: undefined }));
+  check('sin secreto: los dos B figuran omitidos por no_secret, enmascarados', r.omitted.length === 2 && r.omitted.every((o) => o.reason === 'no_secret' && /^b\*\*\*@gmail\.com$/.test(o.email)));
+  check('sin secreto: el A sigue como candidato', r.candidates.length === 1 && r.candidates[0].restaurant_id === 'a1');
 }
 
 console.log('carrera: el local carga la tarjeta entre la selección y el envío');
