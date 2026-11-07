@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Loader2, User, Check, CreditCard, Clock, FileText, X, RefreshCw } from "lucide-react";
 import PaymentForm from "@/components/PaymentForm";
 import { trialDayNumber, trialDaysLeft, firstChargeDate } from "@/lib/trial";
+import { PRE_NO_ID_CODE, PRE_NO_ID_MESSAGE } from "@/lib/cancelDecision";
+import { whatsappLink } from "@/lib/email/contact";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 
 type Restaurant = {
@@ -401,7 +403,7 @@ function PlanContent() {
   };
 
   const handleCancelPlan = async () => {
-    if (!window.confirm("¿Estás seguro de cancelar la suscripción? Seguirás teniendo acceso hasta que termine tu periodo actual.")) return;
+    if (!window.confirm("¿Cancelar la suscripción?\n\nIntentaremos cancelarla en Mercado Pago. Si se confirma, tu plan pasa a cancelado ya mismo y el panel queda limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.")) return;
     setProcessingPlan(restaurant.subscription_plan);
     try {
       const response = await fetch("/api/mercadopago/subscription/cancel", {
@@ -413,7 +415,21 @@ function PlanContent() {
         setLinkedCard(null);
         toast.success("Suscripción cancelada.");
         window.dispatchEvent(new Event("profile-updated"));
-      } else throw new Error();
+      } else {
+        const body = await response.json().catch(() => null);
+        if (body?.code === PRE_NO_ID_CODE) {
+          // La suscripción de MP no está vinculada: no se canceló nada, el estado local no cambia.
+          toast.error(body.message || PRE_NO_ID_MESSAGE, {
+            duration: 20000,
+            action: {
+              label: "WhatsApp",
+              onClick: () => window.open(whatsappLink("Hola, quiero cancelar mi suscripción de Mercado Pago y no pude hacerlo desde Snappy."), "_blank"),
+            },
+          });
+          return;
+        }
+        throw new Error();
+      }
     } catch { toast.error("Error al cancelar la suscripción."); }
     finally { setProcessingPlan(null); }
   };

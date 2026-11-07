@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
-import { createSubscription, friendlyChargeError } from '@/lib/mercadopagoBilling';
+import { createSubscription, friendlyChargeError, cancelPreapproval } from '@/lib/mercadopagoBilling';
+import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 import crypto from 'crypto';
 import { trialExpiresAt } from '@/lib/trial';
 
@@ -213,14 +214,21 @@ export async function POST(req: Request) {
       trialEndsAt = trialExpiresAt(restaurant.created_at)?.toISOString() ?? null;
     }
 
+    // 7.b Preapproval viejo: se cancela en MP y recién ahí se borra el id. Si MP no
+    // confirma, se conserva la referencia y el guardado de la tarjeta sigue igual.
+    const release = await releasePreapproval(restaurant.mp_preapproval_id, cancelPreapproval);
+    if (release.code === 'CANCEL_FAILED') {
+      console.error(releaseLogLine('save-card', release, restaurant.id));
+    }
+
     // 8. UPDATE restaurants
     const updatePayload: Record<string, any> = {
       mp_customer_id:  customerId,
       mp_card_id:      cardId,
       card_last_four:  cardLastFour,
       card_brand:      cardBrand,
-      mp_preapproval_id: null, // limpiar cualquier preapproval viejo
     };
+    if (release.clearId) updatePayload.mp_preapproval_id = null;
 
     if (planId) updatePayload.subscription_plan = planId;
     if (trialEndsAt) updatePayload.trial_ends_at = trialEndsAt;

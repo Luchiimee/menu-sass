@@ -250,35 +250,27 @@ const handleResendEmail = () => {
 const handleCancelSubscription = async () => {
     if (!restaurant.mp_preapproval_id) return;
     
-    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nTu tarjeta se desvinculará y no habrá nuevos cobros. Seguirás teniendo acceso al panel hasta que termine tu periodo actual.";
+    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nIntentaremos cancelar tu suscripción en Mercado Pago. Si se confirma, tu plan pasará a cancelado, tu tarjeta se desvinculará y el panel quedará limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.";
     if (!confirm(confirmMsg)) return;
 
     setLoading(true);
     try {
-        // 1. Primero limpiamos el ID en Supabase para que el dashboard sepa que NO hay tarjeta
-        const { error: dbError } = await supabase
-            .from('restaurants')
-            .update({ 
-                mp_preapproval_id: null,
-                // Mantenemos el status para que no se bloquee el acceso hoy
-            })
-            .eq('user_id', userId);
+        // Solo el servidor toca mp_preapproval_id: cancela en Mercado Pago y recién
+        // cuando MP lo confirma actualiza la base. Si falla, no cambiamos nada local.
+        const res = await fetch('/api/mercadopago/subscription/cancel', { method: 'POST' });
 
-        if (dbError) throw dbError;
+        if (!res.ok) {
+            const body = await res.json().catch(() => null);
+            toast.error(body?.error || "No pudimos cancelar la suscripción. Tu plan sigue activo, intentá de nuevo en unos minutos.");
+            return;
+        }
 
-        // 2. Avisamos a la API para que Mercado Pago cancele el débito automático
-        await fetch('/api/mercadopago/cancel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, mpPreapprovalId: restaurant.mp_preapproval_id })
-        });
-
-        toast.success("Tarjeta desvinculada. Acceso activo hasta el vencimiento.");
+        toast.success("Suscripción cancelada.");
         window.location.reload();
 
     } catch (err) {
         console.error("Error al cancelar:", err);
-        toast.error("Error al procesar la cancelación");
+        toast.error("No pudimos cancelar la suscripción. Tu plan sigue activo, intentá de nuevo en unos minutos.");
     } finally {
         setLoading(false);
     }
