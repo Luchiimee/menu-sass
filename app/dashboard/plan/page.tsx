@@ -7,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
 import { Loader2, User, Check, CreditCard, Clock, FileText, X, RefreshCw } from "lucide-react";
 import PaymentForm from "@/components/PaymentForm";
-import { trialDayNumber, trialDaysLeft, trialExpiresAt } from "@/lib/trial";
+import { trialDayNumber, trialDaysLeft, firstChargeDate } from "@/lib/trial";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 
 type Restaurant = {
@@ -19,6 +19,7 @@ type Restaurant = {
   name?: string;
   slug?: string;
   created_at?: string;
+  trial_ends_at?: string | null;
   grace_period_until?: string | null;
 };
 
@@ -185,8 +186,9 @@ function PlanContent() {
   const fmtArDay = (d: Date) => d.toLocaleDateString("es-AR", { timeZone: AR_TZ, day: "numeric", month: "long" });
 
   const getChargeDate = () => {
-    // El primer cobro real es al terminar la prueba (00:00 AR del día 15, lib/trial)
-    const firstBilling = trialExpiresAt(restaurant.created_at);
+    // El primer cobro es el trial_ends_at ya guardado (lo que cobra cron/charge) y, si está
+    // vacío, el fin de la prueba por regla (00:00 AR del día 15). Ver firstChargeDate en lib/trial.
+    const firstBilling = firstChargeDate(restaurant.created_at, restaurant.trial_ends_at);
     if (!firstBilling) return '—';
     const today = new Date();
     // Si el primer cobro aún no ocurrió, mostrarlo directamente

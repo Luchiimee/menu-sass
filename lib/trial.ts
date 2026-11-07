@@ -50,6 +50,16 @@ export function trialDayNumber(createdAt: string | Date | null | undefined, now:
   return d === null ? 0 : Math.max(1, d + 1);
 }
 
+// Fecha del primer cobro: la que cobra cron/charge, que es trial_ends_at si ya está guardado
+// (save-card lo respeta) y, solo si está vacío o no es una fecha, el fin de la prueba por regla.
+export function firstChargeDate(
+  createdAt: string | Date | null | undefined,
+  trialEndsAt: string | Date | null | undefined,
+): Date | null {
+  const stored = parse(trialEndsAt);
+  return stored ?? trialExpiresAt(createdAt);
+}
+
 // ¿La prueba vencida bloquea el acceso? Solo para locales 'trialing'. Un local con tarjeta
 // guardada (mp_card_id) no se bloquea: espera el cobro del cron al terminar la prueba.
 export function isTrialBlocking(opts: {

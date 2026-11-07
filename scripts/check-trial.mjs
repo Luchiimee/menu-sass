@@ -6,7 +6,7 @@
 // (día del alta = día 1, último día de uso = 14 inclusive).
 
 import {
-  TRIAL_DAYS, trialExpiresAt, trialLastDay, isTrialExpired, trialDaysLeft, trialDayNumber, isTrialBlocking,
+  TRIAL_DAYS, trialExpiresAt, trialLastDay, isTrialExpired, trialDaysLeft, trialDayNumber, isTrialBlocking, firstChargeDate,
 } from '../lib/trial.ts';
 import { fechaLargaArg } from '../lib/email/dates.ts';
 
@@ -91,6 +91,24 @@ console.log('bloqueo (isTrialBlocking)');
     check(`estado ${status}: el vencimiento de la prueba no aplica`, !isTrialBlocking({ ...base, status }));
   }
   check('created_at nulo → no bloquea', !isTrialBlocking({ ...base, createdAt: null }));
+}
+
+console.log('fecha de primer cobro (firstChargeDate)');
+{
+  // alta 15:00 AR del 6/11 guardó trial_ends_at con la regla vieja: created_at + 14×24h = 18:00Z del 20/11
+  const guardado = '2026-11-20T18:00:00.000Z';
+  check('con trial_ends_at guardado se usa ese valor', firstChargeDate(ALTAS['15:00'], guardado).toISOString() === guardado);
+  check('sin trial_ends_at (null) cae en la regla: 00:00 AR del día 15', firstChargeDate(ALTAS['15:00'], null).toISOString() === FIN);
+  check('undefined y string vacío también', firstChargeDate(ALTAS['15:00'], undefined).toISOString() === FIN && firstChargeDate(ALTAS['15:00'], '').toISOString() === FIN);
+  check('trial_ends_at inválido cae en la regla', firstChargeDate(ALTAS['15:00'], 'nada').toISOString() === FIN);
+  check('acepta Date', firstChargeDate(ALTAS['15:00'], new Date(guardado)).toISOString() === guardado);
+  check('la diferencia entre ambos casos: el valor guardado es 15 hs posterior a la regla nueva',
+    firstChargeDate(ALTAS['15:00'], guardado) - firstChargeDate(ALTAS['15:00'], null) === 15 * 3600000);
+  check('con trial_ends_at guardado no importa un created_at inválido', firstChargeDate('nada', guardado).toISOString() === guardado);
+  check('sin ninguno de los dos → null', firstChargeDate(null, null) === null && firstChargeDate('nada', 'nada') === null);
+  // un local con tarjeta de la regla vieja se cobra el día 16 por la mañana, no el 15
+  check('el día mostrado (AR) con el valor guardado es el 20/11 (cobra el cron del 20/11 07:00 AR si ya pasó, si no el siguiente)',
+    fechaLargaArg(firstChargeDate(ALTAS['15:00'], guardado)) === '20 de noviembre de 2026');
 }
 
 console.log('tabla vieja (planAccess: ceil(días) >= 14) vs. nueva');
