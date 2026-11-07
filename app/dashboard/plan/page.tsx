@@ -7,6 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
 import { Loader2, User, Check, CreditCard, Clock, FileText, X, RefreshCw } from "lucide-react";
 import PaymentForm from "@/components/PaymentForm";
+import { trialDayNumber, trialDaysLeft, firstChargeDate } from "@/lib/trial";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 
 type Restaurant = {
@@ -18,6 +19,7 @@ type Restaurant = {
   name?: string;
   slug?: string;
   created_at?: string;
+  trial_ends_at?: string | null;
   grace_period_until?: string | null;
 };
 
@@ -168,30 +170,35 @@ function PlanContent() {
     loadData();
   }, []);
 
-  const getTrialStatus = () => {
-    if (!restaurant?.created_at) return 0;
-    const diff = new Date().getTime() - new Date(restaurant.created_at).getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
-  };
+  // Día de la prueba (lib/trial): el día del alta es el 1 y el último es el 14.
+  const trialDay = trialDayNumber(restaurant?.created_at, new Date());
+  const trialDaysRemaining = trialDaysLeft(restaurant?.created_at, new Date());
 
-  const trialDay = getTrialStatus();
+  // Fechas siempre en hora Argentina (no la del navegador).
+  const AR_TZ = "America/Argentina/Buenos_Aires";
+  const arDay = (d: Date) => {
+    const p = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", { timeZone: AR_TZ, year: "numeric", month: "numeric", day: "numeric" })
+        .formatToParts(d).map(x => [x.type, x.value])
+    );
+    return { y: Number(p.year), m: Number(p.month), d: Number(p.day) };
+  };
+  const fmtArDay = (d: Date) => d.toLocaleDateString("es-AR", { timeZone: AR_TZ, day: "numeric", month: "long" });
 
   const getChargeDate = () => {
-    if (!restaurant.created_at) return '—';
-    const created = new Date(restaurant.created_at);
+    // El primer cobro es el trial_ends_at ya guardado (lo que cobra cron/charge) y, si está
+    // vacío, el fin de la prueba por regla (00:00 AR del día 15). Ver firstChargeDate en lib/trial.
+    const firstBilling = firstChargeDate(restaurant.created_at, restaurant.trial_ends_at);
+    if (!firstBilling) return '—';
     const today = new Date();
-    // El primer cobro real es 14 días después del registro (fin del trial)
-    const firstBilling = new Date(created);
-    firstBilling.setDate(created.getDate() + 14);
     // Si el primer cobro aún no ocurrió, mostrarlo directamente
-    if (firstBilling > today) {
-      return firstBilling.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-    }
-    // Si ya ocurrió, calcular el próximo aniversario mensual
-    const billingDay = firstBilling.getDate();
-    const next = new Date(today.getFullYear(), today.getMonth(), billingDay);
-    if (next <= today) next.setMonth(next.getMonth() + 1);
-    return next.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+    if (firstBilling > today) return fmtArDay(firstBilling);
+    // Si ya ocurrió, calcular el próximo aniversario mensual (día del mes de cobro, en hora Argentina)
+    const billingDay = arDay(firstBilling).d;
+    const t = arDay(today);
+    let next = new Date(Date.UTC(t.y, t.m - 1, billingDay, 12));
+    if (next <= new Date(Date.UTC(t.y, t.m - 1, t.d, 12))) next = new Date(Date.UTC(t.y, t.m, billingDay, 12));
+    return fmtArDay(next);
   };
 
   const updateProfile = (field: string, value: string) => {
@@ -471,7 +478,7 @@ function PlanContent() {
             <h1 className="text-2xl font-black text-gray-900 italic uppercase tracking-tighter leading-none">Mi Plan Snappy</h1>
             <p className="text-xs text-gray-400 font-bold mt-2 uppercase tracking-widest">Gestión de suscripción y facturación</p>
           </div>
-          {trialDay < 14 && (
+          {trialDay >= 1 && trialDay <= 14 && (
             <span className="flex items-center gap-1.5 px-3 py-1 bg-[#F0FAF6] text-fresco rounded-full text-[10px] font-black uppercase tracking-tighter border border-[#E8F7F1]">
               <Clock size={12} /> Día {trialDay} de 14 gratis
             </span>
@@ -538,7 +545,7 @@ function PlanContent() {
                       Plan {restaurant.subscription_plan}
                       {isActive && <Check size={16} className="text-fresco" />}
                     </p>
-                    {isTrialing && !inGracePeriod && <p className="text-[11px] text-fresco font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{14 - trialDay} días restantes</span></p>}
+                    {isTrialing && !inGracePeriod && <p className="text-[11px] text-fresco font-bold uppercase tracking-wide mt-1">Periodo de prueba: <span className="font-black">{trialDaysRemaining} días restantes</span></p>}
                     {isCancelled && !inGracePeriod && (
                       <div className="mt-2 p-3 bg-brasa/10 rounded-2xl border border-brasa/10">
                         <p className="text-[10px] text-brasa font-black uppercase">Cancelada. Re-suscribite antes del <span className="underline">{getChargeDate()}</span>.</p>

@@ -15,6 +15,7 @@ import MobileNav from '@/components/MobileNav';
 import OrderListener from '@/components/OrderListener';
 import StaleShiftPrompt from '@/components/dashboard/StaleShiftPrompt';
 import { isAdminEmail, hasAdminSnappyAccess, hasBetaAccess } from '@/lib/access';
+import { trialDaysLeft, isTrialBlocking } from '@/lib/trial';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -112,18 +113,18 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
   };
 
   // --- LÓGICA DE TIEMPOS (TRIAL) ---
-  const getTrialDaysLeft = () => {
-    if (!restaurant.created_at) return 14;
-    const now = new Date();
-    const created = new Date(restaurant.created_at);
-    const diffTime = Math.abs(now.getTime() - created.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, 14 - diffDays);
-  };
-
-  const daysLeft = getTrialDaysLeft();
+  // Regla única de la prueba (lib/trial): termina a las 00:00 hora Argentina del día 15 desde el
+  // alta. Un local con tarjeta (mp_card_id) y trial_ends_at, o sea con cobro programado, no se bloquea.
+  const trialNow = new Date();
+  const daysLeft = trialDaysLeft(restaurant.created_at, trialNow);
   const hasActivePayment = restaurant.status === 'authorized' || restaurant.status === 'active';
-  const isTrialExpired = daysLeft <= 0 && restaurant.status === 'trialing' && !hasActivePayment;
+  const isTrialExpired = !hasActivePayment && isTrialBlocking({
+    status: restaurant.status,
+    createdAt: restaurant.created_at,
+    mpCardId: restaurant.mp_card_id,
+    trialEndsAt: restaurant.trial_ends_at,
+    now: trialNow,
+  });
   const onPlanPage = pathname === '/dashboard/plan';
 
   // Ventana de gracia: si existe y es futura, nunca bloqueamos
