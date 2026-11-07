@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
-import { chargeSubscription } from '@/lib/mercadopagoBilling';
+import { chargeSubscription, cancelPreapproval } from '@/lib/mercadopagoBilling';
+import { releasePreapproval, releaseLogCode } from '@/lib/preapprovalRelease';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +20,7 @@ export async function POST() {
     // 1. Obtener datos necesarios del restaurant
     const { data: restaurant, error: restError } = await supabase
       .from('restaurants')
-      .select('mp_customer_id, mp_card_id, card_brand, subscription_plan, owner_email')
+      .select('mp_customer_id, mp_card_id, card_brand, subscription_plan, owner_email, mp_preapproval_id')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -49,13 +50,22 @@ export async function POST() {
       const nextPayment = new Date();
       nextPayment.setDate(nextPayment.getDate() + 30);
 
+      // El cobro ya está aprobado (no se repite). El id solo se borra si MP confirma
+      // que el preapproval quedó cancelado; si no, se conserva la referencia.
+      const release = await releasePreapproval(restaurant.mp_preapproval_id, cancelPreapproval);
+      if (release.code === 'CANCEL_FAILED') {
+        console.error(`retry — ${releaseLogCode(release)}: se conserva mp_preapproval_id`);
+      }
+
+      const update: Record<string, any> = {
+        subscription_status: 'active',
+        next_payment_date:   nextPayment.toISOString(),
+      };
+      if (release.clearId) update.mp_preapproval_id = null;
+
       await supabase
         .from('restaurants')
-        .update({
-          subscription_status: 'active',
-          next_payment_date:   nextPayment.toISOString(),
-          mp_preapproval_id:   null,
-        })
+        .update(update)
         .eq('user_id', userId);
 
       return NextResponse.json({ success: true, reactivated: true });
