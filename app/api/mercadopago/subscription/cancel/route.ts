@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { cancelPreapproval } from '@/lib/mercadopagoBilling';
+import { decideCancel, PRE_NO_ID_CODE, PRE_NO_ID_MESSAGE } from '@/lib/cancelDecision';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,7 +19,7 @@ export async function POST() {
 
     const { data: restaurant, error: restError } = await supabase
       .from('restaurants')
-      .select('mp_preapproval_id')
+      .select('id, subscription_status, mp_preapproval_id, mp_card_id')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -26,10 +27,23 @@ export async function POST() {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
     }
 
+    const decision = decideCancel(restaurant);
+
+    // Cobra MP por su cuenta pero Snappy no tiene el preapproval: no podemos cancelarlo
+    // desde acá. No tocamos el estado ni la tarjeta, para no mostrar "cancelada" mientras
+    // MP sigue cobrando.
+    if (decision === 'blocked_no_id') {
+      console.error(`cancel — ${PRE_NO_ID_CODE} restaurant=${restaurant.id}: activo sin mp_preapproval_id ni mp_card_id, no se cancela`);
+      return NextResponse.json(
+        { success: false, code: PRE_NO_ID_CODE, message: PRE_NO_ID_MESSAGE },
+        { status: 409 }
+      );
+    }
+
     // Si tiene preapproval en MP, cancelarlo primero. Si MP no lo confirma,
     // no tocamos la base: borrar mp_preapproval_id perdería la referencia y MP
     // seguiría cobrando.
-    if (restaurant.mp_preapproval_id) {
+    if (decision === 'cancel_mp' && restaurant.mp_preapproval_id) {
       const result = await cancelPreapproval(restaurant.mp_preapproval_id);
       if (!result.ok) {
         console.error(`cancel — MP no canceló el preapproval ${restaurant.mp_preapproval_id}:`, result.detail);
@@ -40,13 +54,16 @@ export async function POST() {
       }
     }
 
+    // El id solo se borra si había uno y MP ya confirmó la cancelación (cancel_mp).
+    const update: Record<string, any> = {
+      subscription_status: 'cancelled',
+      mp_card_id:          null,
+    };
+    if (decision === 'cancel_mp') update.mp_preapproval_id = null;
+
     const { error: updateError } = await supabase
       .from('restaurants')
-      .update({
-        subscription_status: 'cancelled',
-        mp_preapproval_id:   null,
-        mp_card_id:          null,
-      })
+      .update(update)
       .eq('user_id', userId);
 
     if (updateError) {
