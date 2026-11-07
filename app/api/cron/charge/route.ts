@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { chargeSubscription, cancelPreapproval } from '@/lib/mercadopagoBilling';
-import { releasePreapproval, releaseLogCode } from '@/lib/preapprovalRelease';
+import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       // que el preapproval quedó cancelado; si no, se conserva la referencia.
       const release = await releasePreapproval(restaurant.mp_preapproval_id, cancelPreapproval);
       if (release.code === 'CANCEL_FAILED') {
-        console.error(`[cron/charge] ${releaseLogCode(release)}: se conserva mp_preapproval_id`);
+        console.error(releaseLogLine('[cron/charge]', release, restaurant.id));
       }
 
       const update: Record<string, any> = {

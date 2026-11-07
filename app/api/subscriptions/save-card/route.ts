@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { createSubscription, friendlyChargeError, cancelPreapproval } from '@/lib/mercadopagoBilling';
-import { releasePreapproval, releaseLogCode } from '@/lib/preapprovalRelease';
+import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 import crypto from 'crypto';
 import { trialExpiresAt } from '@/lib/trial';
 
@@ -218,7 +218,7 @@ export async function POST(req: Request) {
     // confirma, se conserva la referencia y el guardado de la tarjeta sigue igual.
     const release = await releasePreapproval(restaurant.mp_preapproval_id, cancelPreapproval);
     if (release.code === 'CANCEL_FAILED') {
-      console.error(`save-card — ${releaseLogCode(release)}: se conserva mp_preapproval_id`);
+      console.error(releaseLogLine('save-card', release, restaurant.id));
     }
 
     // 8. UPDATE restaurants

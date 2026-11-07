@@ -38,3 +38,9 @@ export async function releasePreapproval(
 export function releaseLogCode(r: ReleaseResult): string {
   return `PRE_${r.code}`;
 }
+
+// Línea de log para un local: código corto + restaurant.id (nunca email ni nombre), para poder
+// encontrar después qué locales quedaron con un preapproval vivo.
+export function releaseLogLine(prefix: string, r: ReleaseResult, restaurantId: string | null | undefined): string {
+  return `${prefix} — ${releaseLogCode(r)} restaurant=${restaurantId ?? 'desconocido'}: se conserva mp_preapproval_id`;
+}

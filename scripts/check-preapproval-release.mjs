@@ -4,7 +4,7 @@
 //
 // Regla: mp_preapproval_id solo se borra después de que MP confirma la cancelación.
 
-import { releasePreapproval, releaseLogCode } from '../lib/preapprovalRelease.ts';
+import { releasePreapproval, releaseLogCode, releaseLogLine } from '../lib/preapprovalRelease.ts';
 
 let failures = 0;
 function check(name, cond) {
@@ -88,6 +88,20 @@ console.log('respuesta rara de MP no cuenta como éxito');
     const release = await releasePreapproval('pre_1', mp.cancel);
     check(`${JSON.stringify(weird)} → conserva el id`, release.clearId === false);
   }
+}
+
+console.log('el log incluye restaurant.id y nada más del local');
+{
+  const failed = await releasePreapproval('pre_secreto_1', async () => ({ ok: false, detail: 'http=500 detalle' }));
+  const RID = '5b0c1a2e-1111-4222-8333-444455556666';
+  for (const prefix of ['retry', '[cron/charge]', 'save-card']) {
+    const line = releaseLogLine(prefix, failed, RID);
+    check(`${prefix}: incluye el código PRE_CANCEL_FAILED`, line.includes('PRE_CANCEL_FAILED'));
+    check(`${prefix}: incluye restaurant.id`, line.includes(`restaurant=${RID}`));
+    check(`${prefix}: no incluye el id del preapproval ni el detalle de MP`, !line.includes('pre_secreto_1') && !line.includes('detalle'));
+    check(`${prefix}: no incluye email ni nombre`, !line.includes('@') && !/nombre|name/i.test(line.replace('restaurant=', '')));
+  }
+  check('sin id, no inventa uno', releaseLogLine('retry', failed, undefined).includes('restaurant=desconocido'));
 }
 
 if (failures > 0) {
