@@ -32,6 +32,12 @@ const db: LifecycleDb = {
     if (error) throw new Error('email_log_query_failed');
     return new Set((data ?? []).map((r: { dedupe_key: string }) => r.dedupe_key));
   },
+  async unsubscribed(emailsLower) {
+    if (emailsLower.length === 0) return new Set();
+    const { data, error } = await supabase.from('email_unsubscribes').select('email_lower').in('email_lower', emailsLower);
+    if (error) throw new Error('email_unsubscribes_query_failed');
+    return new Set((data ?? []).map((r: { email_lower: string }) => r.email_lower));
+  },
   async reserve(row) {
     const { error } = await supabase.from('email_log').insert({ ...row, status: 'pending' });
     if (!error) return 'reserved';
@@ -58,7 +64,10 @@ export async function GET(request: Request) {
   const dry = new URL(request.url).searchParams.get('dry') === '1';
 
   try {
-    const result = await runLifecycleEmails({ db, send: sendEmail, now: new Date(), adminEmails: ADMIN_EMAILS, dry });
+    const result = await runLifecycleEmails({
+      db, send: sendEmail, now: new Date(), adminEmails: ADMIN_EMAILS, dry,
+      unsubSecret: process.env.EMAIL_UNSUB_SECRET, // sin definir: no sale ningún mail B
+    });
     console.log(`[cron/lifecycle-emails] dry=${dry} enviados=${result.sent} fallidos=${result.failed} candidatos=${result.candidates.length}`);
     return NextResponse.json({ success: true, ...result });
   } catch (err) {

@@ -74,3 +74,22 @@ export function unsubscribeUrl(email: string, secret: string | undefined | null)
   const token = signUnsubToken(email, secret);
   return token ? `${UNSUBSCRIBE_BASE_URL}?t=${token}` : null;
 }
+
+// Endpoint de baja con un solo clic (RFC 8058): el cliente de mail hace POST acá, sin abrir página.
+// Va en el header List-Unsubscribe; el link visible del pie va a la página /baja (que pide confirmar).
+export const UNSUBSCRIBE_API_URL = 'https://snappy.uno/api/baja';
+
+export function unsubscribeApiUrl(email: string, secret: string | undefined | null): string | null {
+  const token = signUnsubToken(email, secret);
+  return token ? `${UNSUBSCRIBE_API_URL}?t=${token}` : null;
+}
+
+// Headers de baja de un clic. Sin casilla de contacto en lib/email/contact.ts, va solo el link
+// (sin mailto:). Si no hay URL, no hay headers.
+export function unsubscribeHeaders(apiUrl: string | null | undefined): Record<string, string> | undefined {
+  if (!apiUrl) return undefined;
+  return {
+    'List-Unsubscribe': `<${apiUrl}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+}

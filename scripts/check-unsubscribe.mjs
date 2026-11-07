@@ -2,7 +2,10 @@
 //
 //   node scripts/check-unsubscribe.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
-import { signUnsubToken, verifyUnsubToken, unsubscribeUrl, normalizeEmail, UNSUBSCRIBE_BASE_URL } from '../lib/email/unsubscribe.ts';
+import {
+  signUnsubToken, verifyUnsubToken, unsubscribeUrl, unsubscribeApiUrl, unsubscribeHeaders, normalizeEmail,
+  UNSUBSCRIBE_BASE_URL, UNSUBSCRIBE_API_URL,
+} from '../lib/email/unsubscribe.ts';
 
 let failures = 0;
 function check(name, cond) {
@@ -103,6 +106,18 @@ console.log('unsubscribeUrl');
   check('la URL verifica', verifyUnsubToken(new URL(u).searchParams.get('t'), SECRET) === EMAIL);
   check('sin secreto → null', unsubscribeUrl(EMAIL, '') === null && unsubscribeUrl(EMAIL, undefined) === null);
   check('email inválido → null', unsubscribeUrl('nada', SECRET) === null);
+}
+
+console.log('endpoint de un clic y headers');
+{
+  const api = unsubscribeApiUrl(EMAIL, SECRET);
+  check('https://snappy.uno/api/baja?t=<token>', api === `${UNSUBSCRIBE_API_URL}?t=${signUnsubToken(EMAIL, SECRET)}` && api.startsWith('https://snappy.uno/api/baja?t='));
+  check('sin secreto → null', unsubscribeApiUrl(EMAIL, '') === null);
+  const h = unsubscribeHeaders(api);
+  check('List-Unsubscribe entre <>', h['List-Unsubscribe'] === `<${api}>`);
+  check('List-Unsubscribe-Post de un clic', h['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click');
+  check('sin mailto:', !h['List-Unsubscribe'].includes('mailto:'));
+  check('sin URL → sin headers', unsubscribeHeaders(null) === undefined && unsubscribeHeaders(undefined) === undefined && unsubscribeHeaders('') === undefined);
 }
 
 console.log('el secreto no aparece en resultados ni en logs');

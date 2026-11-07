@@ -14,6 +14,7 @@ import { diasDesde, fechaLargaArg } from './dates.ts';
 import { TRIAL_DAYS, trialExpiresAt, trialLastDay as trialLastDayOf } from '../trial.ts';
 import { whatsappLink } from './contact.ts';
 import { emailButton, emailLayout, escapeHtml } from './layout.ts';
+import { unsubscribeHeaders } from './unsubscribe.ts';
 
 export { TRIAL_DAYS };
 export const TRIAL_ENDING_FROM_DAY = 10;
@@ -92,7 +93,7 @@ export function trialLastDay(createdAt: string): Date {
   return trialLastDayOf(createdAt) as Date;
 }
 
-export type LifecycleEmail = { subject: string; html: string; text: string };
+export type LifecycleEmail = { subject: string; html: string; text: string; headers?: Record<string, string> };
 
 const display = (name?: string | null) => (name && name.trim() ? name.trim() : 'tu local');
 
@@ -141,8 +142,25 @@ Recibiste este email porque tenés una cuenta en snappy.uno.
   return { subject: `Tu prueba de Snappy termina el ${fecha}`, html, text };
 }
 
-export function trialFollowupEmail(data: { name: string | null }): LifecycleEmail {
+// `unsubscribeUrl`: link de baja (página /baja) que va visible al pie, en HTML y en texto.
+// `unsubscribeApiUrl`: endpoint de un clic para los headers List-Unsubscribe. Sin ellos el mail
+// sale sin baja (solo para pruebas de plantilla: la corrida no manda el B sin link de baja).
+export function trialFollowupEmail(data: {
+  name: string | null;
+  unsubscribeUrl?: string | null;
+  unsubscribeApiUrl?: string | null;
+}): LifecycleEmail {
   const name = display(data.name);
+  const unsubHtml = data.unsubscribeUrl
+    ? `
+              <p style="margin:12px 0 0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                ¿No querés recibir más este tipo de mails?
+                <a href="${escapeHtml(data.unsubscribeUrl)}" style="color:#86877B;text-decoration:underline;">Date de baja acá</a>.
+              </p>`
+    : '';
+  const unsubText = data.unsubscribeUrl
+    ? `\n¿No querés recibir más este tipo de mails? Date de baja acá: ${data.unsubscribeUrl}\n`
+    : '';
   const html = emailLayout('Se venció tu prueba de Snappy', `
               <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#15160E;letter-spacing:-0.5px;line-height:1.2;">
                 Se venció tu prueba
@@ -166,7 +184,7 @@ export function trialFollowupEmail(data: { name: string | null }): LifecycleEmai
               <p style="margin:0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
                 Recibiste este email porque tenés una cuenta en
                 <a href="https://snappy.uno" style="color:#1BB179;text-decoration:none;">snappy.uno</a>.
-              </p>
+              </p>${unsubHtml}
 `);
   const text = `Se venció tu prueba
 
@@ -179,8 +197,9 @@ Hablar por WhatsApp: ${whatsappLink(WA_TEXT_FOLLOWUP)}
 O mirá los planes: ${PLAN_URL}
 
 Recibiste este email porque tenés una cuenta en snappy.uno.
-
+${unsubText}
 © ${new Date().getFullYear()} Snappy · hola@snappy.uno
 `;
-  return { subject: 'Se venció tu prueba de Snappy: ¿necesitás ayuda?', html, text };
+  const headers = unsubscribeHeaders(data.unsubscribeApiUrl);
+  return { subject: 'Se venció tu prueba de Snappy: ¿necesitás ayuda?', html, text, ...(headers ? { headers } : {}) };
 }
