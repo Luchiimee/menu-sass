@@ -403,7 +403,7 @@ function PlanContent() {
   };
 
   const handleCancelPlan = async () => {
-    if (!window.confirm("¿Estás seguro de cancelar la suscripción? Seguirás teniendo acceso hasta que termine tu periodo actual.")) return;
+    if (!window.confirm("¿Cancelar la suscripción?\n\nIntentaremos cancelarla en Mercado Pago. Si se confirma, tu plan pasa a cancelado ya mismo y el panel queda limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.")) return;
     setProcessingPlan(restaurant.subscription_plan);
     try {
       const response = await fetch("/api/mercadopago/subscription/cancel", {
