@@ -114,14 +114,15 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
 
   // --- LÓGICA DE TIEMPOS (TRIAL) ---
   // Regla única de la prueba (lib/trial): termina a las 00:00 hora Argentina del día 15 desde el
-  // alta. Un local con tarjeta guardada (mp_card_id) no se bloquea: espera el cobro del cron.
+  // alta. Un local con tarjeta (mp_card_id) y trial_ends_at, o sea con cobro programado, no se bloquea.
   const trialNow = new Date();
   const daysLeft = trialDaysLeft(restaurant.created_at, trialNow);
   const hasActivePayment = restaurant.status === 'authorized' || restaurant.status === 'active';
   const isTrialExpired = !hasActivePayment && isTrialBlocking({
     status: restaurant.status,
     createdAt: restaurant.created_at,
-    hasCard: !!restaurant.mp_card_id,
+    mpCardId: restaurant.mp_card_id,
+    trialEndsAt: restaurant.trial_ends_at,
     now: trialNow,
   });
   const onPlanPage = pathname === '/dashboard/plan';

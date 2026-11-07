@@ -4,7 +4,7 @@
 // Math.ceil: se migra a lib/trial en otro paso):
 //   - prueba vencida: status 'trialing' y la prueba terminó a las 00:00 hora Argentina del
 //     día 15 desde created_at (regla única en lib/trial.ts); un local con tarjeta guardada
-//     (mp_card_id) no se bloquea: espera el cobro del cron;
+//     (mp_card_id) Y trial_ends_at, o sea con el cobro programado, no se bloquea: espera al cron;
 //   - 'paused' o 'cancelled';
 //   - la ventana de gracia (grace_period_until futura) nunca bloquea;
 //   - los admins (ADMIN_EMAILS) no se bloquean por estado, pero SÍ por plan
@@ -22,7 +22,7 @@ export type PlanAccessResult =
 export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promise<PlanAccessResult> {
   const { data: rest, error } = await getSupabaseAdmin()
     .from('restaurants')
-    .select('id, subscription_plan, subscription_status, created_at, grace_period_until, owner_email, mp_card_id')
+    .select('id, subscription_plan, subscription_status, created_at, grace_period_until, owner_email, mp_card_id, trial_ends_at')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -44,7 +44,7 @@ export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promi
     const status = rest.subscription_status;
     if (status === 'paused') return { ok: false, status: 403, reason: 'paused' };
     if (status === 'cancelled') return { ok: false, status: 403, reason: 'cancelled' };
-    if (isTrialBlocking({ status, createdAt: rest.created_at, hasCard: !!rest.mp_card_id, now: new Date() })) {
+    if (isTrialBlocking({ status, createdAt: rest.created_at, mpCardId: rest.mp_card_id, trialEndsAt: rest.trial_ends_at, now: new Date() })) {
       return { ok: false, status: 403, reason: 'trial_expired' };
     }
   }

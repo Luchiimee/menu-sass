@@ -53,7 +53,7 @@ export default function AdminSnappyPage() {
         } else if (r?.subscription_status === 'cancelled' || r?.subscription_status === 'paused') {
           statusTag = { text: "Pago Cortado", color: "bg-orange-100 text-orange-700", icon: AlertTriangle };
           abandonmentReason = "Dejó de pagar";
-        } else if (isTrialBlocking({ status: r?.subscription_status, createdAt: r?.created_at ?? p.created_at, hasCard: !!r?.mp_card_id, now: new Date() })) {
+        } else if (isTrialBlocking({ status: r?.subscription_status, createdAt: r?.created_at ?? p.created_at, mpCardId: r?.mp_card_id, trialEndsAt: r?.trial_ends_at, now: new Date() })) {
           statusTag = { text: "Trial Vencido", color: "bg-red-100 text-red-700", icon: Clock };
           abandonmentReason = "No configuró pago";
         } else if (!r?.slug || r?.slug.includes('mi-local')) {

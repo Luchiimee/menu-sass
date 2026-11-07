@@ -6,7 +6,7 @@
 // (día del alta = día 1, último día de uso = 14 inclusive).
 
 import {
-  TRIAL_DAYS, trialExpiresAt, trialLastDay, isTrialExpired, trialDaysLeft, trialDayNumber, isTrialBlocking, firstChargeDate,
+  TRIAL_DAYS, trialExpiresAt, trialLastDay, isTrialExpired, trialDaysLeft, trialDayNumber, isTrialBlocking, chargeScheduled, firstChargeDate,
 } from '../lib/trial.ts';
 import { fechaLargaArg } from '../lib/email/dates.ts';
 
@@ -79,16 +79,39 @@ for (const v of [null, undefined, '', 'nada', '2026-13-45']) {
     trialDaysLeft(v, at('2030-01-01T00:00:00Z')) === 14 && trialDayNumber(v, at('2030-01-01T00:00:00Z')) === 0);
 }
 
+console.log('cobro programado (chargeScheduled)');
+{
+  const f = '2026-11-20T18:00:00.000Z';
+  check('tarjeta y fecha válida → true', chargeScheduled('card_1', f) && chargeScheduled('card_1', new Date(f)));
+  check('tarjeta sin fecha (null, undefined, vacío, inválida) → false',
+    [null, undefined, '', 'nada'].every((v) => !chargeScheduled('card_1', v)));
+  check('fecha sin tarjeta (null, undefined, vacía, espacios) → false',
+    [null, undefined, '', '  '].every((v) => !chargeScheduled(v, f)));
+  check('ninguna de las dos → false', !chargeScheduled(null, null));
+}
+
 console.log('bloqueo (isTrialBlocking)');
 {
-  const vencida = at('2026-11-20T15:00:00Z');
-  const vigente = at('2026-11-19T15:00:00Z');
-  const base = { status: 'trialing', createdAt: ALTAS['15:00'], hasCard: false, now: vencida };
+  const vencida = at('2026-11-20T15:00:00Z');   // día 15
+  const vigente = at('2026-11-19T15:00:00Z');   // día 14
+  const mesDespues = at('2026-12-20T15:00:00Z');
+  const base = { status: 'trialing', createdAt: ALTAS['15:00'], mpCardId: null, trialEndsAt: null, now: vencida };
+  const programado = { mpCardId: 'card_1', trialEndsAt: '2026-11-20T18:00:00.000Z' };
+
   check('trialing vencido sin tarjeta → bloquea', isTrialBlocking(base));
-  check('trialing vigente → no bloquea', !isTrialBlocking({ ...base, now: vigente }));
-  check('trialing vencido CON tarjeta → no bloquea (espera el cobro)', !isTrialBlocking({ ...base, hasCard: true }));
+  check('trialing vigente (día 14) → no bloquea', !isTrialBlocking({ ...base, now: vigente }));
+  check('sin tarjeta pero con trial_ends_at → bloquea', isTrialBlocking({ ...base, trialEndsAt: programado.trialEndsAt }));
+  check('con tarjeta y trial_ends_at válido → no bloquea el día 15', !isTrialBlocking({ ...base, ...programado }));
+  check('con tarjeta y trial_ends_at válido → no bloquea un mes después', !isTrialBlocking({ ...base, ...programado, now: mesDespues }));
+  for (const [nombre, v] of [['nulo', null], ['undefined', undefined], ['vacío', ''], ['inválido', 'nada']]) {
+    check(`con tarjeta y trial_ends_at ${nombre}: vigente el día 14, bloquea desde el día 15`,
+      !isTrialBlocking({ ...base, mpCardId: 'card_1', trialEndsAt: v, now: vigente }) &&
+      isTrialBlocking({ ...base, mpCardId: 'card_1', trialEndsAt: v, now: at('2026-11-20T03:00:00Z') }) &&
+      isTrialBlocking({ ...base, mpCardId: 'card_1', trialEndsAt: v, now: vencida }));
+  }
   for (const status of ['active', 'authorized', 'paused', 'cancelled', null, undefined]) {
-    check(`estado ${status}: el vencimiento de la prueba no aplica`, !isTrialBlocking({ ...base, status }));
+    check(`estado ${status}: el vencimiento de la prueba no aplica (con o sin cobro programado)`,
+      !isTrialBlocking({ ...base, status }) && !isTrialBlocking({ ...base, ...programado, status }));
   }
   check('created_at nulo → no bloquea', !isTrialBlocking({ ...base, createdAt: null }));
 }

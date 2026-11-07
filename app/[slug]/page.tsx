@@ -2756,11 +2756,12 @@ export default function MenuPage({
   const ownerEmail = restaurant.owner_email || '';
   const isAdminRestaurant = ADMIN_EMAILS.includes(ownerEmail);
 
-  // Calculamos si el trial expiró (regla única en lib/trial; un trialing con tarjeta espera el cobro)
+  // Calculamos si el trial expiró (regla única en lib/trial; un trialing con cobro programado espera al cron)
   const trialExpired = isTrialBlocking({
     status: restaurant.subscription_status,
     createdAt: restaurant.created_at,
-    hasCard: !!restaurant.mp_card_id,
+    mpCardId: restaurant.mp_card_id,
+    trialEndsAt: restaurant.trial_ends_at,
     now: new Date(),
   });
 

@@ -60,13 +60,25 @@ export function firstChargeDate(
   return stored ?? trialExpiresAt(createdAt);
 }
 
-// ¿La prueba vencida bloquea el acceso? Solo para locales 'trialing'. Un local con tarjeta
-// guardada (mp_card_id) no se bloquea: espera el cobro del cron al terminar la prueba.
+// ¿cron/charge va a cobrar a este local? Solo con tarjeta guardada Y una fecha de fin de prueba
+// válida: el cron elige los trialing por trial_ends_at <= now y un valor vacío nunca entra.
+export function chargeScheduled(
+  mpCardId: string | null | undefined,
+  trialEndsAt: string | Date | null | undefined,
+): boolean {
+  return !!mpCardId && String(mpCardId).trim() !== '' && parse(trialEndsAt) !== null;
+}
+
+// ¿La prueba vencida bloquea el acceso? Solo para locales 'trialing'. Se libera del bloqueo
+// únicamente si el cobro está programado (chargeScheduled): sin trial_ends_at rige la regla normal.
 export function isTrialBlocking(opts: {
   status: string | null | undefined;
   createdAt: string | Date | null | undefined;
-  hasCard: boolean;
+  mpCardId: string | null | undefined;
+  trialEndsAt: string | Date | null | undefined;
   now: Date;
 }): boolean {
-  return opts.status === 'trialing' && !opts.hasCard && isTrialExpired(opts.createdAt, opts.now);
+  return opts.status === 'trialing'
+    && !chargeScheduled(opts.mpCardId, opts.trialEndsAt)
+    && isTrialExpired(opts.createdAt, opts.now);
 }
