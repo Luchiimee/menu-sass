@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { createSubscription, friendlyChargeError } from '@/lib/mercadopagoBilling';
 import crypto from 'crypto';
+import { trialExpiresAt } from '@/lib/trial';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -207,11 +208,9 @@ export async function POST(req: Request) {
     } else if (restaurant.trial_ends_at) {
       // Ya tiene trial_ends_at → mantenerla sin tocarla
       trialEndsAt = restaurant.trial_ends_at;
-    } else if (restaurant.created_at) {
-      // Nuevo usuario sin trial_ends_at → calcular desde created_at
-      const trialEnd = new Date(restaurant.created_at);
-      trialEnd.setDate(trialEnd.getDate() + 14);
-      trialEndsAt = trialEnd.toISOString();
+    } else {
+      // Sin trial_ends_at → la fecha de fin de la prueba (lib/trial: 00:00 hora Argentina del día 15)
+      trialEndsAt = trialExpiresAt(restaurant.created_at)?.toISOString() ?? null;
     }
 
     // 8. UPDATE restaurants

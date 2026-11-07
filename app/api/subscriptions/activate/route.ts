@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { isPlanId } from '@/lib/plans';
+import { isTrialExpired } from '@/lib/trial';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,13 +30,9 @@ export async function POST(req: Request) {
 
     const now = new Date();
 
-    // ¿El usuario sigue dentro de su ventana de trial original?
-    let trialActive = true;
-    if (existing?.created_at) {
-      const trialEnd = new Date(existing.created_at);
-      trialEnd.setDate(trialEnd.getDate() + 14);
-      trialActive = trialEnd > now;
-    }
+    // ¿El usuario sigue dentro de su ventana de trial original? (regla única en lib/trial:
+    // vence a las 00:00 hora Argentina del día 15 desde el alta; sin created_at sigue activo)
+    const trialActive = !isTrialExpired(existing?.created_at, now);
 
     // Si el trial ya venció y no hay suscripción paga activa,
     // no se puede re-activar gratis: hay que cargar tarjeta.
