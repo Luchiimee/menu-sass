@@ -250,7 +250,7 @@ const handleResendEmail = () => {
 const handleCancelSubscription = async () => {
     if (!restaurant.mp_preapproval_id) return;
     
-    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nTu tarjeta se desvinculará y no habrá nuevos cobros. Seguirás teniendo acceso al panel hasta que termine tu periodo actual.";
+    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nIntentaremos cancelar tu suscripción en Mercado Pago. Si se confirma, tu plan pasará a cancelado, tu tarjeta se desvinculará y el panel quedará limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.";
     if (!confirm(confirmMsg)) return;
 
     setLoading(true);
