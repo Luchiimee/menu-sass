@@ -4,7 +4,10 @@ import { getSessionUser } from '@/lib/auth-server';
 import { createSubscription, friendlyChargeError, cancelPreapproval } from '@/lib/mercadopagoBilling';
 import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 import crypto from 'crypto';
-import { trialExpiresAt } from '@/lib/trial';
+import { trialExpiresAt, firstChargeDate } from '@/lib/trial';
+import { sendEmail } from '@/lib/email/send';
+import { chooseThanksMode } from '@/lib/email/thanks';
+import { sendThanks, emailLogThanksDb } from '@/lib/email/thanksRun';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,6 +46,43 @@ async function getOrCreateCustomer(
   return customer.id;
 }
 
+// Mail de agradecimiento al cargar la tarjeta. Es best-effort: NADA de lo que pase acá cambia lo que
+// save-card guarda, cobra ni responde. Todo el armado (variante, fecha) está dentro del try/catch,
+// sendThanks nunca lanza y espera como máximo ~3 s. Los logs llevan un código corto y restaurant.id.
+async function thanksAfterSave(i: {
+  restaurantId: string;
+  ownerEmail: string | null;
+  name: string | null;
+  reactivated: boolean; // true solo con el cobro de la reactivación ya aprobado
+  statusBefore: string | null;
+  createdAt: string | null;
+  trialEndsAt: string | null;
+  plan: string | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
+}): Promise<void> {
+  try {
+    const mode = i.reactivated
+      ? 'reactivation'
+      : chooseThanksMode({ status: i.statusBefore, createdAt: i.createdAt, trialEndsAt: i.trialEndsAt, now: new Date() });
+    if (!mode) return; // p. ej. un local ya activo: no corresponde el gracias
+
+    await sendThanks({
+      db: emailLogThanksDb(supabase),
+      send: (msg) => sendEmail(msg, { timeoutMs: 2500 }),
+      restaurant: { id: i.restaurantId, owner_email: i.ownerEmail, name: i.name },
+      mode,
+      plan: i.plan,
+      cardBrand: i.cardBrand,
+      cardLast4: i.cardLast4,
+      firstChargeDate: mode === 'trial' ? firstChargeDate(i.createdAt, i.trialEndsAt) : null,
+      maxMs: 3000,
+    });
+  } catch {
+    console.error(`[thanks] code=THANKS_CALL_ERROR restaurant=${i.restaurantId}`);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     // 1. Autenticación
@@ -65,7 +105,7 @@ export async function POST(req: Request) {
     const [{ data: restaurant, error: restError }, { data: profile }] = await Promise.all([
       supabase
         .from('restaurants')
-        .select('id, created_at, mp_customer_id, mp_preapproval_id, subscription_status, subscription_plan, trial_ends_at, grace_period_until')
+        .select('id, created_at, mp_customer_id, mp_preapproval_id, subscription_status, subscription_plan, trial_ends_at, grace_period_until, owner_email, name')
         .eq('user_id', userId)
         .maybeSingle(),
       supabase
@@ -129,7 +169,7 @@ export async function POST(req: Request) {
         } catch { /* display best-effort */ }
 
         // next_payment_date en null → el cron NO los recobra (MP maneja lo recurrente)
-        await supabase.from('restaurants').update({
+        const { error: reactivationUpdateError } = await supabase.from('restaurants').update({
           subscription_status: 'active',
           mp_preapproval_id:   result.preapprovalId,
           mp_customer_id:      customerId,
@@ -137,6 +177,16 @@ export async function POST(req: Request) {
           card_brand:          brand,
           next_payment_date:   null,
         }).eq('user_id', userId);
+
+        // Gracias: solo con el cobro aprobado y la tarjeta guardada. No cambia la respuesta.
+        if (!reactivationUpdateError) {
+          await thanksAfterSave({
+            restaurantId: restaurant.id, ownerEmail: restaurant.owner_email, name: restaurant.name,
+            reactivated: true, statusBefore: restaurant.subscription_status,
+            createdAt: restaurant.created_at, trialEndsAt: restaurant.trial_ends_at,
+            plan: effectivePlan, cardBrand: brand, cardLast4: last4,
+          });
+        }
 
         return NextResponse.json({ success: true, charged: true, card_last_four: last4, card_brand: brand });
       }
@@ -245,6 +295,14 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // 8.b Gracias: tarjeta guardada sin cobro. No cambia la respuesta ni lo guardado.
+    await thanksAfterSave({
+      restaurantId: restaurant.id, ownerEmail: restaurant.owner_email, name: restaurant.name,
+      reactivated: false, statusBefore: restaurant.subscription_status,
+      createdAt: restaurant.created_at, trialEndsAt,
+      plan: planId || restaurant.subscription_plan, cardBrand, cardLast4: cardLastFour,
+    });
 
     // 9. Éxito guardando la tarjeta (usuario que NO estaba pausado/cancelado:
     // la reactivación con cobro ya se resolvió arriba en el paso 4.b).
