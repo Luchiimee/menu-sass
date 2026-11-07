@@ -83,6 +83,38 @@ console.log('resend');
   check('EMAIL_PROVIDER se normaliza (espacios y mayúsculas)', f.calls.length === 1 && f.calls[0].url.includes('resend.com'));
 }
 
+console.log('headers opcionales');
+{
+  const headers = {
+    'List-Unsubscribe': '<https://snappy.uno/baja?t=abc>',
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+  const f = fakeFetch(() => respond(200, { id: 're_h' }));
+  const r = await sendEmail({ ...msg, headers }, { fetchImpl: f, env: { RESEND_API_KEY: KEY_R } });
+  const body = JSON.parse(f.calls[0].init.body);
+  check('con headers: ok', r.ok === true && r.id === 're_h');
+  check('con headers: van en el campo headers del body', JSON.stringify(body.headers) === JSON.stringify(headers));
+  check('con headers: el resto del body no cambia', body.to === msg.to && body.subject === msg.subject && body.html === msg.html && body.text === msg.text && body.from === EMAIL_FROM);
+  check('con headers: la clave sigue sin ir en el body', !f.calls[0].init.body.includes(KEY_R));
+}
+{
+  const f = fakeFetch(() => respond(200, { id: 're_n' }));
+  await sendEmail(msg, { fetchImpl: f, env: { RESEND_API_KEY: KEY_R } });
+  const body = JSON.parse(f.calls[0].init.body);
+  check('sin headers: el body no trae el campo headers', !('headers' in body));
+  check('sin headers: body idéntico al de siempre', JSON.stringify(Object.keys(body)) === JSON.stringify(['from', 'to', 'subject', 'html', 'text']));
+}
+{
+  const f = fakeFetch(() => respond(200, { id: 're_e' }));
+  await sendEmail({ ...msg, headers: {} }, { fetchImpl: f, env: { RESEND_API_KEY: KEY_R } });
+  check('headers vacío: no se manda el campo', !('headers' in JSON.parse(f.calls[0].init.body)));
+}
+{
+  const f = fakeFetch(() => respond(200, {}));
+  const { result, lines } = await captureLogs(() => sendEmail({ ...msg, headers: { 'List-Unsubscribe': '<https://snappy.uno/baja?t=TOKEN-SECRETO>' } }, { fetchImpl: f, env: { EMAIL_PROVIDER: 'console' } }));
+  check('console: no imprime los headers (llevan el token)', result.ok === true && !lines.join(' ').includes('TOKEN-SECRETO') && f.calls.length === 0);
+}
+
 console.log('consola y proveedor desconocido');
 {
   const f = fakeFetch(() => respond(200, {}));
