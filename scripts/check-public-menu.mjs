@@ -2,9 +2,10 @@
 //
 //   node scripts/check-public-menu.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
+import { readFileSync } from 'node:fs';
 import {
   PUBLIC_RESTAURANT_COLUMNS, SUSPENSION_COLUMNS, PUBLIC_SNAPPYLINK_COLUMNS,
-  toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug,
+  toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug, columnFromPgError,
 } from '../lib/publicMenu.ts';
 
 let failures = 0;
@@ -29,7 +30,8 @@ console.log('PUBLIC_RESTAURANT_COLUMNS: lista cerrada');
   check('ordenada alfabéticamente', PUBLIC_RESTAURANT_COLUMNS.every((c, i, a) => i === 0 || a[i - 1] < c));
   check('subscription_plan sí entra (planType)', PUBLIC_RESTAURANT_COLUMNS.includes('subscription_plan'));
   check('id y name entran', PUBLIC_RESTAURANT_COLUMNS.includes('id') && PUBLIC_RESTAURANT_COLUMNS.includes('name'));
-  check('84 columnas', PUBLIC_RESTAURANT_COLUMNS.length === 84);
+  check('83 columnas', PUBLIC_RESTAURANT_COLUMNS.length === 83);
+  check('hero_video_url fuera de la lista (no existe en la base)', !PUBLIC_RESTAURANT_COLUMNS.includes('hero_video_url') && !SUSPENSION_COLUMNS.includes('hero_video_url'));
   check('ninguna columna de suspensión está en la lista pública', SUSPENSION_COLUMNS.every((c) => !PUBLIC_RESTAURANT_COLUMNS.includes(c)));
   check('columnas de snappylinks sin duplicados', new Set(PUBLIC_SNAPPYLINK_COLUMNS).size === PUBLIC_SNAPPYLINK_COLUMNS.length);
 }
@@ -109,6 +111,40 @@ console.log('isValidSlug');
   for (const [name, v] of malos) {
     check(`inválido: ${name}`, isValidSlug(v) === false);
   }
+}
+
+console.log('columnFromPgError: solo el nombre de la columna');
+{
+  check('mensaje típico de PostgREST', columnFromPgError('column restaurants.hero_video_url does not exist') === 'restaurants.hero_video_url');
+  check('con comillas', columnFromPgError('column "hero_video_url" does not exist') === 'hero_video_url');
+  check('mayúsculas en la frase', columnFromPgError('Column restaurants.foo_1 DOES NOT EXIST') === 'restaurants.foo_1');
+  check('no matchea otro error', columnFromPgError('relation "restaurants" does not exist') === null);
+  check('mensaje vacío, null y no-string → null', columnFromPgError('') === null && columnFromPgError(null) === null && columnFromPgError(undefined) === null && columnFromPgError(42) === null);
+  check('no devuelve el mensaje completo ni datos extra', columnFromPgError('column restaurants.x does not exist; detalle: dueno@x.com') === 'restaurants.x');
+  check('nombre con caracteres raros no matchea', columnFromPgError('column foo;drop table does not exist') === null);
+  check('mensaje enorme → null', columnFromPgError('column a does not exist' + 'x'.repeat(600)) === null);
+}
+
+console.log('coherencia con el listado real de columnas de producción (scripts/fixtures/restaurants-columns.json)');
+{
+  const fx = JSON.parse(readFileSync(new URL('./fixtures/restaurants-columns.json', import.meta.url), 'utf8'));
+  const real = new Set(fx.columns);
+  check('el listado de producción no tiene duplicados', real.size === fx.columns.length);
+  const pedidas = [...PUBLIC_RESTAURANT_COLUMNS, ...SUSPENSION_COLUMNS];
+  const noVerificadas = [];
+  for (const col of pedidas) {
+    if (real.has(col)) {
+      check(`existe en producción: ${col}`, true);
+    } else if (!fx.complete && col > fx.lastKnown) {
+      noVerificadas.push(col); // cae después del corte del listado parcial: no es un fallo
+    } else {
+      check(`existe en producción: ${col}`, false);
+    }
+  }
+  if (noVerificadas.length > 0) {
+    console.log(`  --   NO VERIFICADAS contra producción (listado parcial, después de "${fx.lastKnown}"): ${noVerificadas.join(', ')}`);
+  }
+  check('ninguna columna pedida es una de las que se sabe que NO existen', !pedidas.includes('hero_video_url'));
 }
 
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallo(s)`);
