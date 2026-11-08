@@ -270,7 +270,18 @@ function PlanContent() {
           toast.success(`Plan cambiado a ${planId.toUpperCase()}. El nuevo precio aplica desde tu próximo ciclo.`);
         }
       } else {
-        await supabase.from('restaurants').update({ subscription_plan: planId }).eq('user_id', userId);
+        // La elección de plan sin cobro la escribe el servidor (subscription_plan no se escribe desde el navegador)
+        const res = await fetch('/api/subscriptions/choose-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planId }),
+        });
+        if (res.status === 409) {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.message || 'Para cambiar de plan con tu suscripción actual usá el flujo de pago.');
+          return; // no se cambió nada: no se refresca el estado local
+        }
+        if (!res.ok) throw new Error('Error al elegir plan');
         toast.success(`Plan ${planId.toUpperCase()} seleccionado.`);
       }
       setRestaurant(prev => ({ ...prev, subscription_plan: planId }));
