@@ -215,38 +215,6 @@ const handleResendEmail = () => {
     }
 };
 // --- FUNCIONES DE SUSCRIPCIÓN (Mercado Pago) ---
-  const handleTogglePause = async () => {
-    if (!restaurant.mp_preapproval_id) return;
-    const isPausing = restaurant.subscription_status !== 'paused';
-    
-    const confirmMsg = isPausing 
-      ? "⏸️ ¿PAUSAR COBROS?\n\nTu menú se ocultará y no se realizarán cobros hasta que lo reactives." 
-      : "▶️ ¿REANUDAR COBROS?\n\nSe reactivará la visibilidad de tu menú y los cobros mensuales.";
-
-    if (!confirm(confirmMsg)) return;
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/mercadopago/pause', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId, 
-          mpPreapprovalId: restaurant.mp_preapproval_id, 
-          pause: isPausing 
-        })
-      });
-
-      if (res.ok) {
-        toast.success(`Suscripción ${isPausing ? 'pausada' : 'reanudada'}`);
-        window.location.reload();
-      } else throw new Error();
-    } catch (err) {
-      toast.error("Error al procesar la solicitud");
-      setLoading(false);
-    }
-  };
-
 const handleCancelSubscription = async () => {
     if (!restaurant.mp_preapproval_id) return;
     
@@ -568,23 +536,12 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 </div>
 
                 <hr className="border-gray-50" />
-{/* GESTIÓN DE SUSCRIPCIÓN (Solo si hay suscripción activa o pausada) */}
+{/* GESTIÓN DE SUSCRIPCIÓN (Solo si hay suscripción activa) */}
                 {restaurant.mp_preapproval_id && (
                   <div className="space-y-3 pt-2">
                     <hr className="border-gray-50 mb-4" />
                     <label className="text-[9px] font-black text-gray-400 mb-1 block uppercase tracking-widest">Suscripción Snappy</label>
                     
-                    <button 
-                      onClick={handleTogglePause} 
-                      className={`w-full py-3 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${
-                        restaurant.subscription_status === 'paused'
-                        ? 'bg-fresco/10 text-fresco hover:bg-fresco/10'
-                        : 'bg-brasa/10 text-brasa hover:bg-brasa/10'
-                      }`}
-                    >
-                      {restaurant.subscription_status === 'paused' ? '▶️ Reanudar mi Plan' : '⏸️ Pausar mi Plan'}
-                    </button>
-
                     <button 
                       onClick={handleCancelSubscription} 
                       className="w-full py-3 text-[10px] font-black text-alert bg-white border border-alert/10 rounded-xl hover:bg-alert/10 transition tracking-widest uppercase"
