@@ -20,3 +20,28 @@ export function decidePlanChange(
   if (status === null || status === undefined || status === '' || status === 'trialing') return 'allow';
   return 'use_billing_flow';
 }
+
+// Puerta de /api/subscriptions/change para la rama SIN suscripción activa (la que solo escribe
+// subscription_plan, sin cobro). Con suscripción activa (preapproval + active/authorized) la puerta
+// no aplica: ahí manda el flujo de cobro y prorrateo de la ruta.
+//   { ok: true }                                  seguir como hoy
+//   { ok: false, status: 400, code: 'INVALID_PLAN' }
+//   { ok: false, status: 409, code: 'USE_BILLING_FLOW' }   no escribir nada
+export type ChangePlanGateRestaurant = {
+  mp_preapproval_id?: string | null;
+  subscription_status?: string | null;
+  subscription_plan?: string | null;
+} | null | undefined;
+
+export type ChangePlanGate = { ok: true } | { ok: false; status: 400 | 409; code: 'INVALID_PLAN' | 'USE_BILLING_FLOW' };
+
+export function changePlanGate(restaurant: ChangePlanGateRestaurant, requestedPlan: unknown): ChangePlanGate {
+  const status = restaurant?.subscription_status;
+  const hasActiveSub = !!restaurant?.mp_preapproval_id && (status === 'active' || status === 'authorized');
+  if (hasActiveSub) return { ok: true };
+
+  const decision = decidePlanChange(status, restaurant?.subscription_plan, requestedPlan);
+  if (decision === 'invalid_plan') return { ok: false, status: 400, code: 'INVALID_PLAN' };
+  if (decision === 'use_billing_flow') return { ok: false, status: 409, code: 'USE_BILLING_FLOW' };
+  return { ok: true };
+}

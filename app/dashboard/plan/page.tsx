@@ -258,6 +258,12 @@ function PlanContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, plan: planId, email: profile.email }),
         });
+        if (res.status === 409) {
+          // El servidor no deja cambiar el plan con este estado de suscripción: no se cambió nada
+          const blocked = await res.json().catch(() => ({}));
+          toast.error(blocked.message || 'Para cambiar de plan con tu suscripción actual usá el flujo de pago.');
+          return; // no se refresca el estado local
+        }
         if (!res.ok) throw new Error('Error al cambiar plan');
         const data = await res.json();
         // El server compara contra el monto real del preapproval (puede ser un precio viejo)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { PLAN_PRICES as prices, isPlanId, type PlanId } from '@/lib/plans';
+import { changePlanGate } from '@/lib/planChoice';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('mp_preapproval_id, subscription_status, subscription_plan, owner_email')
+      .select('id, mp_preapproval_id, subscription_status, subscription_plan, owner_email')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -127,6 +128,25 @@ export async function POST(req: Request) {
     const currentPlan = restaurant?.subscription_plan;
     const status = restaurant?.subscription_status;
     const hasActiveSub = preapprovalId && (status === 'active' || status === 'authorized');
+
+    // Puerta de la rama SIN suscripción activa (la que solo escribe subscription_plan): con paused,
+    // cancelled o active sin preapproval el cambio pasa por el flujo de cobro. Con suscripción activa
+    // la puerta devuelve ok y sigue el cobro/prorrateo de abajo sin cambios.
+    const gate = changePlanGate(restaurant, plan);
+    if (!gate.ok) {
+      console.warn(`[change] code=${gate.code} restaurant=${restaurant?.id ?? 'sin-local'}`);
+      if (gate.status === 400) {
+        return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          code: gate.code,
+          message: 'Con tu suscripción en este estado el cambio de plan se hace desde el flujo de pago. Configurá tu método de pago desde "Mi plan".',
+        },
+        { status: gate.status }
+      );
+    }
 
     let proratedAmount = 0;
     let daysRemaining = 0;
