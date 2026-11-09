@@ -5,11 +5,11 @@ import {
   PUBLIC_RESTAURANT_COLUMNS,
   PUBLIC_SNAPPYLINK_COLUMNS,
   SUSPENSION_COLUMNS,
+  buildMenuResponse,
   columnFromPgError,
-  computeMenuSuspension,
+  escapeLikePattern,
   isValidSlug,
-  toPublicRestaurant,
-  toPublicSnappylink,
+  normalizeSlug,
 } from '@/lib/publicMenu';
 
 // Menú público con lista CERRADA de columnas (ver lib/publicMenu). Service role: el navegador no
@@ -34,18 +34,22 @@ const RESTAURANT_SELECT = [...PUBLIC_RESTAURANT_COLUMNS, ...SUSPENSION_COLUMNS].
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   try {
     const { slug: rawSlug } = await ctx.params;
-    // Igual que la página: minúsculas y sin espacios en los bordes; recién después se valida.
-    const slug = String(rawSlug ?? '').toLowerCase().trim();
+    // Next ya entrega params.slug decodificado (su route-matcher aplica decodeURIComponent): no se vuelve a
+    // decodificar. Se normaliza y se valida; un '%' que sobreviva (p. ej. %25) es inválido.
+    const slug = normalizeSlug(rawSlug);
     if (!isValidSlug(slug)) return notFound();
+    // La búsqueda es insensible a mayúsculas (ilike, como hoy) pero el slug NUNCA es un patrón:
+    // se escapan \, % y _ (el guion bajo es válido en un slug y en ilike es un comodín).
+    const slugPattern = escapeLikePattern(slug);
 
     const db = getSupabaseAdmin();
     const now = new Date();
 
-    // A. Prioridad 1: menú. El slug ya está validado (sin % ni _), así que ilike no tiene comodines.
+    // A. Prioridad 1: menú.
     const menu = await db
       .from('restaurants')
       .select(`${RESTAURANT_SELECT}, categories (id, name, image_url)`)
-      .ilike('slug', slug)
+      .ilike('slug', slugPattern)
       .maybeSingle();
 
     // PGRST116 (más de una fila) se trata como "sin menú", igual que hoy; cualquier otro error es un fallo.
@@ -56,20 +60,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
 
     if (menu.data) {
       const row = menu.data as unknown as Record<string, unknown>;
-      const { isSuspended, isAdmin } = computeMenuSuspension(row, ADMIN_EMAILS, now);
-      if (isSuspended) {
-        return NextResponse.json({ type: 'menu', isSuspended: true, isAdmin: false }, { headers: NO_STORE });
-      }
-      const restaurant = toPublicRestaurant(row);
       return NextResponse.json(
-        {
-          type: 'menu',
-          isSuspended: false,
-          isAdmin,
-          planType: (restaurant.subscription_plan as string | null | undefined) ?? null,
-          restaurant,
-          categories: (row.categories as unknown[]) ?? [],
-        },
+        buildMenuResponse({ type: 'menu', row, adminEmails: ADMIN_EMAILS, now, categories: (row.categories as unknown[]) ?? [] }),
         { headers: NO_STORE }
       );
     }
@@ -78,7 +70,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
     const bio = await db
       .from('snappylinks')
       .select(`${PUBLIC_SNAPPYLINK_COLUMNS.join(', ')}, restaurant:restaurants(${RESTAURANT_SELECT})`)
-      .ilike('slug', slug)
+      .ilike('slug', slugPattern)
       .maybeSingle();
 
     if (bio.error && bio.error.code !== 'PGRST116') {
@@ -94,25 +86,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
       return notFound();
     }
 
-    // La suspensión se evalúa antes que la bio inactiva, como en la página.
-    const { isSuspended, isAdmin } = computeMenuSuspension(restaurantRow, ADMIN_EMAILS, now);
-    if (isSuspended) {
-      return NextResponse.json({ type: 'bio', isSuspended: true, isAdmin: false }, { headers: NO_STORE });
-    }
-    if (bioRow.is_active === false) return notFound();
-
-    const restaurant = toPublicRestaurant(restaurantRow);
-    return NextResponse.json(
-      {
-        type: 'bio',
-        isSuspended: false,
-        isAdmin,
-        planType: (restaurant.subscription_plan as string | null | undefined) ?? null,
-        restaurant,
-        snappylink: toPublicSnappylink(bioRow),
-      },
-      { headers: NO_STORE }
-    );
+    // La suspensión se evalúa antes que la bio inactiva, como en la página (suspendido no trae datos).
+    const body = buildMenuResponse({ type: 'bio', row: restaurantRow, adminEmails: ADMIN_EMAILS, now, snappylinkRow: bioRow });
+    if (!body.isSuspended && bioRow.is_active === false) return notFound();
+    return NextResponse.json(body, { headers: NO_STORE });
   } catch {
     console.error('[public-menu] code=UNEXPECTED');
     return serverError();

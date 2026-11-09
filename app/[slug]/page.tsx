@@ -35,7 +35,7 @@ import CartFooter from "@/components/CartFooter";
 import ClearCartLogic from "@/components/ClearCartLogic";
 import MpReturn from "@/components/MpReturn";
 import { CartProvider, useCart } from "@/context/CartContext";
-import { isTrialBlocking } from "@/lib/trial";
+import { mapBioResponse, mapMenuResponse } from "@/lib/publicMenu";
 import MarketProTemplate from "@/components/templates/MarketProTemplate";
 import AlternaPro from "@/components/templates/AlternaPro";
 import UrbanoDark from "@/components/templates/UrbanoDark";
@@ -47,92 +47,62 @@ import MinimalWhite from "@/components/templates/MinimalWhite";
 import Carta from "@/components/templates/Carta";
 import Argentina from "@/components/templates/Argentina";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { ADMIN_EMAILS } from "@/lib/access";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 // --- 1. DATOS ---
-// --- 1. DATOS (ORDEN DE PRIORIDAD CORREGIDO) ---
-async function getRestaurant(slug: string) {
+// El local se pide al endpoint del servidor (lista cerrada de columnas): el navegador ya no lee
+// restaurants con select('*'). Productos y extras siguen leyéndose acá con la clave pública.
+type PageState =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "notfound" }
+  | { status: "suspended" }
+  | { status: "ok"; restaurant: any };
+
+async function loadPage(slug: string): Promise<PageState> {
   const cleanSlug = slug.toLowerCase().trim();
-  console.log("🔍 Buscando página para:", cleanSlug);
 
-  // 🚀 A. PRIORIDAD 1: Buscamos en la tabla de MENÚS (RESTAURANTS)
-  const { data: menuData } = await supabase
-    .from("restaurants")
-    .select(`*, categories (id, name, image_url)`)
-    .ilike("slug", cleanSlug)
-    .maybeSingle();
+  let res: Response;
+  try {
+    res = await fetch("/api/public/menu/" + encodeURIComponent(cleanSlug), { cache: "no-store" });
+  } catch {
+    return { status: "error" };
+  }
+  if (res.status === 404) return { status: "notfound" };
+  if (!res.ok) return { status: "error" };
 
-  if (menuData) {
-    console.log("✅ MENÚ ENCONTRADO - PRIORIDAD ALTA");
-    const { data: rawProducts } = await supabase
-      .from("products")
-      .select("id, name, description, price, image_url, video_url, category_id, sale_type, variations, es_destacado")
-      .eq("restaurant_id", menuData.id)
-      .order("name", { ascending: true });
-
-    // El Plan Light no incluye video en el catálogo — lo sacamos acá para que
-    // no se muestre en el menú público aunque haya quedado cargado de un plan anterior.
-    const products = (rawProducts || []).map((p: any) =>
-      menuData.subscription_plan === 'light' ? { ...p, video_url: null } : p
-    );
-
-    const { data: allExtras } = await supabase
-      .from("extras")
-      .select(`*, product_extras (product_id)`)
-      .eq("restaurant_id", menuData.id);
-
-    const categoriesWithProducts = (menuData.categories || []).map(
-      (cat: any) => ({
-        ...cat,
-        products: (products || []).filter(
-          (p: any) => String(p.category_id) === String(cat.id),
-        ),
-      }),
-    );
-
-    return {
-      ...menuData,
-      categories: categoriesWithProducts,
-      fetched_products: products || [],
-      fetched_extras: allExtras || [],
-      page_type: "menu",
-    };
+  let body: any;
+  try {
+    body = await res.json();
+  } catch {
+    return { status: "error" };
   }
 
-  // 🚀 B. PRIORIDAD 2: Solo si no hay menú, buscamos en SnappyLinks (BIO)
-  const { data: bioData } = await supabase
-    .from("snappylinks")
-    .select(`*, restaurant:restaurants(*)`)
-    .ilike("slug", cleanSlug)
-    .maybeSingle();
+  // Local suspendido: el servidor no manda ningún dato del local
+  if (body.isSuspended) return { status: "suspended" };
 
-  if (bioData) {
-    console.log("✅ BIO ENCONTRADA - NO HABÍA MENÚ CON ESTE SLUG");
-    return {
-      ...bioData.restaurant,
-      snappylink_bio: bioData.bio,
-      snappylink_links: bioData.links,
-      snappylink_template_id: bioData.template_id,
-      is_bio_active: bioData.is_active,
-      snappylink_title: bioData.title,
-      snappylink_bg_color: bioData.bg_color,
-      snappylink_bg_img: bioData.bg_img,
-      snappylink_btn_color: bioData.btn_color,
-      snappylink_btn_text_color: bioData.btn_text_color,
-      snappylink_shadow_color: bioData.shadow_color,
-      snappylink_title_color: bioData.title_color,
-      snappylink_desc_color: bioData.desc_color,
-      snappylink_social_links: (bioData as any).social_links || [],
-      snappylink_social_pos: (bioData as any).social_pos || "bottom",
-      page_type: "bio",
-    };
+  // Bio (solo si no hay menú con ese slug; el orden lo resuelve el servidor)
+  if (body.type === "bio") {
+    return { status: "ok", restaurant: mapBioResponse(body) };
   }
 
-  return null;
+  // Menú: productos y extras como siempre, con restaurant.id (clave pública)
+  const restaurantId = body.restaurant.id;
+  const { data: rawProducts } = await supabase
+    .from("products")
+    .select("id, name, description, price, image_url, video_url, category_id, sale_type, variations, es_destacado")
+    .eq("restaurant_id", restaurantId)
+    .order("name", { ascending: true });
+
+  const { data: allExtras } = await supabase
+    .from("extras")
+    .select(`*, product_extras (product_id)`)
+    .eq("restaurant_id", restaurantId);
+
+  return { status: "ok", restaurant: mapMenuResponse(body, rawProducts, allExtras) };
 }
 // --- 2. HORARIOS ---
 function checkIsOpen(businessHours: any) {
@@ -2720,66 +2690,53 @@ export default function MenuPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const [restaurant, setRestaurant] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<PageState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     async function load() {
+      // En un reintento se vuelve a mostrar el loader y no se conservan datos viejos
+      if (attempt > 0) setState({ status: "loading" });
       try {
         const resolvedParams = await params;
-        const data = await getRestaurant(resolvedParams.slug);
-        if (active) {
-          setRestaurant(data);
-          setLoading(false);
-        }
+        const result = await loadPage(resolvedParams.slug);
+        if (active) setState(result);
       } catch (error) {
         console.error("Error en carga:", error);
-        if (active) setLoading(false);
+        if (active) setState({ status: "error" });
       }
     }
     load();
     return () => { active = false; };
-  }, [params]);
+  }, [params, attempt]);
 
-  if (loading)
+  if (state.status === "loading")
     return (
       <div className="h-screen flex items-center justify-center bg-white">
         <Loader2 className="animate-spin text-black" size={40} />
       </div>
     );
 
-  if (!restaurant) return notFound();
+  // Error de red o del servidor: se puede reintentar (no es un 404)
+  if (state.status === "error")
+    return (
+      <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-gray-700 text-sm font-medium">No pudimos cargar el menú.</p>
+        <button
+          onClick={() => setAttempt((n) => n + 1)}
+          className="mt-4 px-6 py-3 bg-black text-white rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
 
-  // ✅ ADMIN IMMUNITY: se basa en el DUEÑO del restaurante, no en el visitante.
-  // Funciona en incógnito, celular, cualquier dispositivo — no requiere sesión activa.
-  const ownerEmail = restaurant.owner_email || '';
-  const isAdminRestaurant = ADMIN_EMAILS.includes(ownerEmail);
+  if (state.status === "notfound") return notFound();
 
-  // Calculamos si el trial expiró (regla única en lib/trial; un trialing con cobro programado espera al cron)
-  const trialExpired = isTrialBlocking({
-    status: restaurant.subscription_status,
-    createdAt: restaurant.created_at,
-    mpCardId: restaurant.mp_card_id,
-    trialEndsAt: restaurant.trial_ends_at,
-    now: new Date(),
-  });
-
-  // Ventana de gracia: si existe y es futura, el menú público nunca se bloquea
-  const inGracePeriod = !!(
-    restaurant.grace_period_until &&
-    new Date(restaurant.grace_period_until) > new Date()
-  );
-
-  // Si el restaurante es de un admin O está en gracia → NUNCA se bloquea
-  const isSuspended = !isAdminRestaurant && !inGracePeriod && (
-    restaurant.subscription_status === 'cancelled' ||
-    restaurant.subscription_status === 'paused' ||
-    trialExpired
-  );
-
-  // Pantalla para clientes cuando el servicio está pausado
-  if (isSuspended) {
+  // Pantalla para clientes cuando el servicio está pausado (el servidor decide la suspensión:
+  // admin, gracia, paused/cancelled y prueba vencida)
+  if (state.status === "suspended") {
     return (
       <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 text-center">
         <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-3xl flex items-center justify-center mb-6">
@@ -2808,6 +2765,8 @@ export default function MenuPage({
       </div>
     );
   }
+
+  const restaurant = state.restaurant;
 
   // Bio
   if (restaurant.page_type === 'bio') {

@@ -190,9 +190,22 @@ export function computeMenuSuspension(
   return { isSuspended, isAdmin };
 }
 
-// Slug válido: minúsculas, números y guiones, entre 1 y 80 caracteres.
+// Slug para la comparación: sin espacios en los bordes. No se pasa a minúsculas porque la búsqueda es
+// insensible a mayúsculas (ilike) y hay locales cuyo slug guardado tiene mayúsculas ("Donacocafrutosecos").
+export function normalizeSlug(slug: unknown): string {
+  return String(slug ?? '').trim();
+}
+
+// Slug válido: letras (mayúsculas y minúsculas), números, guion, punto y guion bajo; entre 1 y 80 caracteres.
+// Rechaza vacío, espacios, %, *, comillas, barras, caracteres de control y cualquier otro.
 export function isValidSlug(slug: unknown): slug is string {
-  return typeof slug === 'string' && /^[a-z0-9-]{1,80}$/.test(slug);
+  return typeof slug === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(slug);
+}
+
+// Escapa la barra invertida, % y _ para usar el slug como patrón de ilike SIN comodines: "a_b" no coincide
+// con "axb" y "a%" no coincide con "abc". (En ilike el escape por defecto de Postgres es la barra invertida.)
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
 }
 
 // Nombre de la columna de un error 42703 de Postgres/PostgREST ("column restaurants.hero_video_url
@@ -202,4 +215,85 @@ export function columnFromPgError(message: unknown): string | null {
   if (typeof message !== 'string' || message.length > 500) return null;
   const m = message.match(/column "?([a-z0-9_]+(?:\.[a-z0-9_]+)?)"? does not exist/i);
   return m ? m[1] : null;
+}
+
+export type MenuResponse =
+  | { type: 'menu' | 'bio'; isSuspended: true }
+  | {
+      type: 'menu' | 'bio';
+      isSuspended: false;
+      planType: string | null;
+      restaurant: PublicRestaurant;
+      categories?: unknown[];
+      snappylink?: Record<string, unknown>;
+    };
+
+// Arma el cuerpo JSON del endpoint. La respuesta NUNCA trae isAdmin (la página no lo usa y le diría a
+// cualquier visitante si el dueño es admin) ni columnas fuera de la lista pública. Suspendido: solo
+// { type, isSuspended: true }, sin ningún dato del local.
+export function buildMenuResponse(input: {
+  type: 'menu' | 'bio';
+  row: Record<string, unknown>;
+  adminEmails: readonly string[];
+  now: Date;
+  categories?: unknown[];
+  snappylinkRow?: Record<string, unknown> | null;
+}): MenuResponse {
+  const { isSuspended } = computeMenuSuspension(input.row as SuspensionRow, input.adminEmails, input.now);
+  if (isSuspended) return { type: input.type, isSuspended: true };
+
+  const restaurant = toPublicRestaurant(input.row);
+  const planType = (restaurant.subscription_plan as string | null | undefined) ?? null;
+
+  if (input.type === 'bio') {
+    return { type: 'bio', isSuspended: false, planType, restaurant, snappylink: toPublicSnappylink(input.snappylinkRow) };
+  }
+  return { type: 'menu', isSuspended: false, planType, restaurant, categories: input.categories ?? [] };
+}
+
+// ─── Mapeo de la respuesta del endpoint a lo que esperan la página y los templates ─────────────────
+// Reproduce lo que armaba getRestaurant de app/[slug]/page.tsx con la lectura vieja (select('*')).
+
+// El Plan Light no incluye video en el catálogo: se saca acá aunque haya quedado cargado de un plan anterior.
+export function productsForPlan(rawProducts: any[] | null | undefined, planType: string | null | undefined): any[] {
+  return (rawProducts || []).map((p: any) => (planType === 'light' ? { ...p, video_url: null } : p));
+}
+
+// Menú: { ...local, categories (con sus products), fetched_products, fetched_extras, page_type: 'menu' }
+export function mapMenuResponse(resp: { restaurant: any; categories?: any[] | null; planType?: string | null }, rawProducts: any[] | null | undefined, allExtras: any[] | null | undefined): any {
+  const products = productsForPlan(rawProducts, resp.planType ?? resp.restaurant?.subscription_plan);
+  const categoriesWithProducts = (resp.categories || []).map((cat: any) => ({
+    ...cat,
+    products: products.filter((p: any) => String(p.category_id) === String(cat.id)),
+  }));
+  return {
+    ...resp.restaurant,
+    categories: categoriesWithProducts,
+    fetched_products: products,
+    fetched_extras: allExtras || [],
+    page_type: 'menu',
+  };
+}
+
+// Bio: { ...local, snappylink_* (mismos nombres y valores por defecto de siempre), is_bio_active, page_type: 'bio' }
+export function mapBioResponse(resp: { restaurant: any; snappylink?: any }): any {
+  const sl = resp.snappylink || {};
+  return {
+    ...resp.restaurant,
+    snappylink_bio: sl.bio,
+    snappylink_links: sl.links,
+    snappylink_template_id: sl.template_id,
+    is_bio_active: sl.is_active,
+    snappylink_title: sl.title,
+    snappylink_bg_color: sl.bg_color,
+    snappylink_bg_img: sl.bg_img,
+    snappylink_btn_color: sl.btn_color,
+    snappylink_btn_text_color: sl.btn_text_color,
+    snappylink_shadow_color: sl.shadow_color,
+    snappylink_title_color: sl.title_color,
+    snappylink_desc_color: sl.desc_color,
+    snappylink_social_links: sl.social_links || [],
+    snappylink_social_pos: sl.social_pos || 'bottom',
+    page_type: 'bio',
+  };
 }
