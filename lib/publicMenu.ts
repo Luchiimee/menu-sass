@@ -237,3 +237,50 @@ export function buildMenuResponse(input: {
   }
   return { type: 'menu', isSuspended: false, planType, restaurant, categories: input.categories ?? [] };
 }
+
+// ─── Mapeo de la respuesta del endpoint a lo que esperan la página y los templates ─────────────────
+// Reproduce lo que armaba getRestaurant de app/[slug]/page.tsx con la lectura vieja (select('*')).
+
+// El Plan Light no incluye video en el catálogo: se saca acá aunque haya quedado cargado de un plan anterior.
+export function productsForPlan(rawProducts: any[] | null | undefined, planType: string | null | undefined): any[] {
+  return (rawProducts || []).map((p: any) => (planType === 'light' ? { ...p, video_url: null } : p));
+}
+
+// Menú: { ...local, categories (con sus products), fetched_products, fetched_extras, page_type: 'menu' }
+export function mapMenuResponse(resp: { restaurant: any; categories?: any[] | null; planType?: string | null }, rawProducts: any[] | null | undefined, allExtras: any[] | null | undefined): any {
+  const products = productsForPlan(rawProducts, resp.planType ?? resp.restaurant?.subscription_plan);
+  const categoriesWithProducts = (resp.categories || []).map((cat: any) => ({
+    ...cat,
+    products: products.filter((p: any) => String(p.category_id) === String(cat.id)),
+  }));
+  return {
+    ...resp.restaurant,
+    categories: categoriesWithProducts,
+    fetched_products: products,
+    fetched_extras: allExtras || [],
+    page_type: 'menu',
+  };
+}
+
+// Bio: { ...local, snappylink_* (mismos nombres y valores por defecto de siempre), is_bio_active, page_type: 'bio' }
+export function mapBioResponse(resp: { restaurant: any; snappylink?: any }): any {
+  const sl = resp.snappylink || {};
+  return {
+    ...resp.restaurant,
+    snappylink_bio: sl.bio,
+    snappylink_links: sl.links,
+    snappylink_template_id: sl.template_id,
+    is_bio_active: sl.is_active,
+    snappylink_title: sl.title,
+    snappylink_bg_color: sl.bg_color,
+    snappylink_bg_img: sl.bg_img,
+    snappylink_btn_color: sl.btn_color,
+    snappylink_btn_text_color: sl.btn_text_color,
+    snappylink_shadow_color: sl.shadow_color,
+    snappylink_title_color: sl.title_color,
+    snappylink_desc_color: sl.desc_color,
+    snappylink_social_links: sl.social_links || [],
+    snappylink_social_pos: sl.social_pos || 'bottom',
+    page_type: 'bio',
+  };
+}
