@@ -4,7 +4,7 @@
 
 import {
   POLL_INTERVAL_MS, MAX_BACKOFF_MS, NOT_FOUND_STOP_AFTER, INITIAL_POLL_STATE,
-  FINAL_GRACE_MS, CLEAR_AFTER_FINAL_MS, shouldClearOrder, isAwaitingPayment, MIN_RESUME_GAP_MS, isTabHidden, shouldResumeOnVisible, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
+  pickOrderAttempt, isDuplicateOrderIdError, FINAL_GRACE_MS, CLEAR_AFTER_FINAL_MS, shouldClearOrder, isAwaitingPayment, MIN_RESUME_GAP_MS, isTabHidden, shouldResumeOnVisible, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
 } from '../lib/orderPolling.ts';
 import { isValidOrderId } from '../lib/publicOrder.ts';
 
@@ -189,6 +189,36 @@ console.log('pestaña oculta');
   check('consultó hace 1999 ms: no repite', !shouldResumeOnVisible(10_000, 11_999));
   check('consultó hace 2 s: retoma', shouldResumeOnVisible(10_000, 12_000));
   check('consultó hace 5 min: retoma', shouldResumeOnVisible(10_000, 10_000 + 5 * 60_000));
+}
+
+console.log('pickOrderAttempt: id por intento de envío');
+{
+  let n = 0;
+  const make = () => 'id-' + (++n);
+  const a = pickOrderAttempt(null, 'A', make);
+  check('primer intento: id nuevo', a.id === 'id-1' && a.sig === 'A');
+  const b = pickOrderAttempt(a, 'A', make);
+  check('reintento con el mismo contenido: MISMO id', b.id === 'id-1' && n === 1);
+  const c = pickOrderAttempt(b, 'B', make);
+  check('contenido distinto: id nuevo', c.id === 'id-2' && c.sig === 'B');
+  const d = pickOrderAttempt(null, 'B', make);
+  check('tras completarse (se vuelve a null): id nuevo aunque el contenido sea igual', d.id === 'id-3');
+  check('no muta el intento anterior', a.id === 'id-1' && a.sig === 'A');
+}
+
+console.log('isDuplicateOrderIdError (23505)');
+{
+  const pg = (over) => ({ code: '23505', message: 'duplicate key value violates unique constraint "orders_pkey"', details: 'Key (id)=(3f2b8c1e-5d4a-4b7e-9c10-0a1b2c3d4e5f) already exists.', ...over });
+  check('23505 sobre la clave id: éxito', isDuplicateOrderIdError(pg()));
+  check('23505 sobre otra columna: no es éxito', !isDuplicateOrderIdError(pg({ message: 'duplicate key value violates unique constraint "orders_numero_key"', details: 'Key (numero)=(15) already exists.' })));
+  check('23505 sobre columnas compuestas que arrancan con otra: no es éxito', !isDuplicateOrderIdError(pg({ details: 'Key (restaurant_id, numero)=(a, 3) already exists.' })));
+  check('23505 sin detalle: éxito (el código alcanza)', isDuplicateOrderIdError({ code: '23505' }));
+  check('detalle null: éxito', isDuplicateOrderIdError({ code: '23505', message: null, details: null }));
+  check('otro código (RLS 42501): no', !isDuplicateOrderIdError({ code: '42501', message: 'new row violates row-level security policy' }));
+  check('otro código (23503 clave foránea): no', !isDuplicateOrderIdError({ code: '23503' }));
+  check('error de red sin código: no', !isDuplicateOrderIdError({ message: 'Failed to fetch' }));
+  check('null / undefined: no', !isDuplicateOrderIdError(null) && !isDuplicateOrderIdError(undefined));
+  check('código como número: no', !isDuplicateOrderIdError({ code: 23505 }));
 }
 
 console.log('newOrderId');

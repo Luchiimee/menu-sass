@@ -10,7 +10,7 @@ import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE 
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
 import { subscribeToOrder } from '@/lib/orderPollClient';
-import { newOrderId, shouldClearOrder } from '@/lib/orderPolling';
+import { newOrderId, shouldClearOrder, pickOrderAttempt, isDuplicateOrderIdError, type OrderAttempt } from '@/lib/orderPolling';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -100,6 +100,8 @@ export default function CartFooter({
     // seguimiento los muestra tal cual (no recalcula con el carrito ni con la tarifa fija).
     // null hasta que responde syncStatus.
     const [savedOrder, setSavedOrder] = useState<{ total: unknown; delivery_cost: unknown; discount_amount: unknown; items: any[] } | null>(null);
+    // Id del pedido en curso (por intento de envío): un reintento con el mismo contenido lo reutiliza
+    const orderAttemptRef = useRef<OrderAttempt | null>(null);
     const orderStatusRef = useRef(orderStatus);
     useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
@@ -1418,9 +1420,7 @@ const handleCallWaiter = async () => {
 
             // El id se genera acá y se manda en el insert, SIN .select(): leer la fila de vuelta exige
             // permiso de lectura sobre orders, que el cliente público ya no tiene.
-            const newOrderUuid = newOrderId();
-            const { error } = await supabase.from('orders').insert({
-                id: newOrderUuid,
+            const orderPayload = {
                 restaurant_id: restaurantId,
                 customer_name: nombreCompleto,
                 customer_phone: telCliente, 
@@ -1439,10 +1439,20 @@ const handleCallWaiter = async () => {
                 // antes guardaba solo el cupón y el automático quedaba escondido en total
                 discount_amount: round2(montoDescuento + autoDescuento),
                 scheduled_delivery_time: scheduledActive && entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
+            };
+            // El id se conserva entre intentos con el mismo contenido (el turno de caja no entra en la firma)
+            const attempt = pickOrderAttempt(orderAttemptRef.current, JSON.stringify(orderPayload), newOrderId);
+            orderAttemptRef.current = attempt;
+            const newOrderUuid = attempt.id;
+            const { error } = await supabase.from('orders').insert({
+                id: newOrderUuid,
+                ...orderPayload,
                 shift_id: resolvedShiftId ?? null,
             });
 
-            if (error) throw error;
+            // 23505 sobre el id: el intento anterior sí llegó a guardarse, se sigue como éxito
+            if (error && !isDuplicateOrderIdError(error)) throw error;
+            orderAttemptRef.current = null; // pedido completado: el próximo envío usa un id nuevo
             setActiveOrderId(newOrderUuid);
             localStorage.setItem("activeOrderId", newOrderUuid);
             localStorage.setItem("metodoEnvio", metodoEnvio);

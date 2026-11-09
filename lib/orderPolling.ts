@@ -123,6 +123,23 @@ type CryptoLike = {
   getRandomValues?: (a: Uint8Array) => Uint8Array;
 };
 
+// Id por intento de envío: un reintento con el MISMO contenido (p. ej. tras un corte de red cuando el
+// insert sí llegó) reutiliza el id; si el contenido cambió se genera uno nuevo. sig = firma del pedido.
+export type OrderAttempt = { id: string; sig: string };
+
+export function pickOrderAttempt(prev: OrderAttempt | null, sig: string, makeId: () => string): OrderAttempt {
+  return prev && prev.sig === sig ? prev : { id: makeId(), sig };
+}
+
+// Postgres 23505 = clave duplicada. Sobre el id propio significa "este pedido ya está guardado": el
+// reintento se toma como éxito. Si el detalle nombra OTRA columna única, no lo es.
+export function isDuplicateOrderIdError(error: { code?: unknown; message?: unknown; details?: unknown } | null | undefined): boolean {
+  if (!error || error.code !== '23505') return false;
+  const text = `${typeof error.message === 'string' ? error.message : ''} ${typeof error.details === 'string' ? error.details : ''}`;
+  // El detalle de Postgres es "Key (columna)=(valor) already exists."; si la columna no es id, es otra
+  return !/Key \((?!id\))[^)]*\)/i.test(text);
+}
+
 export function newOrderId(c: CryptoLike | undefined = (globalThis as { crypto?: CryptoLike }).crypto): string {
   if (c && typeof c.randomUUID === 'function') return c.randomUUID();
   if (!c || typeof c.getRandomValues !== 'function') {
