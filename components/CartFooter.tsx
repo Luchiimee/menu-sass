@@ -9,6 +9,7 @@ import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
+import { subscribeToOrder } from '@/lib/orderPollClient';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -387,97 +388,42 @@ const handleNotificarPagoMesa = async (metodo: string) => {
 useEffect(() => {
     // Otro pedido (o ninguno): no mostrar los montos del anterior mientras llega el nuevo
     setSavedOrder(null);
-    if (activeOrderId) {
-        const syncStatus = async () => {
-            // AGREGAR: payment_status a la consulta select
-            const { data } = await supabase
-                .from('orders')
-                .select('status, payment_method, payment_status, pago_confirmado, order_type, total, delivery_cost, discount_amount, items')
-                .eq('id', activeOrderId)
-                .maybeSingle();
+    if (!activeOrderId) return;
 
-            if (data) {
-                setOrderStatus(data.status);
-                setMetodoPago(data.payment_method);
-                setPagoConfirmado(!!data.pago_confirmado);
-                // total, envío, descuento y renglones guardados (con descuentos y zona reales)
-                setSavedOrder({
-                    total: data.total,
-                    delivery_cost: data.delivery_cost,
-                    discount_amount: data.discount_amount,
-                    items: Array.isArray(data.items) ? data.items : [],
-                });
-                if (data.payment_method === 'mercadopago') {
-                    if (data.order_type === 'delivery' || data.order_type === 'retiro') {
-                        setMetodoEnvio(data.order_type);
-                        localStorage.setItem('metodoEnvio', data.order_type);
-                    }
-                }
-
-                // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación, 
-                // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
-                if (data.payment_status === 'esperando_confirmacion') {
-                    setPasoPago('espera');
-                }
-                if (data.status === 'completado') {
-                    setPasoPago('espera');
+    // Una sola consulta periódica a /api/public/order/<id> (cada 8 s mientras el estado no sea
+    // final; la comparte OrderTracker). Reemplaza al SELECT inicial, al canal Realtime y a la
+    // resincronización manual: al volver a la pestaña se consulta enseguida.
+    let first = true;
+    return subscribeToOrder(activeOrderId, (data) => {
+        if (first) {
+            first = false;
+            // Primera respuesta: lo que antes cargaba syncStatus
+            setMetodoPago(data.payment_method as string);
+            // total, envío, descuento y renglones guardados (con descuentos y zona reales)
+            setSavedOrder({
+                total: data.total,
+                delivery_cost: data.delivery_cost,
+                discount_amount: data.discount_amount,
+                items: Array.isArray(data.items) ? data.items : [],
+            });
+            if (data.payment_method === 'mercadopago') {
+                if (data.order_type === 'delivery' || data.order_type === 'retiro') {
+                    setMetodoEnvio(data.order_type);
+                    localStorage.setItem('metodoEnvio', data.order_type);
                 }
             }
-        };
-        syncStatus();
+        }
 
-        const orderChannel = supabase.channel(`order-update-${activeOrderId}`)
-            .on('postgres_changes', { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'orders', 
-                filter: `id=eq.${activeOrderId}` 
-            }, (payload) => {
-                const newStatus = payload.new.status;
-                const newPayStatus = payload.new.payment_status; // NUEVA LÍNEA
+        // Cada respuesta: lo que antes llegaba por Realtime
+        setOrderStatus(data.status);
+        setPagoConfirmado(!!data.pago_confirmado);
 
-                setOrderStatus(newStatus);
-                setPagoConfirmado(!!payload.new.pago_confirmado);
-
-                // Si el backend actualizó el estado de pago, la UI reacciona aquí
-                if (newPayStatus === 'esperando_confirmacion' || newStatus === 'completado') {
-                    setPasoPago('espera');
-                }
-            })
-           
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log("🛰️ Snappy Realtime: Radar de pagos activo");
-                }
-                
-                // 🚨 MECANISMO DE RESILIENCIA PARA MÓVILES
-                // Si el sistema detecta que el canal se cerró o hubo un error (común en cambios de 4G/Wi-Fi)
-                if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                    console.warn("⚠️ Snappy Realtime: Canal inestable, ejecutando re-sincronización forzada...");
-                    
-                    const { data, error } = await supabase
-                        .from('orders')
-                        .select('payment_status, status, pago_confirmado')
-                        .eq('id', activeOrderId)
-                        .maybeSingle();
-
-                    if (error) {
-                        console.error("❌ Fallo en re-sincronización manual:", error.message);
-                        return;
-                    }
-
-                    if (data) setPagoConfirmado(!!data.pago_confirmado);
-
-                    // Forzamos el estado de la UI según la realidad de la DB
-                    if (data?.payment_status === 'esperando_confirmacion' || data?.status === 'completado') {
-                        setPasoPago('espera');
-                        if (data.status) setOrderStatus(data.status);
-                    }
-                }
-            });
-
-        return () => { supabase.removeChannel(orderChannel); };
-    }
+        // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación,
+        // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
+        if (data.payment_status === 'esperando_confirmacion' || data.status === 'completado') {
+            setPasoPago('espera');
+        }
+    });
 }, [activeOrderId]);
 useEffect(() => {
         if (metodoEnvio === 'mesa' && restaurantId) {
