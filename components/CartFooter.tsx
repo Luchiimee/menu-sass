@@ -10,6 +10,7 @@ import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE 
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
 import { subscribeToOrder } from '@/lib/orderPollClient';
+import { newOrderId } from '@/lib/orderPolling';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -1395,7 +1396,11 @@ const handleCallWaiter = async () => {
                 resolvedShiftId = autoShiftId ?? null;
             }
 
-            const { data: newOrder, error } = await supabase.from('orders').insert({
+            // El id se genera acá y se manda en el insert, SIN .select(): leer la fila de vuelta exige
+            // permiso de lectura sobre orders, que el cliente público ya no tiene.
+            const newOrderUuid = newOrderId();
+            const { error } = await supabase.from('orders').insert({
+                id: newOrderUuid,
                 restaurant_id: restaurantId,
                 customer_name: nombreCompleto,
                 customer_phone: telCliente, 
@@ -1415,16 +1420,14 @@ const handleCallWaiter = async () => {
                 discount_amount: round2(montoDescuento + autoDescuento),
                 scheduled_delivery_time: scheduledActive && entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
                 shift_id: resolvedShiftId ?? null,
-            }).select().single();
+            });
 
             if (error) throw error;
-            if (newOrder) {
-                setActiveOrderId(newOrder.id);
-                localStorage.setItem("activeOrderId", newOrder.id); 
-                localStorage.setItem("metodoEnvio", metodoEnvio);
-                localStorage.setItem("nroMesa", nroMesa);
-                orderRef = `#${newOrder.id.slice(0, 5)}`;
-            }
+            setActiveOrderId(newOrderUuid);
+            localStorage.setItem("activeOrderId", newOrderUuid);
+            localStorage.setItem("metodoEnvio", metodoEnvio);
+            localStorage.setItem("nroMesa", nroMesa);
+            orderRef = `#${newOrderUuid.slice(0, 5)}`;
         } else {
             setActiveOrderId('light-plan-order');
         }
