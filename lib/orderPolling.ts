@@ -50,6 +50,19 @@ export function shouldStopPolling(order: OrderForPolling, finalSeenAt: number | 
   return finalSeenAt !== null && now - finalSeenAt >= FINAL_GRACE_MS;
 }
 
+// Pestaña oculta: no se consulta ni se reprograma (el cliente que cambió a WhatsApp no gasta red ni
+// servidor). Al volver a verla se consulta de inmediato, con un mínimo de 2 s entre consultas para que
+// cambiar de pestaña muchas veces seguidas no dispare una ráfaga.
+export const MIN_RESUME_GAP_MS = 2_000;
+
+export function isTabHidden(visibilityState: unknown): boolean {
+  return visibilityState === 'hidden';
+}
+
+export function shouldResumeOnVisible(lastPollAt: number | null, now: number): boolean {
+  return lastPollAt === null || now - lastPollAt >= MIN_RESUME_GAP_MS;
+}
+
 // Espera tras `failures` errores seguidos: 0 → 8 s, 1 → 16 s, 2 o más → 30 s
 export function backoffDelay(failures: number): number {
   const n = Number.isFinite(failures) && failures > 0 ? Math.floor(failures) : 0;

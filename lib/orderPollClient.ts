@@ -3,7 +3,7 @@
 // GET /api/public/order/[id] (lib/publicOrder.ts); no usa la clave pública de Supabase.
 // La lógica de ritmo y backoff está en lib/orderPolling.ts (probada en scripts/check-order-polling.mjs).
 
-import { INITIAL_POLL_STATE, nextPoll, type PollState } from './orderPolling';
+import { INITIAL_POLL_STATE, isTabHidden, nextPoll, shouldResumeOnVisible, type PollState } from './orderPolling';
 import { isValidOrderId } from './publicOrder';
 
 export type PublicOrderView = {
@@ -51,14 +51,20 @@ type Channel = {
   stopped: boolean;   // estado final o pedido inexistente: no se consulta más
   inflight: boolean;
   closed: boolean;    // sin oyentes: se ignora lo que llegue
+  lastPollAt: number | null; // cuándo salió la última consulta (para no hacer ráfagas al volver a la pestaña)
 };
+
+const tabHidden = () => typeof document !== 'undefined' && isTabHidden(document.visibilityState);
 
 const channels = new Map<string, Channel>();
 let visibilityHooked = false;
 
 async function poll(id: string, ch: Channel) {
   if (ch.closed || ch.stopped || ch.inflight) return;
+  // Pestaña oculta: no se consulta ni queda un timer; visibilitychange retoma al volver a verla
+  if (tabHidden()) return;
   ch.inflight = true;
+  ch.lastPollAt = Date.now();
   const result = await fetchPublicOrder(id);
   ch.inflight = false;
   if (ch.closed) return;
@@ -88,10 +94,13 @@ async function poll(id: string, ch: Channel) {
     ch.stopped = true;
     return;
   }
+  // Se ocultó la pestaña mientras esperaba la respuesta: no se reprograma
+  if (tabHidden()) return;
   ch.timer = setTimeout(() => { ch.timer = null; void poll(id, ch); }, decision.delayMs);
 }
 
-// Al volver a la pestaña se consulta ya (reemplaza la resincronización del canal que se caía)
+// Al volver a la pestaña se consulta ya y se retoma el ritmo (reemplaza la resincronización del
+// canal que se caía). Con la pestaña oculta ningún canal tiene timer ni consulta en vuelo nuevo.
 function hookVisibility() {
   if (visibilityHooked || typeof document === 'undefined') return;
   visibilityHooked = true;
@@ -99,7 +108,13 @@ function hookVisibility() {
     if (document.visibilityState !== 'visible') return;
     channels.forEach((ch, id) => {
       if (ch.closed || ch.stopped || ch.inflight) return;
-      if (ch.timer) { clearTimeout(ch.timer); ch.timer = null; }
+      if (ch.timer) {
+        // Tiene un timer pendiente: si consultó hace menos de 2 s, que siga con ese
+        if (!shouldResumeOnVisible(ch.lastPollAt, Date.now())) return;
+        clearTimeout(ch.timer);
+        ch.timer = null;
+      }
+      // Sin timer pendiente = estaba en pausa por pestaña oculta: se retoma siempre
       void poll(id, ch);
     });
   });
@@ -114,7 +129,7 @@ export function subscribeToOrder(id: string, listener: Listener): () => void {
 
   let ch = channels.get(id);
   if (!ch) {
-    ch = { listeners: new Set(), timer: null, state: INITIAL_POLL_STATE, last: null, stopped: false, inflight: false, closed: false };
+    ch = { listeners: new Set(), timer: null, state: INITIAL_POLL_STATE, last: null, stopped: false, inflight: false, closed: false, lastPollAt: null };
     channels.set(id, ch);
   }
   const channel = ch;

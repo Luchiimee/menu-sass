@@ -4,7 +4,7 @@
 
 import {
   POLL_INTERVAL_MS, MAX_BACKOFF_MS, NOT_FOUND_STOP_AFTER, INITIAL_POLL_STATE,
-  FINAL_GRACE_MS, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
+  FINAL_GRACE_MS, MIN_RESUME_GAP_MS, isTabHidden, shouldResumeOnVisible, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
 } from '../lib/orderPolling.ts';
 import { isValidOrderId } from '../lib/publicOrder.ts';
 
@@ -131,6 +131,20 @@ console.log('nextPoll: momento en que se vio el estado final');
   const f = nextPoll(b.state, tr('en_camino'), T0 + 12 * MIN);
   check('si vuelve a no ser final, se borra el momento', f.state.finalSeenAt === null);
   check('efectivo final: corta en la primera respuesta', nextPoll(INITIAL_POLL_STATE, { ...tr('entregado'), paymentMethod: 'efectivo' }, T0).stop);
+}
+
+console.log('pestaña oculta');
+{
+  check('hidden → oculta', isTabHidden('hidden'));
+  check('visible → no oculta', !isTabHidden('visible'));
+  check('sin dato (SSR / navegador viejo) → no oculta: consulta', !isTabHidden(undefined) && !isTabHidden(null) && !isTabHidden(''));
+  check('prerender u otro valor → no oculta', !isTabHidden('prerender'));
+  check('mínimo de 2 s entre consultas al volver', MIN_RESUME_GAP_MS === 2000);
+  check('nunca consultó: retoma', shouldResumeOnVisible(null, 1000));
+  check('consultó hace 500 ms: no repite', !shouldResumeOnVisible(10_000, 10_500));
+  check('consultó hace 1999 ms: no repite', !shouldResumeOnVisible(10_000, 11_999));
+  check('consultó hace 2 s: retoma', shouldResumeOnVisible(10_000, 12_000));
+  check('consultó hace 5 min: retoma', shouldResumeOnVisible(10_000, 10_000 + 5 * 60_000));
 }
 
 console.log('newOrderId');
