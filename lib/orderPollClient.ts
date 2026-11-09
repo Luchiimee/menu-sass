@@ -66,7 +66,13 @@ async function poll(id: string, ch: Channel) {
   const decision = nextPoll(
     ch.state,
     result.kind === 'ok'
-      ? { kind: 'ok', status: result.order.status, orderType: result.order.order_type }
+      ? {
+          kind: 'ok',
+          status: result.order.status,
+          orderType: result.order.order_type,
+          paymentMethod: result.order.payment_method,
+          pagoConfirmado: result.order.pago_confirmado,
+        }
       : { kind: result.kind },
   );
   ch.state = decision.state;

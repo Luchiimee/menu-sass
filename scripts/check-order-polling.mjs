@@ -4,7 +4,7 @@
 
 import {
   POLL_INTERVAL_MS, MAX_BACKOFF_MS, NOT_FOUND_STOP_AFTER, INITIAL_POLL_STATE,
-  isFinalStatus, backoffDelay, nextPoll, newOrderId,
+  FINAL_GRACE_MS, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
 } from '../lib/orderPolling.ts';
 import { isValidOrderId } from '../lib/publicOrder.ts';
 
@@ -76,6 +76,61 @@ console.log('nextPoll');
   const nfMix = nextPoll(nextPoll(nextPoll(INITIAL_POLL_STATE, { kind: 'not_found' }).state, { kind: 'error' }).state, { kind: 'not_found' });
   check('un error de red entre dos 404 no reinicia la cuenta', nfMix.state.notFound === 2 && !nfMix.stop);
   check('el estado no se muta', INITIAL_POLL_STATE.failures === 0 && INITIAL_POLL_STATE.notFound === 0);
+}
+
+console.log('shouldStopPolling: estado final Y pago resuelto');
+{
+  const T0 = 1_000_000;
+  const MIN = 60_000;
+  const o = (over) => ({ status: 'entregado', orderType: 'delivery', paymentMethod: 'transferencia', pagoConfirmado: false, ...over });
+  check('tope de 30 minutos', FINAL_GRACE_MS === 30 * MIN);
+  check('final con pago confirmado: corta', shouldStopPolling(o({ pagoConfirmado: true }), T0, T0));
+  check('final con Mercado Pago confirmado: corta', shouldStopPolling(o({ paymentMethod: 'mercadopago', pagoConfirmado: true }), T0, T0));
+  check('final con transferencia sin confirmar: sigue', !shouldStopPolling(o(), T0, T0));
+  check('transferencia sin confirmar a los 29 min: sigue', !shouldStopPolling(o(), T0, T0 + 29 * MIN));
+  check('transferencia sin confirmar a los 5 min: sigue', !shouldStopPolling(o(), T0, T0 + 5 * MIN));
+  check('Mercado Pago sin confirmar: sigue', !shouldStopPolling(o({ paymentMethod: 'mercadopago' }), T0, T0));
+  check('efectivo final: corta', shouldStopPolling(o({ paymentMethod: 'efectivo' }), T0, T0));
+  check('medio de pago desconocido o null: corta', shouldStopPolling(o({ paymentMethod: 'otro' }), T0, T0) && shouldStopPolling(o({ paymentMethod: null }), T0, T0));
+  check('tope de 30 minutos: corta aunque falte confirmar', shouldStopPolling(o(), T0, T0 + 30 * MIN));
+  check('pasado el tope: corta', shouldStopPolling(o(), T0, T0 + 31 * MIN));
+  check('sin momento de estado final y sin confirmar: sigue', !shouldStopPolling(o(), null, T0 + 999 * MIN));
+  for (const s of ['pendiente', 'recibido', 'en_proceso', 'en_camino']) {
+    check("no final (" + s + ") con efectivo: sigue", !shouldStopPolling(o({ status: s, paymentMethod: 'efectivo' }), null, T0));
+    check("no final (" + s + ") con pago confirmado: sigue", !shouldStopPolling(o({ status: s, pagoConfirmado: true }), null, T0));
+  }
+  check('no final aunque haya pasado el tope: sigue', !shouldStopPolling(o({ status: 'en_camino' }), T0, T0 + 60 * MIN));
+  check('completado con transferencia sin confirmar: sigue', !shouldStopPolling(o({ status: 'completado' }), T0, T0));
+  check('cancelado con transferencia sin confirmar: corta (no espera pago)', shouldStopPolling(o({ status: 'cancelado' }), T0, T0));
+  // mesa: mismo criterio que antes (solo el estado)
+  const m = (over) => ({ orderType: 'mesa', paymentMethod: 'transferencia', pagoConfirmado: false, ...over });
+  check('mesa completado sin confirmar: corta', shouldStopPolling(m({ status: 'completado' }), T0, T0));
+  check('mesa cancelado: corta', shouldStopPolling(m({ status: 'cancelado' }), T0, T0));
+  check('mesa entregado: sigue (falta pagar)', !shouldStopPolling(m({ status: 'entregado' }), T0, T0));
+  check('mesa en_proceso: sigue', !shouldStopPolling(m({ status: 'en_proceso' }), T0, T0));
+  check('campos faltantes: no tira', shouldStopPolling({}, null, T0) === false && shouldStopPolling({ status: 'entregado' }, T0, T0) === true);
+}
+
+console.log('nextPoll: momento en que se vio el estado final');
+{
+  const T0 = 5_000_000;
+  const MIN = 60_000;
+  const tr = (status) => ({ kind: 'ok', status, orderType: 'delivery', paymentMethod: 'transferencia', pagoConfirmado: false });
+  const a = nextPoll(INITIAL_POLL_STATE, tr('en_camino'), T0);
+  check('no final: finalSeenAt null y sigue', a.state.finalSeenAt === null && !a.stop);
+  const b = nextPoll(a.state, tr('entregado'), T0 + 10 * MIN);
+  check('primer estado final: se anota el momento y sigue', b.state.finalSeenAt === T0 + 10 * MIN && !b.stop);
+  const c = nextPoll(b.state, tr('entregado'), T0 + 25 * MIN);
+  check('a los 15 min de verlo final: conserva el momento original y sigue', c.state.finalSeenAt === T0 + 10 * MIN && !c.stop);
+  const d = nextPoll(c.state, tr('entregado'), T0 + 40 * MIN);
+  check('a los 30 min de verlo final: corta', d.stop);
+  const e = nextPoll(b.state, { ...tr('entregado'), pagoConfirmado: true }, T0 + 12 * MIN);
+  check('se confirma el pago estando final: corta', e.stop);
+  const err = nextPoll(b.state, { kind: 'error' }, T0 + 11 * MIN);
+  check('un error de red no borra el momento del estado final', err.state.finalSeenAt === T0 + 10 * MIN && !err.stop);
+  const f = nextPoll(b.state, tr('en_camino'), T0 + 12 * MIN);
+  check('si vuelve a no ser final, se borra el momento', f.state.finalSeenAt === null);
+  check('efectivo final: corta en la primera respuesta', nextPoll(INITIAL_POLL_STATE, { ...tr('entregado'), paymentMethod: 'efectivo' }, T0).stop);
 }
 
 console.log('newOrderId');
