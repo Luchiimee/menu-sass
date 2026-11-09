@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  clientIp, hashIp, ipKey, restaurantKey, parseLimitRow, decideRateLimit, rateLimitResponse,
+  clientIp, hashIp, ipKey, orderKey, restaurantKey, parseLimitRow, decideRateLimit, rateLimitResponse,
   type LimitRule, type LimitScope, type FailMode, type LimitCheckResult, type LimitOutcome,
 } from '@/lib/rateLimitCore';
 
@@ -58,6 +58,18 @@ async function enforce(checks: Check[], failMode: FailMode, extra?: Record<strin
 // Límite por IP. Devuelve la respuesta a enviar, o null si la request puede seguir.
 export function limitByIp(req: Request, scope: LimitScope, rule: LimitRule, failMode: FailMode, extra?: Record<string, unknown>) {
   return enforce([{ key: ipKeyFor(req, scope), rule, label: `${scope}:ip` }], failMode, extra);
+}
+
+// Límite del seguimiento de un pedido: por IP y por pedido (las dos claves se cuentan en orden;
+// si una no deja pasar, la otra no suma). Cada una falla según failMode.
+export function limitByIpAndOrder(req: Request, orderId: string, ipRule: LimitRule, orderRule: LimitRule, failMode: FailMode) {
+  return enforce(
+    [
+      { key: ipKeyFor(req, 'order'), rule: ipRule, label: 'order:ip' },
+      { key: orderKey(orderId), rule: orderRule, label: 'order:id' },
+    ],
+    failMode,
+  );
 }
 
 // Límite por restaurante (POST /api/checkout/mp y /quote).

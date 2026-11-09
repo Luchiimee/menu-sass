@@ -4,7 +4,7 @@
 //   node scripts/check-rate-limit.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
 import {
-  RATE_LIMITS, clientIp, hashIp, ipKey, restaurantKey, parseLimitRow, decideRateLimit, rateLimitResponse,
+  RATE_LIMITS, clientIp, hashIp, ipKey, orderKey, restaurantKey, parseLimitRow, decideRateLimit, rateLimitResponse,
 } from '../lib/rateLimitCore.ts';
 
 let failures = 0;
@@ -79,6 +79,15 @@ console.log('respuesta HTTP');
 }
 check('extra se suma al body ({ available: false })', rateLimitResponse({ kind: 'limited', retryAfter: 10 }, { available: false }).body.available === false);
 check('pasa → sin respuesta', rateLimitResponse({ kind: 'allow' }) === null);
+
+// Seguimiento del pedido: tope por IP (600/min) y por pedido (30/min)
+check('seguimiento: 600 por IP por minuto (varios clientes detrás del wifi de un local)', RATE_LIMITS.orderPerIp.limit === 600 && RATE_LIMITS.orderPerIp.windowSeconds === 60);
+check('seguimiento: 30 por pedido por minuto', RATE_LIMITS.orderPerOrder.limit === 30 && RATE_LIMITS.orderPerOrder.windowSeconds === 60);
+check('un cliente normal (8 consultas por minuto) cabe en el tope por pedido', 60 / 8 + 1 < RATE_LIMITS.orderPerOrder.limit);
+check('el tope por pedido es menor que el de IP', RATE_LIMITS.orderPerOrder.limit < RATE_LIMITS.orderPerIp.limit);
+check('orderKey: order:id:<uuid> en minúsculas', orderKey('3F2B8C1E-5D4A-4B7E-9C10-0A1B2C3D4E5F') === 'order:id:3f2b8c1e-5d4a-4b7e-9c10-0a1b2c3d4e5f');
+check('orderKey: dentro del largo permitido (≤ 200) y distinta de la clave por IP', orderKey('3f2b8c1e-5d4a-4b7e-9c10-0a1b2c3d4e5f').length <= 200 && orderKey('3f2b8c1e-5d4a-4b7e-9c10-0a1b2c3d4e5f') !== ipKey('order', h1));
+check('ipKey con scope order', ipKey('order', h1) === `order:ip:${h1}`);
 
 if (failures) { console.error(`\n${failures} caso(s) con FALLA`); process.exit(1); }
 console.log('\nTodos los casos OK');
