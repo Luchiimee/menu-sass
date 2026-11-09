@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { useEffect, useRef, useState } from 'react';
+import { subscribeToOrder } from '@/lib/orderPollClient';
 import { Check, ChefHat, Bike, Clock, XCircle, Zap, ShoppingBag, CalendarCheck,MessageCircle,CreditCard,Copy } from 'lucide-react';
 
 interface OrderTrackerProps {
@@ -13,11 +13,6 @@ interface OrderTrackerProps {
     onStatusChange?: (status: string) => void;
 }
 
-const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function OrderTracker({ orderId, restaurantPhone, businessType = 'gastronomico', paymentMethodProp, aliasTransferenciaProp, onStatusChange }: OrderTrackerProps) {
     const [status, setStatus] = useState('pendiente');
     const [scheduledTime, setScheduledTime] = useState<string | null>(null);
@@ -25,48 +20,37 @@ export default function OrderTracker({ orderId, restaurantPhone, businessType = 
     const [paymentMethod, setPaymentMethod] = useState(paymentMethodProp); 
     const [copied, setCopied] = useState(false); 
 
-  const fetchOrderData = useCallback(async () => {
-    if (!orderId) return;
-    const { data } = await supabase
-        .from('orders')
-        .select('status, scheduled_delivery_time, order_type, payment_method')
-        .eq('id', orderId)
-        .single();
-
-    if (data) {
-        // 1. Sincronizar el estado (solo si cambió)
-        if (data.status !== status) {
-            setStatus(data.status);
-            if(onStatusChange) onStatusChange(data.status);
-        }
-        
-        // 🚀 2. ESTO DEBE ESTAR AFUERA (Para que se cargue apenas abre el tracker)
-        if (data.payment_method) setPaymentMethod(data.payment_method);
-        if (data.order_type) setOrderType(data.order_type);
-        
-        if (data.scheduled_delivery_time && data.scheduled_delivery_time !== 'Inmediato') {
-            setScheduledTime(data.scheduled_delivery_time);
-        }
-    }
-}, [orderId, onStatusChange, status]);
+    // El callback del padre puede cambiar en cada render: se lee desde una ref para no
+    // reiniciar la consulta del pedido.
+    const onStatusChangeRef = useRef(onStatusChange);
+    useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
 
 useEffect(() => {
     if (paymentMethodProp) setPaymentMethod(paymentMethodProp);
 }, [paymentMethodProp]);
 
+    // Consulta periódica a /api/public/order/<id> (cada 8 s mientras el estado no sea final; la
+    // comparte con CartFooter). Reemplaza al SELECT y al canal Realtime con la clave pública.
     useEffect(() => {
-        fetchOrderData();
-        const channel = supabase
-            .channel(`order_${orderId}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, 
-            (payload) => {
-                const newStatus = payload.new.status;
-                setStatus(newStatus);
-                if(onStatusChange) onStatusChange(newStatus);
-            }).subscribe();
+        if (!orderId) return;
+        let lastStatus = 'pendiente'; // mismo punto de partida que el useState de arriba
+        return subscribeToOrder(orderId, (data) => {
+            // 1. Sincronizar el estado (solo si cambió)
+            if (data.status !== lastStatus) {
+                lastStatus = data.status;
+                setStatus(data.status);
+                if (onStatusChangeRef.current) onStatusChangeRef.current(data.status);
+            }
 
-        return () => { supabase.removeChannel(channel); };
-    }, [orderId, fetchOrderData]);
+            // 2. Datos del pedido (se cargan apenas abre el tracker)
+            if (data.payment_method) setPaymentMethod(data.payment_method);
+            if (data.order_type) setOrderType(data.order_type);
+
+            if (data.scheduled_delivery_time && data.scheduled_delivery_time !== 'Inmediato') {
+                setScheduledTime(data.scheduled_delivery_time);
+            }
+        });
+    }, [orderId]);
 
     const stepsConfig: any = {
         gastronomico: [
