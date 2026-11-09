@@ -61,7 +61,8 @@ export const PUBLIC_RESTAURANT_COLUMNS = [
   'hero_price_color',
   'hero_title',
   'hero_title_color',
-  'hero_video_url',
+  // hero_video_url NO está: la columna no existe en public.restaurants (verificado en producción el
+  // 2026-11-08, daba 42703). SpotlightHero ya cae en heroProduct.video_url cuando viene undefined.
   'id',
   'instagram',
   'is_open',
@@ -192,4 +193,13 @@ export function computeMenuSuspension(
 // Slug válido: minúsculas, números y guiones, entre 1 y 80 caracteres.
 export function isValidSlug(slug: unknown): slug is string {
   return typeof slug === 'string' && /^[a-z0-9-]{1,80}$/.test(slug);
+}
+
+// Nombre de la columna de un error 42703 de Postgres/PostgREST ("column restaurants.hero_video_url
+// does not exist"). Devuelve SOLO el nombre (sin mensaje completo) o null si no matchea de forma estricta.
+// Sirve para loguear qué columna falta sin volcar texto de la base.
+export function columnFromPgError(message: unknown): string | null {
+  if (typeof message !== 'string' || message.length > 500) return null;
+  const m = message.match(/column "?([a-z0-9_]+(?:\.[a-z0-9_]+)?)"? does not exist/i);
+  return m ? m[1] : null;
 }

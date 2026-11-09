@@ -5,6 +5,7 @@ import {
   PUBLIC_RESTAURANT_COLUMNS,
   PUBLIC_SNAPPYLINK_COLUMNS,
   SUSPENSION_COLUMNS,
+  columnFromPgError,
   computeMenuSuspension,
   isValidSlug,
   toPublicRestaurant,
@@ -19,6 +20,13 @@ import {
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 const notFound = () => NextResponse.json({ error: 'not_found' }, { status: 404, headers: NO_STORE });
+// Log de un fallo de consulta: qué parte falló + código de Postgres/PostgREST. Con 42703 (columna
+// inexistente) suma solo el NOMBRE de la columna. Nunca el mensaje completo ni datos de la fila.
+function logQueryError(part: 'MENU_RESTAURANTS' | 'MENU_BIO', error: { code?: string; message?: string }) {
+  const col = error.code === '42703' ? columnFromPgError(error.message) : null;
+  console.error(`[public-menu] code=${part} db=${error.code ?? 'n/a'}${col ? ` column=${col}` : ''}`);
+}
+
 const serverError = () => NextResponse.json({ error: 'error' }, { status: 500, headers: NO_STORE });
 
 const RESTAURANT_SELECT = [...PUBLIC_RESTAURANT_COLUMNS, ...SUSPENSION_COLUMNS].join(', ');
@@ -42,7 +50,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
 
     // PGRST116 (más de una fila) se trata como "sin menú", igual que hoy; cualquier otro error es un fallo.
     if (menu.error && menu.error.code !== 'PGRST116') {
-      console.error(`[public-menu] code=MENU_QUERY_ERROR db=${menu.error.code ?? 'n/a'}`);
+      logQueryError('MENU_RESTAURANTS', menu.error);
       return serverError();
     }
 
@@ -74,7 +82,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
       .maybeSingle();
 
     if (bio.error && bio.error.code !== 'PGRST116') {
-      console.error(`[public-menu] code=BIO_QUERY_ERROR db=${bio.error.code ?? 'n/a'}`);
+      logQueryError('MENU_BIO', bio.error);
       return serverError();
     }
     if (!bio.data) return notFound();
