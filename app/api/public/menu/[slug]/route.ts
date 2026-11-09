@@ -7,7 +7,9 @@ import {
   SUSPENSION_COLUMNS,
   buildMenuResponse,
   columnFromPgError,
+  escapeLikePattern,
   isValidSlug,
+  normalizeSlug,
 } from '@/lib/publicMenu';
 
 // Menú público con lista CERRADA de columnas (ver lib/publicMenu). Service role: el navegador no
@@ -32,18 +34,22 @@ const RESTAURANT_SELECT = [...PUBLIC_RESTAURANT_COLUMNS, ...SUSPENSION_COLUMNS].
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   try {
     const { slug: rawSlug } = await ctx.params;
-    // Igual que la página: minúsculas y sin espacios en los bordes; recién después se valida.
-    const slug = String(rawSlug ?? '').toLowerCase().trim();
+    // Next ya entrega params.slug decodificado (su route-matcher aplica decodeURIComponent): no se vuelve a
+    // decodificar. Se normaliza y se valida; un '%' que sobreviva (p. ej. %25) es inválido.
+    const slug = normalizeSlug(rawSlug);
     if (!isValidSlug(slug)) return notFound();
+    // La búsqueda es insensible a mayúsculas (ilike, como hoy) pero el slug NUNCA es un patrón:
+    // se escapan \, % y _ (el guion bajo es válido en un slug y en ilike es un comodín).
+    const slugPattern = escapeLikePattern(slug);
 
     const db = getSupabaseAdmin();
     const now = new Date();
 
-    // A. Prioridad 1: menú. El slug ya está validado (sin % ni _), así que ilike no tiene comodines.
+    // A. Prioridad 1: menú.
     const menu = await db
       .from('restaurants')
       .select(`${RESTAURANT_SELECT}, categories (id, name, image_url)`)
-      .ilike('slug', slug)
+      .ilike('slug', slugPattern)
       .maybeSingle();
 
     // PGRST116 (más de una fila) se trata como "sin menú", igual que hoy; cualquier otro error es un fallo.
@@ -64,7 +70,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
     const bio = await db
       .from('snappylinks')
       .select(`${PUBLIC_SNAPPYLINK_COLUMNS.join(', ')}, restaurant:restaurants(${RESTAURANT_SELECT})`)
-      .ilike('slug', slug)
+      .ilike('slug', slugPattern)
       .maybeSingle();
 
     if (bio.error && bio.error.code !== 'PGRST116') {

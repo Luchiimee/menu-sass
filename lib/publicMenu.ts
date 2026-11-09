@@ -190,9 +190,22 @@ export function computeMenuSuspension(
   return { isSuspended, isAdmin };
 }
 
-// Slug válido: minúsculas, números y guiones, entre 1 y 80 caracteres.
+// Slug para la comparación: sin espacios en los bordes. No se pasa a minúsculas porque la búsqueda es
+// insensible a mayúsculas (ilike) y hay locales cuyo slug guardado tiene mayúsculas ("Donacocafrutosecos").
+export function normalizeSlug(slug: unknown): string {
+  return String(slug ?? '').trim();
+}
+
+// Slug válido: letras (mayúsculas y minúsculas), números, guion, punto y guion bajo; entre 1 y 80 caracteres.
+// Rechaza vacío, espacios, %, *, comillas, barras, caracteres de control y cualquier otro.
 export function isValidSlug(slug: unknown): slug is string {
-  return typeof slug === 'string' && /^[a-z0-9-]{1,80}$/.test(slug);
+  return typeof slug === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(slug);
+}
+
+// Escapa la barra invertida, % y _ para usar el slug como patrón de ilike SIN comodines: "a_b" no coincide
+// con "axb" y "a%" no coincide con "abc". (En ilike el escape por defecto de Postgres es la barra invertida.)
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
 }
 
 // Nombre de la columna de un error 42703 de Postgres/PostgREST ("column restaurants.hero_video_url

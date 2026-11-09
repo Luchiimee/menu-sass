@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import {
   PUBLIC_RESTAURANT_COLUMNS, SUSPENSION_COLUMNS, PUBLIC_SNAPPYLINK_COLUMNS,
-  toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug, columnFromPgError, buildMenuResponse,
+  toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug, normalizeSlug, escapeLikePattern, columnFromPgError, buildMenuResponse,
   mapMenuResponse, mapBioResponse, productsForPlan,
 } from '../lib/publicMenu.ts';
 
@@ -100,18 +100,66 @@ console.log('computeMenuSuspension');
 
 console.log('isValidSlug');
 {
-  for (const ok of ['a', 'pizzeria-don-juan', 'local-12ab3', '123', 'a-b-c', 'x'.repeat(80)]) {
-    check(`válido: ${ok.length > 20 ? `(${ok.length} caracteres)` : ok}`, isValidSlug(ok) === true);
+  const validos = [
+    'a', 'pizzeria-don-juan', 'local-12ab3', '123', 'a-b-c', 'x'.repeat(80),
+    'Donacocafrutosecos', 'casadelia.ar', 'a_b', 'a-b', 'A.B', 'Pizzeria', 'a.b', 'piz_a', 'Mi_Local.2-bis',
+  ];
+  for (const ok of validos) {
+    check('válido: ' + (ok.length > 20 ? '(' + ok.length + ' caracteres)' : ok), isValidSlug(ok) === true);
   }
   const malos = [
-    ['vacío', ''], ['mayúsculas', 'Pizzeria'], ['espacio', 'pizza don'], ['espacio al borde', ' pizza'], ['porcentaje', 'pizza%20'],
-    ['comodín %', '%'], ['comodín _', 'piz_a'], ['asterisco', 'piz*'], ['punto', 'a.b'], ['barra', 'a/b'], ['coma', 'a,b'],
-    ['paréntesis', 'a)b'], ['comilla', "a'b"], ['acento', 'pizzería'], ['ñ', 'año'], ['salto de línea', 'a\nb'],
-    ['demasiado largo (81)', 'x'.repeat(81)], ['null', null], ['undefined', undefined], ['número', 5], ['arreglo', ['a']],
+    ['vacío', ''], ['solo espacio', ' '], ['espacio en el medio', 'a b'], ['espacio al borde', ' pizza'], ['porcentaje', 'a%b'],
+    ['porcentaje codificado', 'pizza%20'], ['comodín %', '%'], ['asterisco', 'a*b'], ['asterisco al final', 'piz*'], ['comilla simple', "a'b"],
+    ['comilla doble', 'a"b'], ['barra', 'a/b'], ['barra invertida', 'a\\b'], ['ruta relativa', '../x'], ['coma', 'a,b'], ['paréntesis', 'a)b'],
+    ['punto y coma', 'a;b'], ['acento', 'pizzería'], ['ñ', 'año'], ['arroba', 'a@b'], ['numeral', 'a#b'], ['interrogación', 'a?b'],
+    ['salto de línea', 'a\nb'], ['salto de línea al final', 'abc\n'], ['retorno de carro', 'a\rb'], ['tabulación', 'a\tb'],
+    ['carácter nulo', 'a\u0000b'], ['carácter de control', 'a\u0007b'], ['demasiado largo (81)', 'x'.repeat(81)],
+    ['null', null], ['undefined', undefined], ['número', 5], ['arreglo', ['a']], ['objeto', {}],
   ];
   for (const [name, v] of malos) {
-    check(`inválido: ${name}`, isValidSlug(v) === false);
+    check('inválido: ' + name, isValidSlug(v) === false);
   }
+}
+
+console.log('normalizeSlug');
+{
+  check('recorta espacios en los bordes', normalizeSlug('  Casa.Delia ') === 'Casa.Delia');
+  check('conserva las mayúsculas (la búsqueda es insensible a mayúsculas)', normalizeSlug('Donacocafrutosecos') === 'Donacocafrutosecos');
+  check('null y undefined → cadena vacía (que luego no es válida)', normalizeSlug(null) === '' && normalizeSlug(undefined) === '' && isValidSlug(normalizeSlug(null)) === false);
+  check('un slug con espacios en el medio sigue siendo inválido', isValidSlug(normalizeSlug('a b')) === false);
+}
+
+console.log('escapeLikePattern: el slug nunca es un patrón');
+{
+  // Emulación de ILIKE de Postgres con escape por defecto (barra invertida): % = cualquier cadena,
+  // _ = un carácter, \x = x literal. Insensible a mayúsculas.
+  function ilike(value, pattern) {
+    let re = '';
+    for (let k = 0; k < pattern.length; k++) {
+      const c = pattern[k];
+      if (c === '\\') { k++; re += (pattern[k] ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+      else if (c === '%') re += '[\\s\\S]*';
+      else if (c === '_') re += '[\\s\\S]';
+      else re += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    return new RegExp('^' + re + '$', 'i').test(value);
+  }
+
+  // Sanidad de la emulación: SIN escapar, los comodines sí actúan (por eso hay que escapar)
+  check('sin escapar, "a_b" coincidiría con "axb"', ilike('axb', 'a_b') === true);
+  check('sin escapar, "a%" coincidiría con "abc"', ilike('abc', 'a%') === true);
+
+  check('"a_b" ya escapado NO coincide con "axb"', ilike('axb', escapeLikePattern('a_b')) === false);
+  check('"a_b" escapado sí coincide con "a_b"', ilike('a_b', escapeLikePattern('a_b')) === true);
+  check('"a%" escapado NO coincide con "abc"', ilike('abc', escapeLikePattern('a%')) === false);
+  check('"a%" escapado coincide solo con "a%" literal', ilike('a%', escapeLikePattern('a%')) === true);
+  check('"%" escapado NO coincide con cualquier slug', ilike('casadelia.ar', escapeLikePattern('%')) === false);
+  check('"_" escapado NO coincide con un slug de una letra', ilike('a', escapeLikePattern('_')) === false);
+  check('la barra invertida también se escapa', escapeLikePattern('a\\b') === 'a\\\\b' && ilike('a\\b', escapeLikePattern('a\\b')) === true);
+  check('el punto y el guion no se tocan', escapeLikePattern('casadelia.ar') === 'casadelia.ar' && escapeLikePattern('a-b') === 'a-b');
+  check('insensible a mayúsculas, como hoy', ilike('Donacocafrutosecos', escapeLikePattern('donacocafrutosecos')) === true);
+  check('"casadelia.ar" no coincide con "casadeliaXar" (el punto es literal)', ilike('casadeliaXar', escapeLikePattern('casadelia.ar')) === false);
+  check('ningún slug válido deja comodines sin escapar', ['a_b', 'A.B', 'x-y', 'Mi_Local.2-bis'].every((v) => !/(^|[^\\])[%_]/.test(escapeLikePattern(v).replace(/\\./g, ''))));
 }
 
 console.log('buildMenuResponse: la respuesta del endpoint');
