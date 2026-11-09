@@ -11,7 +11,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
 import { Loader2, XCircle, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import {
@@ -19,11 +18,6 @@ import {
   decideNext, nextPollDelay, parseReturnParams, parseStoredMpPending,
   type ReturnMode, type StatusState,
 } from '@/lib/mpClientCheckout';
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const STATES: StatusState[] = ['pending', 'paid', 'order_created', 'failed', 'expired'];
 
@@ -101,9 +95,18 @@ export default function MpReturn({ restaurantId, restaurantPhone }: { restaurant
 
     const finish = async () => {
       // El pedido tiene que ser de ESTE local (el ref viene de la URL).
-      const { data } = await supabase.from('orders').select('restaurant_id').eq('id', ref).maybeSingle();
+      // Se pregunta al servidor (/api/public/order/<id>?restaurant=<local>): solo responde si el pedido
+      // es de este local. Si no se pudo saber (red, 404), sigue como antes: no bloquea.
+      let belongs: boolean | null = null;
+      try {
+        const res = await fetch(`/api/public/order/${encodeURIComponent(ref)}?restaurant=${encodeURIComponent(restaurantId)}`, { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json().catch(() => null);
+          if (json && typeof json.belongs === 'boolean') belongs = json.belongs;
+        }
+      } catch { /* sin respuesta: no se bloquea */ }
       if (cancelled) return;
-      if (data && data.restaurant_id !== restaurantId) { setView('mismatch'); return; }
+      if (belongs === false) { setView('mismatch'); return; }
 
       const stored = parseStoredMpPending(localStorage.getItem(MP_PENDING_KEY), restaurantId, Date.now());
       if (stored && stored.ref === ref) localStorage.setItem('metodoEnvio', stored.metodoEnvio);
