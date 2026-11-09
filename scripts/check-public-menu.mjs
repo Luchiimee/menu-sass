@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import {
   PUBLIC_RESTAURANT_COLUMNS, SUSPENSION_COLUMNS, PUBLIC_SNAPPYLINK_COLUMNS,
   toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug, columnFromPgError, buildMenuResponse,
+  mapMenuResponse, mapBioResponse, productsForPlan,
 } from '../lib/publicMenu.ts';
 
 let failures = 0;
@@ -152,6 +153,91 @@ console.log('buildMenuResponse: la respuesta del endpoint');
   check('bio: snappylink sin slug, restaurant_id ni extras', !('slug' in bio.snappylink) && !('restaurant_id' in bio.snappylink) && !('extra' in bio.snappylink));
   check('bio: sin isAdmin ni columnas sensibles', !/isAdmin/i.test(JSON.stringify(bio)) && SENSIBLES.every((c) => !(c in bio.restaurant)));
   check('planType null si el local no tiene plan', buildMenuResponse({ type: 'menu', row: row({ subscription_plan: null }), adminEmails: ADMINS, now: NOW }).planType === null);
+}
+
+console.log('mapMenuResponse / mapBioResponse: equivalen a la lectura vieja (select *)');
+{
+  const ADMINS = [];
+  const NOW = at('2026-11-08T15:00:00Z');
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  // Fila completa como la devolvía select('*') (con columnas sensibles)
+  const full = {};
+  for (const c of PUBLIC_RESTAURANT_COLUMNS) full[c] = 'v:' + c;
+  Object.assign(full, {
+    id: 'r1', subscription_plan: 'light', owner_email: 'dueno@x.com', user_id: 'u1', mp_card_id: 'card', mp_preapproval_id: 'pre',
+    card_last_four: '4242', card_brand: 'visa', trial_ends_at: null, next_payment_date: '2026-12-01', grace_period_until: null,
+    subscription_status: 'active', created_at: '2026-01-01T00:00:00Z', delivery_address: 'Calle 1', cash_close_hour: 4,
+  });
+  const cats = [{ id: 'c1', name: 'Pizzas', image_url: null }, { id: 2, name: 'Bebidas', image_url: 'x.png' }, { id: 'c3', name: 'Vacía', image_url: null }];
+  const rawProducts = [
+    { id: 'p1', name: 'Muzza', category_id: 'c1', video_url: 'v1.mp4', price: 10 },
+    { id: 'p2', name: 'Coca', category_id: '2', video_url: null, price: 5 },
+    { id: 'p3', name: 'Huérfano', category_id: 'zzz', video_url: 'v3.mp4', price: 1 },
+  ];
+  const extras = [{ id: 'e1', name: 'Queso', product_extras: [{ product_id: 'p1' }] }];
+
+  // Réplica de lo que armaba getRestaurant con la lectura vieja (menú)
+  function oldMenu(menuData, raw, allExtras) {
+    const products = (raw || []).map((p) => (menuData.subscription_plan === 'light' ? { ...p, video_url: null } : p));
+    const categoriesWithProducts = (menuData.categories || []).map((cat) => ({ ...cat, products: (products || []).filter((p) => String(p.category_id) === String(cat.id)) }));
+    return { ...menuData, categories: categoriesWithProducts, fetched_products: products || [], fetched_extras: allExtras || [], page_type: 'menu' };
+  }
+
+  for (const plan of ['light', 'go', 'plus', null]) {
+    const row = { ...full, subscription_plan: plan };
+    const viejo = oldMenu({ ...row, categories: cats }, rawProducts, extras);
+    const resp = buildMenuResponse({ type: 'menu', row: { ...row, categories: cats }, adminEmails: ADMINS, now: NOW, categories: cats });
+    const nuevo = mapMenuResponse(resp, rawProducts, extras);
+    const lista = [...PUBLIC_RESTAURANT_COLUMNS, 'categories', 'fetched_products', 'fetched_extras', 'page_type'];
+    check('menú (plan ' + plan + '): las ' + lista.length + ' propiedades que usan los templates son idénticas', lista.every((k) => eq(viejo[k], nuevo[k])));
+  }
+  {
+    const row = { ...full, subscription_plan: 'light' };
+    const nuevo = mapMenuResponse(buildMenuResponse({ type: 'menu', row, adminEmails: ADMINS, now: NOW, categories: cats }), rawProducts, extras);
+    check('plan Light: video_url null en productos y en cada categoría', nuevo.fetched_products.every((p) => p.video_url === null) && nuevo.categories[0].products[0].video_url === null);
+    const go = mapMenuResponse(buildMenuResponse({ type: 'menu', row: { ...full, subscription_plan: 'go' }, adminEmails: ADMINS, now: NOW, categories: cats }), rawProducts, extras);
+    check('plan Go: conserva video_url', go.fetched_products[0].video_url === 'v1.mp4');
+    check('categorías con sus productos (id numérico vs texto) y vacía con []', nuevo.categories[1].products.length === 1 && nuevo.categories[2].products.length === 0);
+    check('producto sin categoría queda solo en fetched_products', nuevo.fetched_products.length === 3 && nuevo.categories.every((c) => c.products.every((p) => p.id !== 'p3')));
+    const sens = ['owner_email', 'user_id', 'mp_card_id', 'mp_preapproval_id', 'card_last_four', 'card_brand', 'next_payment_date', 'subscription_status', 'created_at', 'delivery_address', 'cash_close_hour'];
+    check('el objeto nuevo ya no trae columnas sensibles', sens.every((c) => !(c in nuevo)));
+  }
+  {
+    const vacio = mapMenuResponse({ restaurant: { id: 'r', subscription_plan: 'go' }, categories: null }, null, null);
+    check('sin categorías, productos ni extras: arreglos vacíos', eq(vacio.categories, []) && eq(vacio.fetched_products, []) && eq(vacio.fetched_extras, []) && vacio.page_type === 'menu');
+    check('productsForPlan tolera null', eq(productsForPlan(null, 'light'), []));
+  }
+
+  // Bio: réplica del mapeo viejo
+  function oldBio(bioData) {
+    return {
+      ...bioData.restaurant,
+      snappylink_bio: bioData.bio, snappylink_links: bioData.links, snappylink_template_id: bioData.template_id, is_bio_active: bioData.is_active,
+      snappylink_title: bioData.title, snappylink_bg_color: bioData.bg_color, snappylink_bg_img: bioData.bg_img, snappylink_btn_color: bioData.btn_color,
+      snappylink_btn_text_color: bioData.btn_text_color, snappylink_shadow_color: bioData.shadow_color, snappylink_title_color: bioData.title_color,
+      snappylink_desc_color: bioData.desc_color, snappylink_social_links: bioData.social_links || [], snappylink_social_pos: bioData.social_pos || 'bottom',
+      page_type: 'bio',
+    };
+  }
+  const SL_CAMPOS = ['snappylink_bio', 'snappylink_links', 'snappylink_template_id', 'is_bio_active', 'snappylink_title', 'snappylink_bg_color', 'snappylink_bg_img', 'snappylink_btn_color', 'snappylink_btn_text_color', 'snappylink_shadow_color', 'snappylink_title_color', 'snappylink_desc_color', 'snappylink_social_links', 'snappylink_social_pos', 'page_type'];
+  const slRow = { bio: 'Hola', links: [{ label: 'a', url: 'https://x' }], template_id: 'modern', is_active: true, title: 'Mi bio', bg_color: '#111', bg_img: 'bg.png', btn_color: '#0f0', btn_text_color: '#fff', shadow_color: '#000', title_color: '#eee', desc_color: '#ccc', social_links: [{ k: 1 }], social_pos: 'top', slug: 'mi-bio', restaurant_id: 'r1' };
+  {
+    const viejo = oldBio({ ...slRow, restaurant: full });
+    const resp = buildMenuResponse({ type: 'bio', row: full, adminEmails: ADMINS, now: NOW, snappylinkRow: slRow });
+    const nuevo = mapBioResponse(resp);
+    check('bio: las ' + SL_CAMPOS.length + ' propiedades snappylink_* / is_bio_active / page_type son idénticas', SL_CAMPOS.every((k) => eq(viejo[k], nuevo[k])));
+    check('bio: las columnas del local que usa la bio son idénticas', ['name', 'logo_url', 'theme_color', 'subscription_plan', 'phone', 'facebook', 'instagram', 'tiktok'].every((k) => eq(viejo[k], nuevo[k])));
+    check('bio: sin columnas sensibles ni slug/restaurant_id de snappylinks', !('owner_email' in nuevo) && !('user_id' in nuevo) && !('slug' in nuevo) && !('restaurant_id' in nuevo));
+  }
+  {
+    const sinNada = oldBio({ ...slRow, social_links: null, social_pos: null, restaurant: full });
+    const resp = buildMenuResponse({ type: 'bio', row: full, adminEmails: ADMINS, now: NOW, snappylinkRow: { ...slRow, social_links: null, social_pos: null } });
+    const nuevo = mapBioResponse(resp);
+    check('bio: valores por defecto (social_links [] y social_pos "bottom")', eq(nuevo.snappylink_social_links, []) && nuevo.snappylink_social_pos === 'bottom' && eq(sinNada.snappylink_social_links, nuevo.snappylink_social_links) && sinNada.snappylink_social_pos === nuevo.snappylink_social_pos);
+    check('bio: snappylink_logo_url no se mapea (igual que hoy)', !('snappylink_logo_url' in nuevo));
+    check('bio: is_active false se conserva', mapBioResponse({ restaurant: {}, snappylink: { ...slRow, is_active: false } }).is_bio_active === false);
+  }
 }
 
 console.log('columnFromPgError: solo el nombre de la columna');
