@@ -10,7 +10,7 @@ import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE 
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
 import { subscribeToOrder } from '@/lib/orderPollClient';
-import { newOrderId } from '@/lib/orderPolling';
+import { newOrderId, shouldClearOrder } from '@/lib/orderPolling';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -175,6 +175,11 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [direccionEntreCalles, setDireccionEntreCalles] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
+    // Para que el temporizador de limpieza lea el valor de ese momento y no el del render que lo creó
+    const metodoPagoRef = useRef(metodoPago);
+    useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
+    const pagoConfirmadoRef = useRef(pagoConfirmado);
+    useEffect(() => { pagoConfirmadoRef.current = pagoConfirmado; }, [pagoConfirmado]);
 
     // --- ZONAS DE DELIVERY ---
     const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
@@ -376,11 +381,26 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             const estadosFinales = isMesa ? ['completado', 'cancelado'] : ['entregado', 'completado', 'cancelado'];
 
             if (estadosFinales.includes(orderStatusRef.current)) {
-                const timer = setTimeout(() => {
-                    clearCart();
-                    setActiveOrderId(null);
-                    localStorage.removeItem("activeOrderId"); // Limpieza total
-                }, 5 * 60 * 1000);
+                // A los 5 minutos se limpia, salvo que sea una transferencia / Mercado Pago todavía sin
+                // confirmar: entonces se vuelve a mirar cada minuto, hasta un tope de 30 minutos
+                const startedAt = Date.now();
+                let timer: ReturnType<typeof setTimeout>;
+                const tryClear = () => {
+                    const due = shouldClearOrder({
+                        status: orderStatusRef.current,
+                        orderType: metodoEnvio,
+                        paymentMethod: metodoPagoRef.current,
+                        pagoConfirmado: pagoConfirmadoRef.current,
+                    }, Date.now() - startedAt);
+                    if (due) {
+                        clearCart();
+                        setActiveOrderId(null);
+                        localStorage.removeItem("activeOrderId"); // Limpieza total
+                    } else {
+                        timer = setTimeout(tryClear, 60 * 1000);
+                    }
+                };
+                timer = setTimeout(tryClear, 5 * 60 * 1000);
                 return () => clearTimeout(timer);
             }
         }

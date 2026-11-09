@@ -39,14 +39,34 @@ export type OrderForPolling = {
   pagoConfirmado?: unknown;
 };
 
+// ¿El pedido espera todavía la confirmación de su pago? Solo delivery o retiro pagados por
+// transferencia o Mercado Pago, sin confirmar y no cancelados (mesa y cancelado no esperan pago).
+export function isAwaitingPayment(order: OrderForPolling): boolean {
+  if (order.status === 'cancelado' || order.orderType === 'mesa') return false;
+  if (order.pagoConfirmado === true) return false;
+  return typeof order.paymentMethod === 'string' && CONFIRMABLE_PAYMENT_METHODS.includes(order.paymentMethod);
+}
+
+// ¿Se limpia el carrito y el seguimiento del pedido? msSinceFinal = tiempo desde que el estado pasó a
+// final (en el navegador, desde que se vio; en ClearCartLogic, desde updated_at).
+//   - estado final y pasaron 5 minutos: se limpia
+//   - salvo que siga esperando la confirmación del pago (transferencia / Mercado Pago sin confirmar):
+//     entonces se espera hasta 30 minutos (el mismo tope que la consulta)
+export const CLEAR_AFTER_FINAL_MS = 5 * 60_000;
+
+export function shouldClearOrder(order: OrderForPolling, msSinceFinal: number): boolean {
+  if (!isFinalStatus(order.status, order.orderType)) return false;
+  if (!(msSinceFinal >= CLEAR_AFTER_FINAL_MS)) return false; // también cubre NaN
+  if (isAwaitingPayment(order)) return msSinceFinal >= FINAL_GRACE_MS;
+  return true;
+}
+
 // ¿Se deja de consultar? finalSeenAt = momento (ms) en que se vio por primera vez el estado final,
 // o null si todavía no lo es. now = momento actual (ms).
 export function shouldStopPolling(order: OrderForPolling, finalSeenAt: number | null, now: number): boolean {
   if (!isFinalStatus(order.status, order.orderType)) return false;
-  if (order.status === 'cancelado') return true;        // un pedido cancelado no espera pago
-  if (order.orderType === 'mesa') return true;          // mesa: mismo criterio de siempre (estado final)
-  if (order.pagoConfirmado === true) return true;
-  if (typeof order.paymentMethod !== 'string' || !CONFIRMABLE_PAYMENT_METHODS.includes(order.paymentMethod)) return true;
+  // cancelado, mesa, pago confirmado o medio sin confirmación: alcanza con el estado final
+  if (!isAwaitingPayment(order)) return true;
   return finalSeenAt !== null && now - finalSeenAt >= FINAL_GRACE_MS;
 }
 

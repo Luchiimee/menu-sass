@@ -4,7 +4,7 @@
 
 import {
   POLL_INTERVAL_MS, MAX_BACKOFF_MS, NOT_FOUND_STOP_AFTER, INITIAL_POLL_STATE,
-  FINAL_GRACE_MS, MIN_RESUME_GAP_MS, isTabHidden, shouldResumeOnVisible, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
+  FINAL_GRACE_MS, CLEAR_AFTER_FINAL_MS, shouldClearOrder, isAwaitingPayment, MIN_RESUME_GAP_MS, isTabHidden, shouldResumeOnVisible, isFinalStatus, shouldStopPolling, backoffDelay, nextPoll, newOrderId,
 } from '../lib/orderPolling.ts';
 import { isValidOrderId } from '../lib/publicOrder.ts';
 
@@ -131,6 +131,50 @@ console.log('nextPoll: momento en que se vio el estado final');
   const f = nextPoll(b.state, tr('en_camino'), T0 + 12 * MIN);
   check('si vuelve a no ser final, se borra el momento', f.state.finalSeenAt === null);
   check('efectivo final: corta en la primera respuesta', nextPoll(INITIAL_POLL_STATE, { ...tr('entregado'), paymentMethod: 'efectivo' }, T0).stop);
+}
+
+console.log('isAwaitingPayment');
+{
+  const o = (over) => ({ status: 'entregado', orderType: 'delivery', paymentMethod: 'transferencia', pagoConfirmado: false, ...over });
+  check('transferencia sin confirmar: espera', isAwaitingPayment(o()));
+  check('Mercado Pago sin confirmar: espera', isAwaitingPayment(o({ paymentMethod: 'mercadopago' })));
+  check('retiro con transferencia sin confirmar: espera', isAwaitingPayment(o({ orderType: 'retiro' })));
+  check('pago confirmado: no espera', !isAwaitingPayment(o({ pagoConfirmado: true })));
+  check('efectivo: no espera', !isAwaitingPayment(o({ paymentMethod: 'efectivo' })));
+  check('medio null / desconocido: no espera', !isAwaitingPayment(o({ paymentMethod: null })) && !isAwaitingPayment(o({ paymentMethod: 'otro' })));
+  check('cancelado: no espera', !isAwaitingPayment(o({ status: 'cancelado' })));
+  check('mesa: no espera', !isAwaitingPayment(o({ orderType: 'mesa' })));
+  check('pagoConfirmado null o undefined cuenta como sin confirmar', isAwaitingPayment(o({ pagoConfirmado: null })) && isAwaitingPayment(o({ pagoConfirmado: undefined })));
+}
+
+console.log('shouldClearOrder (limpieza del carrito)');
+{
+  const MIN = 60_000;
+  const o = (over) => ({ status: 'entregado', orderType: 'delivery', paymentMethod: 'transferencia', pagoConfirmado: false, ...over });
+  check('5 minutos y 30 minutos como constantes', CLEAR_AFTER_FINAL_MS === 5 * MIN && FINAL_GRACE_MS === 30 * MIN);
+  check('efectivo final a los 4 min: no limpia', !shouldClearOrder(o({ paymentMethod: 'efectivo' }), 4 * MIN));
+  check('efectivo final a los 5 min: limpia', shouldClearOrder(o({ paymentMethod: 'efectivo' }), 5 * MIN));
+  check('efectivo final a los 6 min: limpia', shouldClearOrder(o({ paymentMethod: 'efectivo' }), 6 * MIN));
+  check('transferencia confirmada a los 5 min: limpia', shouldClearOrder(o({ pagoConfirmado: true }), 5 * MIN));
+  check('Mercado Pago confirmado a los 5 min: limpia', shouldClearOrder(o({ paymentMethod: 'mercadopago', pagoConfirmado: true }), 5 * MIN));
+  check('transferencia sin confirmar a los 6 min: NO limpia', !shouldClearOrder(o(), 6 * MIN));
+  check('transferencia sin confirmar a los 29 min: NO limpia', !shouldClearOrder(o(), 29 * MIN));
+  check('transferencia sin confirmar a los 30 min: limpia (tope)', shouldClearOrder(o(), 30 * MIN));
+  check('transferencia sin confirmar a las 2 horas: limpia', shouldClearOrder(o(), 120 * MIN));
+  check('Mercado Pago sin confirmar a los 10 min: NO limpia', !shouldClearOrder(o({ paymentMethod: 'mercadopago' }), 10 * MIN));
+  check('cancelado con transferencia sin confirmar a los 5 min: limpia', shouldClearOrder(o({ status: 'cancelado' }), 5 * MIN));
+  check('no final: nunca limpia (ni pasadas 2 horas)', ['pendiente', 'recibido', 'en_proceso', 'en_camino'].every((s) => !shouldClearOrder(o({ status: s, paymentMethod: 'efectivo' }), 120 * MIN)));
+  check('completado con efectivo a los 5 min: limpia', shouldClearOrder(o({ status: 'completado', paymentMethod: 'efectivo' }), 5 * MIN));
+  // mesa: solo completado / cancelado son finales (entregado = falta pagar)
+  const m = (over) => ({ orderType: 'mesa', paymentMethod: 'transferencia', pagoConfirmado: false, ...over });
+  check('mesa entregado a las 2 horas: NO limpia (falta pagar)', !shouldClearOrder(m({ status: 'entregado' }), 120 * MIN));
+  check('mesa completado a los 4 min: no limpia', !shouldClearOrder(m({ status: 'completado' }), 4 * MIN));
+  check('mesa completado a los 5 min: limpia (aunque la transferencia no esté confirmada)', shouldClearOrder(m({ status: 'completado' }), 5 * MIN));
+  check('mesa cancelado a los 5 min: limpia', shouldClearOrder(m({ status: 'cancelado' }), 5 * MIN));
+  check('updated_at inválido (NaN): no limpia', !shouldClearOrder(o({ paymentMethod: 'efectivo' }), NaN));
+  check('tiempo negativo (reloj adelantado): no limpia', !shouldClearOrder(o({ paymentMethod: 'efectivo' }), -1000));
+  check('coherente con shouldStopPolling: el mismo pedido sin confirmar no corta la consulta antes del tope',
+    !shouldStopPolling(o(), 0, 29 * MIN) && !shouldClearOrder(o(), 29 * MIN));
 }
 
 console.log('pestaña oculta');

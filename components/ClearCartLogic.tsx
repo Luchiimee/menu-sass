@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { fetchPublicOrder } from '@/lib/orderPollClient';
+import { shouldClearOrder } from '@/lib/orderPolling';
 
 export default function ClearCartLogic({ currentRestaurantId }: { currentRestaurantId: string }) {
   const { cartRestaurantId, clearCart, activeOrderId, setActiveOrderId } = useCart();
@@ -32,12 +33,18 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
               const result = await fetchPublicOrder(activeOrderId);
               const order = result.kind === 'ok' ? result.order : null;
 
-              if (order && ['completado', 'cancelado', 'entregado'].includes(order.status)) { 
+              if (order) {
+                  // Estado final hace más de 5 minutos (desde updated_at). Una transferencia o Mercado Pago
+                  // todavía sin confirmar espera hasta 30 minutos; mesa solo limpia en completado / cancelado.
                   const lastUpdate = parseDateUTC(order.updated_at ?? "");
-                  const now = new Date().getTime();
-                  const minutesPassed = (now - lastUpdate) / (1000 * 60);
+                  const msSinceFinal = new Date().getTime() - lastUpdate;
 
-                  if (minutesPassed > 5) {
+                  if (shouldClearOrder({
+                      status: order.status,
+                      orderType: order.order_type,
+                      paymentMethod: order.payment_method,
+                      pagoConfirmado: order.pago_confirmado,
+                  }, msSinceFinal)) {
                       setActiveOrderId(null);
                       clearCart();
                       // Aquí NO hay reload, así que estamos a salvo.
