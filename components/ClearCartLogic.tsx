@@ -1,17 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
-import { createBrowserClient } from '@supabase/ssr';
+import { fetchPublicOrder } from '@/lib/orderPollClient';
 
 export default function ClearCartLogic({ currentRestaurantId }: { currentRestaurantId: string }) {
   const { cartRestaurantId, clearCart, activeOrderId, setActiveOrderId } = useCart();
   const lastProcessedId = useRef<string | null>(null);
-
-  const supabase = useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ), []);
 
   const parseDateUTC = (dateString: string) => {
       if (!dateString.endsWith('Z') && !dateString.includes('+')) {
@@ -33,14 +28,12 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
           if (!activeOrderId) return;
 
           try {
-              const { data: order } = await supabase
-                  .from('orders')
-                  .select('status, updated_at')
-                  .eq('id', activeOrderId)
-                  .single();
+              // Lectura por el endpoint público (id del pedido); si falla o no existe, no se hace nada
+              const result = await fetchPublicOrder(activeOrderId);
+              const order = result.kind === 'ok' ? result.order : null;
 
               if (order && ['completado', 'cancelado', 'entregado'].includes(order.status)) { 
-                  const lastUpdate = parseDateUTC(order.updated_at);
+                  const lastUpdate = parseDateUTC(order.updated_at ?? "");
                   const now = new Date().getTime();
                   const minutesPassed = (now - lastUpdate) / (1000 * 60);
 
@@ -59,7 +52,7 @@ export default function ClearCartLogic({ currentRestaurantId }: { currentRestaur
       const interval = setInterval(checkOrderStatus, 60000); 
       return () => clearInterval(interval);
 
-  }, [activeOrderId, supabase, setActiveOrderId, clearCart]);
+  }, [activeOrderId, setActiveOrderId, clearCart]);
 
   return null;
 }
