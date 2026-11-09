@@ -203,3 +203,37 @@ export function columnFromPgError(message: unknown): string | null {
   const m = message.match(/column "?([a-z0-9_]+(?:\.[a-z0-9_]+)?)"? does not exist/i);
   return m ? m[1] : null;
 }
+
+export type MenuResponse =
+  | { type: 'menu' | 'bio'; isSuspended: true }
+  | {
+      type: 'menu' | 'bio';
+      isSuspended: false;
+      planType: string | null;
+      restaurant: PublicRestaurant;
+      categories?: unknown[];
+      snappylink?: Record<string, unknown>;
+    };
+
+// Arma el cuerpo JSON del endpoint. La respuesta NUNCA trae isAdmin (la página no lo usa y le diría a
+// cualquier visitante si el dueño es admin) ni columnas fuera de la lista pública. Suspendido: solo
+// { type, isSuspended: true }, sin ningún dato del local.
+export function buildMenuResponse(input: {
+  type: 'menu' | 'bio';
+  row: Record<string, unknown>;
+  adminEmails: readonly string[];
+  now: Date;
+  categories?: unknown[];
+  snappylinkRow?: Record<string, unknown> | null;
+}): MenuResponse {
+  const { isSuspended } = computeMenuSuspension(input.row as SuspensionRow, input.adminEmails, input.now);
+  if (isSuspended) return { type: input.type, isSuspended: true };
+
+  const restaurant = toPublicRestaurant(input.row);
+  const planType = (restaurant.subscription_plan as string | null | undefined) ?? null;
+
+  if (input.type === 'bio') {
+    return { type: 'bio', isSuspended: false, planType, restaurant, snappylink: toPublicSnappylink(input.snappylinkRow) };
+  }
+  return { type: 'menu', isSuspended: false, planType, restaurant, categories: input.categories ?? [] };
+}

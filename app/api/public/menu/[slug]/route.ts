@@ -5,11 +5,9 @@ import {
   PUBLIC_RESTAURANT_COLUMNS,
   PUBLIC_SNAPPYLINK_COLUMNS,
   SUSPENSION_COLUMNS,
+  buildMenuResponse,
   columnFromPgError,
-  computeMenuSuspension,
   isValidSlug,
-  toPublicRestaurant,
-  toPublicSnappylink,
 } from '@/lib/publicMenu';
 
 // Menú público con lista CERRADA de columnas (ver lib/publicMenu). Service role: el navegador no
@@ -56,20 +54,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
 
     if (menu.data) {
       const row = menu.data as unknown as Record<string, unknown>;
-      const { isSuspended, isAdmin } = computeMenuSuspension(row, ADMIN_EMAILS, now);
-      if (isSuspended) {
-        return NextResponse.json({ type: 'menu', isSuspended: true, isAdmin: false }, { headers: NO_STORE });
-      }
-      const restaurant = toPublicRestaurant(row);
       return NextResponse.json(
-        {
-          type: 'menu',
-          isSuspended: false,
-          isAdmin,
-          planType: (restaurant.subscription_plan as string | null | undefined) ?? null,
-          restaurant,
-          categories: (row.categories as unknown[]) ?? [],
-        },
+        buildMenuResponse({ type: 'menu', row, adminEmails: ADMIN_EMAILS, now, categories: (row.categories as unknown[]) ?? [] }),
         { headers: NO_STORE }
       );
     }
@@ -94,25 +80,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
       return notFound();
     }
 
-    // La suspensión se evalúa antes que la bio inactiva, como en la página.
-    const { isSuspended, isAdmin } = computeMenuSuspension(restaurantRow, ADMIN_EMAILS, now);
-    if (isSuspended) {
-      return NextResponse.json({ type: 'bio', isSuspended: true, isAdmin: false }, { headers: NO_STORE });
-    }
-    if (bioRow.is_active === false) return notFound();
-
-    const restaurant = toPublicRestaurant(restaurantRow);
-    return NextResponse.json(
-      {
-        type: 'bio',
-        isSuspended: false,
-        isAdmin,
-        planType: (restaurant.subscription_plan as string | null | undefined) ?? null,
-        restaurant,
-        snappylink: toPublicSnappylink(bioRow),
-      },
-      { headers: NO_STORE }
-    );
+    // La suspensión se evalúa antes que la bio inactiva, como en la página (suspendido no trae datos).
+    const body = buildMenuResponse({ type: 'bio', row: restaurantRow, adminEmails: ADMIN_EMAILS, now, snappylinkRow: bioRow });
+    if (!body.isSuspended && bioRow.is_active === false) return notFound();
+    return NextResponse.json(body, { headers: NO_STORE });
   } catch {
     console.error('[public-menu] code=UNEXPECTED');
     return serverError();

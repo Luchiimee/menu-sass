@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import {
   PUBLIC_RESTAURANT_COLUMNS, SUSPENSION_COLUMNS, PUBLIC_SNAPPYLINK_COLUMNS,
-  toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug, columnFromPgError,
+  toPublicRestaurant, toPublicSnappylink, computeMenuSuspension, isValidSlug, columnFromPgError, buildMenuResponse,
 } from '../lib/publicMenu.ts';
 
 let failures = 0;
@@ -111,6 +111,47 @@ console.log('isValidSlug');
   for (const [name, v] of malos) {
     check(`inválido: ${name}`, isValidSlug(v) === false);
   }
+}
+
+console.log('buildMenuResponse: la respuesta del endpoint');
+{
+  const ADMINS = ['admin@snappy.com'];
+  const NOW = at('2026-11-08T15:00:00Z');
+  const SENSIBLES = ['owner_email', 'user_id', 'mp_customer_id', 'mp_card_id', 'mp_preapproval_id', 'card_last_four', 'card_brand', 'trial_ends_at', 'next_payment_date', 'grace_period_until', 'subscription_status', 'created_at', 'delivery_address', 'cash_close_hour', 'cash_auto_close_enabled', 'mp_checkout_enabled'];
+  const row = (o = {}) => ({
+    id: 'r1', name: 'Local', subscription_plan: 'go', theme_color: '#fff', phone: '1155',
+    owner_email: 'dueno@x.com', user_id: 'u1', mp_customer_id: 'cus', mp_card_id: null, mp_preapproval_id: 'pre', card_last_four: '4242', card_brand: 'visa',
+    trial_ends_at: null, next_payment_date: '2026-12-01', grace_period_until: null, subscription_status: 'active', created_at: '2026-01-01T00:00:00Z',
+    delivery_address: 'Calle 1', cash_close_hour: 4, cash_auto_close_enabled: true, mp_checkout_enabled: true, columna_nueva: 'x', ...o,
+  });
+  const cats = [{ id: 'c1', name: 'Pizzas', image_url: null }];
+  const menu = buildMenuResponse({ type: 'menu', row: row(), adminEmails: ADMINS, now: NOW, categories: cats });
+  const json = JSON.stringify(menu);
+
+  check('menú: type, isSuspended false, planType y local', menu.type === 'menu' && menu.isSuspended === false && menu.planType === 'go' && menu.restaurant.id === 'r1' && menu.restaurant.name === 'Local');
+  check('menú: trae las categorías', JSON.stringify(menu.categories) === JSON.stringify(cats));
+  check('menú: la respuesta NO trae isAdmin (en ninguna parte)', !('isAdmin' in menu) && !/isAdmin/i.test(json));
+  for (const col of SENSIBLES) {
+    check(`menú: no trae ${col}`, !(col in menu.restaurant) && !json.includes(`"${col}"`));
+  }
+  check('menú: no trae columnas fuera de la lista', !('columna_nueva' in menu.restaurant) && Object.keys(menu.restaurant).every((k) => PUBLIC_RESTAURANT_COLUMNS.includes(k)));
+  check('menú: no filtra el email del dueño ni el id de MP', !json.includes('dueno@x.com') && !json.includes('"pre"') && !json.includes('4242'));
+
+  const admin = buildMenuResponse({ type: 'menu', row: row({ owner_email: 'admin@snappy.com', subscription_status: 'cancelled' }), adminEmails: ADMINS, now: NOW, categories: [] });
+  check('dueño admin inmune: no suspendido y sin isAdmin ni email', admin.isSuspended === false && !/isAdmin/i.test(JSON.stringify(admin)) && !JSON.stringify(admin).includes('admin@snappy.com'));
+
+  for (const st of ['paused', 'cancelled']) {
+    const sus = buildMenuResponse({ type: 'menu', row: row({ subscription_status: st }), adminEmails: ADMINS, now: NOW, categories: cats });
+    check(`${st}: solo { type, isSuspended: true }`, JSON.stringify(sus) === '{"type":"menu","isSuspended":true}');
+  }
+  const susBio = buildMenuResponse({ type: 'bio', row: row({ subscription_status: 'paused' }), adminEmails: ADMINS, now: NOW, snappylinkRow: { bio: 'x' } });
+  check('bio suspendida: solo { type, isSuspended: true }', JSON.stringify(susBio) === '{"type":"bio","isSuspended":true}');
+
+  const bio = buildMenuResponse({ type: 'bio', row: row(), adminEmails: ADMINS, now: NOW, snappylinkRow: { bio: 'hola', links: [], is_active: true, title: 'T', slug: 'x', restaurant_id: 'r1', extra: 1 } });
+  check('bio: type, local y snappylink filtrado', bio.type === 'bio' && bio.restaurant.id === 'r1' && bio.snappylink.bio === 'hola' && bio.snappylink.title === 'T');
+  check('bio: snappylink sin slug, restaurant_id ni extras', !('slug' in bio.snappylink) && !('restaurant_id' in bio.snappylink) && !('extra' in bio.snappylink));
+  check('bio: sin isAdmin ni columnas sensibles', !/isAdmin/i.test(JSON.stringify(bio)) && SENSIBLES.every((c) => !(c in bio.restaurant)));
+  check('planType null si el local no tiene plan', buildMenuResponse({ type: 'menu', row: row({ subscription_plan: null }), adminEmails: ADMINS, now: NOW }).planType === null);
 }
 
 console.log('columnFromPgError: solo el nombre de la columna');
