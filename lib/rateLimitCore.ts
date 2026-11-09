@@ -8,6 +8,7 @@
 //   checkout:rid:<uuid>  POST /api/checkout/mp, por restaurante
 //   public:ip:<hash>     GET /api/checkout/mp/available y /status, por IP
 //   quote:ip:<hash>      POST /api/checkout/mp/quote, por IP
+//   order:ip:<hash>      GET /api/public/order/[id], por IP
 //   quote:rid:<uuid>     POST /api/checkout/mp/quote, por restaurante
 // La IP nunca se guarda ni se loguea: solo su sha-256 con sal (RATE_LIMIT_IP_SALT).
 
@@ -22,12 +23,14 @@ export const RATE_LIMITS = {
   checkoutPerRestaurant: { limit: 60, windowSeconds: 10 * 60 },
   // Consultas del checkout (¿hay MP? / estado del pago)
   publicPerIp: { limit: 60, windowSeconds: 60 },
+  // Seguimiento del pedido: el cliente consulta cada 5 a 10 s (y puede haber varios en la misma red)
+  orderPerIp: { limit: 120, windowSeconds: 60 },
   // Cotizar un envío: cada una puede costar una llamada a Google Geocoding (más bajo que el pago)
   quotePerIp: { limit: 6, windowSeconds: 10 * 60 },
   quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
 } satisfies Record<string, LimitRule>;
 
-export type LimitScope = 'checkout' | 'public' | 'quote';
+export type LimitScope = 'checkout' | 'public' | 'quote' | 'order';
 
 // En Vercel, x-real-ip y x-forwarded-for los pone la plataforma con la IP del cliente
 // (sobrescribe lo que mande el cliente). Se prefiere x-real-ip; si no, la primera de
