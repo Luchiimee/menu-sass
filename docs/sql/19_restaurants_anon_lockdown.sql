@@ -2,6 +2,9 @@
 -- 19 — restaurants: quitarle a la clave pública (rol anon) la lectura de public.restaurants
 -- =============================================================================
 -- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. NO se ejecuta desde el código.
+-- EJECUTADO en producción el 2026-11-09; prueba previa ok (anon veía las mismas filas en products 66,
+-- categories 14, extras 18, tables 1 y orders 455; el dueño de prueba veía 66 y 14). Verificado con la
+-- clave pública real: restaurants da 42501.
 -- Antes: tiene que estar desplegado el cambio que hace que el menú público lea el local desde
 -- /api/public/menu/[slug] (servidor) y no desde el navegador con la clave pública. Si no, el menú
 -- público dejaría de cargar. También conviene correr la consulta de solo lectura "ANTES DE CORRER"
@@ -130,8 +133,9 @@ commit;
 --
 -- Cómo no deja cambios: el sub-bloque del DO mide "antes", aplica los pasos 1 y 2 (las mismas
 -- sentencias de arriba), mide "después" y termina con una excepción forzada (ZZ001); Postgres deshace
--- todo lo hecho en el sub-bloque (alter policy y revoke incluidos). Las filas medidas se guardan en
--- tablas temporales (_t_res), que se escriben siempre como postgres, y el ÚLTIMO comando es el select.
+-- todo lo hecho en el sub-bloque (alter policy y revoke incluidos), también los insert en tablas
+-- temporales. Por eso las mediciones se guardan en arrays (a_antes, a_desp, a_err, u_antes, u_desp,
+-- u_err) y se insertan en _t_res DESPUÉS del sub-bloque. El ÚLTIMO comando es el select.
 -- Cada medición tiene su propio begin/exception: un error en una tabla no aborta el resto.
 --
 -- Qué mide
@@ -145,7 +149,8 @@ commit;
 --     el panel al dueño: NO aplicar.
 --   - anon: filas_antes = filas_despues, sin error. Lo normal es que products/categories/extras
 --     muestren lo que hoy es público (por una política que no menciona restaurants) y que las tablas
---     privadas (cash_*, coupons, orders, order_item_costs, discount_rules) den 0 antes y después.
+--     privadas (cash_*, coupons, order_item_costs, discount_rules) den 0 antes y después.
+--     (orders y tables sí se leen sin sesión: ver PENDIENTES al final.)
 --   - error_despues no nulo (por ejemplo "permission denied for table restaurants") en alguna tabla:
 --     hay otra política que consulta restaurants y que anon sigue evaluando. NO aplicar hasta
 --     pasarla a authenticated (ver la consulta "ANTES DE CORRER").
@@ -165,9 +170,12 @@ commit;
 --   v_t    text;
 --   v_n    int;
 --   v_e    text;
+--   i      int;
 --   v_anon text[] := array['products', 'extras', 'categories', 'coupons', 'discount_rules',
 --                          'cash_shifts', 'cash_expenses', 'order_item_costs', 'orders', 'tables'];
 --   v_auth text[] := array['products', 'categories'];
+--   a_antes int[]  := '{}';  a_desp int[]  := '{}';  a_err text[] := '{}';
+--   u_antes int[]  := '{}';  u_desp int[]  := '{}';  u_err text[] := '{}';
 -- begin
 --   select user_id into v_uid from public.restaurants
 --    where owner_email = 'tamalu026@gmail.com' and user_id is not null limit 1;
@@ -179,8 +187,8 @@ commit;
 --
 --     -- ===== ANTES =====
 --     perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
---     foreach v_t in array v_anon loop
---       v_n := null;
+--     for i in 1 .. array_length(v_anon, 1) loop
+--       v_t := v_anon[i]; v_n := null;
 --       begin
 --         set local role anon;
 --         execute format('select count(*) from public.%I', v_t) into v_n;
@@ -188,13 +196,13 @@ commit;
 --         v_n := null;
 --       end;
 --       reset role;
---       insert into _t_res (tabla, rol, filas_antes) values (v_t, 'anon', v_n);
+--       a_antes[i] := v_n;
 --     end loop;
 --
 --     perform set_config('request.jwt.claims',
 --       json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
---     foreach v_t in array v_auth loop
---       v_n := null;
+--     for i in 1 .. array_length(v_auth, 1) loop
+--       v_t := v_auth[i]; v_n := null;
 --       begin
 --         set local role authenticated;
 --         execute format('select count(*) from public.%I', v_t) into v_n;
@@ -202,33 +210,33 @@ commit;
 --         v_n := null;
 --       end;
 --       reset role;
---       insert into _t_res (tabla, rol, filas_antes) values (v_t, 'authenticated', v_n);
+--       u_antes[i] := v_n;
 --     end loop;
 --
 --     -- ===== APLICAR pasos 1 y 2 (se deshacen al final del sub-bloque) =====
---     alter policy "cash_expenses: dueño puede actualizar"       on public.cash_expenses to authenticated;
+--     alter policy "cash_expenses: dueño puede actualizar"        on public.cash_expenses to authenticated;
 --     alter policy "cash_expenses: dueño puede borrar sus gastos" on public.cash_expenses to authenticated;
---     alter policy "cash_expenses: dueño puede insertar"         on public.cash_expenses to authenticated;
---     alter policy "cash_expenses: dueño puede leer sus gastos"  on public.cash_expenses to authenticated;
---     alter policy "cash_shifts: dueño puede actualizar"         on public.cash_shifts to authenticated;
---     alter policy "cash_shifts: dueño puede insertar"           on public.cash_shifts to authenticated;
---     alter policy "cash_shifts: dueño puede leer sus turnos"    on public.cash_shifts to authenticated;
---     alter policy "Owners manage categories"                    on public.categories to authenticated;
+--     alter policy "cash_expenses: dueño puede insertar"          on public.cash_expenses to authenticated;
+--     alter policy "cash_expenses: dueño puede leer sus gastos"   on public.cash_expenses to authenticated;
+--     alter policy "cash_shifts: dueño puede actualizar"          on public.cash_shifts to authenticated;
+--     alter policy "cash_shifts: dueño puede insertar"            on public.cash_shifts to authenticated;
+--     alter policy "cash_shifts: dueño puede leer sus turnos"     on public.cash_shifts to authenticated;
+--     alter policy "Owners manage categories"                     on public.categories to authenticated;
 --     alter policy "Users can manage their own restaurant coupons" on public.coupons to authenticated;
---     alter policy "Dueño puede gestionar sus reglas"            on public.discount_rules to authenticated;
---     alter policy "oic: dueño puede leer"                       on public.order_item_costs to authenticated;
---     alter policy "Enable delete for owners"                    on public.products to authenticated;
---     alter policy "Enable insert for owners"                    on public.products to authenticated;
---     alter policy "Enable read access for owners"               on public.products to authenticated;
---     alter policy "Enable update for owners"                    on public.products to authenticated;
---     alter policy "Owner manage products"                       on public.products to authenticated;
---     alter policy "Owners manage products"                      on public.products to authenticated;
+--     alter policy "Dueño puede gestionar sus reglas"             on public.discount_rules to authenticated;
+--     alter policy "oic: dueño puede leer"                        on public.order_item_costs to authenticated;
+--     alter policy "Enable delete for owners"                     on public.products to authenticated;
+--     alter policy "Enable insert for owners"                     on public.products to authenticated;
+--     alter policy "Enable read access for owners"                on public.products to authenticated;
+--     alter policy "Enable update for owners"                     on public.products to authenticated;
+--     alter policy "Owner manage products"                        on public.products to authenticated;
+--     alter policy "Owners manage products"                       on public.products to authenticated;
 --     revoke select on public.restaurants from anon;
 --
 --     -- ===== DESPUÉS =====
 --     perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
---     foreach v_t in array v_anon loop
---       v_n := null; v_e := null;
+--     for i in 1 .. array_length(v_anon, 1) loop
+--       v_t := v_anon[i]; v_n := null; v_e := null;
 --       begin
 --         set local role anon;
 --         execute format('select count(*) from public.%I', v_t) into v_n;
@@ -236,14 +244,14 @@ commit;
 --         v_e := sqlerrm;
 --       end;
 --       reset role;
---       update _t_res set filas_despues = v_n, error_despues = v_e
---        where tabla = v_t and rol = 'anon';
+--       a_desp[i] := v_n;
+--       a_err[i]  := v_e;
 --     end loop;
 --
 --     perform set_config('request.jwt.claims',
 --       json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
---     foreach v_t in array v_auth loop
---       v_n := null; v_e := null;
+--     for i in 1 .. array_length(v_auth, 1) loop
+--       v_t := v_auth[i]; v_n := null; v_e := null;
 --       begin
 --         set local role authenticated;
 --         execute format('select count(*) from public.%I', v_t) into v_n;
@@ -251,14 +259,22 @@ commit;
 --         v_e := sqlerrm;
 --       end;
 --       reset role;
---       update _t_res set filas_despues = v_n, error_despues = v_e
---        where tabla = v_t and rol = 'authenticated';
+--       u_desp[i] := v_n;
+--       u_err[i]  := v_e;
 --     end loop;
 --
 --     raise exception 'deshacer' using errcode = 'ZZ001';
 --   exception when sqlstate 'ZZ001' then
---     null;  -- esperado: deshace alter policy y revoke
+--     null;  -- esperado: deshace alter policy y revoke; los arrays conservan lo medido
 --   end;
+--
+--   -- fuera del sub-bloque: estas filas SÍ quedan (dentro se habrían deshecho con el resto)
+--   for i in 1 .. array_length(v_anon, 1) loop
+--     insert into _t_res values (v_anon[i], 'anon', a_antes[i], a_desp[i], a_err[i]);
+--   end loop;
+--   for i in 1 .. array_length(v_auth, 1) loop
+--     insert into _t_res values (v_auth[i], 'authenticated', u_antes[i], u_desp[i], u_err[i]);
+--   end loop;
 -- end $$;
 --
 -- -- UNA sentencia final (último comando del script)
@@ -271,3 +287,12 @@ commit;
 --   (error_despues is null and filas_antes is not null and filas_antes = filas_despues) as ok
 -- from _t_res
 -- order by rol, tabla;
+
+-- =============================================================================
+-- PENDIENTES que este script NO cubre (anotados al correrlo el 2026-11-09)
+--   (a) authenticated sigue pudiendo leer todas las filas de restaurants (política public_view_restaurants).
+--   (b) orders se lee sin sesión (política "Permitir lectura de pedidos", using true).
+--   (c) tables se actualiza sin sesión (política permitir_mozo) y por cualquier usuario logueado.
+--   (d) extras puede ser editado por cualquier usuario logueado (política "Dueños pueden editar extras":
+--       auth.role() = 'authenticated').
+-- =============================================================================
