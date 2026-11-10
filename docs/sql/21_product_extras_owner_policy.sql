@@ -1,7 +1,8 @@
 -- =============================================================================
 -- 21 — product_extras: solo el dueño del producto puede insertar, editar y borrar vínculos
 -- =============================================================================
--- BORRADOR. NO EJECUTADO. CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
+-- EJECUTADO en producción el 2026-11-10; verificado con pg_policies y probado en el panel de Burgers Snappy.
+-- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
 --
 -- Problema (verificado en la base)
 --   - "Dueños pueden editar product_extras": cmd ALL, rol {public}, using auth.role() = 'authenticated'.
