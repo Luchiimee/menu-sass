@@ -15,7 +15,7 @@ function check(name, cond) {
 }
 
 console.log('constantes');
-check('intervalo de 8 segundos', POLL_INTERVAL_MS === 8000);
+check('intervalo de 5 segundos', POLL_INTERVAL_MS === 5000);
 check('backoff con tope de 30 segundos', MAX_BACKOFF_MS === 30000);
 
 console.log('isFinalStatus');
@@ -33,18 +33,18 @@ check('order_type desconocido o null: reglas de delivery', isFinalStatus('entreg
 check('status null / número / vacío: no es final', !isFinalStatus(null, 'delivery') && !isFinalStatus(5, 'delivery') && !isFinalStatus('', 'delivery'));
 
 console.log('backoffDelay');
-check('0 errores → 8 s', backoffDelay(0) === 8000);
-check('1 error → 16 s', backoffDelay(1) === 16000);
+check('0 errores → 5 s', backoffDelay(0) === 5000);
+check('1 error → 10 s', backoffDelay(1) === 10000);
 check('2 errores → 30 s (tope)', backoffDelay(2) === 30000);
 check('10 errores → 30 s', backoffDelay(10) === 30000);
 check('nunca pasa de 30 s', [0, 1, 2, 3, 5, 20, 1000].every((n) => backoffDelay(n) <= 30000));
-check('negativo y NaN → 8 s', backoffDelay(-1) === 8000 && backoffDelay(NaN) === 8000);
-check('Infinity (no es un conteo válido) → 8 s', backoffDelay(Infinity) === 8000);
+check('negativo y NaN → 5 s', backoffDelay(-1) === 5000 && backoffDelay(NaN) === 5000);
+check('Infinity (no es un conteo válido) → 5 s', backoffDelay(Infinity) === 5000);
 
 console.log('nextPoll');
 {
   const ok = nextPoll(INITIAL_POLL_STATE, { kind: 'ok', status: 'pendiente', orderType: 'delivery' });
-  check('ok y no final: sigue, espera 8 s', !ok.stop && ok.delayMs === 8000);
+  check('ok y no final: sigue, espera 5 s', !ok.stop && ok.delayMs === 5000);
   const fin = nextPoll(INITIAL_POLL_STATE, { kind: 'ok', status: 'entregado', orderType: 'delivery' });
   check('ok y final: corta', fin.stop);
   const mesaEnt = nextPoll(INITIAL_POLL_STATE, { kind: 'ok', status: 'entregado', orderType: 'mesa' });
@@ -53,7 +53,7 @@ console.log('nextPoll');
   check('mesa completado: corta', mesaFin.stop);
 
   const e1 = nextPoll(INITIAL_POLL_STATE, { kind: 'error' });
-  check('1er error: sigue, 16 s', !e1.stop && e1.delayMs === 16000 && e1.state.failures === 1);
+  check('1er error: sigue, 10 s', !e1.stop && e1.delayMs === 10000 && e1.state.failures === 1);
   const e2 = nextPoll(e1.state, { kind: 'error' });
   check('2do error: sigue, 30 s', !e2.stop && e2.delayMs === 30000);
   const e3 = nextPoll(e2.state, { kind: 'error' });
@@ -61,7 +61,7 @@ console.log('nextPoll');
   const e50 = Array.from({ length: 50 }).reduce((st) => nextPoll(st, { kind: 'error' }).state, INITIAL_POLL_STATE);
   check('los errores de red nunca cortan la consulta', !nextPoll(e50, { kind: 'error' }).stop);
   const back = nextPoll(e3.state, { kind: 'ok', status: 'pendiente', orderType: 'delivery' });
-  check('tras un error, un ok vuelve a 8 s y limpia los contadores', back.delayMs === 8000 && back.state.failures === 0 && back.state.notFound === 0);
+  check('tras un error, un ok vuelve a 5 s y limpia los contadores', back.delayMs === 5000 && back.state.failures === 0 && back.state.notFound === 0);
 
   let st = INITIAL_POLL_STATE;
   let d;

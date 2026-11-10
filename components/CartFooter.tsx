@@ -413,7 +413,7 @@ useEffect(() => {
     setSavedOrder(null);
     if (!activeOrderId) return;
 
-    // Una sola consulta periódica a /api/public/order/<id> (cada 8 s mientras el estado no sea
+    // Una sola consulta periódica a /api/public/order/<id> (cada 5 s mientras el estado no sea
     // final; la comparte OrderTracker). Reemplaza al SELECT inicial, al canal Realtime y a la
     // resincronización manual: al volver a la pestaña se consulta enseguida.
     let first = true;

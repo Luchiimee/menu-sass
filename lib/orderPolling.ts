@@ -11,11 +11,11 @@
 // el local puede confirmar el pago DESPUÉS de entregar: se sigue consultando hasta que se confirme o
 // pasen 30 minutos desde que el estado se vio final (tope duro). Cancelado y mesa cortan por estado.
 //
-// Ritmo: cada 8 s mientras no se cumpla eso. Si falla la red (o el servidor responde 5xx / 429)
-// se espacia 16 s y luego 30 s (tope) y vuelve a 8 s apenas responde bien. Un 404 repetido
+// Ritmo: cada 5 s mientras no se cumpla eso. Si falla la red (o el servidor responde 5xx / 429)
+// se espacia 10 s y luego 30 s (tope) y vuelve a 5 s apenas responde bien. Un 404 repetido
 // (pedido borrado) corta la consulta: no tiene sentido seguir preguntando por algo que no existe.
 
-export const POLL_INTERVAL_MS = 8_000;
+export const POLL_INTERVAL_MS = 5_000;
 export const MAX_BACKOFF_MS = 30_000;
 export const NOT_FOUND_STOP_AFTER = 3;
 export const FINAL_GRACE_MS = 30 * 60_000;
@@ -83,9 +83,11 @@ export function shouldResumeOnVisible(lastPollAt: number | null, now: number): b
   return lastPollAt === null || now - lastPollAt >= MIN_RESUME_GAP_MS;
 }
 
-// Espera tras `failures` errores seguidos: 0 → 8 s, 1 → 16 s, 2 o más → 30 s
+// Espera tras `failures` errores seguidos: 0 → 5 s, 1 → 10 s, 2 o más → 30 s
 export function backoffDelay(failures: number): number {
   const n = Number.isFinite(failures) && failures > 0 ? Math.floor(failures) : 0;
+  // 5 → 10 → 30 s (el tercer escalón salta directo al tope: 5 * 2 ** 2 sería 20 s)
+  if (n >= 2) return MAX_BACKOFF_MS;
   return Math.min(MAX_BACKOFF_MS, POLL_INTERVAL_MS * 2 ** n);
 }
 

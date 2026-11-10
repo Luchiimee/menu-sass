@@ -24,7 +24,7 @@ export const RATE_LIMITS = {
   checkoutPerRestaurant: { limit: 60, windowSeconds: 10 * 60 },
   // Consultas del checkout (¿hay MP? / estado del pago)
   publicPerIp: { limit: 60, windowSeconds: 60 },
-  // Seguimiento del pedido: cada cliente consulta cada 8 s (~8 por minuto), y el wifi de un local
+  // Seguimiento del pedido: cada cliente consulta cada 5 s (~12 por minuto, ~13 con la limpieza del carrito), y el wifi de un local
   // pone a muchos detrás de la misma IP pública: tope alto por IP y tope bajo por pedido
   orderPerIp: { limit: 600, windowSeconds: 60 },
   orderPerOrder: { limit: 30, windowSeconds: 60 },
