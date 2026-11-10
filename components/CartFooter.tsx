@@ -30,8 +30,7 @@ const supabase = createBrowserClient(
 interface Table {
     id: string;
     name: string;
-    status: string;
-    restaurant_id: string;
+    reserved: boolean;
 }
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -450,27 +449,30 @@ useEffect(() => {
 }, [activeOrderId]);
 useEffect(() => {
         if (metodoEnvio === 'mesa' && restaurantId) {
+            let cancelled = false;
             const getTables = async () => {
                 // Agregamos un log para ver en la consola si el ID está llegando al celu
                 console.log("📡 Buscando mesas para el local:", restaurantId);
 
-                const { data, error } = await supabase
-                    .from('tables')
-                    .select('*')
-                    .eq('restaurant_id', restaurantId)
-                    .order('name', { ascending: true });
-
-                if (error) {
-                    console.error("❌ Error Supabase:", error.message);
-                } else {
-                    console.log("✅ Mesas recibidas:", data);
-                    setAvailableTables(data || []);
+                // Las mesas las da el servidor (GET /api/public/tables): { id, name, reserved }, ya ordenadas por nombre
+                try {
+                    const res = await fetch('/api/public/tables?restaurant=' + encodeURIComponent(restaurantId), { cache: 'no-store' });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const body = await res.json();
+                    if (cancelled) return;
+                    console.log("✅ Mesas recibidas:", body?.tables);
+                    setAvailableTables(Array.isArray(body?.tables) ? body.tables : []);
+                } catch (e: any) {
+                    console.error("❌ Error al pedir las mesas:", e?.message);
                 }
             };
             
             // Le damos 100ms para asegurar que el restaurantId esté cargado
             const timer = setTimeout(() => getTables(), 100);
-            return () => clearTimeout(timer);
+            return () => {
+                cancelled = true;
+                clearTimeout(timer);
+            };
         }
     }, [metodoEnvio, restaurantId]);
 
@@ -1857,7 +1859,7 @@ return (
                                     )}
                                     <div className="grid grid-cols-3 gap-2">
                                         {availableTables.map((mesa: any) => (
-                                            <button key={mesa.id} type="button" disabled={mesa.status === 'reservada'} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.status === 'reservada' ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.status === 'reservada' ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
+                                            <button key={mesa.id} type="button" disabled={mesa.reserved} onClick={() => setNroMesa(mesa.name)} className={`p-3 rounded-2xl text-xs font-bold border-2 transition-all flex flex-col items-center gap-1 ${mesa.reserved ? 'bg-gray-50 border-gray-50 text-gray-300 cursor-not-allowed' : nroMesa === mesa.name ? 'border-green-600 bg-green-50 text-green-700 shadow-md scale-105' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'}`}><span className="text-lg">{mesa.reserved ? '🔒' : '🍽️'}</span><span className="truncate w-full text-center">{mesa.name}</span></button>
                                         ))}
                                     </div>
                                 </>
