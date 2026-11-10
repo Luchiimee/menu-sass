@@ -1,0 +1,267 @@
+-- =============================================================================
+-- 22 — orders: quitarle a anon (y a cualquier usuario sin ser dueño) la lectura de public.orders
+-- =============================================================================
+-- APLICADO en producción el 2026-11-10; verificado con la prueba del archivo (anon 0 de 456 filas, insert sin returning ok) y con pg_policies.
+-- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
+--
+-- Problema (verificado en la base)
+--   "Permitir lectura de pedidos": SELECT, roles {anon, authenticated}, using true. Con la clave pública
+--   cualquiera puede leer TODOS los pedidos (nombre, teléfono, dirección y notas de los clientes de todos
+--   los locales; con 455 pedidos visibles el 2026-11-09).
+--
+-- Qué hace (en una transacción)
+--   Borra "Permitir lectura de pedidos". NADA MÁS: no toca las de INSERT ("Permitir crear pedidos" y
+--   "public_insert_orders", with check true, anon + authenticated) ni las de dueño
+--   ("owner_manage_own_orders": ALL, authenticated, dueño del local vía restaurants.user_id) ni
+--   "Permitir manejo de pedidos propios" (ALL, public, auth.uid() = restaurant_id).
+--   Después de esto:
+--     - anon: no lee orders (0 filas), puede insertar un pedido SIN returning.
+--     - dueño: sigue leyendo y manejando sus pedidos por owner_manage_own_orders.
+--     - cliente que sigue su pedido: lo lee por GET /api/public/order/[id] (servidor, service role).
+--
+-- Por qué ya se puede (desplegado el 2026-11-10 en main)
+--   El cliente público ya no lee orders con la clave pública (seguimiento y limpieza del carrito por
+--   /api/public/order/[id]) y el insert del pedido se hace SIN .select() con un id generado en el
+--   navegador. Quedan solo el insert (necesita únicamente la política de INSERT) y las RPC
+--   security definer (get_or_create_shift, solicitar_pago_mesa).
+--
+-- OJO antes de aplicar
+--   1) Clientes con una versión vieja de la página en caché (abierta antes del deploy) hacen
+--      .insert().select(): con esta política borrada, el insert con returning falla con 42501 (anon
+--      no puede leer la fila que el insert devuelve) y el pedido NO se guarda. Esas versiones también
+--      leen orders y se suscriben a Realtime: dejan de ver el estado. Esperar varias horas después del
+--      deploy (idealmente un horario de poco movimiento).
+--   2) Realtime de orders con la clave pública depende de esta política: las suscripciones anónimas
+--      dejan de recibir cambios.
+--   3) Otros lectores anónimos de orders que no estén en este repo (otra app, integración, script):
+--      no los conozco. Revisar los logs de la API de Supabase (rol anon, tabla orders) antes de aplicar.
+--
+-- Pendientes que este script NO cubre
+--   (a) tables: la política permitir_mozo permite UPDATE anónimo, y cualquier usuario logueado puede
+--       editar mesas de cualquier local.
+--   (b) restaurants: public_view_restaurants sigue dando SELECT a authenticated (cualquier logueado lee
+--       todos los locales).
+--   (c) orders: "Permitir manejo de pedidos propios" (ALL, public, auth.uid() = restaurant_id) es
+--       inofensiva (para anon auth.uid() es null) pero conviene borrarla.
+--
+-- Orden recomendado: 1) consulta "ANTES DE CORRER" y guardar el resultado; 2) PRUEBA (antes);
+--   3) aplicar; 4) PRUEBA (después) y comparar; 5) verificación posterior; 6) prueba en pantalla.
+-- =============================================================================
+
+-- =============================================================================
+-- ANTES DE CORRER (SOLO LECTURA, comentado): definición exacta de las políticas de orders.
+-- Guardar el resultado: sirve para recrear cualquier política si hiciera falta. Esperado: las cinco de
+-- arriba, y "Permitir lectura de pedidos" con cmd SELECT, roles {anon,authenticated}, qual true.
+-- =============================================================================
+-- select tablename, policyname, cmd, roles, qual, with_check
+-- from pg_policies
+-- where schemaname = 'public' and tablename = 'orders'
+-- order by policyname;
+
+begin;
+
+drop policy "Permitir lectura de pedidos" on public.orders;
+
+commit;
+
+-- =============================================================================
+-- ROLLBACK DE EMERGENCIA (descomentar y correr si algo se rompe)
+-- Recrea la política tal cual estaba: SELECT, {anon, authenticated}, using (true).
+-- =============================================================================
+-- begin;
+--   create policy "Permitir lectura de pedidos"
+--     on public.orders
+--     for select
+--     to anon, authenticated
+--     using (true);
+-- commit;
+
+-- =============================================================================
+-- PRUEBA (SQL Editor, como postgres). SOLO LECTURA: sin DDL (no hay create/drop de nada, ni siquiera
+-- tablas temporales). Correr DOS VECES y comparar: una ANTES de aplicar el script y otra DESPUÉS.
+-- Es el mismo bloque las dos veces; no aplica nada.
+--
+-- Cómo funciona
+--   - Un DO mide, por rol, cuántas filas de orders ve (set local role + claims del JWT) y si un insert de
+--     prueba funciona SIN returning y CON returning.
+--   - Los insert de prueba van dentro de un sub-bloque que termina con un raise forzado (ZZ001): Postgres
+--     deshace todo lo hecho en el sub-bloque (los pedidos de prueba no quedan). Las mediciones se guardan
+--     en variables (que el rollback no revierte) y se publican FUERA del sub-bloque con set_config en una
+--     variable de sesión (zz.res), que el select final lee. Sin tablas temporales.
+--   - Los tres roles medidos: anon; authenticated = dueño del local cuyo owner_email =
+--     'tamalu026@gmail.com'; authenticated que NO es dueño de ese local (otro dueño, o un uuid cualquiera).
+--   - Ejecutar el DO y el select en la misma corrida y en la misma sesión (el select usa la variable de
+--     sesión que deja el DO).
+--
+-- Qué muestra el select (una fila por rol)
+--   filas_orders          filas de orders que ve ese rol
+--   de_otros_locales      de esas, cuántas son de otros locales (para el dueño tiene que ser 0)
+--   ins_sin_returning     insert de prueba sin returning: 'ok' o 'error: ...'
+--   ins_con_returning     insert de prueba con returning: 'ok' o 'error: ...'
+--   total_orders_db       filas totales de orders (como postgres; referencia)
+--   pedidos_de_tama       filas de orders del local de Tama (como postgres; referencia)
+--   ok_despues            true si el resultado es el esperado DESPUÉS de aplicar (ver abajo)
+--
+-- Qué esperar
+--   ANTES de aplicar: anon ve todas las filas (filas_orders = total_orders_db, la falla que se quiere
+--     cerrar) y el insert con returning funciona. ok_despues sale false en anon: es lo normal.
+--   DESPUÉS de aplicar (ok_despues = true en las tres filas):
+--     anon                filas_orders = 0; ins_sin_returning ok; ins_con_returning error (42501).
+--     authenticated dueño filas_orders = pedidos_de_tama (el MISMO número que antes, si baja el panel
+--                         del dueño perdería pedidos: correr el ROLLBACK); de_otros_locales = 0;
+--                         ins_sin_returning ok; ins_con_returning ok (el pedido es de su local).
+--     authenticated no-dueño  filas_orders = 0; ins_sin_returning ok; ins_con_returning error.
+--   Si algún insert da error por otra columna obligatoria (not null sin valor), ajustar el insert de
+--   prueba a las columnas reales de orders (el pedido real manda más columnas: ver CartFooter.tsx).
+--   Si el DO falla con 'no se encontró el dueño de Tama', el owner_email no existe en restaurants.
+--   Si ves error en el DO, el sub-bloque se deshace igual (el error lo atrapa cada medición).
+--
+-- Riesgo: si el rollback del sub-bloque no se ejecutara (cortar la corrida a mitad, por ejemplo), podrían
+--   quedar pedidos "ZZ prueba" en orders. Se buscan con: select id from public.orders
+--   where customer_name = 'ZZ prueba'; y se borran a mano. Además, si orders tiene triggers con efectos
+--   fuera de la base, el insert de prueba los dispararía: no lo sé (ver "No verificado").
+-- =============================================================================
+-- do $$
+-- declare
+--   v_rest   uuid;   -- local de Tama
+--   v_uid    uuid;   -- dueño de Tama
+--   v_other  uuid;   -- usuario autenticado que no es dueño de Tama
+--   v_total  int;    -- filas totales de orders (como postgres)
+--   v_tama   int;    -- filas de orders del local de Tama (como postgres)
+--   v_n      int;
+--   v_o      int;
+--   v_id     uuid;
+--   i        int;
+--   roles    text[] := array['anon', 'authenticated_dueno_tama', 'authenticated_no_dueno'];
+--   r_n      int[]  := '{}';
+--   r_o      int[]  := '{}';
+--   r_sin    text[] := '{}';
+--   r_con    text[] := '{}';
+--   v_json   jsonb  := '[]';
+-- begin
+--   select id, user_id into v_rest, v_uid from public.restaurants
+--    where owner_email = 'tamalu026@gmail.com' and user_id is not null limit 1;
+--   if v_uid is null then
+--     raise exception 'no se encontró el dueño de Tama (owner_email = tamalu026@gmail.com)';
+--   end if;
+--   select user_id into v_other from public.restaurants
+--    where user_id is not null and user_id <> v_uid limit 1;
+--   if v_other is null then
+--     v_other := gen_random_uuid();  -- usuario autenticado cualquiera: para RLS solo cuenta auth.uid()
+--   end if;
+--
+--   select count(*) into v_total from public.orders;
+--   select count(*) into v_tama  from public.orders where restaurant_id = v_rest;
+--
+--   begin  -- sub-bloque "deshacer": solo por los insert de prueba
+--
+--     for i in 1 .. 3 loop
+--       if i = 1 then
+--         perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+--       elsif i = 2 then
+--         perform set_config('request.jwt.claims',
+--           json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+--       else
+--         perform set_config('request.jwt.claims',
+--           json_build_object('sub', v_other::text, 'role', 'authenticated')::text, true);
+--       end if;
+--
+--       -- filas que ve
+--       v_n := null; v_o := null;
+--       begin
+--         if i = 1 then set local role anon; else set local role authenticated; end if;
+--         select count(*), count(*) filter (where restaurant_id <> v_rest) into v_n, v_o from public.orders;
+--       exception when others then
+--         v_n := null; v_o := null;
+--       end;
+--       reset role;
+--       r_n[i] := v_n;
+--       r_o[i] := v_o;
+--
+--       -- insert SIN returning (como el del pedido real)
+--       begin
+--         if i = 1 then set local role anon; else set local role authenticated; end if;
+--         insert into public.orders (id, restaurant_id, customer_name, customer_phone, address,
+--                                    order_type, payment_method, total, status, items)
+--           values (gen_random_uuid(), v_rest, 'ZZ prueba', '0', '', 'retiro', 'efectivo', 1, 'pendiente', '[]');
+--         r_sin[i] := 'ok';
+--       exception when others then
+--         r_sin[i] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--
+--       -- insert CON returning (lo que hacía la versión vieja con .select())
+--       begin
+--         if i = 1 then set local role anon; else set local role authenticated; end if;
+--         insert into public.orders (id, restaurant_id, customer_name, customer_phone, address,
+--                                    order_type, payment_method, total, status, items)
+--           values (gen_random_uuid(), v_rest, 'ZZ prueba', '0', '', 'retiro', 'efectivo', 1, 'pendiente', '[]')
+--           returning id into v_id;
+--         r_con[i] := 'ok';
+--       exception when others then
+--         r_con[i] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--     end loop;
+--
+--     raise exception 'deshacer' using errcode = 'ZZ001';
+--   exception when sqlstate 'ZZ001' then
+--     null;  -- esperado: deshace los pedidos de prueba; las variables conservan lo medido
+--   end;
+--
+--   -- fuera del sub-bloque: publicar los resultados en una variable de sesión
+--   for i in 1 .. 3 loop
+--     v_json := v_json || jsonb_build_array(jsonb_build_object(
+--       'rol', roles[i], 'filas', r_n[i], 'de_otros', r_o[i], 'ins_sin', r_sin[i], 'ins_con', r_con[i],
+--       'total_db', v_total, 'total_tama', v_tama));
+--   end loop;
+--   perform set_config('zz.res', v_json::text, false);
+-- end $$;
+--
+-- -- UNA sentencia final (último comando del script)
+-- select
+--   x.rol,
+--   x.filas      as filas_orders,
+--   x.de_otros   as de_otros_locales,
+--   x.ins_sin    as ins_sin_returning,
+--   x.ins_con    as ins_con_returning,
+--   x.total_db   as total_orders_db,
+--   x.total_tama as pedidos_de_tama,
+--   case x.rol
+--     when 'anon' then
+--       x.filas = 0 and x.ins_sin = 'ok' and x.ins_con like 'error%'
+--     when 'authenticated_dueno_tama' then
+--       x.filas = x.total_tama and x.de_otros = 0 and x.ins_sin = 'ok' and x.ins_con = 'ok'
+--     else
+--       x.filas = 0 and x.ins_sin = 'ok' and x.ins_con like 'error%'
+--   end as ok_despues
+-- from jsonb_to_recordset(current_setting('zz.res')::jsonb)
+--   as x(rol text, filas int, de_otros int, ins_sin text, ins_con text, total_db int, total_tama int);
+
+-- =============================================================================
+-- VERIFICACIÓN POSTERIOR (SOLO LECTURA, comentado): correr después de aplicar.
+-- Esperado: "Permitir lectura de pedidos" ya no aparece; siguen "Permitir crear pedidos",
+-- "public_insert_orders", "Permitir manejo de pedidos propios" y "owner_manage_own_orders".
+-- =============================================================================
+-- select tablename, policyname, cmd, roles, qual, with_check
+-- from pg_policies
+-- where schemaname = 'public' and tablename = 'orders'
+-- order by policyname;
+--
+-- Comprobación rápida de que nadie más lee: ninguna fila con cmd SELECT o ALL y roles que incluyan
+-- {public} o {anon} debería tener qual = 'true'. "Permitir manejo de pedidos propios" (ALL, public) usa
+-- auth.uid() = restaurant_id: para anon es null, no devuelve nada.
+
+-- =============================================================================
+-- PRUEBA EN PANTALLA (después de aplicar)
+--   1. Menú público snappy.uno/burgersnappy en una ventana nueva (sin sesión): agregar un producto,
+--      enviar un pedido de prueba (solo con autorización, local y medio de pago acordados). El pedido
+--      se envía, aparece el seguimiento con su estado y activeOrderId queda en localStorage.
+--   2. Panel del dueño (snappy.uno/dashboard, Pedidos) con su sesión: el pedido nuevo aparece y se
+--      puede cambiar de estado (recibido, entregado); los pedidos anteriores siguen en la lista.
+--   3. Seguimiento de un pedido activo en el cliente (sin recargar): el cambio de estado del panel se
+--      ve en hasta ~10 s (consulta cada 8 s a /api/public/order/[id]).
+--   4. Red del navegador en el menú público: ninguna GET a supabase.co/rest/v1/orders (ni 401/403
+--      de esa tabla).
+--   Si falla el paso 1 con 42501 o el panel no muestra pedidos: correr el ROLLBACK.
+-- =============================================================================
