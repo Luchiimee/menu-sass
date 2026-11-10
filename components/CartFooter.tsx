@@ -92,6 +92,8 @@ export default function CartFooter({
     const [isVisible, setIsVisible] = useState(false); 
     const [isSending, setIsSending] = useState(false);
     const [aviso, setAviso] = useState<string | null>(null); 
+    const [avisoError, setAvisoError] = useState(false); // el aviso actual es un error (Llamar al mozo)
+    const [callingWaiter, setCallingWaiter] = useState(false);
     const [copied, setCopied] = useState(false);
     const [orderStatus, setOrderStatus] = useState('pendiente');
     const [pagoConfirmado, setPagoConfirmado] = useState(false);
@@ -556,23 +558,40 @@ if (activeOrderId && !isVisible) {
             'completado': 'Gracias por tu visita',
         };
 
+const showWaiterError = (message: string) => {
+    setAvisoError(true);
+    setAviso(message);
+    setTimeout(() => { setAviso(null); setAvisoError(false); }, 5000);
+};
+
+// "Llamar al mozo": el servidor deduce la mesa del pedido (POST /api/public/table/call), el navegador
+// ya no escribe en `tables`. Solo se muestra el aviso de éxito si el servidor confirma { ok: true }.
 const handleCallWaiter = async () => {
-    if (!nroMesa || !restaurantId) return;
+    if (callingWaiter) return;
+    // Sin un pedido enviado no hay mesa a la que avisar
+    if (!activeOrderId || !UUID_RE.test(activeOrderId)) {
+        showWaiterError("Primero enviá tu pedido para poder llamar al mozo");
+        return;
+    }
 
-    // Limpiamos el nombre por las dudas (quita espacios y asegura formato)
-    const mesaLimpia = nroMesa.trim();
+    setCallingWaiter(true);
+    try {
+        const res = await fetch('/api/public/table/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: activeOrderId }),
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok || body?.ok !== true) throw new Error('HTTP ' + res.status);
 
-    const { error } = await supabase
-        .from('tables')
-        .update({ needs_attention: true })
-        .eq('restaurant_id', restaurantId)
-        .ilike('name', mesaLimpia); // ilike no distingue entre Mayúsculas/Minúsculas
-
-    if (error) {
-        console.error("Error al llamar al mozo:", error.message);
-    } else {
+        setAvisoError(false);
         setAviso("El mozo fue notificado");
         setTimeout(() => setAviso(null), 3000);
+    } catch (e: any) {
+        console.error("Error al llamar al mozo:", e?.message);
+        showWaiterError("No pudimos avisar al mozo, probá de nuevo o llamalo en persona");
+    } finally {
+        setCallingWaiter(false);
     }
 };
 
@@ -631,8 +650,10 @@ const handleCallWaiter = async () => {
             {aviso && (
                 <div className="fixed top-10 inset-x-0 z-[3000] flex justify-center pointer-events-none px-4">
                     <div className="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-white/10 animate-in fade-in zoom-in duration-300 max-w-[90vw]">
-                        <Check size={16} className="text-green-500 shrink-0" />
-                        <span className="font-bold text-xs uppercase tracking-widest truncate">{aviso}</span>
+                        {avisoError
+                            ? <X size={16} className="text-red-400 shrink-0" />
+                            : <Check size={16} className="text-green-500 shrink-0" />}
+                        <span className={avisoError ? "font-bold text-xs tracking-wide text-left" : "font-bold text-xs uppercase tracking-widest truncate"}>{aviso}</span>
                     </div>
                 </div>
             )}
@@ -900,7 +921,7 @@ const handleCallWaiter = async () => {
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
         {/* LLAMAR MOZO: Siempre visible */}
-        <button onClick={handleCallWaiter} className="w-full bg-[#F0FAF6] border border-surface text-[#17A06D] py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+        <button onClick={handleCallWaiter} disabled={callingWaiter} className="w-full disabled:opacity-60 bg-[#F0FAF6] border border-surface text-[#17A06D] py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
             <Bell size={18} /> Llamar Mozo
         </button>
 
