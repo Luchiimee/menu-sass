@@ -29,7 +29,7 @@ useEffect(() => {
     if (paymentMethodProp) setPaymentMethod(paymentMethodProp);
 }, [paymentMethodProp]);
 
-    // Consulta periódica a /api/public/order/<id> (cada 8 s mientras el estado no sea final; la
+    // Consulta periódica a /api/public/order/<id> (cada 5 s mientras el estado no sea final; la
     // comparte con CartFooter). Reemplaza al SELECT y al canal Realtime con la clave pública.
     useEffect(() => {
         if (!orderId) return;
