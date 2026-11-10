@@ -9,6 +9,7 @@
 //   public:ip:<hash>     GET /api/checkout/mp/available y /status, por IP
 //   quote:ip:<hash>      POST /api/checkout/mp/quote, por IP
 //   order:ip:<hash>      GET /api/public/order/[id], por IP
+//   order:id:<uuid>      GET /api/public/order/[id], por pedido
 //   quote:rid:<uuid>     POST /api/checkout/mp/quote, por restaurante
 // La IP nunca se guarda ni se loguea: solo su sha-256 con sal (RATE_LIMIT_IP_SALT).
 
@@ -23,8 +24,10 @@ export const RATE_LIMITS = {
   checkoutPerRestaurant: { limit: 60, windowSeconds: 10 * 60 },
   // Consultas del checkout (¿hay MP? / estado del pago)
   publicPerIp: { limit: 60, windowSeconds: 60 },
-  // Seguimiento del pedido: el cliente consulta cada 5 a 10 s (y puede haber varios en la misma red)
-  orderPerIp: { limit: 120, windowSeconds: 60 },
+  // Seguimiento del pedido: cada cliente consulta cada 8 s (~8 por minuto), y el wifi de un local
+  // pone a muchos detrás de la misma IP pública: tope alto por IP y tope bajo por pedido
+  orderPerIp: { limit: 600, windowSeconds: 60 },
+  orderPerOrder: { limit: 30, windowSeconds: 60 },
   // Cotizar un envío: cada una puede costar una llamada a Google Geocoding (más bajo que el pago)
   quotePerIp: { limit: 6, windowSeconds: 10 * 60 },
   quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
@@ -50,6 +53,11 @@ export function hashIp(ip: string, salt: string): string {
 // Sin IP, todas esas requests comparten un mismo contador
 export function ipKey(scope: LimitScope, ipHash: string | null): string {
   return `${scope}:ip:${ipHash ?? 'desconocida'}`;
+}
+
+// Un contador por pedido (el id ya se validó como UUID v4 antes de llegar acá)
+export function orderKey(orderId: string): string {
+  return `order:id:${orderId.toLowerCase()}`;
 }
 
 export function restaurantKey(restaurantId: string, scope: Exclude<LimitScope, 'public'> = 'checkout'): string {

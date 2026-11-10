@@ -114,7 +114,8 @@ console.log('isValidRestaurantId (?restaurant=)');
 }
 
 console.log('límite por IP');
-check('seguimiento: 120 por IP por minuto', RATE_LIMITS.orderPerIp.limit === 120 && RATE_LIMITS.orderPerIp.windowSeconds === 60);
+check('seguimiento: 600 por IP por minuto', RATE_LIMITS.orderPerIp.limit === 600 && RATE_LIMITS.orderPerIp.windowSeconds === 60);
+check('seguimiento: 30 por pedido por minuto', RATE_LIMITS.orderPerOrder.limit === 30 && RATE_LIMITS.orderPerOrder.windowSeconds === 60);
 
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallas`);
 process.exit(failures === 0 ? 0 : 1);

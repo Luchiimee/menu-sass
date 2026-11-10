@@ -3,12 +3,12 @@
 // columnas (lib/publicOrder.ts): nunca nombre, teléfono, dirección, notas, cupón ni turno.
 //   ?restaurant=<uuid>  → devuelve SOLO { belongs: boolean } (¿el pedido es de ese local?)
 // Id inválido o inexistente: 404 { error: 'not_found' } igual en los dos casos.
-// Límite por IP (lib/rateLimit.ts): 120 por minuto; si no se puede contar, deja pasar.
+// Límite (lib/rateLimit.ts): 600 por minuto por IP y 30 por minuto por pedido; si no se puede contar, deja pasar.
 // Los logs llevan solo un código corto y el id del pedido.
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { limitByIp } from '@/lib/rateLimit';
+import { limitByIpAndOrder } from '@/lib/rateLimit';
 import { RATE_LIMITS } from '@/lib/rateLimitCore';
 import { PUBLIC_ORDER_SELECT, isValidOrderId, isValidRestaurantId, toPublicOrder } from '@/lib/publicOrder';
 
@@ -18,15 +18,17 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 const notFound = () => NextResponse.json({ error: 'not_found' }, { status: 404, headers: NO_STORE });
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const limited = await limitByIp(req, 'order', RATE_LIMITS.orderPerIp, 'open');
+  // Primero el id: uno inválido da 404 sin tocar el contador ni la base
+  const { id } = await ctx.params;
+  if (!isValidOrderId(id)) return notFound();
+  const orderId = id.toLowerCase();
+
+  // Tope por IP (600/min) y por pedido (30/min); si no se puede contar, deja pasar
+  const limited = await limitByIpAndOrder(req, orderId, RATE_LIMITS.orderPerIp, RATE_LIMITS.orderPerOrder, 'open');
   if (limited) {
     limited.headers.set('Cache-Control', 'no-store');
     return limited;
   }
-
-  const { id } = await ctx.params;
-  if (!isValidOrderId(id)) return notFound();
-  const orderId = id.toLowerCase();
 
   const restaurant = new URL(req.url).searchParams.get('restaurant');
   if (restaurant !== null && !isValidRestaurantId(restaurant)) return notFound();

@@ -9,6 +9,8 @@ import { displayTableLabel } from '@/lib/tableUtils';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
+import { subscribeToOrder } from '@/lib/orderPollClient';
+import { newOrderId, shouldClearOrder, pickOrderAttempt, isDuplicateOrderIdError, type OrderAttempt } from '@/lib/orderPolling';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -98,6 +100,8 @@ export default function CartFooter({
     // seguimiento los muestra tal cual (no recalcula con el carrito ni con la tarifa fija).
     // null hasta que responde syncStatus.
     const [savedOrder, setSavedOrder] = useState<{ total: unknown; delivery_cost: unknown; discount_amount: unknown; items: any[] } | null>(null);
+    // Id del pedido en curso (por intento de envío): un reintento con el mismo contenido lo reutiliza
+    const orderAttemptRef = useRef<OrderAttempt | null>(null);
     const orderStatusRef = useRef(orderStatus);
     useEffect(() => { orderStatusRef.current = orderStatus; }, [orderStatus]);
     const [showSuccessScreen, setShowSuccessScreen] = useState(false);
@@ -173,6 +177,11 @@ const handleNotificarPagoMesa = async (metodo: string) => {
     const [direccionEntreCalles, setDireccionEntreCalles] = useState('');
     const [aclaraciones, setAclaraciones] = useState('');
     const [metodoPago, setMetodoPago] = useState('efectivo');
+    // Para que el temporizador de limpieza lea el valor de ese momento y no el del render que lo creó
+    const metodoPagoRef = useRef(metodoPago);
+    useEffect(() => { metodoPagoRef.current = metodoPago; }, [metodoPago]);
+    const pagoConfirmadoRef = useRef(pagoConfirmado);
+    useEffect(() => { pagoConfirmadoRef.current = pagoConfirmado; }, [pagoConfirmado]);
 
     // --- ZONAS DE DELIVERY ---
     const [clientCoords, setClientCoords] = useState<{lat: number; lng: number} | null>(null);
@@ -374,11 +383,26 @@ const handleNotificarPagoMesa = async (metodo: string) => {
             const estadosFinales = isMesa ? ['completado', 'cancelado'] : ['entregado', 'completado', 'cancelado'];
 
             if (estadosFinales.includes(orderStatusRef.current)) {
-                const timer = setTimeout(() => {
-                    clearCart();
-                    setActiveOrderId(null);
-                    localStorage.removeItem("activeOrderId"); // Limpieza total
-                }, 5 * 60 * 1000);
+                // A los 5 minutos se limpia, salvo que sea una transferencia / Mercado Pago todavía sin
+                // confirmar: entonces se vuelve a mirar cada minuto, hasta un tope de 30 minutos
+                const startedAt = Date.now();
+                let timer: ReturnType<typeof setTimeout>;
+                const tryClear = () => {
+                    const due = shouldClearOrder({
+                        status: orderStatusRef.current,
+                        orderType: metodoEnvio,
+                        paymentMethod: metodoPagoRef.current,
+                        pagoConfirmado: pagoConfirmadoRef.current,
+                    }, Date.now() - startedAt);
+                    if (due) {
+                        clearCart();
+                        setActiveOrderId(null);
+                        localStorage.removeItem("activeOrderId"); // Limpieza total
+                    } else {
+                        timer = setTimeout(tryClear, 60 * 1000);
+                    }
+                };
+                timer = setTimeout(tryClear, 5 * 60 * 1000);
                 return () => clearTimeout(timer);
             }
         }
@@ -387,97 +411,42 @@ const handleNotificarPagoMesa = async (metodo: string) => {
 useEffect(() => {
     // Otro pedido (o ninguno): no mostrar los montos del anterior mientras llega el nuevo
     setSavedOrder(null);
-    if (activeOrderId) {
-        const syncStatus = async () => {
-            // AGREGAR: payment_status a la consulta select
-            const { data } = await supabase
-                .from('orders')
-                .select('status, payment_method, payment_status, pago_confirmado, order_type, total, delivery_cost, discount_amount, items')
-                .eq('id', activeOrderId)
-                .maybeSingle();
+    if (!activeOrderId) return;
 
-            if (data) {
-                setOrderStatus(data.status);
-                setMetodoPago(data.payment_method);
-                setPagoConfirmado(!!data.pago_confirmado);
-                // total, envío, descuento y renglones guardados (con descuentos y zona reales)
-                setSavedOrder({
-                    total: data.total,
-                    delivery_cost: data.delivery_cost,
-                    discount_amount: data.discount_amount,
-                    items: Array.isArray(data.items) ? data.items : [],
-                });
-                if (data.payment_method === 'mercadopago') {
-                    if (data.order_type === 'delivery' || data.order_type === 'retiro') {
-                        setMetodoEnvio(data.order_type);
-                        localStorage.setItem('metodoEnvio', data.order_type);
-                    }
-                }
-
-                // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación, 
-                // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
-                if (data.payment_status === 'esperando_confirmacion') {
-                    setPasoPago('espera');
-                }
-                if (data.status === 'completado') {
-                    setPasoPago('espera');
+    // Una sola consulta periódica a /api/public/order/<id> (cada 8 s mientras el estado no sea
+    // final; la comparte OrderTracker). Reemplaza al SELECT inicial, al canal Realtime y a la
+    // resincronización manual: al volver a la pestaña se consulta enseguida.
+    let first = true;
+    return subscribeToOrder(activeOrderId, (data) => {
+        if (first) {
+            first = false;
+            // Primera respuesta: lo que antes cargaba syncStatus
+            setMetodoPago(data.payment_method as string);
+            // total, envío, descuento y renglones guardados (con descuentos y zona reales)
+            setSavedOrder({
+                total: data.total,
+                delivery_cost: data.delivery_cost,
+                discount_amount: data.discount_amount,
+                items: Array.isArray(data.items) ? data.items : [],
+            });
+            if (data.payment_method === 'mercadopago') {
+                if (data.order_type === 'delivery' || data.order_type === 'retiro') {
+                    setMetodoEnvio(data.order_type);
+                    localStorage.setItem('metodoEnvio', data.order_type);
                 }
             }
-        };
-        syncStatus();
+        }
 
-        const orderChannel = supabase.channel(`order-update-${activeOrderId}`)
-            .on('postgres_changes', { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'orders', 
-                filter: `id=eq.${activeOrderId}` 
-            }, (payload) => {
-                const newStatus = payload.new.status;
-                const newPayStatus = payload.new.payment_status; // NUEVA LÍNEA
+        // Cada respuesta: lo que antes llegaba por Realtime
+        setOrderStatus(data.status);
+        setPagoConfirmado(!!data.pago_confirmado);
 
-                setOrderStatus(newStatus);
-                setPagoConfirmado(!!payload.new.pago_confirmado);
-
-                // Si el backend actualizó el estado de pago, la UI reacciona aquí
-                if (newPayStatus === 'esperando_confirmacion' || newStatus === 'completado') {
-                    setPasoPago('espera');
-                }
-            })
-           
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log("🛰️ Snappy Realtime: Radar de pagos activo");
-                }
-                
-                // 🚨 MECANISMO DE RESILIENCIA PARA MÓVILES
-                // Si el sistema detecta que el canal se cerró o hubo un error (común en cambios de 4G/Wi-Fi)
-                if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                    console.warn("⚠️ Snappy Realtime: Canal inestable, ejecutando re-sincronización forzada...");
-                    
-                    const { data, error } = await supabase
-                        .from('orders')
-                        .select('payment_status, status, pago_confirmado')
-                        .eq('id', activeOrderId)
-                        .maybeSingle();
-
-                    if (error) {
-                        console.error("❌ Fallo en re-sincronización manual:", error.message);
-                        return;
-                    }
-
-                    if (data) setPagoConfirmado(!!data.pago_confirmado);
-
-                    // Forzamos el estado de la UI según la realidad de la DB
-                    if (data?.payment_status === 'esperando_confirmacion' || data?.status === 'completado') {
-                        setPasoPago('espera');
-                        if (data.status) setOrderStatus(data.status);
-                    }
-                }
-            });
-
-        return () => { supabase.removeChannel(orderChannel); };
-    }
+        // LÓGICA ESTRUCTURAL: Si la DB dice que está esperando confirmación,
+        // forzamos la UI al paso de espera. Esto sobrevive a F5 (refrescos).
+        if (data.payment_status === 'esperando_confirmacion' || data.status === 'completado') {
+            setPasoPago('espera');
+        }
+    });
 }, [activeOrderId]);
 useEffect(() => {
         if (metodoEnvio === 'mesa' && restaurantId) {
@@ -1449,7 +1418,9 @@ const handleCallWaiter = async () => {
                 resolvedShiftId = autoShiftId ?? null;
             }
 
-            const { data: newOrder, error } = await supabase.from('orders').insert({
+            // El id se genera acá y se manda en el insert, SIN .select(): leer la fila de vuelta exige
+            // permiso de lectura sobre orders, que el cliente público ya no tiene.
+            const orderPayload = {
                 restaurant_id: restaurantId,
                 customer_name: nombreCompleto,
                 customer_phone: telCliente, 
@@ -1468,17 +1439,25 @@ const handleCallWaiter = async () => {
                 // antes guardaba solo el cupón y el automático quedaba escondido en total
                 discount_amount: round2(montoDescuento + autoDescuento),
                 scheduled_delivery_time: scheduledActive && entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
+            };
+            // El id se conserva entre intentos con el mismo contenido (el turno de caja no entra en la firma)
+            const attempt = pickOrderAttempt(orderAttemptRef.current, JSON.stringify(orderPayload), newOrderId);
+            orderAttemptRef.current = attempt;
+            const newOrderUuid = attempt.id;
+            const { error } = await supabase.from('orders').insert({
+                id: newOrderUuid,
+                ...orderPayload,
                 shift_id: resolvedShiftId ?? null,
-            }).select().single();
+            });
 
-            if (error) throw error;
-            if (newOrder) {
-                setActiveOrderId(newOrder.id);
-                localStorage.setItem("activeOrderId", newOrder.id); 
-                localStorage.setItem("metodoEnvio", metodoEnvio);
-                localStorage.setItem("nroMesa", nroMesa);
-                orderRef = `#${newOrder.id.slice(0, 5)}`;
-            }
+            // 23505 sobre el id: el intento anterior sí llegó a guardarse, se sigue como éxito
+            if (error && !isDuplicateOrderIdError(error)) throw error;
+            orderAttemptRef.current = null; // pedido completado: el próximo envío usa un id nuevo
+            setActiveOrderId(newOrderUuid);
+            localStorage.setItem("activeOrderId", newOrderUuid);
+            localStorage.setItem("metodoEnvio", metodoEnvio);
+            localStorage.setItem("nroMesa", nroMesa);
+            orderRef = `#${newOrderUuid.slice(0, 5)}`;
         } else {
             setActiveOrderId('light-plan-order');
         }
