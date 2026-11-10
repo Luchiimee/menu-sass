@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  clientIp, hashIp, ipKey, orderKey, restaurantKey, parseLimitRow, decideRateLimit, rateLimitResponse,
+  clientIp, hashIp, ipKey, orderKey, tableCallKey, restaurantKey, parseLimitRow, decideRateLimit, rateLimitResponse,
   type LimitRule, type LimitScope, type FailMode, type LimitCheckResult, type LimitOutcome,
 } from '@/lib/rateLimitCore';
 
@@ -67,6 +67,18 @@ export function limitByIpAndOrder(req: Request, orderId: string, ipRule: LimitRu
     [
       { key: ipKeyFor(req, 'order'), rule: ipRule, label: 'order:ip' },
       { key: orderKey(orderId), rule: orderRule, label: 'order:id' },
+    ],
+    failMode,
+  );
+}
+
+// Límite de "Llamar al mozo": por IP y por pedido, con contadores propios (scope tablecall). Cada clave
+// falla según failMode.
+export function limitTableCall(req: Request, orderId: string, ipRule: LimitRule, orderRule: LimitRule, failMode: FailMode) {
+  return enforce(
+    [
+      { key: ipKeyFor(req, 'tablecall'), rule: ipRule, label: 'tablecall:ip' },
+      { key: tableCallKey(orderId), rule: orderRule, label: 'tablecall:id' },
     ],
     failMode,
   );

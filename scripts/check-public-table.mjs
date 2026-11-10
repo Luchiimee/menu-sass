@@ -7,6 +7,7 @@ import {
   PUBLIC_TABLE_COLUMNS, PUBLIC_TABLE_SELECT, MAX_TABLE_NAME_LENGTH,
   isValidTableId, normalizeTableName, toPublicTable, pickTableByName,
 } from '../lib/publicTable.ts';
+import { RATE_LIMITS, ipKey, orderKey, tableCallKey } from '../lib/rateLimitCore.ts';
 
 let failures = 0;
 function check(name, cond) {
@@ -101,6 +102,16 @@ console.log('pickTableByName');
   check('devuelve la fila original', pickTableByName(rows, 'mesa 1').row === rows[0]);
   const dup = pickTableByName([{ id: 'a', name: 'Mesa 1' }, { id: 'b', name: 'mesa 1' }], 'Mesa 1');
   check('many no trae fila', dup.kind === 'many' && !('row' in dup));
+}
+
+console.log('límites de llamar al mozo');
+{
+  check('10 por IP por minuto', RATE_LIMITS.tableCallPerIp.limit === 10 && RATE_LIMITS.tableCallPerIp.windowSeconds === 60);
+  check('3 por pedido por minuto', RATE_LIMITS.tableCallPerOrder.limit === 3 && RATE_LIMITS.tableCallPerOrder.windowSeconds === 60);
+  const id = '3f2b8c1e-5d4a-4b7e-9c10-0a1b2c3d4e5f';
+  check('la clave por pedido no comparte contador con el seguimiento', tableCallKey(id) !== orderKey(id) && tableCallKey(id).startsWith('tablecall:'));
+  check('la clave por pedido va en minúsculas', tableCallKey(id.toUpperCase()) === tableCallKey(id));
+  check('la clave por IP tiene su scope', ipKey('tablecall', 'abc') === 'tablecall:ip:abc' && ipKey('tablecall', 'abc') !== ipKey('order', 'abc'));
 }
 
 if (failures > 0) {

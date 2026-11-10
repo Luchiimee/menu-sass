@@ -28,12 +28,16 @@ export const RATE_LIMITS = {
   // pone a muchos detrás de la misma IP pública: tope alto por IP y tope bajo por pedido
   orderPerIp: { limit: 600, windowSeconds: 60 },
   orderPerOrder: { limit: 30, windowSeconds: 60 },
+  // Llamar al mozo (POST /api/public/table/call): pocas llamadas por IP y menos por pedido (contador propio,
+  // no comparte clave con el seguimiento del pedido)
+  tableCallPerIp: { limit: 10, windowSeconds: 60 },
+  tableCallPerOrder: { limit: 3, windowSeconds: 60 },
   // Cotizar un envío: cada una puede costar una llamada a Google Geocoding (más bajo que el pago)
   quotePerIp: { limit: 6, windowSeconds: 10 * 60 },
   quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
 } satisfies Record<string, LimitRule>;
 
-export type LimitScope = 'checkout' | 'public' | 'quote' | 'order';
+export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall';
 
 // En Vercel, x-real-ip y x-forwarded-for los pone la plataforma con la IP del cliente
 // (sobrescribe lo que mande el cliente). Se prefiere x-real-ip; si no, la primera de
@@ -62,6 +66,11 @@ export function orderKey(orderId: string): string {
 
 export function restaurantKey(restaurantId: string, scope: Exclude<LimitScope, 'public'> = 'checkout'): string {
   return `${scope}:rid:${restaurantId.toLowerCase()}`;
+}
+
+// Un contador por pedido para llamar al mozo (el id ya se validó como UUID v4). Clave distinta de orderKey.
+export function tableCallKey(orderId: string): string {
+  return `tablecall:id:${orderId.toLowerCase()}`;
 }
 
 export type LimitCheckResult = { allowed: boolean; retryAfter: number };
