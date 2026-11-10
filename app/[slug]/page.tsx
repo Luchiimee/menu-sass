@@ -629,14 +629,18 @@ function MenuContent({
     const mesaParam = searchParams.get('mesa');
     if (!mesaParam) return;
     setMesaId(mesaParam);
-    supabase
-      .from('tables')
-      .select('name')
-      .eq('id', mesaParam)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.name) setMesaLabel(data.name);
-      });
+    // El nombre de la mesa lo da el servidor (GET /api/public/tables/<id>): el navegador ya no lee
+    // `tables` con la clave pública. Si falla o da 404, queda sin etiqueta, como cuando no había dato.
+    let cancelled = false;
+    fetch('/api/public/tables/' + encodeURIComponent(mesaParam), { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && typeof data?.name === 'string' && data.name) setMesaLabel(data.name);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   const [activeCardId, setActiveCardId] = useState<any>(null);
