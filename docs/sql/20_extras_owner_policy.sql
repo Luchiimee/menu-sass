@@ -1,0 +1,293 @@
+-- =============================================================================
+-- 20 — extras: solo el dueño del local puede insertar, editar y borrar sus extras
+-- =============================================================================
+-- APLICADO en producción el 2026-11-10 (política 'extras: dueño gestiona sus extras'; verificado con
+-- pg_policies y con el panel). Nota: el bloque de PRUEBA de este archivo hace DDL (drop/create policy)
+-- dentro de un sub-bloque; en la práctica la política quedó aplicada, así que NO reutilizar ese patrón
+-- de prueba con DDL.
+-- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
+--
+-- Problema (verificado en la base)
+--   - "Dueños pueden editar extras": cmd ALL, rol {public}, using auth.role() = 'authenticated'.
+--     Cualquier usuario logueado (dueño de OTRO local, o cualquier cuenta registrada) puede insertar,
+--     editar o borrar los extras de cualquier local.
+--   - "Extras son públicos": cmd SELECT, using true. La lectura pública del menú depende de esta y NO
+--     se toca.
+--
+-- Qué hace (en una transacción: si algo falla, no se aplica nada)
+--   1. Borra "Dueños pueden editar extras".
+--   2. Crea "extras: dueño gestiona sus extras": ALL, to authenticated, using y with check
+--      restaurant_id in (select id from restaurants where user_id = auth.uid()).
+--      Mismo estilo que las demás políticas de dueño (to authenticated + subconsulta a restaurants).
+--   Lectura: "Extras son públicos" sigue dando SELECT a anon y a authenticated; la política nueva
+--   también da SELECT al dueño sobre sus filas (redundante, inocuo).
+--   No cambia datos, no toca product_extras (ver PENDIENTES).
+--
+-- Cómo se determina el dueño (según el código)
+--   El panel (app/dashboard/products/page.tsx) siempre inserta con restaurant_id = el local del usuario
+--   logueado (lo busca por restaurants.user_id = session.user.id, también para el superadmin), y
+--   actualiza y borra por id. extras tiene su propio restaurant_id, así que el dueño se saca de ahí;
+--   no hace falta pasar por products. product_extras (product_id, extra_id) solo vincula un extra con
+--   un producto. Una fila de extras SIN restaurant_id no la podría editar nadie con esta política:
+--   mirar la consulta "ANTES DE CORRER".
+--   El servidor (lib/checkoutPricing.ts) lee extras con su propio cliente de servidor y no depende de
+--   estas políticas; el menú público (app/[slug]/page.tsx) solo lee.
+--
+-- Orden recomendado: 1) consulta "ANTES DE CORRER"; 2) bloque de PRUEBA (antes de aplicar);
+--   3) aplicar; 4) volver a correr la PRUEBA no sirve (ya estaría aplicado): usar la verificación manual.
+-- =============================================================================
+
+-- =============================================================================
+-- ANTES DE CORRER (SOLO LECTURA, comentado)
+--   (a) políticas actuales de extras y de product_extras
+--   (b) extras que el dueño no podría editar con la política nueva: sin restaurant_id, o con un
+--       restaurant_id que no existe. Esperado: 0 filas. Si hay filas, NO aplicar: decidir qué hacer con
+--       ellas (asignarles restaurant_id, borrarlas, o usar la variante por products de más abajo).
+-- =============================================================================
+-- select policyname, cmd, roles, qual, with_check
+-- from pg_policies
+-- where schemaname = 'public' and tablename in ('extras', 'product_extras')
+-- order by tablename, policyname;
+--
+-- select e.id, e.name, e.restaurant_id
+-- from public.extras e
+-- left join public.restaurants r on r.id = e.restaurant_id
+-- where e.restaurant_id is null or r.id is null;
+
+begin;
+
+drop policy "Dueños pueden editar extras" on public.extras;
+
+create policy "extras: dueño gestiona sus extras"
+  on public.extras
+  for all
+  to authenticated
+  using (
+    restaurant_id in (select r.id from public.restaurants r where r.user_id = auth.uid())
+  )
+  with check (
+    restaurant_id in (select r.id from public.restaurants r where r.user_id = auth.uid())
+  );
+
+commit;
+
+-- -----------------------------------------------------------------------------
+-- VARIANTE (solo si la consulta "ANTES DE CORRER" muestra extras sin restaurant_id pero vinculados a un
+-- producto): el dueño también se saca de products.restaurant_id a través de product_extras. Reemplaza
+-- using y with check por:
+--   restaurant_id in (select r.id from public.restaurants r where r.user_id = auth.uid())
+--   or exists (
+--     select 1
+--     from public.product_extras pe
+--     join public.products p on p.id = pe.product_id
+--     join public.restaurants r on r.id = p.restaurant_id
+--     where pe.extra_id = extras.id and r.user_id = auth.uid()
+--   )
+-- No la uso por defecto: un extra se puede vincular a productos de varios locales solo si hay datos
+-- sucios, y with check con exists sobre una fila que se está insertando no encuentra vínculos todavía.
+-- -----------------------------------------------------------------------------
+
+-- =============================================================================
+-- ROLLBACK DE EMERGENCIA (descomentar y correr si algo se rompe)
+-- Devuelve la política anterior tal cual estaba: ALL, {public}, auth.role() = 'authenticated'
+-- (sin with check: en una política ALL, sin with check se usa el using).
+-- =============================================================================
+-- begin;
+--   drop policy "extras: dueño gestiona sus extras" on public.extras;
+--   create policy "Dueños pueden editar extras"
+--     on public.extras
+--     for all
+--     to public
+--     using (auth.role() = 'authenticated');
+-- commit;
+
+-- =============================================================================
+-- PRUEBA (SQL Editor, como postgres): UNA ejecución, no deja cambios. Correr ANTES de aplicar el
+-- script (con el script aplicado, "antes" y "después" serían iguales y no probaría nada).
+--
+-- Cómo no deja cambios: el sub-bloque del DO mide "antes", aplica los pasos 1 y 2 (mismas sentencias de
+-- arriba), mide "después" y termina con una excepción forzada (ZZ001); Postgres deshace todo lo hecho
+-- en el sub-bloque (drop/create policy, extras de prueba incluidos). Por eso las mediciones se guardan
+-- en arrays (r_antes, r_desp) y se insertan en _t_res DESPUÉS del sub-bloque. El ÚLTIMO comando es el
+-- select. Cada medición tiene su propio begin/exception: un error en una no aborta el resto.
+-- Dentro de cada fase, los extras de prueba se borran al terminar para que anon cuente lo mismo antes
+-- y después.
+--
+-- Qué mide (cada resultado: 'ok' / 'ok:N' filas afectadas / 'error: mensaje')
+--   1 dueno_inserta_propio       dueño de Tama inserta un extra en su local          esperado: ok
+--   2 dueno_edita_propio         ese dueño edita ese extra                           esperado: ok:1
+--   3 otro_inserta_en_tama       usuario autenticado que NO es dueño de Tama
+--                                inserta un extra en el local de Tama                esperado: error
+--   4 otro_edita_de_tama         ese usuario edita el extra del dueño                esperado: ok:0
+--   5 otro_borra_de_tama         ese usuario borra el extra del dueño                esperado: ok:0
+--   6 anon_cuenta_extras         filas de extras que ve anon                         esperado: igual que antes
+--   7 anon_inserta               anon intenta insertar                               esperado: error
+--   Antes de aplicar se espera ver la falla actual: 3 = ok, 4 = ok:1, 5 = ok:1.
+--   Después de aplicar, todo en la columna "ok" = true.
+--   Si 1 o 2 fallan después: el dueño perdería la edición: NO aplicar.
+--   Si el insert falla "antes" por otra columna obligatoria de extras (not null sin valor), ajustar el
+--   insert de prueba a las columnas reales y volver a correr.
+-- =============================================================================
+-- drop table if exists _t_res;
+-- create temp table _t_res (n int, prueba text, antes text, despues text, esperado text);
+--
+-- do $$
+-- declare
+--   v_rest   uuid;   -- local de Tama
+--   v_uid    uuid;   -- dueño de Tama
+--   v_other  uuid;   -- otro usuario autenticado que no es dueño de Tama
+--   v_own    uuid;   -- extra que inserta el dueño
+--   v_bad    uuid;   -- extra que logra insertar el no-dueño (solo "antes")
+--   v_c      int;
+--   v_r      text;
+--   p        int;
+--   i        int;
+--   nombres  text[] := array['dueno_inserta_propio', 'dueno_edita_propio', 'otro_inserta_en_tama',
+--                            'otro_edita_de_tama', 'otro_borra_de_tama', 'anon_cuenta_extras', 'anon_inserta'];
+--   r_antes  text[] := '{}';
+--   r_desp   text[] := '{}';
+--   v_res    text[];
+-- begin
+--   select id, user_id into v_rest, v_uid from public.restaurants
+--    where owner_email = 'tamalu026@gmail.com' and user_id is not null limit 1;
+--   if v_uid is null then
+--     raise exception 'no se encontró el dueño de Tama (owner_email = tamalu026@gmail.com)';
+--   end if;
+--   select user_id into v_other from public.restaurants
+--    where user_id is not null and user_id <> v_uid limit 1;
+--   if v_other is null then
+--     v_other := gen_random_uuid();  -- usuario autenticado cualquiera: para RLS solo cuenta auth.uid()
+--   end if;
+--
+--   begin  -- sub-bloque "deshacer"
+--
+--     for p in 1 .. 2 loop  -- 1 = ANTES, 2 = DESPUÉS de aplicar
+--
+--       if p = 2 then
+--         -- ===== APLICAR pasos 1 y 2 (se deshacen al final del sub-bloque) =====
+--         drop policy "Dueños pueden editar extras" on public.extras;
+--         create policy "extras: dueño gestiona sus extras"
+--           on public.extras for all to authenticated
+--           using      (restaurant_id in (select r.id from public.restaurants r where r.user_id = auth.uid()))
+--           with check (restaurant_id in (select r.id from public.restaurants r where r.user_id = auth.uid()));
+--       end if;
+--
+--       v_res := array_fill(null::text, array[7]);
+--       v_own := null; v_bad := null;
+--
+--       -- ---- 6 y 7: anon (se mide primero, con la tabla sin extras de prueba) ----
+--       perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+--       begin
+--         set local role anon;
+--         select count(*) into v_c from public.extras;
+--         v_res[6] := 'ok:' || v_c;
+--       exception when others then
+--         v_res[6] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--       begin
+--         set local role anon;
+--         insert into public.extras (restaurant_id, name, price, is_available)
+--           values (v_rest, 'ZZ prueba anon', 1, true);
+--         v_res[7] := 'ok';   -- no debería poder
+--       exception when others then
+--         v_res[7] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--
+--       -- ---- 1 y 2: dueño de Tama ----
+--       perform set_config('request.jwt.claims',
+--         json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+--       begin
+--         set local role authenticated;
+--         insert into public.extras (restaurant_id, name, price, is_available)
+--           values (v_rest, 'ZZ prueba dueño', 1, true) returning id into v_own;
+--         v_res[1] := 'ok';
+--       exception when others then
+--         v_res[1] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--       begin
+--         set local role authenticated;
+--         update public.extras set price = 2 where id = v_own;
+--         get diagnostics v_c = row_count;
+--         v_res[2] := 'ok:' || v_c;
+--       exception when others then
+--         v_res[2] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--
+--       -- ---- 3, 4 y 5: autenticado que NO es dueño de Tama ----
+--       perform set_config('request.jwt.claims',
+--         json_build_object('sub', v_other::text, 'role', 'authenticated')::text, true);
+--       begin
+--         set local role authenticated;
+--         insert into public.extras (restaurant_id, name, price, is_available)
+--           values (v_rest, 'ZZ prueba ajeno', 1, true) returning id into v_bad;
+--         v_res[3] := 'ok';   -- antes de aplicar: la falla que se quiere cerrar
+--       exception when others then
+--         v_res[3] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--       begin
+--         set local role authenticated;
+--         update public.extras set price = 999 where id = v_own;
+--         get diagnostics v_c = row_count;
+--         v_res[4] := 'ok:' || v_c;
+--       exception when others then
+--         v_res[4] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--       begin
+--         set local role authenticated;
+--         delete from public.extras where id = v_own;
+--         get diagnostics v_c = row_count;
+--         v_res[5] := 'ok:' || v_c;
+--       exception when others then
+--         v_res[5] := 'error: ' || sqlerrm;
+--       end;
+--       reset role;
+--
+--       -- limpiar los extras de prueba de esta fase (como postgres) para que la fase siguiente
+--       -- cuente lo mismo
+--       delete from public.extras where id in (v_own, v_bad);
+--
+--       for i in 1 .. 7 loop
+--         if p = 1 then r_antes[i] := v_res[i]; else r_desp[i] := v_res[i]; end if;
+--       end loop;
+--
+--     end loop;
+--
+--     raise exception 'deshacer' using errcode = 'ZZ001';
+--   exception when sqlstate 'ZZ001' then
+--     null;  -- esperado: deshace drop/create policy y cualquier extra de prueba; los arrays conservan lo medido
+--   end;
+--
+--   -- fuera del sub-bloque: estas filas SÍ quedan (dentro se habrían deshecho con el resto)
+--   for i in 1 .. 7 loop
+--     insert into _t_res values (
+--       i, nombres[i], r_antes[i], r_desp[i],
+--       case i when 1 then 'ok' when 2 then 'ok:1' when 3 then 'error' when 4 then 'ok:0'
+--              when 5 then 'ok:0' when 6 then r_antes[6] when 7 then 'error' end
+--     );
+--   end loop;
+-- end $$;
+--
+-- -- UNA sentencia final (último comando del script)
+-- select
+--   n,
+--   prueba,
+--   antes,
+--   despues,
+--   esperado,
+--   (despues is not null and left(despues, length(esperado)) = esperado) as ok
+-- from _t_res
+-- order by n;
+
+-- =============================================================================
+-- PENDIENTES que este script NO cubre
+--   (a) product_extras (vínculo extra <-> producto): el panel inserta y borra ahí con la sesión del
+--       dueño (app/dashboard/products/page.tsx líneas 352 y 354). Revisar sus políticas con la consulta
+--       "ANTES DE CORRER" (a); si también dice auth.role() = 'authenticated', tiene el mismo problema.
+--   (b) Datos: extras sin restaurant_id (consulta "ANTES DE CORRER" (b)).
+-- =============================================================================
