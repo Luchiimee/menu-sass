@@ -1,7 +1,8 @@
 -- =============================================================================
 -- 22 — orders: quitarle a anon (y a cualquier usuario sin ser dueño) la lectura de public.orders
 -- =============================================================================
--- BORRADOR. NO EJECUTADO. CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
+-- APLICADO en producción el 2026-11-10; verificado con la prueba del archivo (anon 0 de 456 filas, insert sin returning ok) y con pg_policies.
+-- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
 --
 -- Problema (verificado en la base)
 --   "Permitir lectura de pedidos": SELECT, roles {anon, authenticated}, using true. Con la clave pública
@@ -34,6 +35,14 @@
 --      dejan de recibir cambios.
 --   3) Otros lectores anónimos de orders que no estén en este repo (otra app, integración, script):
 --      no los conozco. Revisar los logs de la API de Supabase (rol anon, tabla orders) antes de aplicar.
+--
+-- Pendientes que este script NO cubre
+--   (a) tables: la política permitir_mozo permite UPDATE anónimo, y cualquier usuario logueado puede
+--       editar mesas de cualquier local.
+--   (b) restaurants: public_view_restaurants sigue dando SELECT a authenticated (cualquier logueado lee
+--       todos los locales).
+--   (c) orders: "Permitir manejo de pedidos propios" (ALL, public, auth.uid() = restaurant_id) es
+--       inofensiva (para anon auth.uid() es null) pero conviene borrarla.
 --
 -- Orden recomendado: 1) consulta "ANTES DE CORRER" y guardar el resultado; 2) PRUEBA (antes);
 --   3) aplicar; 4) PRUEBA (después) y comparar; 5) verificación posterior; 6) prueba en pantalla.
