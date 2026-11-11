@@ -455,7 +455,9 @@ export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [showPromo, setShowPromo] = useState(false); // se decide en el cliente (efecto de abajo)
+  // Arranca visible (servidor y cliente renderizan lo mismo: no hay diferencia de hidratación ni salto de la navbar).
+  // El efecto de abajo (solo cliente) la oculta si ya pasó la fecha límite o si el visitante la cerró.
+  const [showPromo, setShowPromo] = useState(true);
   const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
   const [activeBusinessType, setActiveBusinessType] = useState<'gastronomia' | 'kiosco' | 'dietetica'>('gastronomia');
 
@@ -472,17 +474,22 @@ export default function LandingPage() {
     }
   }, [router]);
 
-  // Franja de la promo: visible hasta la fecha límite y mientras el visitante no la haya cerrado.
+  // Franja de la promo: se oculta si ya pasó la fecha límite o si el visitante la cerró.
   useEffect(() => {
-    if (Date.now() > PROMO_NOV_2026_ENDS_AT) return;
+    if (Date.now() > PROMO_NOV_2026_ENDS_AT) {
+      setShowPromo(false);
+      return;
+    }
     let closed = false;
     try {
       closed = localStorage.getItem(PROMO_NOV_2026_CLOSED_KEY) === "1";
     } catch {
       /* sin localStorage (bloqueado): se muestra igual */
     }
-    if (closed) return;
-    setShowPromo(true);
+    if (closed) {
+      setShowPromo(false);
+      return;
+    }
     // Si la página queda abierta hasta la fecha límite, se oculta sola
     const ms = PROMO_NOV_2026_ENDS_AT - Date.now();
     if (ms > 0 && ms < 2147483647) {
@@ -1938,10 +1945,22 @@ export default function LandingPage() {
                 q: "¿Puedo cancelar?",
                 a: "Sí, en cualquier momento desde tu panel de ajustes sin complicaciones.",
               },
+              {
+                q: "¿Cómo me gano las 5 remeras?",
+                a: "Entran los primeros 10 negocios registrados en noviembre que abonen su primera suscripción (al terminar los 14 días gratis, o antes si cargás la tarjeta, que se debita al día 14). Después te contactamos para coordinar nombres y logo; llegan en 5 a 10 días, sin costo.",
+              },
+              {
+                q: "Me registré en noviembre pero mi primer cobro es en diciembre, ¿entro?",
+                a: "Sí, siempre que abones hasta el 15/12.",
+              },
+              {
+                q: "¿Y si no llego a los 10?",
+                a: "Cuando abones tu primera suscripción, te avisamos por email que quedaste seleccionado para la promo de 4 remeras: te las ganás al abonar tu tercera suscripción y te contactamos para coordinar. Válida para registros hasta el 31/12.",
+              },
             ].map((faq, i) => (
               <div
                 key={i}
-                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-fresco/20 transition-all"
+                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-fresco/20 transition-all md:[&:last-child:nth-child(odd)]:col-span-2"
               >
                 <h3 className="font-bold text-lg mb-3 flex items-center gap-3">
                   <span className="text-fresco font-black">0{i + 1}.</span>{" "}

@@ -15,7 +15,7 @@ export default function PromoBanner({ onClose }: { onClose: () => void }) {
       <div className="max-w-7xl mx-auto h-full px-3 sm:px-6 flex items-center justify-center gap-2 sm:gap-4">
         <p className="min-w-0 text-[11px] sm:text-xs leading-tight text-center text-gray-200">
           <span className="hidden lg:inline">
-            <b className="text-[#ffcc03] font-black tracking-wide">PROMO NOVIEMBRE</b> · Los primeros 10 negocios que se suscriban se llevan 5 remeras personalizadas para su equipo
+            <b className="text-[#ffcc03] font-black tracking-wide">PROMO NOVIEMBRE</b> · Los primeros 10 negocios en abonar su primera suscripción se llevan 5 remeras personalizadas
           </span>
           <span className="lg:hidden">Promo noviembre: 5 remeras para tu equipo</span>
         </p>
