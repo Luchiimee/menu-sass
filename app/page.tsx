@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import PromoBanner from "@/components/PromoBanner";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 import {
   ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
@@ -13,6 +14,11 @@ import {
   Store, Monitor, Wallet, Fish, Coffee, Pizza, CheckCircle2,
   UtensilsCrossed, Search, Link2, Palette, Share2, CalendarDays, Scale, IceCream, Info
 } from "lucide-react";
+
+// Promo de noviembre 2026: la franja se oculta sola después de esta fecha (hora Argentina, UTC-3).
+// Se compara en un efecto del cliente (no en el render) para que servidor y cliente rendericen lo mismo.
+const PROMO_NOV_2026_ENDS_AT = Date.parse("2026-11-30T23:59:59-03:00");
+const PROMO_NOV_2026_CLOSED_KEY = "promo_nov_2026_closed";
 
 
 // 1. Tipamos el objeto de las galerías
@@ -449,6 +455,7 @@ export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [showPromo, setShowPromo] = useState(false); // se decide en el cliente (efecto de abajo)
   const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
   const [activeBusinessType, setActiveBusinessType] = useState<'gastronomia' | 'kiosco' | 'dietetica'>('gastronomia');
 
@@ -464,6 +471,34 @@ export default function LandingPage() {
       }
     }
   }, [router]);
+
+  // Franja de la promo: visible hasta la fecha límite y mientras el visitante no la haya cerrado.
+  useEffect(() => {
+    if (Date.now() > PROMO_NOV_2026_ENDS_AT) return;
+    let closed = false;
+    try {
+      closed = localStorage.getItem(PROMO_NOV_2026_CLOSED_KEY) === "1";
+    } catch {
+      /* sin localStorage (bloqueado): se muestra igual */
+    }
+    if (closed) return;
+    setShowPromo(true);
+    // Si la página queda abierta hasta la fecha límite, se oculta sola
+    const ms = PROMO_NOV_2026_ENDS_AT - Date.now();
+    if (ms > 0 && ms < 2147483647) {
+      const t = setTimeout(() => setShowPromo(false), ms);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const closePromo = () => {
+    setShowPromo(false);
+    try {
+      localStorage.setItem(PROMO_NOV_2026_CLOSED_KEY, "1");
+    } catch {
+      /* sin localStorage: se cierra solo en esta visita */
+    }
+  };
 
   useEffect(() => {
     setActiveStep(0);
@@ -565,8 +600,11 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-paper font-sans text-gray-900 selection:bg-fresco/10 overflow-x-hidden">
+      {/* --- FRANJA PROMOCIONAL (fija, arriba de la navbar) --- */}
+      {showPromo && <PromoBanner onClose={closePromo} />}
+
      {/* --- NAVBAR RESPONSIVE CON LINKS --- */}
-      <nav className="fixed top-0 w-full z-[100] bg-paper/80 backdrop-blur-xl border-b border-gray-100">
+      <nav className={`fixed ${showPromo ? "top-11" : "top-0"} w-full z-[100] bg-paper/80 backdrop-blur-xl border-b border-gray-100 transition-[top] duration-200`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo-snappy.svg" alt="Snappy" width={32} height={32} />
