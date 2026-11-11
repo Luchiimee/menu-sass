@@ -668,6 +668,18 @@ export default function LandingPage() {
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left z-10">
+            {/* Pastilla de la promo: visible mientras se vea la franja (mismo estado showPromo → misma fecha límite) */}
+            {showPromo && (
+              <div className="mb-3">
+                <Link
+                  href="#faq"
+                  className="inline-flex max-w-full items-center gap-2 bg-white border border-gray-200 shadow-sm px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold text-gray-600 hover:border-[#ffcc03] transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#ffcc03] animate-pulse shrink-0"></span>
+                  Promo noviembre · 5 remeras para tu equipo
+                </Link>
+              </div>
+            )}
             <div className="inline-flex items-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-1.5 rounded-full text-xs font-bold mb-8 text-gray-600">
               <span className="w-2 h-2 rounded-full bg-fresco animate-pulse"></span>{" "}
               🚀 Para gastronomía, kioscos, dietéticas y más
@@ -1919,7 +1931,7 @@ export default function LandingPage() {
       </section>
 
       {/* --- PREGUNTAS FRECUENTES --- */}
-      <section className="py-24 px-6 bg-white border-t border-gray-100">
+      <section id="faq" className="py-24 px-6 bg-white border-t border-gray-100 scroll-mt-32">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <HelpCircle size={48} className="mx-auto text-fresco mb-4" />
