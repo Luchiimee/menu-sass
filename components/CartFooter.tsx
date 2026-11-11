@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints, Calculator } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
+import { clearOrderStorage } from '@/lib/clientOrderStorage';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
@@ -140,7 +141,7 @@ const [entregaTipo, setEntregaTipo] = useState(scheduledActive ? 'programada' : 
 const handleFinalizarTodo = () => {
        window.onbeforeunload = null;
         clearCart(); // Limpia los productos del carrito
-        localStorage.clear(); // Borra ID de orden, mesa y todo
+        clearOrderStorage(localStorage); // Borra solo las claves del pedido (id, mesa, método), no todo el dominio
         setActiveOrderId(null);
         window.location.reload(); // Refresca para que el sistema empiece de cero
     };
