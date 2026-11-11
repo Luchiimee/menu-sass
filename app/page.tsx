@@ -2000,7 +2000,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[
               { 
                 title: "Múltiples Sucursales", 
@@ -2011,11 +2011,6 @@ export default function LandingPage() {
                 title: "Pagos con Tarjeta", 
                 desc: "Aceptá crédito y débito directamente en el menú. Una experiencia de compra fluida y profesional.", 
                 icon: <CreditCard size={24}/> 
-              },
-              { 
-                title: "Billeteras Virtuales", 
-                desc: "Vinculá tu cuenta de Mercado Pago o Ualá para recibir cobros automáticos y acreditación inmediata.", 
-                icon: <Wallet size={24}/> 
               }
             ].map((item, i) => (
               <div key={i} className="group p-10 rounded-[40px] border border-white/10 bg-white/5 hover:bg-white/[0.08] transition-all backdrop-blur-sm relative overflow-hidden">
@@ -2053,13 +2048,12 @@ export default function LandingPage() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-6 justify-center md:justify-start">
               <Image
-                src="/logo.svg"
+                src="/logo-snappy.svg"
                 alt="Snappy"
-                width={32}
-                height={32}
-                className="invert"
+                width={40}
+                height={40}
               />
-              <span className="font-bold text-3xl tracking-tight">Snappy.</span>
+              <span className="font-bold text-3xl tracking-tight text-white">Snappy.</span>
             </div>
             <p className="text-gray-500 max-w-sm mb-8 mx-auto md:mx-0">
               Transformando la forma en que los comercios conectan con sus
