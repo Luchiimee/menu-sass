@@ -709,6 +709,30 @@ useEffect(() => {
   }
   const hasSalon = currentPlan === 'plus';
 
+  // "Imprimir Comanda" del detalle de mesa: se muestra en en_proceso y en entregado, con la misma lógica de
+  // plan (light → modal de mejora) y de impresión térmica (activa → no se muestra). Un solo bloque compartido.
+  const renderTablePrintButton = (order: any) => {
+    if (thermalPrintingEnabled) return null;
+    return (
+      <button
+        onClick={() => {
+            if (currentPlan === 'light') {
+                setShowUpgradeModal(true);
+            } else {
+                handlePrint(order);
+            }
+        }}
+        className={`w-full py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all border ${
+            currentPlan === 'light'
+            ? 'bg-white/5 text-gray-500 border-white/10'
+            : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
+        }`}
+      >
+        {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
+      </button>
+    );
+  };
+
  return (
 <div className="max-w-full min-h-screen px-4 lg:px-6 pt-2 md:pt-2 lg:pt-8 relative font-sans">
       <style dangerouslySetInnerHTML={{ __html: CUSTOM_STYLES }} />
@@ -1521,7 +1545,9 @@ useEffect(() => {
                             <CheckCircle size={18} /> Aceptar Pedido
                         </button>
                     ) : selectedTableForDetail.activeOrder.status === 'en_proceso' ? (
-                        /* En cocina: marcar como entregado al cliente */
+                        /* En cocina: imprimir arriba; el botón que cambia de estado queda abajo, en la misma posición que "Aceptar Pedido" */
+                        <div className="flex flex-col gap-3">
+                        {renderTablePrintButton(selectedTableForDetail.activeOrder)}
                         <button
                             onClick={() => markOrderDelivered(selectedTableForDetail.activeOrder)}
                             disabled={statusBusy}
@@ -1529,27 +1555,11 @@ useEffect(() => {
                         >
                             <Zap size={18} /> Marcar Entregado
                         </button>
+                        </div>
                     ) : selectedTableForDetail.activeOrder.status === 'entregado' ? (
                     <div className="flex flex-col gap-2">
                         {/* Botón Imprimir más chico */}
-                  {!thermalPrintingEnabled && (
-                  <button
-        onClick={() => {
-            if (currentPlan === 'light') {
-                setShowUpgradeModal(true);
-            } else {
-                handlePrint(selectedTableForDetail.activeOrder);
-            }
-        }}
-        className={`w-full py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all border ${
-            currentPlan === 'light'
-            ? 'bg-white/5 text-gray-500 border-white/10'
-            : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
-        }`}
-    >
-        {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
-    </button>
-                  )}
+                        {renderTablePrintButton(selectedTableForDetail.activeOrder)}
 
 
 <button
