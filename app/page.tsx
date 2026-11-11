@@ -613,9 +613,8 @@ export default function LandingPage() {
      {/* --- NAVBAR RESPONSIVE CON LINKS --- */}
       <nav className={`fixed ${showPromo ? "top-11" : "top-0"} w-full z-[100] bg-paper/80 backdrop-blur-xl border-b border-gray-100 transition-[top] duration-200`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo-snappy.svg" alt="Snappy" width={32} height={32} />
-            <span className="font-bold text-2xl tracking-tight">Snappy.</span>
+          <Link href="/" className="flex items-center">
+            <Image src="/logo-snappy-completo.svg" alt="Snappy" width={129} height={45} className="h-[45px] w-auto" />
           </Link>
 
           {/* Menú Escritorio */}
