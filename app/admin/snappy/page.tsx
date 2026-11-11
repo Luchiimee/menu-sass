@@ -20,6 +20,28 @@ const PRECIO_LIGHT = 10000;
 // Cuentas admin excluidas de las métricas de MRR/suscriptores (no son clientes reales)
 const EMAILS_EXCLUIDOS = ADMIN_EMAILS;
 
+// Fecha corta en hora Argentina ("—" si no hay fecha o no es válida)
+const fmtFecha = (v: unknown, conHora = false) => {
+  if (!v) return "—";
+  const d = new Date(v as string);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit", month: "2-digit", year: "2-digit",
+    ...(conHora ? { hour: "2-digit", minute: "2-digit", hour12: false } : {}),
+  });
+};
+
+// Respuesta de GET /api/admin/promo-remeras (ver lib/promoRemeras.ts)
+type PromoLocal = {
+  id: string; nombre: string | null; email_dueno: string | null; created_at: string; first_paid_at: string | null;
+  plan: string | null; estado: string | null; puesto: number | null; fuera_de_plazo: boolean;
+};
+type PromoState =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ok"; cupos: number; total: number; con_pago: number; en_plazo: number; locales: PromoLocal[] };
+
 export default function AdminSnappyPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +54,30 @@ export default function AdminSnappyPage() {
   );
 
   useEffect(() => { loadAllData(); }, []);
+
+  // Promo remeras: lo arma el servidor (service role); acá solo se muestra
+  const [promo, setPromo] = useState<PromoState>({ status: "loading" });
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/promo-remeras", { cache: "no-store" })
+      .then(async (res) => {
+        if (cancelled) return;
+        if (res.ok) {
+          const body = await res.json();
+          setPromo({ status: "ok", cupos: body.cupos, total: body.total, con_pago: body.con_pago, en_plazo: body.en_plazo, locales: body.locales ?? [] });
+          return;
+        }
+        const body = await res.json().catch(() => null);
+        setPromo({
+          status: "error",
+          message: body?.error === "falta_first_paid_at"
+            ? "Falta correr docs/sql/23_first_paid_at.sql en Supabase (columna first_paid_at)."
+            : res.status === 401 || res.status === 403 ? "Sin acceso a este listado." : "No se pudo cargar el listado.",
+        });
+      })
+      .catch(() => { if (!cancelled) setPromo({ status: "error", message: "No se pudo cargar el listado." }); });
+    return () => { cancelled = true; };
+  }, []);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -182,6 +228,84 @@ export default function AdminSnappyPage() {
         </div>
       </div>
 
+      {/* PROMO REMERAS */}
+      <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden mb-6">
+        <div className="p-6 border-b border-gray-50 flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-black uppercase italic tracking-tighter text-gray-900">Promo remeras</h2>
+            <p className="text-[10px] text-gray-400 font-bold mt-1">
+              Registrados del 01/11 al 30/11 · puesto por primer pago · plazo de pago hasta el 15/12 23:59 (hora Argentina)
+            </p>
+          </div>
+          {promo.status === "ok" && (
+            <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase">
+              <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">{promo.total} registrados</span>
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700">{promo.en_plazo} pagaron en plazo</span>
+              <span className="px-3 py-1 rounded-full bg-brasa/10 text-brasa">{Math.min(promo.cupos, promo.en_plazo)} de {promo.cupos} cupos</span>
+            </div>
+          )}
+        </div>
+
+        {promo.status === "loading" && (
+          <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-fresco" size={24} /></div>
+        )}
+        {promo.status === "error" && (
+          <p className="p-6 text-xs font-bold text-red-500">{promo.message}</p>
+        )}
+        {promo.status === "ok" && promo.locales.length === 0 && (
+          <p className="p-6 text-xs font-bold text-gray-400">Todavía no hay locales registrados en noviembre.</p>
+        )}
+        {promo.status === "ok" && promo.locales.length > 0 && (
+          <div className="overflow-x-auto text-left">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-50/50 border-b font-black text-[10px] uppercase text-gray-400 tracking-widest">
+                <tr>
+                  <th className="px-6 py-3 text-center">Puesto</th>
+                  <th className="px-4 py-3">Local</th>
+                  <th className="px-4 py-3">Registro</th>
+                  <th className="px-4 py-3">Primer pago</th>
+                  <th className="px-4 py-3 text-center">Plan</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-6 py-3">Plazo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {promo.locales.map((l) => (
+                  <tr key={l.id} className={l.puesto ? "bg-emerald-50/30" : ""}>
+                    <td className="px-6 py-3 text-center">
+                      {l.puesto ? (
+                        <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-fresco text-white text-[11px] font-black">{l.puesto}</span>
+                      ) : (
+                        <span className="text-[10px] text-gray-300 font-black">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="font-black text-gray-900 text-xs uppercase italic">{l.nombre || "Sin nombre"}</span>
+                        <span className="text-[10px] text-gray-400 truncate max-w-[220px]">{l.email_dueno || "—"}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-[10px] font-bold text-gray-600">{fmtFecha(l.created_at)}</td>
+                    <td className="px-4 py-3 text-[10px] font-bold text-gray-600">{fmtFecha(l.first_paid_at, true)}</td>
+                    <td className="px-4 py-3 text-center text-[10px] font-black uppercase text-gray-500">{l.plan || "—"}</td>
+                    <td className="px-4 py-3 text-[10px] font-bold text-gray-500">{l.estado || "—"}</td>
+                    <td className="px-6 py-3">
+                      {l.fuera_de_plazo ? (
+                        <span className="px-2 py-1 rounded-lg bg-red-100 text-red-700 text-[9px] font-black uppercase">Fuera de plazo</span>
+                      ) : l.first_paid_at ? (
+                        <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase">{l.puesto ? "Entra" : "En plazo, sin cupo"}</span>
+                      ) : (
+                        <span className="text-[10px] text-gray-300 font-black">Sin pago</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* TABLA */}
       <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden">
         <div className="overflow-x-auto text-left">
@@ -193,6 +317,8 @@ export default function AdminSnappyPage() {
                 <th className="px-4 py-4">Enlace</th>
                 <th className="px-4 py-4 text-center">Pago</th>
                 <th className="px-4 py-4 text-center">Plan</th>
+                <th className="px-4 py-4">Registro</th>
+                <th className="px-4 py-4">Primer pago</th>
                 <th className="px-4 py-4">Situación</th>
                 <th className="px-6 py-4 text-right">Acción</th>
               </tr>
@@ -269,6 +395,16 @@ export default function AdminSnappyPage() {
                       }`}>
                         {currentPlan || 'Light'}
                       </span>
+                    </td>
+
+                    {/* REGISTRO */}
+                    <td className="px-4 py-4 text-[10px] font-bold text-gray-600">
+                      {fmtFecha(item.restaurant?.created_at ?? item.profile.created_at)}
+                    </td>
+
+                    {/* PRIMER PAGO */}
+                    <td className="px-4 py-4 text-[10px] font-bold text-gray-600">
+                      {fmtFecha(item.restaurant?.first_paid_at, true)}
                     </td>
 
                     {/* SITUACIÓN */}
