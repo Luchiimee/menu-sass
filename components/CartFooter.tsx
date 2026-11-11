@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Send, ShoppingBag, X, ChevronDown, Plus, Minus, Copy, Check, Wallet, Landmark, MessageSquare, Loader2, HelpCircle, CheckCircle2, Zap, User, CreditCard, Clock, MapPin, XCircle, Bell, ChefHat, Bike, Footprints, Calculator } from 'lucide-react';
 import OrderTracker from './OrderTracker';
 import { displayTableLabel } from '@/lib/tableUtils';
+import { clearOrderStorage } from '@/lib/clientOrderStorage';
 import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE } from '@/lib/mpClientCheckout';
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
@@ -140,7 +141,7 @@ const [entregaTipo, setEntregaTipo] = useState(scheduledActive ? 'programada' : 
 const handleFinalizarTodo = () => {
        window.onbeforeunload = null;
         clearCart(); // Limpia los productos del carrito
-        localStorage.clear(); // Borra ID de orden, mesa y todo
+        clearOrderStorage(localStorage); // Borra solo las claves del pedido (id, mesa, método), no todo el dominio
         setActiveOrderId(null);
         window.location.reload(); // Refresca para que el sistema empiece de cero
     };
@@ -658,7 +659,7 @@ const handleCallWaiter = async () => {
                 </div>
             )}
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
-                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
+                <div className="w-full h-[90dvh] max-h-[100dvh] md:h-auto md:max-h-[calc(100dvh-2rem)] md:max-w-md min-h-0 bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
                     <button
                         onClick={() => {
                             if (orderStatus === 'entregado' || orderStatus === 'completado' || orderStatus === 'cancelado') {
@@ -697,7 +698,7 @@ const handleCallWaiter = async () => {
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
                         {isMesa && (
                             <div className="bg-fresco text-white rounded-3xl p-5 m6 text-left shadow-lg animate-in zoom-in">
@@ -915,9 +916,8 @@ const handleCallWaiter = async () => {
                                 </div>
                             </div>
                         )}
-                    </div>{/* cierra flex-1 overflow-y-auto */}
-                    {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
-                    <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
+                    {/* 🔘 BOTONES DE ACCIÓN: dentro del MISMO área scrolleable (con padding para la zona segura del celular) */}
+                    <div className="flex flex-col gap-3 -mx-6 mt-6 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-50">
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
         {/* LLAMAR MOZO: Siempre visible */}
@@ -957,10 +957,10 @@ const handleCallWaiter = async () => {
                     </button>
                     )}
                     <button onClick={() => handleNotificarPagoMesa('tarjeta')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-fresco transition-all">
-                        <div className="flex items-center gap-3"><CreditCard className="text-fresco" /> Tarjeta (Débito/Crédito)</div>
+                        <div className="flex items-center gap-3"><CreditCard className="text-fresco shrink-0" /><div className="text-left"><p>Tarjeta (Débito/Crédito)</p><p className="text-[10px] font-medium text-gray-400">El mozo te lleva el posnet</p></div></div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
-                    {transferenciaEnabled && (
+                    {transferenciaEnabled && !!aliasTransferencia?.trim() && (
                     <button onClick={() => setPasoPago('transferencia')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-brasa transition-all">
                         <div className="flex items-center gap-3"><Landmark className="text-brasa" /> Transferencia</div>
                         <Check size={16} className="text-gray-300"/>
@@ -977,9 +977,14 @@ const handleCallWaiter = async () => {
                 <div className="bg-brasa/10 p-4 rounded-2xl border-2 border-brasa/20">
                     <p className="text-[9px] font-black text-brasa uppercase mb-1">Copiá nuestro Alias</p>
                     <div onClick={handleCopyAlias} className="flex justify-between items-center cursor-pointer">
-                        <span className="font-black text-ink">{aliasTransferencia || 'Configurá tu Alias'}</span>
+                        <span className="font-black text-ink">{aliasTransferencia}</span>
                         <Copy size={16} className="text-brasa" />
                     </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl border-2 border-gray-100">
+                    <span className="text-[10px] font-black text-gray-400 uppercase">Monto a transferir</span>
+                    <span className="font-black text-ink">{savedTotals ? formatPrice(savedTotals.total) : '…'}</span>
                 </div>
 
                 <div className="space-y-2 text-left">
@@ -989,6 +994,7 @@ const handleCallWaiter = async () => {
                         value={nombreApellidoPago}
                         onChange={(e) => setNombreApellidoPago(e.target.value)}
                         className="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-brasa font-bold text-sm"
+                        onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center' })}
                         placeholder="Ej: Juan Pérez"
                     />
                 </div>
@@ -1082,6 +1088,7 @@ const handleCallWaiter = async () => {
                                 </>
                             )}
                         </div>
+                    </div>{/* cierra el área scrolleable única */}
                 </div>
             </div>
             </>

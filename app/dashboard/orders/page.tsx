@@ -57,6 +57,10 @@ function OrdersContent() {
   const router = useRouter(); // <--- ESTA ES LA LÍNEA QUE SOLUCIONA EL ERROR
   const searchParams = useSearchParams();
   const [selectedTableForDetail, setSelectedTableForDetail] = useState<any>(null); // Mesa seleccionada para ver detalle
+  // Cambio de estado en curso en el detalle de mesa (guardando + 700 ms después): deshabilita los botones del footer.
+  // El ref corta el segundo clic en el mismo instante; el estado atenúa los botones.
+  const [statusBusy, setStatusBusy] = useState(false);
+  const statusLockRef = useRef(false);
 const [allProducts, setAllProducts] = useState<any[]>([]); // Lista de productos para agregar
 const [isAddingItem, setIsAddingItem] = useState(false); // Estado de carga al agregar
 const [showAddTools, setShowAddTools] = useState(false);
@@ -343,19 +347,33 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
     await supabase.from("orders").update({ pago_confirmado: true }).eq("id", id);
   };
 
-  const acceptOrder = async (order: any) => {
+  // Mientras guarda y 700 ms después del cambio, los botones del footer quedan deshabilitados: el botón nuevo
+  // aparece en la misma posición que el anterior y un segundo clic no debe activarlo.
+  const STATUS_CLICK_LOCK_MS = 700;
+  const withStatusLock = async (change: () => Promise<void>) => {
+    if (statusLockRef.current) return;
+    statusLockRef.current = true;
+    setStatusBusy(true);
+    try {
+      await change();
+    } finally {
+      setTimeout(() => { statusLockRef.current = false; setStatusBusy(false); }, STATUS_CLICK_LOCK_MS);
+    }
+  };
+
+  const acceptOrder = (order: any) => withStatusLock(async () => {
     await updateStatus(order.id, 'en_proceso');
     setSelectedTableForDetail((prev: any) =>
         prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'en_proceso' } } : prev
     );
-  };
+  });
 
-  const markOrderDelivered = async (order: any) => {
+  const markOrderDelivered = (order: any) => withStatusLock(async () => {
     await updateStatus(order.id, 'entregado');
     setSelectedTableForDetail((prev: any) =>
         prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'entregado' } } : prev
     );
-  };
+  });
 
   const deleteOrder = async (id: string) => {
     if (!confirm("¿Eliminar este pedido?")) return;
@@ -690,6 +708,30 @@ useEffect(() => {
     );
   }
   const hasSalon = currentPlan === 'plus';
+
+  // "Imprimir Comanda" del detalle de mesa: se muestra en en_proceso y en entregado, con la misma lógica de
+  // plan (light → modal de mejora) y de impresión térmica (activa → no se muestra). Un solo bloque compartido.
+  const renderTablePrintButton = (order: any) => {
+    if (thermalPrintingEnabled) return null;
+    return (
+      <button
+        onClick={() => {
+            if (currentPlan === 'light') {
+                setShowUpgradeModal(true);
+            } else {
+                handlePrint(order);
+            }
+        }}
+        className={`w-full py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all border ${
+            currentPlan === 'light'
+            ? 'bg-white/5 text-gray-500 border-white/10'
+            : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
+        }`}
+      >
+        {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
+      </button>
+    );
+  };
 
  return (
 <div className="max-w-full min-h-screen px-4 lg:px-6 pt-2 md:pt-2 lg:pt-8 relative font-sans">
@@ -1497,44 +1539,33 @@ useEffect(() => {
                         /* Pedido sin aceptar: único CTA */
                         <button
                             onClick={() => acceptOrder(selectedTableForDetail.activeOrder)}
-                            className="w-full py-4 bg-green-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all"
+                            disabled={statusBusy}
+                            className="w-full py-4 bg-green-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <CheckCircle size={18} /> Aceptar Pedido
                         </button>
                     ) : selectedTableForDetail.activeOrder.status === 'en_proceso' ? (
-                        /* En cocina: marcar como entregado al cliente */
+                        /* En cocina: imprimir arriba; el botón que cambia de estado queda abajo, en la misma posición que "Aceptar Pedido" */
+                        <div className="flex flex-col gap-3">
+                        {renderTablePrintButton(selectedTableForDetail.activeOrder)}
                         <button
                             onClick={() => markOrderDelivered(selectedTableForDetail.activeOrder)}
-                            className="w-full py-4 bg-brasa text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-brasa/30 hover:bg-brasa active:scale-95 transition-all"
+                            disabled={statusBusy}
+                            className="w-full py-4 bg-brasa text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-brasa/30 hover:bg-brasa active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <Zap size={18} /> Marcar Entregado
                         </button>
+                        </div>
                     ) : selectedTableForDetail.activeOrder.status === 'entregado' ? (
                     <div className="flex flex-col gap-2">
                         {/* Botón Imprimir más chico */}
-                  {!thermalPrintingEnabled && (
-                  <button
-        onClick={() => {
-            if (currentPlan === 'light') {
-                setShowUpgradeModal(true);
-            } else {
-                handlePrint(selectedTableForDetail.activeOrder);
-            }
-        }}
-        className={`w-full py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all border ${
-            currentPlan === 'light'
-            ? 'bg-white/5 text-gray-500 border-white/10'
-            : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
-        }`}
-    >
-        {currentPlan === 'light' ? <Lock size={16} /> : <Printer size={16} />} Imprimir Comanda
-    </button>
-                  )}
+                        {renderTablePrintButton(selectedTableForDetail.activeOrder)}
 
 
 <button
     onClick={() => setShowConfirmPaymentModal(selectedTableForDetail.activeOrder)}
-    className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
+    disabled={statusBusy}
+    className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 >
     <CheckCircle size={16} /> Confirmar Pago y Cerrar
 </button>
@@ -1640,14 +1671,14 @@ useEffect(() => {
             setSelectedTableForDetail(null);
         }
     }}
-    className="..."
+    className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-[0.98] transition-all"
 >
     ¡Sí, Pago Recibido!
 </button>
                         
                         <button  
                             onClick={() => setShowConfirmPaymentModal(null)}
-                            className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                            className="w-full py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 text-[10px] font-black uppercase tracking-widest transition-colors"
                         >
                             Cancelar
                         </button>
