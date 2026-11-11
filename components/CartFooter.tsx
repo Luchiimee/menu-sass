@@ -658,7 +658,7 @@ const handleCallWaiter = async () => {
                 </div>
             )}
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
-                <div className="w-full h-[90vh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
+                <div className="w-full h-[90dvh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
                     <button
                         onClick={() => {
                             if (orderStatus === 'entregado' || orderStatus === 'completado' || orderStatus === 'cancelado') {
@@ -917,7 +917,7 @@ const handleCallWaiter = async () => {
                         )}
                     </div>{/* cierra flex-1 overflow-y-auto */}
                     {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
-                    <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0">
+                    <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0 max-h-[55dvh] overflow-y-auto overscroll-contain">
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
         {/* LLAMAR MOZO: Siempre visible */}
@@ -989,6 +989,7 @@ const handleCallWaiter = async () => {
                         value={nombreApellidoPago}
                         onChange={(e) => setNombreApellidoPago(e.target.value)}
                         className="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-brasa font-bold text-sm"
+                        onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center' })}
                         placeholder="Ej: Juan Pérez"
                     />
                 </div>
