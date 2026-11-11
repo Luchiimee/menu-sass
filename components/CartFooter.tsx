@@ -958,10 +958,10 @@ const handleCallWaiter = async () => {
                     </button>
                     )}
                     <button onClick={() => handleNotificarPagoMesa('tarjeta')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-fresco transition-all">
-                        <div className="flex items-center gap-3"><CreditCard className="text-fresco" /> Tarjeta (Débito/Crédito)</div>
+                        <div className="flex items-center gap-3"><CreditCard className="text-fresco shrink-0" /><div className="text-left"><p>Tarjeta (Débito/Crédito)</p><p className="text-[10px] font-medium text-gray-400">El mozo te lleva el posnet</p></div></div>
                         <Check size={16} className="text-gray-300"/>
                     </button>
-                    {transferenciaEnabled && (
+                    {transferenciaEnabled && !!aliasTransferencia?.trim() && (
                     <button onClick={() => setPasoPago('transferencia')} className="flex items-center justify-between p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm hover:border-brasa transition-all">
                         <div className="flex items-center gap-3"><Landmark className="text-brasa" /> Transferencia</div>
                         <Check size={16} className="text-gray-300"/>
@@ -978,9 +978,14 @@ const handleCallWaiter = async () => {
                 <div className="bg-brasa/10 p-4 rounded-2xl border-2 border-brasa/20">
                     <p className="text-[9px] font-black text-brasa uppercase mb-1">Copiá nuestro Alias</p>
                     <div onClick={handleCopyAlias} className="flex justify-between items-center cursor-pointer">
-                        <span className="font-black text-ink">{aliasTransferencia || 'Configurá tu Alias'}</span>
+                        <span className="font-black text-ink">{aliasTransferencia}</span>
                         <Copy size={16} className="text-brasa" />
                     </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-white p-4 rounded-2xl border-2 border-gray-100">
+                    <span className="text-[10px] font-black text-gray-400 uppercase">Monto a transferir</span>
+                    <span className="font-black text-ink">{savedTotals ? formatPrice(savedTotals.total) : '…'}</span>
                 </div>
 
                 <div className="space-y-2 text-left">
