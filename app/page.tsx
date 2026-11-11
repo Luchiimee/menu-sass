@@ -1947,15 +1947,15 @@ export default function LandingPage() {
               },
               {
                 q: "¿Cómo me gano las 5 remeras?",
-                a: "Entran los primeros 10 negocios registrados en noviembre que abonen su primera suscripción (al terminar los 14 días gratis, o antes si cargás la tarjeta, que se debita al día 14). Después te contactamos para coordinar nombres y logo; llegan en 5 a 10 días, sin costo.",
+                a: "Entran los primeros 10 negocios registrados en noviembre que abonen su primera suscripción: gana el que paga primero. El cobro se hace al terminar los 14 días gratis; si cargás la tarjeta antes, se debita ese día, y si la cargás después, se debita apenas la cargás. Después te contactamos para coordinar nombres y logo; las remeras llegan en 5 a 10 días, sin costo.",
               },
               {
                 q: "Me registré en noviembre pero mi primer cobro es en diciembre, ¿entro?",
-                a: "Sí, siempre que abones hasta el 15/12.",
+                a: "Sí, si abonás hasta el 15/12. Si hay lugar, tu pago te da el cupo; si alguien registrado antes no abona, el lugar pasa a quien sí abone.",
               },
               {
                 q: "¿Y si no llego a los 10?",
-                a: "Cuando abones tu primera suscripción, te avisamos por email que quedaste seleccionado para la promo de 4 remeras: te las ganás al abonar tu tercera suscripción y te contactamos para coordinar. Válida para registros hasta el 31/12.",
+                a: "Cuando abones tu primera suscripción, te avisamos por email que quedaste seleccionado para la promo de 4 remeras: te las ganás al abonar tu tercer cobro mensual y te contactamos para coordinar. Válida para registros hasta el 31/12.",
               },
             ].map((faq, i) => (
               <div
