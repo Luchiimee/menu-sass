@@ -1299,10 +1299,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px", alignItems: "stretch" }}>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-8 items-stretch">
 
             {/* Mapa */}
-            <div style={{ background: "#1E1F17", borderRadius: 20, border: "1px solid #2A2B22", overflow: "hidden", position: "relative", minHeight: 380 }}>
+            <div className="relative overflow-hidden min-w-0 w-full max-w-[320px] mx-auto aspect-[3/2] md:max-w-none md:mx-0 md:aspect-auto md:min-h-[380px]" style={{ background: "#1E1F17", borderRadius: 20, border: "1px solid #2A2B22" }}>
               <svg viewBox="0 0 600 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
                 <rect width="600" height="400" fill="#1a1f1a"/>
                 {[80,160,240,320].map(y => <rect key={`h${y}`} x="0" y={y} width="600" height="5" fill="#242b24" opacity="0.8"/>)}
@@ -1341,8 +1341,8 @@ export default function LandingPage() {
             </div>
 
             {/* Cards + CTA */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ background: "#1E1F17", border: "1px solid #1BB17930", borderRadius: 16, padding: "20px 22px", flex: 1 }}>
+            <div className="flex flex-col gap-4 min-w-0 w-full">
+              <div className="md:flex-1" style={{ background: "#1E1F17", border: "1px solid #1BB17930", borderRadius: 16, padding: "20px 22px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#1BB179" }}/>
                   <span className="text-fresco text-xs font-semibold tracking-widest uppercase">Zona 1</span>
@@ -1353,7 +1353,7 @@ export default function LandingPage() {
                 <p className="text-graphite text-sm leading-relaxed">Ideal para el barrio. El precio más accesible atrae más pedidos locales.</p>
               </div>
 
-              <div style={{ background: "#1E1F17", border: "1px solid #9A553230", borderRadius: 16, padding: "20px 22px", flex: 1 }}>
+              <div className="md:flex-1" style={{ background: "#1E1F17", border: "1px solid #9A553230", borderRadius: 16, padding: "20px 22px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#9A5532" }}/>
                   <span className="text-brasa text-xs font-semibold tracking-widest uppercase">Zona 2</span>
