@@ -659,7 +659,7 @@ const handleCallWaiter = async () => {
                 </div>
             )}
             <div className="fixed inset-0 z-[120] bg-gray-100/50 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4 text-center">
-                <div className="w-full h-[90dvh] md:h-auto md:max-w-md bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
+                <div className="w-full h-[90dvh] max-h-[100dvh] md:h-auto md:max-h-[calc(100dvh-2rem)] md:max-w-md min-h-0 bg-slate-100 rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
                     <button
                         onClick={() => {
                             if (orderStatus === 'entregado' || orderStatus === 'completado' || orderStatus === 'cancelado') {
@@ -698,7 +698,7 @@ const handleCallWaiter = async () => {
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-10">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar px-6 pt-10">
                         {/* 🟦 HEADER AZUL: Solo si es mesa */}
                         {isMesa && (
                             <div className="bg-fresco text-white rounded-3xl p-5 m6 text-left shadow-lg animate-in zoom-in">
@@ -916,9 +916,8 @@ const handleCallWaiter = async () => {
                                 </div>
                             </div>
                         )}
-                    </div>{/* cierra flex-1 overflow-y-auto */}
-                    {/* 🔘 BOTONES DE ACCIÓN (footer fijo, fuera del scroll) */}
-                    <div className="flex flex-col gap-3 p-4 pb-6 bg-white border-t border-gray-50 flex-shrink-0 max-h-[55dvh] overflow-y-auto overscroll-contain">
+                    {/* 🔘 BOTONES DE ACCIÓN: dentro del MISMO área scrolleable (con padding para la zona segura del celular) */}
+                    <div className="flex flex-col gap-3 -mx-6 mt-6 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-50">
                           {isMesa ? (
     <div className="flex flex-col gap-3 mt-auto pb-4">
         {/* LLAMAR MOZO: Siempre visible */}
@@ -1089,6 +1088,7 @@ const handleCallWaiter = async () => {
                                 </>
                             )}
                         </div>
+                    </div>{/* cierra el área scrolleable única */}
                 </div>
             </div>
             </>
