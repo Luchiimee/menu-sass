@@ -57,6 +57,10 @@ function OrdersContent() {
   const router = useRouter(); // <--- ESTA ES LA LÍNEA QUE SOLUCIONA EL ERROR
   const searchParams = useSearchParams();
   const [selectedTableForDetail, setSelectedTableForDetail] = useState<any>(null); // Mesa seleccionada para ver detalle
+  // Cambio de estado en curso en el detalle de mesa (guardando + 700 ms después): deshabilita los botones del footer.
+  // El ref corta el segundo clic en el mismo instante; el estado atenúa los botones.
+  const [statusBusy, setStatusBusy] = useState(false);
+  const statusLockRef = useRef(false);
 const [allProducts, setAllProducts] = useState<any[]>([]); // Lista de productos para agregar
 const [isAddingItem, setIsAddingItem] = useState(false); // Estado de carga al agregar
 const [showAddTools, setShowAddTools] = useState(false);
@@ -343,19 +347,33 @@ const addItemToOrder = async (order: any, customItem?: { name: string, price: nu
     await supabase.from("orders").update({ pago_confirmado: true }).eq("id", id);
   };
 
-  const acceptOrder = async (order: any) => {
+  // Mientras guarda y 700 ms después del cambio, los botones del footer quedan deshabilitados: el botón nuevo
+  // aparece en la misma posición que el anterior y un segundo clic no debe activarlo.
+  const STATUS_CLICK_LOCK_MS = 700;
+  const withStatusLock = async (change: () => Promise<void>) => {
+    if (statusLockRef.current) return;
+    statusLockRef.current = true;
+    setStatusBusy(true);
+    try {
+      await change();
+    } finally {
+      setTimeout(() => { statusLockRef.current = false; setStatusBusy(false); }, STATUS_CLICK_LOCK_MS);
+    }
+  };
+
+  const acceptOrder = (order: any) => withStatusLock(async () => {
     await updateStatus(order.id, 'en_proceso');
     setSelectedTableForDetail((prev: any) =>
         prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'en_proceso' } } : prev
     );
-  };
+  });
 
-  const markOrderDelivered = async (order: any) => {
+  const markOrderDelivered = (order: any) => withStatusLock(async () => {
     await updateStatus(order.id, 'entregado');
     setSelectedTableForDetail((prev: any) =>
         prev ? { ...prev, activeOrder: { ...prev.activeOrder, status: 'entregado' } } : prev
     );
-  };
+  });
 
   const deleteOrder = async (id: string) => {
     if (!confirm("¿Eliminar este pedido?")) return;
@@ -1497,7 +1515,8 @@ useEffect(() => {
                         /* Pedido sin aceptar: único CTA */
                         <button
                             onClick={() => acceptOrder(selectedTableForDetail.activeOrder)}
-                            className="w-full py-4 bg-green-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all"
+                            disabled={statusBusy}
+                            className="w-full py-4 bg-green-500 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <CheckCircle size={18} /> Aceptar Pedido
                         </button>
@@ -1505,7 +1524,8 @@ useEffect(() => {
                         /* En cocina: marcar como entregado al cliente */
                         <button
                             onClick={() => markOrderDelivered(selectedTableForDetail.activeOrder)}
-                            className="w-full py-4 bg-brasa text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-brasa/30 hover:bg-brasa active:scale-95 transition-all"
+                            disabled={statusBusy}
+                            className="w-full py-4 bg-brasa text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-brasa/30 hover:bg-brasa active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <Zap size={18} /> Marcar Entregado
                         </button>
@@ -1534,7 +1554,8 @@ useEffect(() => {
 
 <button
     onClick={() => setShowConfirmPaymentModal(selectedTableForDetail.activeOrder)}
-    className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all"
+    disabled={statusBusy}
+    className="w-full py-3 bg-green-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-green-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 >
     <CheckCircle size={16} /> Confirmar Pago y Cerrar
 </button>
