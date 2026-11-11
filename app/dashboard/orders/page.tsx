@@ -1640,14 +1640,14 @@ useEffect(() => {
             setSelectedTableForDetail(null);
         }
     }}
-    className="..."
+    className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-[0.98] transition-all"
 >
     ¡Sí, Pago Recibido!
 </button>
                         
                         <button  
                             onClick={() => setShowConfirmPaymentModal(null)}
-                            className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                            className="w-full py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 text-[10px] font-black uppercase tracking-widest transition-colors"
                         >
                             Cancelar
                         </button>
