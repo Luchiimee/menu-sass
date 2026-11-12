@@ -185,8 +185,16 @@ const handleResendEmail = () => {
     toast.info("Link reenviado. Revisá el SPAM por las dudas.");
 };
 
+ // Fecha de fin del servicio tras cancelar (ISO del servidor) en DD/MM, hora Argentina; null si no hay o es inválida
+ const formatServiceUntil = (iso: unknown): string | null => {
+    if (typeof iso !== 'string') return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+ };
+
  const handleDeleteAccount = async () => {
-    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe cancelará tu suscripción y tu menú y tu panel quedarán pausados. Tus datos no se borran con este botón: para eliminarlos, escribinos a snappyuno25@gmail.com.");
+    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe cancelará tu suscripción y no se te cobrará más. Si ya pagaste el período en curso, tu servicio sigue activo hasta que termine. Tus datos no se borran con este botón: para eliminarlos, escribinos a snappyuno25@gmail.com.");
     if (!confirm1) return;
     
     const confirm2 = confirm("¿Confirmás que querés cancelar tu suscripción?\n\nPara borrar tus datos, escribinos a snappyuno25@gmail.com.");
@@ -200,13 +208,21 @@ const handleResendEmail = () => {
             body: JSON.stringify({ userId })
         });
 
+        const body = await response.json().catch(() => null);
         if (response.ok) {
-            toast.success("Suscripción cancelada. Para borrar tus datos, escribinos a snappyuno25@gmail.com.");
-            // Forzamos el cierre de sesión local y redirigimos
-            await supabase.auth.signOut();
-            router.push('/login');
+            const until = formatServiceUntil(body?.serviceUntil);
+            if (until) {
+                // El servicio sigue activo hasta el fin del período pagado: no se cierra la sesión
+                toast.success(`Suscripción cancelada. Tu servicio sigue activo hasta el ${until}. Para borrar tus datos, escribinos a snappyuno25@gmail.com.`);
+                window.location.reload();
+            } else {
+                toast.success("Suscripción cancelada. Para borrar tus datos, escribinos a snappyuno25@gmail.com.");
+                // Corte inmediato: forzamos el cierre de sesión local y redirigimos
+                await supabase.auth.signOut();
+                router.push('/login');
+            }
         } else {
-            throw new Error("Fallo en el servidor");
+            toast.error(body?.message || body?.error || "Hubo un error al intentar cancelar la suscripción.");
         }
     } catch (err) {
         toast.error("Hubo un error al intentar cancelar la suscripción.");
@@ -218,7 +234,7 @@ const handleResendEmail = () => {
 const handleCancelSubscription = async () => {
     if (!restaurant.mp_preapproval_id) return;
     
-    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nIntentaremos cancelar tu suscripción en Mercado Pago. Si se confirma, tu plan pasará a cancelado, tu tarjeta se desvinculará y el panel quedará limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.";
+    const confirmMsg = "⚠️ ¿CANCELAR SUSCRIPCIÓN?\n\nIntentaremos cancelar tu suscripción en Mercado Pago. Si se confirma, no se te cobrará más y tu tarjeta se desvinculará. Si ya pagaste el período en curso, tu servicio sigue activo hasta que termine; después el panel queda limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.";
     if (!confirm(confirmMsg)) return;
 
     setLoading(true);
@@ -233,7 +249,9 @@ const handleCancelSubscription = async () => {
             return;
         }
 
-        toast.success("Suscripción cancelada.");
+        const okBody = await res.json().catch(() => null);
+        const until = formatServiceUntil(okBody?.serviceUntil);
+        toast.success(until ? `Suscripción cancelada. Tu servicio sigue activo hasta el ${until}.` : "Suscripción cancelada.");
         window.location.reload();
 
     } catch (err) {

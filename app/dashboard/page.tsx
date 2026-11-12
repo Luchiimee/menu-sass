@@ -85,7 +85,10 @@ useEffect(() => {
     if (mounted && rest) {
         // A. Verificamos suspensión
         const isAdminUser = isAdminEmail(session.user.email);
-        const isSubscriptionInactive = rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid';
+        // Una gracia futura (grace_period_until) nunca bloquea: es el fin del período pagado tras cancelar, o la ventana
+        // de gracia. Mismo criterio que dashboard/layout, lib/publicMenu y lib/planAccess.
+        const inGrace = !!rest.grace_period_until && new Date(rest.grace_period_until) > new Date();
+        const isSubscriptionInactive = (rest.subscription_status === 'cancelled' || rest.subscription_status === 'unpaid') && !inGrace;
         setIsLocked(isSubscriptionInactive && !isAdminUser);
 
         setRestaurantId(rest.id);
