@@ -1,9 +1,10 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import PromoBanner from "@/components/PromoBanner";
+import PromoLoginModal from "@/components/PromoLoginModal";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 import {
   ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
@@ -19,6 +20,12 @@ import {
 // Se compara en un efecto del cliente (no en el render) para que servidor y cliente rendericen lo mismo.
 const PROMO_NOV_2026_ENDS_AT = Date.parse("2026-11-30T23:59:59-03:00");
 const PROMO_NOV_2026_CLOSED_KEY = "promo_nov_2026_closed";
+
+// Modal de la promo en los botones que llevan a /login: después de esta fecha (hora Argentina, UTC-3) o si el
+// visitante ya eligió "Ya tengo cuenta" (promo_login_modal_seen), esos botones navegan directo a /login.
+// Se compara en un efecto del cliente (no en el render) para que servidor y cliente rendericen lo mismo.
+const PROMO_LOGIN_MODAL_ENDS_AT = Date.parse("2026-12-31T23:59:59-03:00");
+const PROMO_LOGIN_MODAL_SEEN_KEY = "promo_login_modal_seen";
 
 
 // 1. Tipamos el objeto de las galerías
@@ -460,6 +467,10 @@ export default function LandingPage() {
   const [showPromo, setShowPromo] = useState(true);
   const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
   const [activeBusinessType, setActiveBusinessType] = useState<'gastronomia' | 'kiosco' | 'dietetica'>('gastronomia');
+  // Modal de la promo en los botones a /login. Arranca inactivo (servidor y cliente renderizan lo mismo, con el
+  // href normal); el efecto (solo cliente) lo activa si todavía no pasó la fecha límite.
+  const [promoLoginActive, setPromoLoginActive] = useState(false);
+  const [promoLoginOpen, setPromoLoginOpen] = useState(false);
 
   useEffect(() => {
     const isStandalone = (window.navigator as any).standalone
@@ -473,6 +484,34 @@ export default function LandingPage() {
       }
     }
   }, [router]);
+
+  useEffect(() => {
+    setPromoLoginActive(Date.now() <= PROMO_LOGIN_MODAL_ENDS_AT);
+  }, []);
+
+  // Los botones a /login abren el modal, salvo que ya haya elegido "Ya tengo cuenta" o pasó la fecha límite
+  // (navegan directo como siempre). Clic con Ctrl/Cmd/Shift/Alt o botón del medio: navegación normal.
+  // Sin localStorage (bloqueado): se muestra el modal igual.
+  const handleLoginCta = (e: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (!promoLoginActive) return;
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    let seen = false;
+    try {
+      seen = localStorage.getItem(PROMO_LOGIN_MODAL_SEEN_KEY) === "1";
+    } catch {
+      /* sin localStorage: se muestra el modal igual */
+    }
+    if (seen) return;
+    e.preventDefault();
+    setPromoLoginOpen(true);
+  };
+  const markPromoLoginSeen = () => {
+    try {
+      localStorage.setItem(PROMO_LOGIN_MODAL_SEEN_KEY, "1");
+    } catch {
+      /* sin localStorage: no se recuerda */
+    }
+  };
 
   // Franja de la promo: se oculta si ya pasó la fecha límite o si el visitante la cerró.
   useEffect(() => {
@@ -621,9 +660,10 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8">
             <Link href="#negocios" className="text-sm font-bold text-gray-500 hover:text-black transition uppercase tracking-widest">Funcionalidades</Link>
             <Link href="#planes" className="text-sm font-bold text-gray-500 hover:text-black transition uppercase tracking-widest">Precios</Link>
-            <Link href="/login" className="text-sm font-bold text-gray-600 hover:text-black transition uppercase tracking-widest">Iniciar Sesión</Link>
+            <Link href="/login" onClick={handleLoginCta} className="text-sm font-bold text-gray-600 hover:text-black transition uppercase tracking-widest">Iniciar Sesión</Link>
             <Link
               href="/login"
+              onClick={handleLoginCta}
               className="bg-black text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-gray-800 transition shadow-lg flex items-center gap-2"
             >
               Prueba Gratis <ArrowRight size={16} />
@@ -649,13 +689,13 @@ export default function LandingPage() {
               Precios
             </Link>
             <hr className="w-full border-gray-200" />
-            <Link href="/login" className="text-lg font-black uppercase tracking-widest text-gray-900 text-center" onClick={() => setIsMenuOpen(false)}>
+            <Link href="/login" className="text-lg font-black uppercase tracking-widest text-gray-900 text-center" onClick={(e) => { handleLoginCta(e); setIsMenuOpen(false); }}>
               Iniciar Sesión
             </Link>
             <Link 
               href="/login" 
               className="w-full bg-black text-white text-center py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={(e) => { handleLoginCta(e); setIsMenuOpen(false); }}
             >
               Empezar Ahora
             </Link>
@@ -698,6 +738,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 href="/login"
+                onClick={handleLoginCta}
                 className="bg-black text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-800 transition shadow-xl flex items-center justify-center gap-2"
               >
                 Empezar Ahora <Zap size={20} fill="currentColor" />
@@ -1600,7 +1641,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3 text-sm font-bold text-gray-700"><CheckCircle2 className="text-fresco" size={22}/> Pedidos y reservas integrados desde el menú</div>
         </div>
 
-        <Link href="/login" className="inline-flex items-center gap-1 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
+        <Link href="/login" onClick={handleLoginCta} className="inline-flex items-center gap-1 bg-black text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg hover:bg-gray-800 hover:-translate-y-1 transition-all active:scale-95">
           QUIERO ESTE DISEÑO <Zap size={18} fill="currentColor"/>
         </Link>
         <Link href="/demo" className="inline-flex items-center justify-center gap-2 border-2 border-gray-200 text-gray-400 px-10 py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:border-black hover:text-black transition-all w-full">
@@ -1679,7 +1720,7 @@ export default function LandingPage() {
                   <span>Pedidos directos a WhatsApp</span>
                 </li>
               </ul>
-              <Link href="/login" className="block w-full py-3 rounded-xl border-2 border-ink text-ink text-center font-bold hover:bg-ink hover:text-white transition text-sm">Prueba 14 días gratis</Link>
+              <Link href="/login" onClick={handleLoginCta} className="block w-full py-3 rounded-xl border-2 border-ink text-ink text-center font-bold hover:bg-ink hover:text-white transition text-sm">Prueba 14 días gratis</Link>
             </div>
 
             {/* Plan 2: GO */}
@@ -1750,7 +1791,7 @@ export default function LandingPage() {
                   <span><b>Delivery por zonas</b></span>
                 </li>
               </ul>
-              <Link href="/login" className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco/90 transition text-sm">Prueba 14 días gratis</Link>
+              <Link href="/login" onClick={handleLoginCta} className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco/90 transition text-sm">Prueba 14 días gratis</Link>
             </div>
 
             {/* Plan 3: Plus */}
@@ -1811,6 +1852,7 @@ export default function LandingPage() {
               </ul>
               <Link
                 href="/login"
+                onClick={handleLoginCta}
                 className="block w-full py-3 rounded-xl bg-fresco text-white text-center font-bold hover:bg-fresco/90 transition text-sm"
               >
                 Prueba 14 días gratis
@@ -1860,7 +1902,7 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-fresco text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-fresco transition-colors shadow-lg shadow-fresco/40">
+                <Link href="/login" onClick={handleLoginCta} className="inline-flex items-center gap-2 px-6 py-3 bg-fresco text-white font-black text-sm uppercase tracking-wide rounded-2xl hover:bg-fresco transition-colors shadow-lg shadow-fresco/40">
                   Crear mi SnappyLinks <ArrowRight size={16} />
                 </Link>
                 <a
@@ -2114,6 +2156,9 @@ export default function LandingPage() {
           ¿Necesitás ayuda? 💬
         </span>
       </a>
+
+      {/* --- MODAL DE LA PROMO (botones a /login) --- */}
+      <PromoLoginModal open={promoLoginOpen} onClose={() => setPromoLoginOpen(false)} onHaveAccount={markPromoLoginSeen} />
     </div>
   );
 }
