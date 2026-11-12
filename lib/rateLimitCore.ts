@@ -35,9 +35,11 @@ export const RATE_LIMITS = {
   // Cotizar un envío: cada una puede costar una llamada a Google Geocoding (más bajo que el pago)
   quotePerIp: { limit: 6, windowSeconds: 10 * 60 },
   quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
+  // Importar productos desde CSV (POST /api/products/import): hasta 500 filas por request, así que pocas por local
+  importPerRestaurant: { limit: 6, windowSeconds: 10 * 60 },
 } satisfies Record<string, LimitRule>;
 
-export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall';
+export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall' | 'import';
 
 // En Vercel, x-real-ip y x-forwarded-for los pone la plataforma con la IP del cliente
 // (sobrescribe lo que mande el cliente). Se prefiere x-real-ip; si no, la primera de

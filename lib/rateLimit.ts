@@ -85,6 +85,6 @@ export function limitTableCall(req: Request, orderId: string, ipRule: LimitRule,
 }
 
 // Límite por restaurante (POST /api/checkout/mp y /quote).
-export function limitByRestaurant(restaurantId: string, rule: LimitRule, failMode: FailMode, scope: 'checkout' | 'quote' = 'checkout') {
+export function limitByRestaurant(restaurantId: string, rule: LimitRule, failMode: FailMode, scope: 'checkout' | 'quote' | 'import' = 'checkout') {
   return enforce([{ key: restaurantKey(restaurantId, scope), rule, label: `${scope}:rid` }], failMode);
 }
