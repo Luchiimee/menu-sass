@@ -5,6 +5,7 @@ import { createSubscription, friendlyChargeError, cancelPreapproval } from '@/li
 import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 import crypto from 'crypto';
 import { trialExpiresAt, firstChargeDate } from '@/lib/trial';
+import { trialBaseDate } from '@/lib/trialBase';
 import { sendEmail } from '@/lib/email/send';
 import { chooseThanksMode } from '@/lib/email/thanks';
 import { sendThanks, emailLogThanksDb } from '@/lib/email/thanksRun';
@@ -110,7 +111,7 @@ export async function POST(req: Request) {
         .maybeSingle(),
       supabase
         .from('profiles')
-        .select('first_name')
+        .select('first_name, created_at')
         .eq('id', userId)
         .maybeSingle(),
     ]);
@@ -118,6 +119,9 @@ export async function POST(req: Request) {
     if (restError || !restaurant) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
     }
+
+    // La prueba cuenta desde el registro (lib/trialBase): la más antigua entre el perfil y el local
+    const trialBase = trialBaseDate(profile?.created_at, restaurant.created_at, sessionUser.created_at)?.toISOString() ?? null;
 
     // 3. Grace period — solo informativo; en ningún caso cobramos aquí
     const now = new Date();
@@ -183,7 +187,7 @@ export async function POST(req: Request) {
           await thanksAfterSave({
             restaurantId: restaurant.id, ownerEmail: restaurant.owner_email, name: restaurant.name,
             reactivated: true, statusBefore: restaurant.subscription_status,
-            createdAt: restaurant.created_at, trialEndsAt: restaurant.trial_ends_at,
+            createdAt: trialBase, trialEndsAt: restaurant.trial_ends_at,
             plan: effectivePlan, cardBrand: brand, cardLast4: last4,
           });
         }
@@ -260,8 +264,8 @@ export async function POST(req: Request) {
       // Ya tiene trial_ends_at → mantenerla sin tocarla
       trialEndsAt = restaurant.trial_ends_at;
     } else {
-      // Sin trial_ends_at → la fecha de fin de la prueba (lib/trial: 00:00 hora Argentina del día 15)
-      trialEndsAt = trialExpiresAt(restaurant.created_at)?.toISOString() ?? null;
+      // Sin trial_ends_at → la fecha de fin de la prueba (lib/trial: 00:00 hora Argentina del día 15 desde la base)
+      trialEndsAt = trialExpiresAt(trialBase)?.toISOString() ?? null;
     }
 
     // 7.b Preapproval viejo: se cancela en MP y recién ahí se borra el id. Si MP no
@@ -300,7 +304,7 @@ export async function POST(req: Request) {
     await thanksAfterSave({
       restaurantId: restaurant.id, ownerEmail: restaurant.owner_email, name: restaurant.name,
       reactivated: false, statusBefore: restaurant.subscription_status,
-      createdAt: restaurant.created_at, trialEndsAt,
+      createdAt: trialBase, trialEndsAt,
       plan: planId || restaurant.subscription_plan, cardBrand, cardLast4: cardLastFour,
     });
 

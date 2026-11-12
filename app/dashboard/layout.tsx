@@ -16,6 +16,7 @@ import OrderListener from '@/components/OrderListener';
 import StaleShiftPrompt from '@/components/dashboard/StaleShiftPrompt';
 import { isAdminEmail, hasAdminSnappyAccess, hasBetaAccess } from '@/lib/access';
 import { trialDaysLeft, isTrialBlocking } from '@/lib/trial';
+import { trialBaseDate } from '@/lib/trialBase';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -52,6 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     status: 'trialing', 
     logo_url: null,
     created_at: null,
+    trial_base_at: null,
   });
 
 // --- CARGA DE DATOS ---
@@ -89,6 +91,8 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
           plan: rest?.subscription_plan || null,
           status: rest?.subscription_status || 'trialing',
           grace_period_until: rest?.grace_period_until || null,
+          // La prueba cuenta desde el registro: la fecha más antigua entre el perfil y el local (lib/trialBase)
+          trial_base_at: trialBaseDate(profile?.created_at, rest?.created_at, session.user.created_at)?.toISOString() ?? null,
       });
       
       setIsLoading(false);
@@ -116,11 +120,11 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
   // Regla única de la prueba (lib/trial): termina a las 00:00 hora Argentina del día 15 desde el
   // alta. Un local con tarjeta (mp_card_id) y trial_ends_at, o sea con cobro programado, no se bloquea.
   const trialNow = new Date();
-  const daysLeft = trialDaysLeft(restaurant.created_at, trialNow);
+  const daysLeft = trialDaysLeft(restaurant.trial_base_at, trialNow);
   const hasActivePayment = restaurant.status === 'authorized' || restaurant.status === 'active';
   const isTrialExpired = !hasActivePayment && isTrialBlocking({
     status: restaurant.status,
-    createdAt: restaurant.created_at,
+    createdAt: restaurant.trial_base_at,
     mpCardId: restaurant.mp_card_id,
     trialEndsAt: restaurant.trial_ends_at,
     now: trialNow,

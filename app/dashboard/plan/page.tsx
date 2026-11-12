@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2, User, Check, CreditCard, Clock, FileText, X, RefreshCw } from "lucide-react";
 import PaymentForm from "@/components/PaymentForm";
 import { trialDayNumber, trialDaysLeft, firstChargeDate } from "@/lib/trial";
+import { trialBaseDate } from "@/lib/trialBase";
 import { PRE_NO_ID_CODE, PRE_NO_ID_MESSAGE } from "@/lib/cancelDecision";
 import { whatsappLink } from "@/lib/email/contact";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
@@ -108,6 +109,8 @@ function PlanContent() {
     id: null, mp_preapproval_id: null, business_hours: {},
     subscription_plan: null, subscription_status: "trialing",
   });
+  // Fecha desde la que cuenta la prueba: la más antigua entre el registro (perfil) y el alta del local (lib/trialBase)
+  const [trialBase, setTrialBase] = useState<string | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentPlan, setPaymentPlan] = useState<string | null>(null);
@@ -147,6 +150,7 @@ function PlanContent() {
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
         const { data: restData } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).maybeSingle();
         const metadata = session.user.user_metadata;
+        setTrialBase(trialBaseDate(profileData?.created_at, restData?.created_at, session.user.created_at)?.toISOString() ?? null);
 
         setProfile({
           first_name: formatName(profileData?.first_name || metadata.first_name || metadata.full_name?.split(' ')[0] || ''),
@@ -173,8 +177,8 @@ function PlanContent() {
   }, []);
 
   // Día de la prueba (lib/trial): el día del alta es el 1 y el último es el 14.
-  const trialDay = trialDayNumber(restaurant?.created_at, new Date());
-  const trialDaysRemaining = trialDaysLeft(restaurant?.created_at, new Date());
+  const trialDay = trialDayNumber(trialBase, new Date());
+  const trialDaysRemaining = trialDaysLeft(trialBase, new Date());
 
   // Fechas siempre en hora Argentina (no la del navegador).
   const AR_TZ = "America/Argentina/Buenos_Aires";
@@ -190,7 +194,7 @@ function PlanContent() {
   const getChargeDate = () => {
     // El primer cobro es el trial_ends_at ya guardado (lo que cobra cron/charge) y, si está
     // vacío, el fin de la prueba por regla (00:00 AR del día 15). Ver firstChargeDate en lib/trial.
-    const firstBilling = firstChargeDate(restaurant.created_at, restaurant.trial_ends_at);
+    const firstBilling = firstChargeDate(trialBase, restaurant.trial_ends_at);
     if (!firstBilling) return '—';
     const today = new Date();
     // Si el primer cobro aún no ocurrió, mostrarlo directamente

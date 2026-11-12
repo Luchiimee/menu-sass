@@ -14,6 +14,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { isPlanId, type PlanId } from '@/lib/plans';
 import { isAdminEmail } from '@/lib/access';
 import { isTrialBlocking } from '@/lib/trial';
+import { trialBaseDate } from '@/lib/trialBase';
 
 export type PlanAccessResult =
   | { ok: true; restaurant: { id: string; plan: PlanId } }
@@ -44,7 +45,13 @@ export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promi
     const status = rest.subscription_status;
     if (status === 'paused') return { ok: false, status: 403, reason: 'paused' };
     if (status === 'cancelled') return { ok: false, status: 403, reason: 'cancelled' };
-    if (isTrialBlocking({ status, createdAt: rest.created_at, mpCardId: rest.mp_card_id, trialEndsAt: rest.trial_ends_at, now: new Date() })) {
+    // La prueba cuenta desde el registro (lib/trialBase); solo se lee el perfil si hace falta
+    let baseDate: Date | null = rest.created_at ? new Date(rest.created_at) : null;
+    if (status === 'trialing') {
+      const { data: prof } = await getSupabaseAdmin().from('profiles').select('created_at').eq('id', userId).maybeSingle();
+      baseDate = trialBaseDate(prof?.created_at, rest.created_at);
+    }
+    if (isTrialBlocking({ status, createdAt: baseDate, mpCardId: rest.mp_card_id, trialEndsAt: rest.trial_ends_at, now: new Date() })) {
       return { ok: false, status: 403, reason: 'trial_expired' };
     }
   }

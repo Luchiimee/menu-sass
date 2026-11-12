@@ -11,6 +11,7 @@ import {
   isValidSlug,
   normalizeSlug,
 } from '@/lib/publicMenu';
+import { trialBaseDate } from '@/lib/trialBase';
 
 // Menú público con lista CERRADA de columnas (ver lib/publicMenu). Service role: el navegador no
 // lee restaurants. Mismo orden que getRestaurant de app/[slug]/page.tsx: primero el menú, después la bio.
@@ -30,6 +31,15 @@ function logQueryError(part: 'MENU_RESTAURANTS' | 'MENU_BIO', error: { code?: st
 const serverError = () => NextResponse.json({ error: 'error' }, { status: 500, headers: NO_STORE });
 
 const RESTAURANT_SELECT = [...PUBLIC_RESTAURANT_COLUMNS, ...SUSPENSION_COLUMNS].join(', ');
+
+// La prueba cuenta desde el registro (lib/trialBase): solo un local en 'trialing' depende de esa fecha, así que solo
+// ahí se lee profiles.created_at. Si la lectura falla se sigue con created_at del local (la regla de antes).
+async function withTrialBase(db: ReturnType<typeof getSupabaseAdmin>, row: Record<string, unknown>): Promise<Record<string, unknown>> {
+  if (row.subscription_status !== 'trialing' || !row.user_id) return row;
+  const { data } = await db.from('profiles').select('created_at').eq('id', row.user_id as string).maybeSingle();
+  const base = trialBaseDate(data?.created_at, row.created_at as string | null);
+  return base ? { ...row, trial_base_at: base.toISOString() } : row;
+}
 
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   try {
@@ -59,7 +69,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
     }
 
     if (menu.data) {
-      const row = menu.data as unknown as Record<string, unknown>;
+      const row = await withTrialBase(db, menu.data as unknown as Record<string, unknown>);
       return NextResponse.json(
         buildMenuResponse({ type: 'menu', row, adminEmails: ADMIN_EMAILS, now, categories: (row.categories as unknown[]) ?? [] }),
         { headers: NO_STORE }
@@ -80,11 +90,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
     if (!bio.data) return notFound();
 
     const bioRow = bio.data as unknown as Record<string, unknown>;
-    const restaurantRow = bioRow.restaurant as Record<string, unknown> | null;
-    if (!restaurantRow) {
+    const rawRestaurantRow = bioRow.restaurant as Record<string, unknown> | null;
+    if (!rawRestaurantRow) {
       console.error('[public-menu] code=BIO_WITHOUT_RESTAURANT');
       return notFound();
     }
+    const restaurantRow = await withTrialBase(db, rawRestaurantRow);
 
     // La suspensión se evalúa antes que la bio inactiva, como en la página (suspendido no trae datos).
     const body = buildMenuResponse({ type: 'bio', row: restaurantRow, adminEmails: ADMIN_EMAILS, now, snappylinkRow: bioRow });

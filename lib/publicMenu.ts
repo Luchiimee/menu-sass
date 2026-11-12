@@ -107,6 +107,7 @@ export const SUSPENSION_COLUMNS = [
   'mp_card_id',
   'trial_ends_at',
   'grace_period_until',
+  'user_id', // solo para leer profiles.created_at (base de la prueba, lib/trialBase); nunca se devuelve
 ] as const;
 
 // Columnas propias de snappylinks que usa la página para armar la bio.
@@ -152,6 +153,8 @@ export type SuspensionRow = {
   owner_email?: string | null;
   subscription_status?: string | null;
   created_at?: string | Date | null;
+  // Fecha base de la prueba ya resuelta (lib/trialBase: la más antigua entre perfil y local); manda sobre created_at
+  trial_base_at?: string | Date | null;
   mp_card_id?: string | null;
   trial_ends_at?: string | Date | null;
   grace_period_until?: string | Date | null;
@@ -173,7 +176,7 @@ export function computeMenuSuspension(
 
   const trialExpired = isTrialBlocking({
     status: r.subscription_status,
-    createdAt: r.created_at,
+    createdAt: r.trial_base_at ?? r.created_at,
     mpCardId: r.mp_card_id,
     trialEndsAt: r.trial_ends_at,
     now,
