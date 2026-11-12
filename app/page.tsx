@@ -2132,6 +2132,12 @@ export default function LandingPage() {
               <li>
                 <a href="https://wa.me/2324313123">WhatsApp</a>
               </li>
+              <li>
+                <Link href="/privacy">Privacidad</Link>
+              </li>
+              <li>
+                <Link href="/terminos">Términos</Link>
+              </li>
             </ul>
           </div>
         </div>
