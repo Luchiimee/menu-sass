@@ -1,7 +1,7 @@
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2, Mail, Lock, ArrowRight, User, Phone, Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -19,7 +19,23 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('')
 
   const [message, setMessage] = useState<string | null>(null)
+  // Aviso persistente cuando /auth/callback devuelve /login?error=auth&c=Ex. Solo texto propio:
+  // de la URL se lee `c` contra la lista literal E0-E4, nunca se muestra texto de la URL.
+  const [authNotice, setAuthNotice] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('error') !== 'auth') return
+    const c = params.get('c')
+    const code = c === 'E0' || c === 'E1' || c === 'E2' || c === 'E3' || c === 'E4' ? c : null
+    setAuthNotice(
+      code === 'E0'
+        ? 'Tu inicio de sesión venció. Volvé a tocar «Continuar con Google».'
+        : 'No pudimos iniciar sesión. Probá de nuevo o entrá con tu email y contraseña.'
+    )
+    router.replace('/login')
+  }, [router])
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -151,6 +167,12 @@ export default function LoginPage() {
           <p className="text-gray-500 mb-6 text-center text-sm md:text-base">
             {isRegistering ? 'Prueba 14 días gratis.' : 'Ingresa tus datos.'}
           </p>
+
+          {authNotice && (
+            <div role="alert" className="mb-6 p-3 rounded-xl text-xs font-bold bg-red-50 text-red-600 border border-red-100 text-center">
+              {authNotice}
+            </div>
+          )}
 
           <button
             onClick={handleGoogleLogin}
