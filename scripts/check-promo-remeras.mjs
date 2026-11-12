@@ -4,7 +4,7 @@
 //   node scripts/check-promo-remeras.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
 import {
-  PROMO_REMERAS_SLOTS, PROMO_REGISTRATION_START, PROMO_REGISTRATION_END_EXCLUSIVE, PROMO_PAYMENT_DEADLINE,
+  PROMO_EXCLUDED_EMAILS, PROMO_REMERAS_SLOTS, PROMO_REGISTRATION_START, PROMO_REGISTRATION_END_EXCLUSIVE, PROMO_PAYMENT_DEADLINE,
   parseTime, isRegisteredInPromoWindow, isPaidAfterDeadline, buildPromoRemeras, buildPromoRemerasResponse,
 } from '../lib/promoRemeras.ts';
 
@@ -121,6 +121,34 @@ console.log('buildPromoRemeras: exclusión y entradas raras');
   const copia = JSON.stringify(entrada);
   buildPromoRemeras(entrada);
   check('no modifica la entrada', JSON.stringify(entrada) === copia);
+}
+
+console.log('cuentas de prueba (PROMO_EXCLUDED_EMAILS)');
+{
+  check('la constante tiene las dos cuentas de prueba, en minúsculas',
+    PROMO_EXCLUDED_EMAILS.length === 2 && PROMO_EXCLUDED_EMAILS.includes('tamalu026@gmail.com') && PROMO_EXCLUDED_EMAILS.includes('luchiimee@gmail.com')
+    && PROMO_EXCLUDED_EMAILS.every((e) => e === e.toLowerCase().trim()));
+  const rows = [
+    row('t1', NOV, '2026-11-11T09:00:00Z', { owner_email: 'tamalu026@gmail.com' }),
+    row('t2', NOV, '2026-11-11T10:00:00Z', { owner_email: '  LuchiImee@Gmail.COM ' }),
+    row('real1', NOV, '2026-11-12T12:00:00Z'),
+    row('real2', NOV, '2026-11-13T12:00:00Z'),
+  ];
+  const out = buildPromoRemeras(rows);
+  check('las cuentas de prueba no aparecen (sin pasar excludeEmails)', out.map((o) => o.id).join(',') === 'real1,real2');
+  check('no ocupan puesto: el primero real es el puesto 1', out[0].puesto === 1 && out[1].puesto === 2);
+  const r = buildPromoRemerasResponse(rows);
+  check('no cuentan en registrados, con pago ni en plazo', r.total === 2 && r.con_pago === 2 && r.en_plazo === 2);
+  const conAdmin = buildPromoRemeras([...rows, row('adm', NOV, '2026-11-10T00:00:00Z', { owner_email: 'admin@snappy.com' })], { excludeEmails: ['admin@snappy.com'] });
+  check('conviven con la exclusión de admin que pasa quien llama', conAdmin.map((o) => o.id).join(',') === 'real1,real2');
+  const parecidos = buildPromoRemeras([
+    row('p1', NOV, '2026-11-11T09:00:00Z', { owner_email: 'tamalu0266@gmail.com' }),
+    row('p2', NOV, '2026-11-11T10:00:00Z', { owner_email: 'luchiimee2@gmail.com' }),
+    row('p3', NOV, '2026-11-11T11:00:00Z', { owner_email: 'xtamalu026@gmail.com' }),
+    row('p4', NOV, '2026-11-11T12:00:00Z', { owner_email: 'tamalu026@gmail.com.ar' }),
+    row('p5', NOV, '2026-11-11T13:00:00Z', { owner_email: 'luchiimee@gmail.co' }),
+  ]);
+  check('un correo parecido NO se excluye', parecidos.length === 5 && parecidos.map((o) => o.puesto).join(',') === '1,2,3,4,5');
 }
 
 console.log('buildPromoRemerasResponse');

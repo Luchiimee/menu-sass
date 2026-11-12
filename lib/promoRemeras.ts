@@ -9,13 +9,17 @@
 //     gana el que se registró antes (created_at) y, si también empata, el id (orden estable).
 //   - Puesto 1 a 10: solo para quien pagó EN PLAZO (first_paid_at <= 2026-12-15 23:59:59.999 -03:00). Quien pagó
 //     después queda con fuera_de_plazo = true, sin puesto, y no ocupa un lugar: el cupo pasa a quien sí pagó.
-//   - Se pueden excluir correos (cuentas internas de admin).
+//   - Se excluyen correos: las cuentas de prueba fijas (PROMO_EXCLUDED_EMAILS) y las que pase quien llama (admin).
 
 export const PROMO_REMERAS_SLOTS = 10;
 export const PROMO_REGISTRATION_START = '2026-11-01T00:00:00-03:00';
 // Exclusivo: 2026-12-01 00:00 AR = fin del 30/11 (23:59:59.999)
 export const PROMO_REGISTRATION_END_EXCLUSIVE = '2026-12-01T00:00:00-03:00';
 export const PROMO_PAYMENT_DEADLINE = '2026-12-15T23:59:59.999-03:00';
+
+// Cuentas de prueba del dueño: nunca cuentan en el ranking ni en "registrados", además de los admin que
+// pasa quien llama (opts.excludeEmails). En minúsculas; la comparación no distingue mayúsculas ni espacios.
+export const PROMO_EXCLUDED_EMAILS: readonly string[] = ['tamalu026@gmail.com', 'luchiimee@gmail.com'];
 
 export type PromoRestaurantRow = {
   id: unknown;
@@ -89,7 +93,7 @@ export function buildPromoRemeras(
   opts: { excludeEmails?: readonly string[] } = {},
 ): PromoRemeraItem[] {
   if (!Array.isArray(rows)) return [];
-  const excluded = new Set((opts.excludeEmails ?? []).map(normalizeEmail));
+  const excluded = new Set([...PROMO_EXCLUDED_EMAILS, ...(opts.excludeEmails ?? [])].map(normalizeEmail));
 
   const eligible = rows.filter(
     (r) => r && isRegisteredInPromoWindow(r.created_at) && !excluded.has(normalizeEmail(r.owner_email)),
