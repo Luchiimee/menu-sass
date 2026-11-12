@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 24 — tables: solo el dueño del local lee y gestiona sus mesas (se cierra la lectura y la escritura pública)
 -- =============================================================================
--- APLICADO en producción el 2026-11-11; verificado con pg_policies (queda solo 'tables: dueño gestiona') y probado en pantalla.
+-- APLICADO en producción el 2026-11-11; verificado con pg_policies (queda solo 'tables: dueño gestiona') y probado en pantalla (etiqueta de mesa, crear y borrar mesa en el panel). Pendiente de comprobar: alarma de Llamar mozo por Realtime con la política nueva.
 -- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
 --
 -- Problema (verificado en producción el 2026-11-10): public.tables tiene 5 políticas abiertas
