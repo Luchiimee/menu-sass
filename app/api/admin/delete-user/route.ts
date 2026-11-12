@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth-server';
-import { isAdminEmail } from '@/lib/access';
+import { hasAdminSnappyAccess } from '@/lib/access';
 
 export async function POST(request: Request) {
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
-  if (!isAdminEmail(sessionUser.email)) {
+  if (!hasAdminSnappyAccess(sessionUser.email)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
