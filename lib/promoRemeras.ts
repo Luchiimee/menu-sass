@@ -146,3 +146,15 @@ export function buildPromoRemerasResponse(
     locales,
   };
 }
+
+// Contador público de la promo (GET /api/public/promo-remeras): cuántos locales de noviembre ya pagaron EN PLAZO,
+// topeado en los 10 cupos. Solo números: nunca correos ni datos de locales.
+export type PromoCounter = { paid: number; slots: number; full: boolean };
+
+export function buildPromoCounter(
+  rows: readonly PromoRestaurantRow[] | null | undefined,
+  opts: { excludeEmails?: readonly string[] } = {},
+): PromoCounter {
+  const paid = Math.min(buildPromoRemerasResponse(rows, opts).en_plazo, PROMO_REMERAS_SLOTS);
+  return { paid, slots: PROMO_REMERAS_SLOTS, full: paid >= PROMO_REMERAS_SLOTS };
+}
