@@ -1,53 +1,22 @@
 import { NextResponse } from 'next/server';
-import { MercadoPagoConfig, PreApproval } from 'mercadopago';
-import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
+import { cancelSubscriptionForUser } from '@/lib/cancelSubscription';
 
-const client = new MercadoPagoConfig({ 
-    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! 
-});
-
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// "Eliminar cuenta" desde Configuración: cancela la suscripción del usuario
-// LOGUEADO. El usuario sale siempre de la sesión; si el body trae un userId
-// (el frontend lo manda), se ignora.
+// Botón "Cancelar suscripción" de Configuración: cancela la suscripción del usuario LOGUEADO con la misma lógica que
+// POST /api/mercadopago/subscription/cancel (lib/cancelSubscription.ts): el servicio sigue activo hasta el fin del
+// período ya pagado y no se borra ningún dato del local. El usuario sale siempre de la sesión; si el body trae un
+// userId (el frontend lo manda), se ignora.
 export async function POST() {
-    try {
-        const sessionUser = await getSessionUser();
-        if (!sessionUser) {
-            return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-        }
-        const userId = sessionUser.id;
-
-        const { data: rest } = await supabaseAdmin
-            .from('restaurants')
-            .select('mp_preapproval_id')
-            .eq('user_id', userId)
-            .single();
-
-        if (rest?.mp_preapproval_id) {
-            const preapproval = new PreApproval(client);
-            await preapproval.update({ 
-                id: rest.mp_preapproval_id, 
-                body: { status: 'cancelled' } 
-            });
-        }
-
-        // 🟢 IMPORTANTE: Ponemos el status en 'cancelled' pero NO borramos el restaurante
-        await supabaseAdmin
-            .from('restaurants')
-            .update({ 
-                subscription_status: 'cancelled',
-                mp_preapproval_id: null 
-            })
-            .eq('user_id', userId);
-
-        return NextResponse.json({ success: true });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
+
+    const outcome = await cancelSubscriptionForUser(sessionUser.id);
+    return NextResponse.json(outcome.body, { status: outcome.status });
+  } catch (error: any) {
+    console.error('SERVER ERROR (user/delete):', error);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
 }
