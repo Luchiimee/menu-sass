@@ -689,13 +689,13 @@ export default function LandingPage() {
               Precios
             </Link>
             <hr className="w-full border-gray-200" />
-            <Link href="/login" className="text-lg font-black uppercase tracking-widest text-gray-900 text-center" onClick={(e) => { handleLoginCta(e); if (!e.defaultPrevented) setIsMenuOpen(false); }}>
+            <Link href="/login" className="text-lg font-black uppercase tracking-widest text-gray-900 text-center" onClick={(e) => { handleLoginCta(e); setIsMenuOpen(false); }}>
               Iniciar Sesión
             </Link>
             <Link 
               href="/login" 
               className="w-full bg-black text-white text-center py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl"
-              onClick={(e) => { handleLoginCta(e); if (!e.defaultPrevented) setIsMenuOpen(false); }}
+              onClick={(e) => { handleLoginCta(e); setIsMenuOpen(false); }}
             >
               Empezar Ahora
             </Link>
@@ -738,6 +738,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 href="/login"
+                onClick={handleLoginCta}
                 className="bg-black text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-800 transition shadow-xl flex items-center justify-center gap-2"
               >
                 Empezar Ahora <Zap size={20} fill="currentColor" />
