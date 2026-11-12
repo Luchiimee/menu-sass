@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { isPlanId } from '@/lib/plans';
-import { isTrialExpired } from '@/lib/trial';
+import { trialBaseDate, activationBlockedByTrial } from '@/lib/trialBase';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,16 +30,18 @@ export async function POST(req: Request) {
 
     const now = new Date();
 
-    // ¿El usuario sigue dentro de su ventana de trial original? (regla única en lib/trial:
-    // vence a las 00:00 hora Argentina del día 15 desde el alta; sin created_at sigue activo)
-    const trialActive = !isTrialExpired(existing?.created_at, now);
+    // La prueba cuenta desde el registro (lib/trialBase): la más antigua entre el perfil y el local.
+    const { data: prof } = await supabase.from('profiles').select('created_at').eq('id', userId).maybeSingle();
+    const baseDate = trialBaseDate(prof?.created_at, existing?.created_at, sessionUser.created_at);
 
     // Si el trial ya venció y no hay suscripción paga activa,
     // no se puede re-activar gratis: hay que cargar tarjeta.
     const hasPaidSub = !!existing?.mp_preapproval_id &&
       (existing?.subscription_status === 'active' || existing?.subscription_status === 'authorized');
 
-    if (existing && !trialActive && !hasPaidSub) {
+    // Con local y la prueba vencida, sin suscripción paga: hay que cargar tarjeta (403). Sin local no se bloquea:
+    // el local nace con la prueba vencida (el panel lo bloquea por la fecha base) y save-card lo desbloquea.
+    if (activationBlockedByTrial({ hasLocal: !!existing, hasPaidSub, baseDate, now })) {
       return NextResponse.json(
         { error: 'trial_expired', message: 'Tu prueba gratuita ya finalizó. Configurá un método de pago para activar el plan.' },
         { status: 403 }
