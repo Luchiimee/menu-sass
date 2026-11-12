@@ -74,7 +74,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">8. Conservación</h2>
-          <p>Conservamos los datos mientras tu cuenta esté activa y mientras sean necesarios para prestar el servicio, cumplir obligaciones legales o resolver reclamos. Si tu prueba vence sin que te suscribas, o si das de baja el servicio, conservamos los datos hasta 3 meses desde el vencimiento de la prueba o la baja; luego se eliminan o anonimizan. [REVISAR: hoy no hay un proceso automático que ejecute esta eliminación] Los registros de pagos se conservan el tiempo que exija la normativa fiscal y contable.</p>
+          <p>Conservamos los datos mientras tu cuenta esté activa y, después de la baja o del vencimiento de la prueba, hasta 3 meses. Pasado ese plazo los eliminamos o anonimizamos a pedido o cuando corresponda. Para solicitar la eliminación antes, escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>. Los registros de pagos se conservan el tiempo que exija la normativa fiscal y contable.</p>
         </div>
 
         <div>
