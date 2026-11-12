@@ -186,10 +186,10 @@ const handleResendEmail = () => {
 };
 
  const handleDeleteAccount = async () => {
-    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe borrará tu menú y se cancelará tu suscripción permanentemente.");
+    const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe cancelará tu suscripción y tu menú y tu panel quedarán pausados. Tus datos no se borran con este botón: para eliminarlos, escribinos a snappyuno25@gmail.com.");
     if (!confirm1) return;
     
-    const confirm2 = confirm("ESTA ACCIÓN ES IRREVERSIBLE.\n\n¿Realmente deseás eliminar absolutamente todos tus datos?");
+    const confirm2 = confirm("¿Confirmás que querés cancelar tu suscripción?\n\nPara borrar tus datos, escribinos a snappyuno25@gmail.com.");
     if (!confirm2) return;
 
     setLoading(true);
@@ -201,7 +201,7 @@ const handleResendEmail = () => {
         });
 
         if (response.ok) {
-            toast.success("Cuenta eliminada con éxito.");
+            toast.success("Suscripción cancelada. Para borrar tus datos, escribinos a snappyuno25@gmail.com.");
             // Forzamos el cierre de sesión local y redirigimos
             await supabase.auth.signOut();
             router.push('/login');
@@ -209,7 +209,7 @@ const handleResendEmail = () => {
             throw new Error("Fallo en el servidor");
         }
     } catch (err) {
-        toast.error("Hubo un error al intentar eliminar la cuenta.");
+        toast.error("Hubo un error al intentar cancelar la suscripción.");
     } finally {
         setLoading(false);
     }
@@ -561,7 +561,7 @@ const areHoursDisabled = restaurant.subscription_plan !== 'light' && restaurant.
 
                 <div className="pt-4 border-t border-gray-50">
                     <button onClick={handleDeleteAccount} className="w-full py-3 text-[10px] font-black text-alert hover:text-alert transition tracking-widest uppercase flex items-center justify-center gap-2">
-                        <Trash2 size={14} /> Eliminar Cuenta
+                        <Trash2 size={14} /> Cancelar suscripción
                     </button>
                 </div>
             </div>
