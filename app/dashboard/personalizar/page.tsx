@@ -1794,6 +1794,10 @@ const confirmReset = () => {
         </p>
     </div>
     <button 
+    type="button"
+    role="switch"
+    aria-checked={!!data.is_bio_active}
+    aria-label="Activar SnappyLinks"
     onClick={() => { 
         const nextActive = !data.is_bio_active;
         
@@ -1822,9 +1826,14 @@ const confirmReset = () => {
         // 4. Disparamos el guardado
         setUnsavedChanges(true); 
     }}
-    className={`w-14 h-7 rounded-full flex items-center px-1 transition-all duration-300 ${data.is_bio_active ? 'bg-fresco' : 'bg-white/20'}`}
+    className="flex items-center gap-3 shrink-0 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 active:scale-95 transition-transform"
 >
-    <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${data.is_bio_active ? 'translate-x-7' : 'translate-x-0'}`} />
+    <span className="text-[10px] font-black uppercase tracking-widest text-white">
+        {data.is_bio_active ? 'Activo' : 'Pausado'}
+    </span>
+    <span className={`relative inline-flex w-16 h-9 rounded-full border-2 transition-colors duration-300 ${data.is_bio_active ? 'bg-white border-white' : 'bg-black/20 border-white/60'}`}>
+        <span className={`absolute top-1/2 left-1 -translate-y-1/2 w-6 h-6 rounded-full shadow-md transition-all duration-300 ${data.is_bio_active ? 'translate-x-7 bg-fresco' : 'translate-x-0 bg-white'}`} />
+    </span>
 </button>
 </section>
 
