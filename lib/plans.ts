@@ -27,6 +27,21 @@ export const LEGACY_PLAN_PRICES: Record<PlanId, number> = {
   plus:  35000,
 };
 
+// Tope de productos por plan (Mis Productos). Plus no tiene tope: se usa un número grande para que las barras de
+// uso y las comparaciones sigan funcionando. Un plan desconocido o sin plan se trata como ilimitado (la pantalla ya
+// se bloquea sola si no hay plan). Los admins no tienen tope (lo decide quien llama).
+export const PRODUCT_LIMIT_UNLIMITED = 9999;
+
+export const PRODUCT_LIMITS: Record<PlanId, number> = {
+  light: 20,
+  go:    60,
+  plus:  PRODUCT_LIMIT_UNLIMITED,
+};
+
+export function maxProductsForPlan(plan: string | null | undefined): number {
+  return isPlanId(plan) ? PRODUCT_LIMITS[plan] : PRODUCT_LIMIT_UNLIMITED;
+}
+
 // Plan desconocido → se cobra el precio de GO (misma regla de siempre).
 const FALLBACK_PLAN_AMOUNT = PLAN_PRICES.go;
 

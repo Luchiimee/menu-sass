@@ -8,6 +8,7 @@ import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCross
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { isAdminEmail } from '@/lib/access';
+import { maxProductsForPlan } from '@/lib/plans';
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -475,7 +476,7 @@ if (loading) return (
 );
 const isNoPhotoTemplate = selectedTemplate && templatesSinFoto.some(t => selectedTemplate.toLowerCase().includes(t));
 
-const maxProds = currentPlan === 'light' ? 20 : currentPlan === 'go' ? 60 : 9999;
+const maxProds = maxProductsForPlan(currentPlan);
   const isVideoDisabled = currentPlan === 'light' && !isAdmin;
   return (
    <div className="max-w-6xl mx-auto relative min-h-[80vh] pt-4 md:pt-4 font-sans">
