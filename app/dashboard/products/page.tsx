@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { isAdminEmail } from '@/lib/access';
 import { maxProductsForPlan } from '@/lib/plans';
+import ProductsImportModal from '@/components/dashboard/ProductsImportModal';
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -38,6 +39,7 @@ const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false); 
   const [showExtraModal, setShowExtraModal] = useState(false); 
+  const [showImportModal, setShowImportModal] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -138,6 +140,15 @@ if (cats) setCategories(cats);
     };
     loadData();
   }, [supabase]);
+
+// Vuelve a leer productos y categorías después de importar desde CSV
+const reloadCatalog = async () => {
+    if (!restaurantId) return;
+    const { data: prods } = await supabase.from('products').select('*').eq('restaurant_id', restaurantId).order('created_at', { ascending: false });
+    if (prods) setProducts(prods);
+    const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true });
+    if (cats) setCategories(cats);
+};
 
 const openCreateModal = () => {
     // 🚀 Lógica de límites mejorada: 20 para Light, 60 para GO
@@ -626,11 +637,14 @@ const maxProds = maxProductsForPlan(currentPlan);
         </div>
 
         {/* Botones de Vista y Nuevo Producto */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
             <div className="bg-white border border-gray-200 rounded-2xl p-1 flex items-center shadow-sm">
                 <button onClick={() => changeView('list')} className={`p-2 rounded-xl ${view === 'list' ? 'bg-[#F0FAF6] text-[#17A06D]' : 'text-gray-400'}`}><List size={20}/></button>
                 <button onClick={() => changeView('grid')} className={`p-2 rounded-xl ${view === 'grid' ? 'bg-[#F0FAF6] text-[#17A06D]' : 'text-gray-400'}`}><LayoutGrid size={20}/></button>
             </div>
+            <button onClick={() => setShowImportModal(true)} className="bg-white border border-gray-200 text-gray-700 px-4 py-3 min-h-[44px] rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm active:scale-95">
+                <UploadCloud size={18}/> Importar productos
+            </button>
             <button onClick={openCreateModal} className="bg-fresco text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#17A06D] transition shadow-lg active:scale-95">
                 <Plus size={20}/> <span className="hidden lg:inline">Nuevo Producto</span>
             </button>
@@ -1331,6 +1345,19 @@ const maxProds = maxProductsForPlan(currentPlan);
             </button>
           </div>
         </div>
+      )}
+
+      {showImportModal && (
+        <ProductsImportModal
+          existing={products.map((p: any) => ({ name: String(p.name ?? ''), category: categories.find((c: any) => c.id === p.category_id)?.name ?? null }))}
+          hasFeatured={products.some((p: any) => p.es_destacado === true)}
+          currentCount={products.length}
+          maxProds={maxProds}
+          isAdmin={isAdmin}
+          onClose={() => setShowImportModal(false)}
+          onImported={reloadCatalog}
+          onChangePlan={() => router.push('/dashboard/plan')}
+        />
       )}
     </div>
   );
