@@ -2013,6 +2013,10 @@ export default function LandingPage() {
                 q: "¿Y si no llego a los 10?",
                 a: "Cuando abones tu primera suscripción, te avisamos por email que quedaste seleccionado para la promo de 4 remeras: te las ganás al abonar tu tercer cobro mensual y te contactamos para coordinar. Válida para registros hasta el 31/12.",
               },
+              {
+                q: "¿Qué condiciones tiene la promo de remeras?",
+                a: "Son 5 remeras por negocio en la promo de noviembre y 4 en la de fin de año, en total y sin importar el talle: los talles los elegís vos cuando coordinemos. Se hace un único envío por negocio, solo dentro de Argentina, sin costo para vos. Para el diseño necesitamos que nos mandes tu logo en buena calidad (idealmente vectorial o PNG grande) y los nombres que quieras estampar. El premio se otorga con el pago de la suscripción aprobado y no reembolsado ni contracargado. Nos comunicamos con vos después del pago; si no coordinamos en un plazo razonable, podemos reasignar el lugar.",
+              },
             ].map((faq, i) => (
               <div
                 key={i}
