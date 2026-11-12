@@ -3,6 +3,9 @@
 //   trial_ending   días 10 a 13 desde el alta, local en prueba sin tarjeta ni preapproval.
 //   trial_followup días 20 a 30 desde el alta, local que NUNCA se suscribió.
 //
+// Estos mails siguen contando desde restaurants.created_at A PROPÓSITO: la prueba ahora cuenta desde el registro
+// (lib/trialBase.ts), pero cambiar la base acá mandaría mails retroactivos a cuentas existentes.
+//
 // Los días se cuentan por día de calendario argentino (lib/email/dates.ts) y los dos extremos
 // entran. Cada mail se manda una sola vez por local: eso lo garantiza email_log
 // (docs/sql/16_email_log.sql, dedupe_key = '<kind>:<restaurant_id>'), no estas funciones.
