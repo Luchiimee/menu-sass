@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import {
   buildAdminOverview, ADMIN_PROFILE_COLUMNS, ADMIN_RESTAURANT_COLUMNS, ADMIN_PROFILE_SELECT, ADMIN_RESTAURANT_SELECT,
+  ADMIN_FIRST_PAID_SELECT,
 } from '../lib/adminOverview.ts';
 import { isTrialBlocking, isTrialBlockingHasCard } from '../lib/trial.ts';
 
@@ -39,8 +40,8 @@ console.log('armado');
   );
   const json = JSON.stringify(out);
   check('una fila con perfil y local', out.length === 1 && out[0].profile.id === 'u1' && out[0].restaurant.id === 'r1');
-  check('el local trae exactamente las columnas esperadas + has_card',
-    Object.keys(out[0].restaurant).sort().join() === [...ADMIN_RESTAURANT_COLUMNS, 'has_card'].sort().join());
+  check('el local trae exactamente las columnas esperadas + has_card + first_paid_at',
+    Object.keys(out[0].restaurant).sort().join() === [...ADMIN_RESTAURANT_COLUMNS, 'has_card', 'first_paid_at'].sort().join());
   check('el perfil trae exactamente las columnas esperadas',
     Object.keys(out[0].profile).sort().join() === [...ADMIN_PROFILE_COLUMNS].sort().join());
   check('no aparece ningún valor sensible en la salida',
@@ -85,6 +86,27 @@ check('entradas null o vacías no rompen', buildAdminOverview(null, null).length
   check('no muta la entrada', JSON.stringify(profiles) === antes);
 }
 
+console.log('first_paid_at (consulta aparte)');
+check('select aparte: solo id y first_paid_at', ADMIN_FIRST_PAID_SELECT === 'id, first_paid_at');
+check('el select principal del local NO pide first_paid_at (así la columna faltante no rompe la lista)',
+  !/first_paid_at/.test(ADMIN_RESTAURANT_SELECT) && !ADMIN_RESTAURANT_COLUMNS.includes('first_paid_at'));
+{
+  const profiles = [P('u1', '2026-11-02T00:00:00Z'), P('u2', '2026-11-03T00:00:00Z')];
+  const rests = [R('r1', 'u1', '2026-11-02T00:01:00Z'), R('r2', 'u2', '2026-11-03T00:01:00Z')];
+  const sin = buildAdminOverview(profiles, rests);
+  check('sin la segunda consulta: first_paid_at null en todos', sin.every((x) => x.restaurant.first_paid_at === null));
+  const vacio = buildAdminOverview(profiles, rests, []);
+  check('segunda consulta vacía (columna inexistente): null y la lista sigue completa', vacio.length === 2 && vacio.every((x) => x.restaurant.first_paid_at === null));
+  const nulo = buildAdminOverview(profiles, rests, null);
+  check('segunda consulta null: null y la lista sigue completa', nulo.length === 2 && nulo.every((x) => x.restaurant.first_paid_at === null));
+  const con = buildAdminOverview(profiles, rests, [{ id: 'r1', first_paid_at: '2026-11-10T15:00:00Z' }, { id: 'r2', first_paid_at: null }, { id: 'r-ajeno', first_paid_at: '2026-11-11T00:00:00Z' }]);
+  check('first_paid_at se une por id del local', con.find((x) => x.restaurant.id === 'r1').restaurant.first_paid_at === '2026-11-10T15:00:00Z');
+  check('un local sin pago queda null', con.find((x) => x.restaurant.id === 'r2').restaurant.first_paid_at === null);
+  check('una fila de first_paid_at sin local no agrega filas ni se filtra', con.length === 2 && !JSON.stringify(con).includes('r-ajeno'));
+  check('las demás columnas no cambian con la segunda consulta',
+    JSON.stringify(con.map((x) => ({ ...x.restaurant, first_paid_at: 0 }))) === JSON.stringify(sin.map((x) => ({ ...x.restaurant, first_paid_at: 0 }))));
+}
+
 console.log('isTrialBlockingHasCard == isTrialBlocking');
 {
   const now = new Date('2026-11-30T12:00:00Z');
@@ -111,6 +133,10 @@ console.log('endpoint (lectura del código)');
   check('service role y no-store', /getSupabaseAdmin\(\)/.test(src) && /no-store/.test(src));
   check('no lee snappylinks ni pide mp_preapproval_id', !/snappylinks/.test(src.replace(/\/\/.*$/gm, '')) && !/mp_preapproval_id/.test(src.replace(/\/\/.*$/gm, '')));
   check('no usa isAdminEmail', !/isAdminEmail/.test(src));
+  check('pide first_paid_at en una consulta aparte y tolera el error (42703)',
+    /ADMIN_FIRST_PAID_SELECT/.test(src) && /42703/.test(src) && /firstPaidRows = \[\]/.test(src));
+  check('el error de first_paid_at no devuelve 500 (solo el de perfiles o locales)',
+    /profiles\.error \?\? restaurants\.error/.test(src) && !/firstPaid\.error\)? ?\{[^}]*status: 500/.test(src));
 }
 
 if (failures > 0) {

@@ -21,8 +21,15 @@ export const ADMIN_RESTAURANT_COLUMNS = [
 export const ADMIN_PROFILE_SELECT = ADMIN_PROFILE_COLUMNS.join(', ');
 export const ADMIN_RESTAURANT_SELECT = [...ADMIN_RESTAURANT_COLUMNS, 'mp_card_id'].join(', ');
 
+// first_paid_at (docs/sql/23_first_paid_at.sql) se pide APARTE: si la columna todavía no existe en la base, esa
+// consulta falla sola y la lista sigue funcionando con first_paid_at: null.
+export const ADMIN_FIRST_PAID_SELECT = 'id, first_paid_at';
+
 export type AdminProfile = Record<(typeof ADMIN_PROFILE_COLUMNS)[number], unknown>;
-export type AdminRestaurant = Record<(typeof ADMIN_RESTAURANT_COLUMNS)[number], unknown> & { has_card: boolean };
+export type AdminRestaurant = Record<(typeof ADMIN_RESTAURANT_COLUMNS)[number], unknown> & {
+  has_card: boolean;
+  first_paid_at: unknown; // null si la columna no existe todavía o el local no pagó
+};
 export type AdminOverviewRow = { profile: AdminProfile; restaurant: AdminRestaurant | null };
 
 type Row = Record<string, unknown>;
@@ -49,7 +56,11 @@ function time(v: unknown): number {
 export function buildAdminOverview(
   profiles: readonly Row[] | null | undefined,
   restaurants: readonly Row[] | null | undefined,
+  firstPaid?: readonly Row[] | null, // filas { id, first_paid_at } de la consulta aparte; sin ellas, null
 ): AdminOverviewRow[] {
+  const paidById = new Map<string, unknown>();
+  for (const f of firstPaid ?? []) if (typeof f.id === 'string') paidById.set(f.id, f.first_paid_at ?? null);
+
   const byUser = new Map<string, Row>();
   for (const r of restaurants ?? []) {
     const uid = typeof r.user_id === 'string' ? r.user_id : null;
@@ -62,7 +73,13 @@ export function buildAdminOverview(
     const r = typeof p.id === 'string' ? byUser.get(p.id) : undefined;
     return {
       profile: pick(p, ADMIN_PROFILE_COLUMNS) as AdminProfile,
-      restaurant: r ? ({ ...pick(r, ADMIN_RESTAURANT_COLUMNS), has_card: hasCard(r.mp_card_id) } as AdminRestaurant) : null,
+      restaurant: r
+        ? ({
+            ...pick(r, ADMIN_RESTAURANT_COLUMNS),
+            has_card: hasCard(r.mp_card_id),
+            first_paid_at: typeof r.id === 'string' ? (paidById.get(r.id) ?? null) : null,
+          } as AdminRestaurant)
+        : null,
     };
   });
 
