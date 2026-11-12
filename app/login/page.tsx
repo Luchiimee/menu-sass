@@ -135,16 +135,14 @@ export default function LoginPage() {
         
         <div className="max-w-sm w-full mx-auto">
           
-          <div className="mb-6 flex flex-col items-center justify-center gap-2">
-            <div className="relative w-20 h-20"> 
-                <Image 
-                    src="/logo-snappy.svg" 
-                    alt="Snappy Logo" 
-                    fill 
-                    className="object-contain"
-                />
-            </div>
-            <span className="font-bold text-2xl tracking-tight">Snappy</span>
+          <div className="mb-6 flex items-center justify-center">
+            <Image
+                src="/logo-snappy-inicio.svg"
+                alt="Snappy Logo"
+                width={200}
+                height={127}
+                className="h-auto w-[200px]"
+            />
           </div>
 
           <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">

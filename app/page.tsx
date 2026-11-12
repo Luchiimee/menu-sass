@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import PromoBanner from "@/components/PromoBanner";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 import {
   ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
@@ -13,6 +14,11 @@ import {
   Store, Monitor, Wallet, Fish, Coffee, Pizza, CheckCircle2,
   UtensilsCrossed, Search, Link2, Palette, Share2, CalendarDays, Scale, IceCream, Info
 } from "lucide-react";
+
+// Promo de noviembre 2026: la franja se oculta sola después de esta fecha (hora Argentina, UTC-3).
+// Se compara en un efecto del cliente (no en el render) para que servidor y cliente rendericen lo mismo.
+const PROMO_NOV_2026_ENDS_AT = Date.parse("2026-11-30T23:59:59-03:00");
+const PROMO_NOV_2026_CLOSED_KEY = "promo_nov_2026_closed";
 
 
 // 1. Tipamos el objeto de las galerías
@@ -449,6 +455,9 @@ export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState<'light' | 'plus'>('light');
   const [showWhatsAppSim, setShowWhatsAppSim] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  // Arranca visible (servidor y cliente renderizan lo mismo: no hay diferencia de hidratación ni salto de la navbar).
+  // El efecto de abajo (solo cliente) la oculta si ya pasó la fecha límite o si el visitante la cerró.
+  const [showPromo, setShowPromo] = useState(true);
   const [activeMode, setActiveMode] = useState<'delivery' | 'takeaway' | 'mesa'>('delivery');
   const [activeBusinessType, setActiveBusinessType] = useState<'gastronomia' | 'kiosco' | 'dietetica'>('gastronomia');
 
@@ -464,6 +473,39 @@ export default function LandingPage() {
       }
     }
   }, [router]);
+
+  // Franja de la promo: se oculta si ya pasó la fecha límite o si el visitante la cerró.
+  useEffect(() => {
+    if (Date.now() > PROMO_NOV_2026_ENDS_AT) {
+      setShowPromo(false);
+      return;
+    }
+    let closed = false;
+    try {
+      closed = localStorage.getItem(PROMO_NOV_2026_CLOSED_KEY) === "1";
+    } catch {
+      /* sin localStorage (bloqueado): se muestra igual */
+    }
+    if (closed) {
+      setShowPromo(false);
+      return;
+    }
+    // Si la página queda abierta hasta la fecha límite, se oculta sola
+    const ms = PROMO_NOV_2026_ENDS_AT - Date.now();
+    if (ms > 0 && ms < 2147483647) {
+      const t = setTimeout(() => setShowPromo(false), ms);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const closePromo = () => {
+    setShowPromo(false);
+    try {
+      localStorage.setItem(PROMO_NOV_2026_CLOSED_KEY, "1");
+    } catch {
+      /* sin localStorage: se cierra solo en esta visita */
+    }
+  };
 
   useEffect(() => {
     setActiveStep(0);
@@ -565,12 +607,14 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-paper font-sans text-gray-900 selection:bg-fresco/10 overflow-x-hidden">
+      {/* --- FRANJA PROMOCIONAL (fija, arriba de la navbar) --- */}
+      {showPromo && <PromoBanner onClose={closePromo} />}
+
      {/* --- NAVBAR RESPONSIVE CON LINKS --- */}
-      <nav className="fixed top-0 w-full z-[100] bg-paper/80 backdrop-blur-xl border-b border-gray-100">
+      <nav className={`fixed ${showPromo ? "top-11" : "top-0"} w-full z-[100] bg-paper/80 backdrop-blur-xl border-b border-gray-100 transition-[top] duration-200`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo-snappy.svg" alt="Snappy" width={32} height={32} />
-            <span className="font-bold text-2xl tracking-tight">Snappy.</span>
+          <Link href="/" className="flex items-center">
+            <Image src="/logo-snappy-completo.svg" alt="Snappy" width={129} height={45} className="h-[45px] w-auto" />
           </Link>
 
           {/* Menú Escritorio */}
@@ -623,6 +667,18 @@ export default function LandingPage() {
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left z-10">
+            {/* Pastilla de la promo: visible mientras se vea la franja (mismo estado showPromo → misma fecha límite) */}
+            {showPromo && (
+              <div className="mb-3">
+                <Link
+                  href="#faq"
+                  className="inline-flex max-w-full items-center gap-2 bg-white border border-gray-200 shadow-sm px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold text-gray-600 hover:border-[#ffcc03] transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#ffcc03] animate-pulse shrink-0"></span>
+                  Promo noviembre · 5 remeras para tu equipo
+                </Link>
+              </div>
+            )}
             <div className="inline-flex items-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-1.5 rounded-full text-xs font-bold mb-8 text-gray-600">
               <span className="w-2 h-2 rounded-full bg-fresco animate-pulse"></span>{" "}
               🚀 Para gastronomía, kioscos, dietéticas y más
@@ -1243,10 +1299,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px", alignItems: "stretch" }}>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-8 items-stretch">
 
             {/* Mapa */}
-            <div style={{ background: "#1E1F17", borderRadius: 20, border: "1px solid #2A2B22", overflow: "hidden", position: "relative", minHeight: 380 }}>
+            <div className="relative overflow-hidden min-w-0 w-full max-w-[320px] mx-auto aspect-[3/2] md:max-w-none md:mx-0 md:aspect-auto md:min-h-[380px]" style={{ background: "#1E1F17", borderRadius: 20, border: "1px solid #2A2B22" }}>
               <svg viewBox="0 0 600 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
                 <rect width="600" height="400" fill="#1a1f1a"/>
                 {[80,160,240,320].map(y => <rect key={`h${y}`} x="0" y={y} width="600" height="5" fill="#242b24" opacity="0.8"/>)}
@@ -1285,8 +1341,8 @@ export default function LandingPage() {
             </div>
 
             {/* Cards + CTA */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ background: "#1E1F17", border: "1px solid #1BB17930", borderRadius: 16, padding: "20px 22px", flex: 1 }}>
+            <div className="flex flex-col gap-4 min-w-0 w-full">
+              <div className="md:flex-1" style={{ background: "#1E1F17", border: "1px solid #1BB17930", borderRadius: 16, padding: "20px 22px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#1BB179" }}/>
                   <span className="text-fresco text-xs font-semibold tracking-widest uppercase">Zona 1</span>
@@ -1297,7 +1353,7 @@ export default function LandingPage() {
                 <p className="text-graphite text-sm leading-relaxed">Ideal para el barrio. El precio más accesible atrae más pedidos locales.</p>
               </div>
 
-              <div style={{ background: "#1E1F17", border: "1px solid #9A553230", borderRadius: 16, padding: "20px 22px", flex: 1 }}>
+              <div className="md:flex-1" style={{ background: "#1E1F17", border: "1px solid #9A553230", borderRadius: 16, padding: "20px 22px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#9A5532" }}/>
                   <span className="text-brasa text-xs font-semibold tracking-widest uppercase">Zona 2</span>
@@ -1874,7 +1930,7 @@ export default function LandingPage() {
       </section>
 
       {/* --- PREGUNTAS FRECUENTES --- */}
-      <section className="py-24 px-6 bg-white border-t border-gray-100">
+      <section id="faq" className="py-24 px-6 bg-white border-t border-gray-100 scroll-mt-32">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <HelpCircle size={48} className="mx-auto text-fresco mb-4" />
@@ -1900,10 +1956,22 @@ export default function LandingPage() {
                 q: "¿Puedo cancelar?",
                 a: "Sí, en cualquier momento desde tu panel de ajustes sin complicaciones.",
               },
+              {
+                q: "¿Cómo me gano las 5 remeras?",
+                a: "Entran los primeros 10 negocios registrados en noviembre que abonen su primera suscripción: gana el que paga primero. El cobro se hace al terminar los 14 días gratis; si cargás la tarjeta antes, se debita ese día, y si la cargás después, se debita apenas la cargás. Después te contactamos para coordinar nombres y logo; las remeras llegan en 5 a 10 días, sin costo.",
+              },
+              {
+                q: "Me registré en noviembre pero mi primer cobro es en diciembre, ¿entro?",
+                a: "Sí, si abonás hasta el 15/12. Si hay lugar, tu pago te da el cupo; si alguien registrado antes no abona, el lugar pasa a quien sí abone.",
+              },
+              {
+                q: "¿Y si no llego a los 10?",
+                a: "Cuando abones tu primera suscripción, te avisamos por email que quedaste seleccionado para la promo de 4 remeras: te las ganás al abonar tu tercer cobro mensual y te contactamos para coordinar. Válida para registros hasta el 31/12.",
+              },
             ].map((faq, i) => (
               <div
                 key={i}
-                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-fresco/20 transition-all"
+                className="bg-gray-50 p-8 rounded-[35px] border border-gray-100 hover:border-fresco/20 transition-all md:[&:last-child:nth-child(odd)]:col-span-2"
               >
                 <h3 className="font-bold text-lg mb-3 flex items-center gap-3">
                   <span className="text-fresco font-black">0{i + 1}.</span>{" "}
@@ -1932,7 +2000,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[
               { 
                 title: "Múltiples Sucursales", 
@@ -1943,11 +2011,6 @@ export default function LandingPage() {
                 title: "Pagos con Tarjeta", 
                 desc: "Aceptá crédito y débito directamente en el menú. Una experiencia de compra fluida y profesional.", 
                 icon: <CreditCard size={24}/> 
-              },
-              { 
-                title: "Billeteras Virtuales", 
-                desc: "Vinculá tu cuenta de Mercado Pago o Ualá para recibir cobros automáticos y acreditación inmediata.", 
-                icon: <Wallet size={24}/> 
               }
             ].map((item, i) => (
               <div key={i} className="group p-10 rounded-[40px] border border-white/10 bg-white/5 hover:bg-white/[0.08] transition-all backdrop-blur-sm relative overflow-hidden">
@@ -1985,13 +2048,12 @@ export default function LandingPage() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-6 justify-center md:justify-start">
               <Image
-                src="/logo.svg"
+                src="/logo-snappy.svg"
                 alt="Snappy"
-                width={32}
-                height={32}
-                className="invert"
+                width={40}
+                height={40}
               />
-              <span className="font-bold text-3xl tracking-tight">Snappy.</span>
+              <span className="font-bold text-3xl tracking-tight text-white">Snappy.</span>
             </div>
             <p className="text-gray-500 max-w-sm mb-8 mx-auto md:mx-0">
               Transformando la forma en que los comercios conectan con sus

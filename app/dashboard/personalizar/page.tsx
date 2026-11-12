@@ -498,7 +498,7 @@ const getLinksLimit = () => {
 
   useEffect(() => {
     if (unsavedChanges && data.id) {
-      const timeout = setTimeout(() => { handleSave(); }, 2000);
+      const timeout = setTimeout(() => { handleSave(true); }, 2000);
       return () => clearTimeout(timeout);
     }
   }, [data, unsavedChanges]);
@@ -790,11 +790,30 @@ const confirmReset = () => {
     else toast.error('No se pudo guardar el alias');
   };
 
- const handleSave = async () => {
+ // auto = true cuando lo dispara el autoguardado (mientras el usuario escribe): no completa ni valida
+ // el link de SnappyLinks en silencio, para no pisar un campo que está editando.
+ const handleSave = async (auto?: unknown) => {
   if (!data.id || !data.slug) return;
+  const isAuto = auto === true;
+
+  // Link de SnappyLinks: vacío = se completa con <slug>bio solo en un guardado manual (con aviso).
+  // Si quedó vacío o inválido durante el autoguardado, se guarda lo demás y se omite la bio.
+  const typedBioSlug = (data.snappylink_slug || '').trim();
+  const defaultBioSlug = data.slug + 'bio';
+  const BIO_SLUG_RE = /^[a-z0-9-]+$/;
+  const bioSlugToSave = typedBioSlug || (isAuto ? '' : defaultBioSlug);
+  const skipBio = isAuto && !BIO_SLUG_RE.test(bioSlugToSave);
+  if (!skipBio && !BIO_SLUG_RE.test(bioSlugToSave)) {
+    setErrorModal({
+      show: true,
+      title: "Link de SnappyLinks inválido",
+      msg: "El link de SnappyLinks solo puede tener letras minúsculas, números y guiones, sin espacios, y no puede quedar vacío."
+    });
+    return;
+  }
 
   // 1. Validar que el link del menú y la bio no sean iguales
-  if (data.is_bio_active && data.slug === data.snappylink_slug) {
+  if (data.is_bio_active && data.slug === bioSlugToSave) {
     setErrorModal({
       show: true,
       title: "Links Iguales",
@@ -835,10 +854,15 @@ const confirmReset = () => {
     }
     if (restError) throw restError;
 
-    // 3. Intentar guardar Bio
+    // 3. Intentar guardar Bio (en el autoguardado con el link vacío o inválido se omite: el usuario sigue editando)
+    if (skipBio) return;
+    if (!typedBioSlug) {
+      setData((prev: any) => ({ ...prev, snappylink_slug: bioSlugToSave }));
+      toast.info(`El link de SnappyLinks estaba vacío: usamos snappy.uno/${bioSlugToSave}`);
+    }
     const { error: bioError } = await supabase.from('snappylinks').upsert({
       restaurant_id: data.id,
-      slug: data.snappylink_slug || (data.slug + 'bio'),
+      slug: bioSlugToSave,
       bio: data.snappylink_bio,
       links: data.snappylink_links,
       template_id: data.snappylink_template_id,
@@ -1770,6 +1794,10 @@ const confirmReset = () => {
         </p>
     </div>
     <button 
+    type="button"
+    role="switch"
+    aria-checked={!!data.is_bio_active}
+    aria-label="Activar SnappyLinks"
     onClick={() => { 
         const nextActive = !data.is_bio_active;
         
@@ -1798,9 +1826,14 @@ const confirmReset = () => {
         // 4. Disparamos el guardado
         setUnsavedChanges(true); 
     }}
-    className={`w-14 h-7 rounded-full flex items-center px-1 transition-all duration-300 ${data.is_bio_active ? 'bg-fresco' : 'bg-white/20'}`}
+    className="flex items-center gap-3 shrink-0 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 active:scale-95 transition-transform"
 >
-    <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${data.is_bio_active ? 'translate-x-7' : 'translate-x-0'}`} />
+    <span className="text-[10px] font-black uppercase tracking-widest text-white">
+        {data.is_bio_active ? 'Activo' : 'Pausado'}
+    </span>
+    <span className={`relative inline-flex w-16 h-9 rounded-full border-2 transition-colors duration-300 ${data.is_bio_active ? 'bg-white border-white' : 'bg-black/20 border-white/60'}`}>
+        <span className={`absolute top-1/2 left-1 -translate-y-1/2 w-6 h-6 rounded-full shadow-md transition-all duration-300 ${data.is_bio_active ? 'translate-x-7 bg-fresco' : 'translate-x-0 bg-white'}`} />
+    </span>
 </button>
 </section>
 
@@ -1818,13 +1851,13 @@ const confirmReset = () => {
         snappy.uno/
     </div>
     <input 
-        value={data.snappylink_slug || (data.slug ? data.slug + 'bio' : '')} 
+        value={data.snappylink_slug ?? ''} 
         onChange={(e) => { 
             setData({...data, snappylink_slug: e.target.value.toLowerCase().replace(/\s+/g, '-')}); 
             setUnsavedChanges(true); 
         }}
         className="flex-1 p-3 outline-none text-xs font-black text-gray-800 min-w-0" // 🚀 Agregamos min-w-0
-        placeholder="nombre-bio"
+        placeholder={data.slug ? data.slug + 'bio' : 'nombre-bio'}
     />
     <button 
         onClick={() => {
