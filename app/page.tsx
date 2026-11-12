@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import PromoBanner from "@/components/PromoBanner";
 import PromoLoginModal from "@/components/PromoLoginModal";
+import PromoCounter from "@/components/PromoCounter";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
 import {
   ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
@@ -719,6 +720,8 @@ export default function LandingPage() {
                 </Link>
               </div>
             )}
+            {/* Contador de lugares de la promo: se oculta después del 2026-12-31 23:59:59 -03:00 (cierre de la promo) */}
+            <PromoCounter endsAt={PROMO_LOGIN_MODAL_ENDS_AT} />
             <div className="inline-flex items-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-1.5 rounded-full text-xs font-bold mb-8 text-gray-600">
               <span className="w-2 h-2 rounded-full bg-fresco animate-pulse"></span>{" "}
               🚀 Para gastronomía, kioscos, dietéticas y más
