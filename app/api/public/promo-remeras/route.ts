@@ -1,11 +1,11 @@
-// GET /api/public/promo-remeras — contador público de la promo de remeras: { paid, slots: 10, full }.
-// Cuenta (service role, lista cerrada de columnas) los locales creados entre el 2026-11-01 y el 2026-11-30 (hora
-// Argentina) con first_paid_at no nulo y hasta el 2026-12-15 23:59:59 -03:00, sin los correos de prueba
-// (PROMO_EXCLUDED_EMAILS) ni los admin. La lógica está en lib/promoRemeras.ts (scripts/check-promo-remeras.mjs).
-// Devuelve solo números: ni correos ni datos de locales. paid va topeado en 10.
+// GET /api/public/promo-remeras — contador público de la promo de remeras: { registered, slots: 10 }.
+// Lee (service role, lista cerrada de columnas: id, owner_email, created_at) los locales creados entre el 2026-11-01 y
+// el 2026-11-30 (hora Argentina), sin los correos de prueba (PROMO_EXCLUDED_EMAILS) ni los admin (mismo criterio que el
+// ranking de SuperAdmin). registered cuenta todos, con o sin cobro y sin tope. No consulta ni devuelve datos de cobros.
+// La lógica está en lib/promoRemeras.ts (scripts/check-promo-remeras.mjs). Devuelve solo números: ni correos ni datos
+// de locales.
 // Cache de CDN de 60 s. Límite por IP del endpoint público existente (lib/rateLimit, scope 'public'); si no se
-// puede contar, deja pasar. Si falta la columna first_paid_at (42703) responde paid 0.
-// Los logs llevan solo un código corto.
+// puede contar, deja pasar. Un error de la base responde 500 sin cache. Los logs llevan solo un código corto.
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
@@ -15,8 +15,6 @@ import { RATE_LIMITS } from '@/lib/rateLimitCore';
 import {
   PROMO_REGISTRATION_START,
   PROMO_REGISTRATION_END_EXCLUSIVE,
-  PROMO_PAYMENT_DEADLINE,
-  PROMO_REMERAS_SLOTS,
   buildPromoCounter,
   type PromoRestaurantRow,
 } from '@/lib/promoRemeras';
@@ -36,19 +34,12 @@ export async function GET(req: Request) {
 
   const { data, error } = await getSupabaseAdmin()
     .from('restaurants')
-    .select('id, owner_email, created_at, first_paid_at')
+    .select('id, owner_email, created_at')
     .gte('created_at', new Date(PROMO_REGISTRATION_START).toISOString())
     .lt('created_at', new Date(PROMO_REGISTRATION_END_EXCLUSIVE).toISOString())
-    .not('first_paid_at', 'is', null)
-    .lte('first_paid_at', new Date(PROMO_PAYMENT_DEADLINE).toISOString())
     .limit(MAX_ROWS);
 
   if (error) {
-    // 42703 = columna inexistente (falta docs/sql/23_first_paid_at.sql): el contador queda en 0
-    if (error.code === '42703') {
-      console.error('[public/promo-remeras] falta_first_paid_at 42703');
-      return NextResponse.json({ paid: 0, slots: PROMO_REMERAS_SLOTS, full: false }, { headers: CACHED });
-    }
     console.error(`[public/promo-remeras] error_datos ${error.code ?? 'sin_codigo'}`);
     return NextResponse.json({ error: 'error_datos' }, { status: 500, headers: NO_STORE });
   }

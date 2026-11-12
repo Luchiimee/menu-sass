@@ -147,14 +147,14 @@ export function buildPromoRemerasResponse(
   };
 }
 
-// Contador público de la promo (GET /api/public/promo-remeras): cuántos locales de noviembre ya pagaron EN PLAZO,
-// topeado en los 10 cupos. Solo números: nunca correos ni datos de locales.
-export type PromoCounter = { paid: number; slots: number; full: boolean };
+// Contador público de la promo (GET /api/public/promo-remeras): cuántos locales se registraron en la ventana de
+// noviembre (con o sin pago), sin los correos excluidos y SIN tope. No expone pagos. Solo números: nunca correos
+// ni datos de locales.
+export type PromoCounter = { registered: number; slots: number };
 
 export function buildPromoCounter(
   rows: readonly PromoRestaurantRow[] | null | undefined,
   opts: { excludeEmails?: readonly string[] } = {},
 ): PromoCounter {
-  const paid = Math.min(buildPromoRemerasResponse(rows, opts).en_plazo, PROMO_REMERAS_SLOTS);
-  return { paid, slots: PROMO_REMERAS_SLOTS, full: paid >= PROMO_REMERAS_SLOTS };
+  return { registered: buildPromoRemerasResponse(rows, opts).total, slots: PROMO_REMERAS_SLOTS };
 }

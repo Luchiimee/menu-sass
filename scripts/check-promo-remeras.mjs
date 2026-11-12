@@ -3,6 +3,8 @@
 //
 //   node scripts/check-promo-remeras.mjs   (Node >= 22.18 / 24: importa .ts directo)
 
+import { readFileSync } from 'node:fs';
+
 import {
   PROMO_EXCLUDED_EMAILS, PROMO_REMERAS_SLOTS, PROMO_REGISTRATION_START, PROMO_REGISTRATION_END_EXCLUSIVE, PROMO_PAYMENT_DEADLINE,
   parseTime, isRegisteredInPromoWindow, isPaidAfterDeadline, buildPromoRemeras, buildPromoRemerasResponse, buildPromoCounter,
@@ -160,27 +162,40 @@ console.log('buildPromoRemerasResponse');
   check('respuesta vacía válida', buildPromoRemerasResponse([]).total === 0 && buildPromoRemerasResponse(null).locales.length === 0);
 }
 
-console.log('buildPromoCounter (contador público)');
+console.log('buildPromoCounter (contador público de registros)');
 {
-  const paidRow = (n, paid = '2026-11-12T12:00:00Z', extra = {}) => row(`c${n}`, NOV, paid, extra);
-  const many = (n) => Array.from({ length: n }, (_, i) => paidRow(i + 1, `2026-11-12T12:${String(i).padStart(2, '0')}:00Z`));
-  const c0 = buildPromoCounter([]);
-  check('sin locales: paid 0, slots 10, full false', c0.paid === 0 && c0.slots === 10 && c0.full === false);
-  check('null o undefined: paid 0', buildPromoCounter(null).paid === 0 && buildPromoCounter(undefined).paid === 0);
-  const c3 = buildPromoCounter(many(3));
-  check('3 pagaron: paid 3, full false', c3.paid === 3 && c3.full === false);
-  check('9 pagaron: paid 9, full false', buildPromoCounter(many(9)).paid === 9 && buildPromoCounter(many(9)).full === false);
-  check('10 pagaron: paid 10, full true', buildPromoCounter(many(10)).paid === 10 && buildPromoCounter(many(10)).full === true);
-  const c14 = buildPromoCounter(many(14));
-  check('14 pagaron: paid topeado en 10, full true', c14.paid === 10 && c14.full === true);
-  check('sin pago no cuenta', buildPromoCounter([row('x', NOV, null), paidRow(1)]).paid === 1);
-  check('pago fuera de plazo (después del 15/12) no cuenta', buildPromoCounter([paidRow(1), paidRow(2, '2026-12-16T03:00:00Z')]).paid === 1);
-  check('pago el 15/12 23:59:59 AR cuenta', buildPromoCounter([paidRow(1, '2026-12-16T02:59:59Z')]).paid === 1);
-  check('registrado fuera de noviembre no cuenta', buildPromoCounter([row('o', '2026-12-02T15:00:00Z', '2026-12-03T15:00:00Z'), row('p', '2026-10-30T15:00:00Z', '2026-11-12T15:00:00Z'), paidRow(1)]).paid === 1);
-  check('correos de prueba fijos no cuentan', buildPromoCounter([paidRow(1, undefined, { owner_email: 'tamalu026@gmail.com' }), paidRow(2, undefined, { owner_email: ' LUCHIIMEE@gmail.com ' }), paidRow(3)]).paid === 1);
-  check('correos admin que pasa quien llama no cuentan', buildPromoCounter([paidRow(1, undefined, { owner_email: 'admin@x.com' }), paidRow(2)], { excludeEmails: ['ADMIN@x.com'] }).paid === 1);
-  const salida = JSON.stringify(c14);
-  check('devuelve solo { paid, slots, full }: sin correos ni datos de locales', Object.keys(c14).sort().join(',') === 'full,paid,slots' && !salida.includes('@') && !salida.includes('Local'));
+  const reg = (n, extra = {}) => Array.from({ length: n }, (_, i) => row(`r${i + 1}`, NOV, i % 2 ? '2026-11-12T12:00:00Z' : null, extra));
+  const count = (rows, opts) => buildPromoCounter(rows, opts).registered;
+
+  check('registered 0: sin locales, slots 10', count([]) === 0 && buildPromoCounter([]).slots === 10);
+  check('null o undefined: 0', count(null) === 0 && count(undefined) === 0);
+  check('registered 1', count(reg(1)) === 1);
+  check('registered 9', count(reg(9)) === 9);
+  check('registered 10', count(reg(10)) === 10);
+  check('registered 14: SIN tope', count(reg(14)) === 14);
+  check('registered 200: SIN tope', count(reg(200)) === 200);
+  check('cuenta con o sin first_paid_at: 4 con y 6 sin = 10', count([...Array.from({ length: 4 }, (_, i) => row(`p${i}`, NOV, '2026-11-12T12:00:00Z')), ...Array.from({ length: 6 }, (_, i) => row(`n${i}`, NOV, null))]) === 10);
+  check('first_paid_at fuera de plazo también cuenta como registrado', count([row('x', NOV, '2026-12-20T12:00:00Z'), row('y', NOV, null)]) === 2);
+
+  check('excluidos fijos (sin importar mayúsculas ni espacios): no cuentan', count([row('a', NOV, null, { owner_email: 'tamalu026@gmail.com' }), row('b', NOV, null, { owner_email: ' LUCHIIMEE@gmail.com ' }), row('c', NOV, null)]) === 1);
+  check('admin que pasa quien llama: no cuenta', count([row('a', NOV, null, { owner_email: 'ADMIN@x.com' }), row('b', NOV, null)], { excludeEmails: ['admin@x.com'] }) === 1);
+  check('un correo parecido a los excluidos SÍ cuenta', count([row('a', NOV, null, { owner_email: 'xtamalu026@gmail.com' }), row('b', NOV, null, { owner_email: 'luchiimee@gmail.co' })]) === 2);
+
+  const cre = (created) => count([row('v', created, null)]);
+  check('fuera de ventana no cuenta: 31/10 23:59:59.999 AR, 1/12 00:00 AR, octubre y diciembre', [cre('2026-11-01T02:59:59.999Z'), cre('2026-12-01T03:00:00Z'), cre('2026-10-30T15:00:00Z'), cre('2026-12-02T15:00:00Z')].every((n) => n === 0));
+  check('bordes de la ventana cuentan: 1/11 00:00 AR y 30/11 23:59:59.999 AR', cre('2026-11-01T03:00:00Z') === 1 && cre('2026-12-01T02:59:59.999Z') === 1);
+  check('fecha de creación inválida o nula: no cuenta', cre(null) === 0 && cre('x') === 0 && cre(undefined) === 0);
+
+  const soloColumnasDeLaRuta = [{ id: 'a', owner_email: 'a@mail.com', created_at: NOV }, { id: 'b', owner_email: 'b@mail.com', created_at: NOV }];
+  check('filas con solo id, owner_email y created_at (lo que consulta la ruta): cuentan', count(soloColumnasDeLaRuta) === 2);
+
+  const out = buildPromoCounter([...reg(14), row('z', NOV, null, { owner_email: 'dueno@mail.com' })]);
+  const salida = JSON.stringify(out);
+  check('devuelve solo { registered, slots }: sin correos, paid ni first_paid_at',
+    Object.keys(out).sort().join(',') === 'registered,slots' && !salida.includes('@') && !salida.includes('mail.com') && !salida.includes('Local') && !/paid|first_paid_at|full/.test(salida));
+
+  const ruta = readFileSync(new URL('../app/api/public/promo-remeras/route.ts', import.meta.url), 'utf8');
+  check('la ruta consulta solo id, owner_email y created_at, y no menciona first_paid_at ni paid', ruta.includes("select('id, owner_email, created_at')") && !/first_paid_at|paid/i.test(ruta));
 }
 
 if (failures > 0) {
