@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import { 
   Search, Loader2, ArrowLeft, 
   Globe, DollarSign, Trash2, TrendingUp, 
@@ -10,7 +9,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { ADMIN_EMAILS } from "@/lib/access";
-import { isTrialBlocking } from "@/lib/trial";
+import { isTrialBlockingHasCard } from "@/lib/trial";
 
 // 💰 PRECIOS ACTUALIZADOS (Mayo 2026)
 const PRECIO_PLUS = 27000;
@@ -25,24 +24,28 @@ export default function AdminSnappyPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => { loadAllData(); }, []);
 
   const loadAllData = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
-      const { data: profiles } = await supabase.from("profiles").select("*");
-      const { data: rests } = await supabase.from("restaurants").select("*");
-      const { data: bios } = await supabase.from("snappylinks").select("*");
+      // Los datos los arma el servidor (service role): el navegador ya no lee profiles, restaurants ni snappylinks
+      const res = await fetch("/api/admin/overview", { cache: "no-store" });
+      if (res.status === 401 || res.status === 403) {
+        setLoadError(res.status === 401 ? "Tu sesión venció. Volvé a iniciar sesión." : "No tenés acceso a este panel.");
+        return;
+      }
+      if (!res.ok) {
+        setLoadError("No se pudieron cargar los datos.");
+        return;
+      }
+      const body = await res.json();
+      if (body.truncated) toast.warning("Hay más usuarios de los que se pueden mostrar: la lista está incompleta.");
 
-      const merged = (profiles || []).map(p => {
-        const r = (rests || []).find(res => res.user_id === p.id);
-        const b = r ? (bios || []).find(bio => bio.restaurant_id === r.id) : null;
+      const merged = ((body.rows ?? []) as { profile: any; restaurant: any }[]).map(({ profile: p, restaurant: r }) => {
         
         const diffDays = Math.floor((new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 3600 * 24));
         let statusTag = { text: "Activo", color: "bg-emerald-50 text-emerald-700", icon: Clock };
@@ -53,7 +56,7 @@ export default function AdminSnappyPage() {
         } else if (r?.subscription_status === 'cancelled' || r?.subscription_status === 'paused') {
           statusTag = { text: "Pago Cortado", color: "bg-orange-100 text-orange-700", icon: AlertTriangle };
           abandonmentReason = "Dejó de pagar";
-        } else if (isTrialBlocking({ status: r?.subscription_status, createdAt: r?.created_at ?? p.created_at, mpCardId: r?.mp_card_id, trialEndsAt: r?.trial_ends_at, now: new Date() })) {
+        } else if (isTrialBlockingHasCard({ status: r?.subscription_status, createdAt: r?.created_at ?? p.created_at, hasCard: !!r?.has_card, trialEndsAt: r?.trial_ends_at, now: new Date() })) {
           statusTag = { text: "Trial Vencido", color: "bg-red-100 text-red-700", icon: Clock };
           abandonmentReason = "No configuró pago";
         } else if (!r?.slug || r?.slug.includes('mi-local')) {
@@ -63,10 +66,13 @@ export default function AdminSnappyPage() {
           }
         }
 
-        return { profile: p, restaurant: r || null, bio: b || null, statusTag, abandonmentReason, diffDays };
+        return { profile: p, restaurant: r || null, statusTag, abandonmentReason, diffDays };
       });
       setData(merged);
-    } catch (e) { console.error("Error:", e); } finally { setLoading(false); }
+    } catch (e) {
+      console.error("Error:", e);
+      setLoadError("Error de red al cargar los datos.");
+    } finally { setLoading(false); }
   };
 
   const handleDeleteGhost = async (userId: string, email: string) => {
@@ -115,6 +121,17 @@ export default function AdminSnappyPage() {
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
       <Loader2 className="animate-spin text-fresco" size={40} />
+    </div>
+  );
+
+  if (loadError) return (
+    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-6 text-center">
+      <AlertTriangle className="text-orange-500" size={36} />
+      <p className="text-sm font-bold text-gray-700">{loadError}</p>
+      <div className="flex gap-2">
+        <button onClick={loadAllData} className="rounded-xl bg-gray-900 px-5 py-3 text-[11px] font-black uppercase text-white shadow-md active:scale-95 transition-all">Reintentar</button>
+        <Link href="/dashboard" className="rounded-xl border bg-white px-5 py-3 text-[11px] font-black uppercase text-gray-600 shadow-sm">Volver al panel</Link>
+      </div>
     </div>
   );
 
