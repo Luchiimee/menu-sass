@@ -82,3 +82,21 @@ export function isTrialBlocking(opts: {
     && !chargeScheduled(opts.mpCardId, opts.trialEndsAt)
     && isTrialExpired(opts.createdAt, opts.now);
 }
+
+// Igual que isTrialBlocking, para quien solo sabe SI hay tarjeta guardada (no su id): lo usa /admin/snappy con
+// has_card, que entrega GET /api/admin/overview sin exponer mp_card_id.
+export function isTrialBlockingHasCard(opts: {
+  status: string | null | undefined;
+  createdAt: string | Date | null | undefined;
+  hasCard: boolean;
+  trialEndsAt: string | Date | null | undefined;
+  now: Date;
+}): boolean {
+  return isTrialBlocking({
+    status: opts.status,
+    createdAt: opts.createdAt,
+    mpCardId: opts.hasCard ? 'tarjeta' : null,
+    trialEndsAt: opts.trialEndsAt,
+    now: opts.now,
+  });
+}
