@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Store, User, Phone, Mail, Lock } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, User, Phone, Mail, Lock } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -88,8 +89,14 @@ const handleRegister = async (e: React.FormEvent) => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
       
       <div className="mb-6 text-center">
-        <div className="bg-black text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-            <Store size={24} />
+        <div className="mb-4 flex items-center justify-center">
+          <Image
+              src="/logo-snappy-inicio.svg"
+              alt="Snappy Logo"
+              width={200}
+              height={127}
+              className="h-auto w-[200px]"
+          />
         </div>
         <h1 className="text-2xl font-black text-gray-900">Crear Cuenta</h1>
         <p className="text-gray-500 text-sm mt-1">Empieza a gestionar tu menú digital</p>
