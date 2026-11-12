@@ -1,0 +1,52 @@
+-- =============================================================================
+-- 26 — restaurants: se borra la política "public_view_restaurants" (lectura abierta a cualquier usuario logueado)
+-- =============================================================================
+-- APLICADO en producción el 2026-11-12; verificado con pg_policies: quedan 6 políticas en restaurants y
+-- ninguna deja leer todos los locales.
+-- Se corrió a mano en el SQL Editor de Supabase. No se ejecuta desde el código.
+--
+-- Problema: public.restaurants tenía la política "public_view_restaurants" (SELECT), que dejaba leer TODAS las
+-- filas de locales a cualquier usuario logueado (con su sesión, no solo a anon, que ya no leía desde el script 19):
+-- correo del dueño, plan, estado de suscripción, datos de Mercado Pago, etc. Quedó anotado como pendiente (a) en
+-- el script 19 y (b) en el 22.
+--
+-- Por qué se pudo (desplegado antes en main)
+--   - El menú público lee con GET /api/public/menu/[slug] (service role).
+--   - /admin/snappy (SuperAdmin) ya no lee profiles, restaurants ni snappylinks desde el navegador: usa
+--     GET /api/admin/overview (service role, hasAdminSnappyAccess).
+--   - Cada pantalla del panel lee SOLO su local con la sesión del dueño (filtra por user_id), y eso lo cubre la
+--     política de SELECT del dueño que sigue en la tabla.
+--
+-- Después de esto: un usuario logueado solo lee el local propio; anon no lee (script 19); service_role pasa sin
+-- cambios.
+--
+-- Qué se corrió (en una transacción):
+--
+--   begin;
+--   drop policy "public_view_restaurants" on public.restaurants;
+--   commit;
+--
+-- (Comentado porque YA SE EJECUTÓ. No volver a correrlo: sin "if exists", el drop falla si la política no existe.)
+-- =============================================================================
+
+-- =============================================================================
+-- VERIFICACIÓN (SOLO LECTURA, comentado). Esperado: 6 filas, ninguna con using (true) para SELECT/ALL ni "public_view_restaurants".
+-- =============================================================================
+-- select tablename, policyname, cmd, roles, qual, with_check
+-- from pg_policies
+-- where schemaname = 'public' and tablename = 'restaurants'
+-- order by policyname;
+
+-- =============================================================================
+-- ROLLBACK DE EMERGENCIA (descomentar y correr si algo se rompe: por ejemplo, una pantalla del panel que lee
+-- restaurants de OTRO usuario con la sesión y quedó vacía)
+-- OJO: vuelve a abrir la lectura de todos los locales a cualquier usuario logueado. Usarlo solo mientras se
+-- corrige la pantalla y volver a borrar la política después.
+-- (Nota: la política original era para authenticated. Incluir anon no cambia nada: desde el script 19 anon no tiene
+-- el permiso SELECT sobre la tabla.)
+-- =============================================================================
+-- create policy "public_view_restaurants"
+--   on public.restaurants
+--   for select
+--   to anon, authenticated
+--   using (true);
