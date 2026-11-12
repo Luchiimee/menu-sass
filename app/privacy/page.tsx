@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
       <section className="space-y-6">
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">1. Quiénes somos</h2>
-          <p>Snappy (snappy.uno) es una plataforma de menú digital y pedidos para locales gastronómicos y comercios. Para los datos de los dueños de locales que se registran en Snappy, el responsable del tratamiento es Snappy. Podés escribirnos a <span className="text-fresco">snappyuno25@gmail.com</span>. [REVISAR: razón social, CUIT y domicilio legal del responsable]</p>
+          <p>Snappy (snappy.uno) es una plataforma de menú digital y pedidos para locales gastronómicos y comercios. Para los datos de los dueños de locales que se registran en Snappy, el responsable del tratamiento es Snappy, a cargo de Luciano Meza, Mercedes, Buenos Aires, Argentina. Podés escribirnos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
         </div>
 
         <div>
@@ -64,7 +64,7 @@ export default function PrivacyPolicy() {
             <li><span className="font-bold">Resend:</span> envío de correos electrónicos.</li>
             <li><span className="font-bold">Meta Platforms:</span> píxel de Meta para medir visitas y mejorar nuestra publicidad (ver sección 9).</li>
           </ul>
-          <p className="mt-3">Cada uno tiene sus propias políticas de privacidad y solo accede a los datos necesarios para su función. Algunos de estos proveedores pueden almacenar datos en servidores fuera de Argentina. [REVISAR: confirmar regiones de los servidores y las garantías para transferencias internacionales]</p>
+          <p className="mt-3">Cada uno tiene sus propias políticas de privacidad y solo accede a los datos necesarios para su función. Algunos proveedores (Supabase, Vercel, Meta, Google, Resend, Mercado Pago) pueden alojar o procesar datos fuera de Argentina.</p>
         </div>
 
         <div>
@@ -74,7 +74,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">8. Conservación</h2>
-          <p>Conservamos los datos mientras tu cuenta esté activa y mientras sean necesarios para prestar el servicio, cumplir obligaciones legales o resolver reclamos. Después de ese período los eliminamos o los anonimizamos. [REVISAR: definir plazos concretos de conservación, si los hubiera]</p>
+          <p>Conservamos los datos mientras tu cuenta esté activa y mientras sean necesarios para prestar el servicio, cumplir obligaciones legales o resolver reclamos. Si tu prueba vence sin que te suscribas, o si das de baja el servicio, conservamos los datos hasta 3 meses desde el vencimiento de la prueba o la baja; luego se eliminan o anonimizan. [REVISAR: hoy no hay un proceso automático que ejecute esta eliminación] Los registros de pagos se conservan el tiempo que exija la normativa fiscal y contable.</p>
         </div>
 
         <div>
@@ -87,7 +87,7 @@ export default function PrivacyPolicy() {
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">10. Tus derechos</h2>
           <p className="mb-3">Según la Ley 25.326 de Protección de Datos Personales de la República Argentina, tenés derecho a acceder a tus datos, rectificarlos, actualizarlos y solicitar su supresión. Podés ver y corregir gran parte de tu información desde la sección "Configuración" de tu panel, o escribiéndonos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
-          <p className="mb-3">Podés solicitar la eliminación de tu cuenta y de tus datos personales escribiéndonos a ese correo; algunos datos pueden conservarse el tiempo que exija la ley, por ejemplo registros de pagos [REVISAR]. La opción "Eliminar cuenta" del panel cancela tu suscripción; para borrar tus datos, enviá la solicitud por correo.</p>
+          <p className="mb-3">Podés solicitar la eliminación de tu cuenta y de tus datos personales escribiéndonos a ese correo; algunos datos pueden conservarse el tiempo que exija la ley, por ejemplo registros de pagos, que se conservan el tiempo que exija la normativa fiscal y contable. La opción "Eliminar cuenta" del panel cancela tu suscripción; para borrar tus datos, enviá la solicitud por correo.</p>
           <p>La Agencia de Acceso a la Información Pública (AAIP) es el órgano de control de la Ley 25.326 y tiene la atribución de atender las denuncias y reclamos de quienes consideren afectados sus derechos.</p>
         </div>
 

@@ -20,7 +20,7 @@ export default function Terminos() {
       <section className="space-y-6">
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">1. El servicio</h2>
-          <p>Snappy (snappy.uno) es una plataforma que permite a locales gastronómicos y comercios crear un menú digital con un link público, recibir pedidos y gestionarlos desde un panel. Al crear una cuenta o usar Snappy aceptás estos términos. Si no estás de acuerdo, no uses el servicio. [REVISAR: razón social, CUIT y domicilio del titular del servicio]</p>
+          <p>Snappy (snappy.uno) es una plataforma que permite a locales gastronómicos y comercios crear un menú digital con un link público, recibir pedidos y gestionarlos desde un panel. Al crear una cuenta o usar Snappy aceptás estos términos. Snappy es operado por Luciano Meza, Mercedes, Buenos Aires, Argentina. Si no estás de acuerdo, no uses el servicio.</p>
         </div>
 
         <div>
@@ -31,13 +31,13 @@ export default function Terminos() {
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">3. Planes y prueba gratuita</h2>
           <p className="mb-3">Snappy ofrece distintos planes de suscripción, cuyas características y precios se muestran en la página de inicio y pueden cambiar. Todos los planes incluyen una prueba gratuita de 14 días, sin necesidad de cargar una tarjeta para empezar.</p>
-          <p>Al terminar la prueba, para seguir usando las funciones del plan tenés que suscribirte. [REVISAR: describir qué pasa con la cuenta y los datos si no te suscribís al terminar la prueba]</p>
+          <p>Al terminar la prueba, para seguir usando Snappy tenés que cargar una tarjeta y suscribirte. Si no lo hacés, el menú público queda pausado para tus clientes y el panel se bloquea, salvo la sección para activar un plan. Tus datos no se borran en ese momento: los conservamos hasta 3 meses desde el vencimiento de la prueba y luego se eliminan o anonimizan, como se explica en la Política de Privacidad.</p>
         </div>
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">4. Pagos y cancelación</h2>
-          <p className="mb-3">Las suscripciones se cobran a través de Mercado Pago, con la periodicidad del plan elegido, y se renuevan automáticamente hasta que las canceles. Los precios pueden modificarse; si eso ocurre, te vamos a avisar con anticipación razonable. [REVISAR: moneda, impuestos y plazo de aviso ante cambios de precio]</p>
-          <p>Podés cancelar tu suscripción cuando quieras. La cancelación evita los cobros futuros. [REVISAR: política de reembolsos y si el servicio sigue activo hasta el final del período ya pagado]</p>
+          <p className="mb-3">Las suscripciones se cobran a través de Mercado Pago, con la periodicidad del plan elegido, y se renuevan automáticamente hasta que las canceles. La moneda y los impuestos aplicables se informan al momento de contratar el plan. Los precios pueden modificarse; si eso ocurre, te vamos a avisar con anticipación razonable.</p>
+          <p>Podés cancelar tu suscripción cuando quieras. La cancelación evita los cobros futuros. Al cancelar, el menú público y el panel quedan pausados, y podés reactivar el servicio cuando quieras con una nueva suscripción. Los reembolsos se evalúan caso por caso; escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
         </div>
 
         <div>
@@ -49,7 +49,7 @@ export default function Terminos() {
             <li>Intentar acceder sin autorización a cuentas, sistemas o datos de otros usuarios.</li>
             <li>Interferir con el funcionamiento del servicio, sobrecargarlo o usarlo para enviar spam.</li>
           </ul>
-          <p className="mt-3">Podemos suspender o dar de baja cuentas que incumplan estos términos. [REVISAR: procedimiento de aviso previo a una suspensión]</p>
+          <p className="mt-3">Podemos suspender o dar de baja cuentas que incumplan estos términos; cuando sea posible, te avisaremos antes y te daremos la oportunidad de corregir el incumplimiento.</p>
         </div>
 
         <div>
@@ -64,12 +64,12 @@ export default function Terminos() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">8. Disponibilidad del servicio</h2>
-          <p>Hacemos lo posible para que Snappy funcione de manera continua, pero no garantizamos que esté disponible sin interrupciones ni libre de errores. Puede haber cortes por mantenimiento, fallas técnicas o problemas de proveedores externos (conexión a internet, alojamiento, medios de pago). [REVISAR: confirmar si se ofrece algún compromiso de disponibilidad]</p>
+          <p>Hacemos lo posible para que Snappy funcione de manera continua, pero no garantizamos que esté disponible sin interrupciones ni libre de errores. Puede haber cortes por mantenimiento, fallas técnicas o problemas de proveedores externos (conexión a internet, alojamiento, medios de pago). No asumimos un compromiso de disponibilidad específico.</p>
         </div>
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">9. Limitación de responsabilidad</h2>
-          <p>En la medida que lo permita la ley, Snappy no responde por pérdidas indirectas, lucro cesante o ventas perdidas derivadas de interrupciones del servicio, de errores en la información cargada por los locales o de fallas de terceros. Nada de lo dispuesto en estos términos limita los derechos que la ley te reconoce como consumidor o usuario. [REVISAR: definir un tope de responsabilidad, si se quiere]</p>
+          <p>En la medida que lo permita la ley, Snappy no responde por pérdidas indirectas, lucro cesante o ventas perdidas derivadas de interrupciones del servicio, de errores en la información cargada por los locales o de fallas de terceros. Nada de lo dispuesto en estos términos limita los derechos que la ley te reconoce como consumidor o usuario.</p>
         </div>
 
         <div>
@@ -79,7 +79,7 @@ export default function Terminos() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">11. Ley aplicable y jurisdicción</h2>
-          <p>Estos términos se rigen por las leyes de la República Argentina. Para cualquier controversia, serán competentes los tribunales ordinarios de la República Argentina. [REVISAR: confirmar jurisdicción y tribunal competente]</p>
+          <p>Estos términos se rigen por las leyes de la República Argentina. Para cualquier controversia, serán competentes los tribunales ordinarios de Mercedes, Buenos Aires, sin perjuicio de las normas de defensa del consumidor.</p>
         </div>
 
         <div className="pt-10 border-t border-gray-100">
