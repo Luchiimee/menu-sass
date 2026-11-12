@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 23 — restaurants.first_paid_at: fecha del PRIMER pago de la suscripción (para ordenar el cupo de la promo)
 -- =============================================================================
--- BORRADOR. NO EJECUTADO. CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
+-- APLICADO en producción el 2026-11-12; verificado: columna first_paid_at creada, trigger restaurants_02_first_paid_at presente, protect_restaurant_columns incluye first_paid_at; función previa idéntica a la del script 18; guardado desde el panel probado. CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
 -- Requisito: el script 18 ya aplicado (existen restaurants_01_protect_columns y protect_restaurant_columns).
 --
 -- Problema
