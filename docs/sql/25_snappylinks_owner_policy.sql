@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 25 — snappylinks: solo el dueño del local crea y modifica su bio (se cierra la escritura pública)
 -- =============================================================================
--- BORRADOR. NO EJECUTADO.
+-- APLICADO en producción el 2026-11-11; verificado con pg_policies (quedan las 2 de lectura pública y 'snappylinks: dueño gestiona'); índices únicos confirmados en restaurant_id y slug, 0 filas huérfanas. Pendiente: prueba en pantalla de Personalizar.
 -- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
 --
 -- Problema (verificado en producción): public.snappylinks tiene dos políticas de escritura abiertas
