@@ -208,7 +208,7 @@ console.log('restaurant_id: sale siempre de la sesión, nunca del body');
   // El endpoint: el id sale de requirePlan (la sesión) y de ningún otro lado
   // Código sin comentarios (los comentarios mencionan restaurant_id para explicar que se ignora)
   const src = readFileSync(new URL('../app/api/products/import/route.ts', import.meta.url), 'utf8')
-    .split('\n')
+    .split(/\r?\n/)
     .map((line) => line.replace(/\/\/.*$/, ''))
     .join('\n');
   check('el endpoint toma el local de access.restaurant.id (requirePlan con la sesión)', /const restaurantId = access\.restaurant\.id;/.test(src) && /requirePlan\(sessionUser\.id/.test(src));
