@@ -7,8 +7,9 @@
 // destacado (si|no) e imagen_url (solo https).
 //
 // Seguridad: al IMPORTAR se guarda el texto original; una celda que empiece con = + - @ solo genera un AVISO en la
-// vista previa. La neutralización contra fórmulas (neutralizeCell) es para cuando se EXPORTEN datos a una planilla
-// (v2), no para la base. Los textos nunca se interpretan como HTML (la UI los muestra como texto de React).
+// vista previa. La neutralización contra fórmulas (neutralizeCell) es solo para el archivo EXPORTADO
+// (lib/productsExport), nunca para la base; al importar se deshace (unneutralizeCell) para que exportar e importar
+// dé lo mismo. Los textos nunca se interpretan como HTML (la UI los muestra como texto de React).
 
 export const IMPORT_LIMITS = {
   maxRows: 500,
@@ -75,7 +76,7 @@ export const DEFAULT_CATEGORY = 'General';
 function cellText(v: unknown): string {
   if (typeof v === 'number' && Number.isFinite(v)) return String(v);
   if (typeof v !== 'string') return '';
-  return v.slice(0, IMPORT_LIMITS.maxCell).trim();
+  return unneutralizeCell(v.slice(0, IMPORT_LIMITS.maxCell).trim());
 }
 
 // Sin caracteres de control (salvo salto de línea y tab dentro de la descripción, que pasan a espacio simple).
@@ -85,10 +86,17 @@ function stripControl(s: string): string {
 
 const FORMULA_START = /^[=+\-@\t\r]/;
 
-// Neutraliza una celda que podría ser una fórmula (comilla simple adelante). NO se usa al importar: está para la
-// exportación a planilla (v2).
+// Neutraliza una celda que podría ser una fórmula (comilla simple adelante). NO se usa al importar ni toca la base: solo
+// la usa la exportación a CSV (lib/productsExport).
 export function neutralizeCell(s: string): string {
   return FORMULA_START.test(s) ? `'${s}` : s;
+}
+
+// Inverso de neutralizeCell: una celda que empieza con comilla simple SEGUIDA de = + - @ (tab/CR) es la que dejó la
+// exportación de Snappy; se le saca la comilla para que exportar e importar dé lo mismo. Una comilla normal
+// ("'Pizza") no se toca.
+export function unneutralizeCell(s: string): string {
+  return /^'[=+\-@\t\r]/.test(s) ? s.slice(1) : s;
 }
 
 export function startsLikeFormula(s: string): boolean {
