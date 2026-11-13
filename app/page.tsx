@@ -1417,6 +1417,100 @@ export default function LandingPage() {
         </div>
       </section>
 
+{/* --- SECCIÓN: PAGOS ONLINE (MERCADO PAGO) --- */}
+<section className="py-24 bg-gray-950 text-white overflow-hidden">
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+      {/* TEXTO */}
+      <div>
+        <span className="inline-block px-3 py-1 bg-fresco/10 text-fresco text-[10px] font-black uppercase tracking-widest rounded-full border border-fresco/20 mb-6">
+          Pagos online
+        </span>
+        <h2 className="text-4xl font-extrabold tracking-tight mb-6 leading-tight">
+          Que tus clientes paguen desde el menú
+        </h2>
+        <p className="text-gray-400 text-lg leading-relaxed mb-10 font-medium">
+          Conectá tu cuenta de Mercado Pago y cobrá online al momento de pedir. El pedido te llega al panel ya pagado, sin comprobantes ni mensajes de más.
+        </p>
+
+        <ul className="space-y-5 mb-6">
+          {[
+            { icon: CreditCard, text: 'Pago online con Mercado Pago, directo en el checkout del menú.' },
+            { icon: Wallet,     text: 'El envío por zonas ya viene incluido en el total: tu cliente ve cuánto paga antes de confirmar.' },
+            { icon: ShieldCheck, text: 'El pedido llega pagado a tu panel, listo para preparar.' },
+            { icon: BarChart3,  text: 'En Plus, la Caja registra cada cobro online.' },
+          ].map((item, i) => (
+            <li key={i} className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <item.icon size={16} className="text-fresco" />
+              </div>
+              <span className="text-gray-300 font-medium">{item.text}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="text-gray-500 text-xs leading-relaxed">
+          Disponible en los planes GO y Plus. Mercado Pago cobra su propia comisión por procesar el pago.
+        </p>
+      </div>
+
+      {/* MOCK CHECKOUT */}
+      <div className="relative flex justify-center items-center">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-[220px] h-[440px] bg-fresco/10 rounded-full blur-[60px]" />
+        </div>
+
+        <div className="relative w-[260px] bg-gray-950 rounded-[3rem] border-[3px] border-gray-800 shadow-[0_0_60px_-10px_rgba(34,197,94,0.3)] overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90px] h-[22px] bg-gray-950 rounded-b-2xl z-20" />
+
+          <div className="pt-10 pb-6 px-4 flex flex-col min-h-[520px] bg-[#0d1117]">
+            <p className="text-white font-black text-sm uppercase tracking-tight text-center pt-4 mb-6">
+              Tu pedido
+            </p>
+
+            <div className="flex flex-col gap-3 flex-1">
+              <div className="flex justify-between text-[11px] text-gray-300 font-medium">
+                <span>1x Doble cheddar</span>
+                <span>$9.000</span>
+              </div>
+              <div className="flex justify-between text-[11px] text-gray-300 font-medium">
+                <span>1x Papas</span>
+                <span>$3.500</span>
+              </div>
+
+              <div className="border-t border-white/10 pt-3 mt-1 flex flex-col gap-2">
+                <div className="flex justify-between text-[11px] text-gray-400 font-medium">
+                  <span>Subtotal</span>
+                  <span>$12.500</span>
+                </div>
+                <div className="flex justify-between text-[11px] text-gray-400 font-medium">
+                  <span>Envío · Zona 1</span>
+                  <span>$1.500</span>
+                </div>
+                <div className="flex justify-between text-sm text-white font-black pt-2 border-t border-white/10">
+                  <span>Total</span>
+                  <span className="text-fresco">$14.000</span>
+                </div>
+              </div>
+
+              <div className="mt-auto">
+                <div className="w-full py-3 px-4 rounded-2xl bg-fresco text-white text-[10px] font-black uppercase tracking-wide text-center flex items-center justify-center gap-2 cursor-default">
+                  <CreditCard size={14} /> Pagar con Mercado Pago
+                </div>
+                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest text-center mt-3">
+                  Pago online seguro
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 {/* --- SECCIÓN: SEGUIMIENTO DEL PEDIDO --- */}
 <section className="py-24 bg-gray-900 text-white overflow-hidden">
   <div className="max-w-7xl mx-auto px-6">
@@ -1787,7 +1881,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-start gap-3 text-left">
                   <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
-                  <span><b>Integración con Mercado Pago</b></span>
+                  <span><b>Cobros con Mercado Pago</b></span>
                 </li>
                 <li className="flex items-start gap-3 text-left">
                   <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
@@ -1842,7 +1936,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-start gap-3 text-left">
                   <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
-                  <span><b>Integración con billeteras</b></span>
+                  <span><b>Cobros con Mercado Pago</b></span>
                 </li>
                 <li className="flex items-start gap-3 text-left">
                   <Check size={16} className="text-fresco flex-shrink-0 mt-0.5"/>
@@ -1987,7 +2081,7 @@ export default function LandingPage() {
             {[
               {
                 q: "¿Cobran comisión?",
-                a: "No. Solo pagas la suscripción mensual fija. El 100% de tus ventas es para vos.",
+                a: "Snappy no cobra comisión por tus ventas: pagás solo la suscripción mensual fija. Si cobrás online, Mercado Pago aplica su propia comisión por procesar el pago.",
               },
               {
                 q: "¿Necesito una App?",
@@ -2057,8 +2151,8 @@ export default function LandingPage() {
                 icon: <Layers size={24}/> 
               },
               { 
-                title: "Pagos con Tarjeta", 
-                desc: "Aceptá crédito y débito directamente en el menú. Una experiencia de compra fluida y profesional.", 
+                title: "Pago con tarjeta dentro del menú", 
+                desc: "Que tus clientes paguen con crédito y débito sin salir de tu menú, en una experiencia más fluida.", 
                 icon: <CreditCard size={24}/> 
               }
             ].map((item, i) => (
