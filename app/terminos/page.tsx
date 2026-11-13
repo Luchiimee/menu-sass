@@ -37,7 +37,7 @@ export default function Terminos() {
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">4. Pagos y cancelación</h2>
           <p className="mb-3">Las suscripciones se cobran a través de Mercado Pago, con la periodicidad del plan elegido, y se renuevan automáticamente hasta que las canceles. La moneda y los impuestos aplicables se informan al momento de contratar el plan. Los precios pueden modificarse; si eso ocurre, te vamos a avisar con anticipación razonable.</p>
-          <p>Podés cancelar tu suscripción cuando quieras. La cancelación evita los cobros futuros. Al cancelar, el servicio sigue activo hasta el fin del período ya pagado. Después de esa fecha, el menú público y el panel quedan pausados, y podés reactivar el servicio cuando quieras con una nueva suscripción. Si no podemos determinar la fecha de fin del período, la cancelación es inmediata. Los reembolsos se evalúan caso por caso; escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
+          <p>Podés cancelar tu suscripción cuando quieras. La cancelación evita los cobros futuros. Al cancelar, el menú público y el panel quedan pausados, y podés reactivar el servicio cuando quieras con una nueva suscripción. Los reembolsos se evalúan caso por caso; escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
         </div>
 
         <div>
