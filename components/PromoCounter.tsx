@@ -63,10 +63,10 @@ export default function PromoCounter({ endsAt }: { endsAt: number }) {
   const text = !counter
     ? 'Lugares limitados para la promo de noviembre'
     : counter.registered === 0
-      ? 'Quedan lugares disponibles'
+      ? 'Quedan lugares disponibles en la promo de remeras'
       : counter.registered === 1
-        ? '1 registrado'
-        : `${counter.registered} registrados`;
+        ? '1 negocio ya se registró en la promo de remeras'
+        : `${counter.registered} negocios ya se registraron en la promo de remeras`;
 
   return (
     <div role="status" className="mb-3">
