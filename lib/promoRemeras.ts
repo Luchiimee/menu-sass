@@ -19,7 +19,7 @@ export const PROMO_PAYMENT_DEADLINE = '2026-12-15T23:59:59.999-03:00';
 
 // Cuentas de prueba del dueño: nunca cuentan en el ranking ni en "registrados", además de los admin que
 // pasa quien llama (opts.excludeEmails). En minúsculas; la comparación no distingue mayúsculas ni espacios.
-export const PROMO_EXCLUDED_EMAILS: readonly string[] = ['tamalu026@gmail.com', 'luchiimee@gmail.com'];
+export const PROMO_EXCLUDED_EMAILS: readonly string[] = ['tamalu026@gmail.com', 'luchiimee@gmail.com', 'tamarabenitez990@gmail.com'];
 
 export type PromoRestaurantRow = {
   id: unknown;

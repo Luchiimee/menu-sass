@@ -127,8 +127,9 @@ console.log('buildPromoRemeras: exclusión y entradas raras');
 
 console.log('cuentas de prueba (PROMO_EXCLUDED_EMAILS)');
 {
-  check('la constante tiene las dos cuentas de prueba, en minúsculas',
-    PROMO_EXCLUDED_EMAILS.length === 2 && PROMO_EXCLUDED_EMAILS.includes('tamalu026@gmail.com') && PROMO_EXCLUDED_EMAILS.includes('luchiimee@gmail.com')
+  check('la constante tiene las tres cuentas excluidas, en minúsculas',
+    PROMO_EXCLUDED_EMAILS.length === 3 && PROMO_EXCLUDED_EMAILS.includes('tamalu026@gmail.com') && PROMO_EXCLUDED_EMAILS.includes('luchiimee@gmail.com')
+    && PROMO_EXCLUDED_EMAILS.includes('tamarabenitez990@gmail.com')
     && PROMO_EXCLUDED_EMAILS.every((e) => e === e.toLowerCase().trim()));
   const rows = [
     row('t1', NOV, '2026-11-11T09:00:00Z', { owner_email: 'tamalu026@gmail.com' }),
@@ -139,6 +140,14 @@ console.log('cuentas de prueba (PROMO_EXCLUDED_EMAILS)');
   const out = buildPromoRemeras(rows);
   check('las cuentas de prueba no aparecen (sin pasar excludeEmails)', out.map((o) => o.id).join(',') === 'real1,real2');
   check('no ocupan puesto: el primero real es el puesto 1', out[0].puesto === 1 && out[1].puesto === 2);
+  // tamarabenitez990@gmail.com (con mayúsculas y espacios) no cuenta ni ocupa puesto; uno parecido sí
+  const tam = buildPromoRemeras([
+    row('tb', NOV, '2026-11-11T09:00:00Z', { owner_email: '  TamaraBenitez990@Gmail.COM ' }),
+    row('r1', NOV, '2026-11-12T12:00:00Z'),
+    row('xtb', NOV, '2026-11-13T12:00:00Z', { owner_email: 'xtamarabenitez990@gmail.com' }),
+  ]);
+  check('tamarabenitez990 (mayúsculas y espacios): no aparece en el ranking ni ocupa puesto', tam.map((o) => o.id).join(',') === 'r1,xtb' && tam[0].puesto === 1 && tam[1].puesto === 2);
+  check('xtamarabenitez990 (correo parecido): SÍ aparece y cuenta', tam.some((o) => o.id === 'xtb'));
   const r = buildPromoRemerasResponse(rows);
   check('no cuentan en registrados, con pago ni en plazo', r.total === 2 && r.con_pago === 2 && r.en_plazo === 2);
   const conAdmin = buildPromoRemeras([...rows, row('adm', NOV, '2026-11-10T00:00:00Z', { owner_email: 'admin@snappy.com' })], { excludeEmails: ['admin@snappy.com'] });
@@ -178,6 +187,9 @@ console.log('buildPromoCounter (contador público de registros)');
   check('first_paid_at fuera de plazo también cuenta como registrado', count([row('x', NOV, '2026-12-20T12:00:00Z'), row('y', NOV, null)]) === 2);
 
   check('excluidos fijos (sin importar mayúsculas ni espacios): no cuentan', count([row('a', NOV, null, { owner_email: 'tamalu026@gmail.com' }), row('b', NOV, null, { owner_email: ' LUCHIIMEE@gmail.com ' }), row('c', NOV, null)]) === 1);
+  check('tamarabenitez990 (con mayúsculas y espacios) no cuenta en registered; xtamarabenitez990 sí',
+    count([row('a', NOV, null, { owner_email: '  TAMARABENITEZ990@Gmail.com ' }), row('b', NOV, null, { owner_email: 'xtamarabenitez990@gmail.com' }), row('c', NOV, null)]) === 2
+    && count([row('a', NOV, null, { owner_email: ' TamaraBenitez990@gmail.com' })]) === 0);
   check('admin que pasa quien llama: no cuenta', count([row('a', NOV, null, { owner_email: 'ADMIN@x.com' }), row('b', NOV, null)], { excludeEmails: ['admin@x.com'] }) === 1);
   check('un correo parecido a los excluidos SÍ cuenta', count([row('a', NOV, null, { owner_email: 'xtamalu026@gmail.com' }), row('b', NOV, null, { owner_email: 'luchiimee@gmail.co' })]) === 2);
 
