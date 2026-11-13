@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     if (report.fatal) return fail(400, 'archivo_invalido', { message: report.fatal });
 
     const toCreate = report.rows.filter((r) => r.status === 'ok' && r.row).map((r) => r.row as ImportRow);
-    const summary = { duplicates: report.counts.duplicates, invalid: report.counts.errors };
+    const summary = { duplicates: report.counts.duplicates, invalid: report.counts.errors, inactive: report.counts.inactive };
 
     // Límite del plan: todo o nada (los admins no tienen tope, igual que en el panel)
     const isAdmin = isAdminEmail(sessionUser.email);

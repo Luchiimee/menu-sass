@@ -4,7 +4,8 @@
 // lo que valida el navegador). Sin imports (ni alias) y sin red: se prueba en scripts/check-products-import.mjs.
 //
 // Columnas: categoria, nombre, descripcion, precio, tipo_venta (unidad|peso), variaciones (100g:1500|1kg:12000),
-// destacado (si|no) e imagen_url (solo https).
+// destacado (si|no) e imagen_url (solo https). También se reconocen, por encabezado y sin distinguir mayúsculas ni
+// tildes, Categoría, Nombre, Descripción, Precio, Activo y Favorito (formato Fudo); el resto de las columnas se ignora.
 //
 // Seguridad: al IMPORTAR se guarda el texto original; una celda que empiece con = + - @ solo genera un AVISO en la
 // vista previa. La neutralización contra fórmulas (neutralizeCell) es solo para el archivo EXPORTADO
@@ -29,7 +30,8 @@ export const TEMPLATE_HEADERS = [
 ] as const;
 
 export type TemplateHeader = (typeof TEMPLATE_HEADERS)[number];
-export type RawRow = Partial<Record<TemplateHeader, unknown>>;
+// activo: solo viene en planillas de otros sistemas (Fudo); no es una columna de la plantilla propia
+export type RawRow = Partial<Record<TemplateHeader | 'activo', unknown>>;
 
 export type Variation = { label: string; price: string };
 
@@ -44,7 +46,8 @@ export type ImportRow = {
   imagen_url: string | null;
 };
 
-export type RowStatus = 'ok' | 'duplicate' | 'error';
+// inactive: la planilla trae Activo = No; se omite con aviso
+export type RowStatus = 'ok' | 'duplicate' | 'error' | 'inactive';
 
 export type RowResult = {
   line: number; // número de fila en el archivo (la 1 es el encabezado)
@@ -65,7 +68,7 @@ export type ImportContext = {
 export type ImportReport = {
   fatal: string | null;
   rows: RowResult[];
-  counts: { total: number; ok: number; duplicates: number; errors: number };
+  counts: { total: number; ok: number; duplicates: number; errors: number; inactive: number };
 };
 
 export const DEFAULT_CATEGORY = 'General';
@@ -120,21 +123,22 @@ function headerKey(h: string): string {
     .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
-const HEADER_ALIASES: Record<string, TemplateHeader> = {
+const HEADER_ALIASES: Record<string, TemplateHeader | 'activo'> = {
   categoria: 'categoria', categorias: 'categoria',
   nombre: 'nombre', producto: 'nombre',
   descripcion: 'descripcion',
   precio: 'precio',
   tipo_venta: 'tipo_venta', tipo_de_venta: 'tipo_venta', tipo: 'tipo_venta',
   variaciones: 'variaciones', variacion: 'variaciones', opciones_de_venta: 'variaciones',
-  destacado: 'destacado',
+  destacado: 'destacado', favorito: 'destacado',
+  activo: 'activo',
   imagen_url: 'imagen_url', imagen: 'imagen_url', url_imagen: 'imagen_url',
 };
 
 // Pasa los registros de papaparse (header: true) a filas con las columnas canónicas. Encabezados desconocidos
 // se ignoran. Devuelve las filas y los encabezados requeridos que faltan (nombre y precio).
 export function mapHeaders(records: readonly Record<string, unknown>[]): { rows: RawRow[]; missing: string[] } {
-  const seen = new Set<TemplateHeader>();
+  const seen = new Set<TemplateHeader | 'activo'>();
   const rows: RawRow[] = records.map((rec) => {
     const out: RawRow = {};
     for (const [key, value] of Object.entries(rec ?? {})) {
@@ -220,6 +224,7 @@ function parseVariations(raw: string, errors: string[], warnings: string[]): Var
   return out;
 }
 
+const INACTIVE = new Set(['no', 'false', '0', 'n']);
 const YES = new Set(['si', 'sí', 'true', '1', 'x', 'yes', 's']);
 const NO = new Set(['', 'no', 'false', '0', 'n']);
 
@@ -254,7 +259,7 @@ function textField(raw: unknown, warnings: string[], field: string): string {
 }
 
 export function validateImport(records: readonly RawRow[] | null | undefined, ctx: ImportContext): ImportReport {
-  const empty = (fatal: string | null): ImportReport => ({ fatal, rows: [], counts: { total: 0, ok: 0, duplicates: 0, errors: 0 } });
+  const empty = (fatal: string | null): ImportReport => ({ fatal, rows: [], counts: { total: 0, ok: 0, duplicates: 0, errors: 0, inactive: 0 } });
 
   if (!Array.isArray(records) || records.length === 0) return empty('El archivo no tiene filas con productos.');
   if (records.length > IMPORT_LIMITS.maxRows) {
@@ -278,6 +283,11 @@ export function validateImport(records: readonly RawRow[] | null | undefined, ct
     // Fila completamente vacía: se ignora como error liviano
     const allEmpty = TEMPLATE_HEADERS.every((h) => cellText(r[h]) === '');
     if (allEmpty) return { line, status: 'error', errors: ['fila vacía'], warnings, preview };
+
+    // Activo = No (planillas de otros sistemas): se omite con aviso, sin validar el resto de la fila
+    if (INACTIVE.has(cellText(r.activo).toLowerCase())) {
+      return { line, status: 'inactive', errors: [], warnings: ['Activo = No: se omite (no se importa)'], preview };
+    }
 
     // nombre
     if (nombreRaw.length < 1 || nombreRaw.length > IMPORT_LIMITS.maxName) {
@@ -370,7 +380,8 @@ export function validateImport(records: readonly RawRow[] | null | undefined, ct
   const ok = rows.filter((x) => x.status === 'ok').length;
   const duplicates = rows.filter((x) => x.status === 'duplicate').length;
   const errors = rows.filter((x) => x.status === 'error').length;
-  return { fatal: null, rows, counts: { total: rows.length, ok, duplicates, errors } };
+  const inactive = rows.filter((x) => x.status === 'inactive').length;
+  return { fatal: null, rows, counts: { total: rows.length, ok, duplicates, errors, inactive } };
 }
 
 // ─── Límite del plan ────────────────────────────────────────────────────────────────────────────
