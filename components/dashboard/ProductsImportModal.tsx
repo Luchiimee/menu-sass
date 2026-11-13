@@ -1,6 +1,6 @@
 'use client';
 
-// Importar productos desde un CSV (Mis Productos). El archivo se lee y se valida en el navegador SOLO para mostrar la
+// Importar productos desde un CSV o un .xlsx (Mis Productos). El archivo se lee y se valida en el navegador SOLO para mostrar la
 // vista previa; al confirmar se manda el JSON ya parseado a POST /api/products/import, que revalida todo en el servidor
 // y aplica el límite del plan (todo o nada). Los valores del archivo se muestran siempre como texto de React.
 
@@ -11,6 +11,7 @@ import {
   IMPORT_LIMITS, TEMPLATE_HEADERS, mapHeaders, validateImport, checkProductLimit, templateCsv,
   type ExistingProduct, type ImportReport, type RawRow, type RowStatus,
 } from '@/lib/productsImport';
+import { readXlsxRecords } from '@/lib/productsXlsx';
 
 type Props = {
   existing: ExistingProduct[];
@@ -23,12 +24,13 @@ type Props = {
   onChangePlan: () => void;
 };
 
-type Done = { created: number; categoriesCreated: number; duplicates: number; invalid: number };
+type Done = { created: number; categoriesCreated: number; duplicates: number; invalid: number; inactive: number };
 
 const STATUS_STYLE: Record<RowStatus, { label: string; cls: string }> = {
   ok: { label: 'Se crea', cls: 'bg-[#E8F7F1] text-[#17A06D]' },
   duplicate: { label: 'Duplicado', cls: 'bg-amber-100 text-amber-700' },
   error: { label: 'Error', cls: 'bg-alert/10 text-alert' },
+  inactive: { label: 'Inactivo', cls: 'bg-gray-100 text-gray-600' },
 };
 
 // Excel en español guarda CSV en Windows-1252: se prueba UTF-8 estricto y, si falla, Windows-1252.
@@ -43,6 +45,7 @@ function decodeCsv(buffer: ArrayBuffer): string {
 export default function ProductsImportModal({ existing, hasFeatured, currentCount, maxProds, isAdmin, onClose, onImported, onChangePlan }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
+  const [sheetInfo, setSheetInfo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [rawRows, setRawRows] = useState<RawRow[]>([]);
@@ -66,6 +69,7 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
     setReport(null);
     setRawRows([]);
     setFileName('');
+    setSheetInfo('');
     setError(null);
     setLimitHit(false);
     if (fileRef.current) fileRef.current.value = '';
@@ -81,22 +85,36 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
       setError('El archivo pesa más de 2 MB. Dividilo en archivos más chicos.');
       return;
     }
-    if (!/\.(csv|txt)$/i.test(file.name)) {
-      setError('Subí un archivo .csv (en Excel: Guardar como → CSV).');
+    const isXlsx = /\.xlsx$/i.test(file.name);
+    if (!isXlsx && !/\.(csv|txt)$/i.test(file.name)) {
+      setError('Subí un archivo .xlsx o .csv.');
       return;
     }
     try {
-      const text = decodeCsv(await file.arrayBuffer());
-      const parsed = Papa.parse<Record<string, unknown>>(text, {
-        header: true,
-        skipEmptyLines: 'greedy',
-        preview: IMPORT_LIMITS.maxRows + 1, // una de más para detectar que se pasa del máximo
-      });
-      if (!parsed.data || parsed.data.length === 0) {
+      let records: Record<string, unknown>[];
+      let sheet = '';
+      if (isXlsx) {
+        const read = await readXlsxRecords(await file.arrayBuffer());
+        if (!read.ok) {
+          setError(read.error);
+          return;
+        }
+        records = read.records;
+        sheet = read.sheetCount > 1 ? `Hoja: ${read.sheetName.slice(0, 40)}` : '';
+      } else {
+        const text = decodeCsv(await file.arrayBuffer());
+        const parsed = Papa.parse<Record<string, unknown>>(text, {
+          header: true,
+          skipEmptyLines: 'greedy',
+          preview: IMPORT_LIMITS.maxRows + 1, // una de más para detectar que se pasa del máximo
+        });
+        records = parsed.data ?? [];
+      }
+      if (records.length === 0) {
         setError('No encontré filas en el archivo. Revisá que tenga encabezados y al menos un producto.');
         return;
       }
-      const { rows, missing } = mapHeaders(parsed.data);
+      const { rows, missing } = mapHeaders(records);
       if (missing.length > 0) {
         setError(`Faltan columnas obligatorias: ${missing.join(', ')}. Descargá la plantilla para ver el formato.`);
         return;
@@ -107,10 +125,11 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
         return;
       }
       setFileName(file.name.slice(0, 80));
+      setSheetInfo(sheet);
       setRawRows(rows);
       setReport(result);
     } catch {
-      setError('No pude leer el archivo. Probá guardarlo de nuevo como CSV.');
+      setError('No pude leer el archivo. Probá guardarlo de nuevo como .xlsx o CSV.');
     }
   };
 
@@ -129,7 +148,7 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
-        setDone({ created: body.created ?? 0, categoriesCreated: body.categoriesCreated ?? 0, duplicates: body.duplicates ?? 0, invalid: body.invalid ?? 0 });
+        setDone({ created: body.created ?? 0, categoriesCreated: body.categoriesCreated ?? 0, duplicates: body.duplicates ?? 0, invalid: body.invalid ?? 0, inactive: body.inactive ?? 0 });
         onImported();
       } else if (res.status === 409 && body?.error === 'limite_del_plan') {
         setLimitHit(true);
@@ -139,7 +158,7 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
       } else if (res.status === 403) {
         setError('Tu plan o tu prueba no permite importar productos en este momento.');
       } else if (body?.error === 'error_al_importar') {
-        setDone({ created: body.created ?? 0, categoriesCreated: body.categoriesCreated ?? 0, duplicates: body.duplicates ?? 0, invalid: body.invalid ?? 0 });
+        setDone({ created: body.created ?? 0, categoriesCreated: body.categoriesCreated ?? 0, duplicates: body.duplicates ?? 0, invalid: body.invalid ?? 0, inactive: body.inactive ?? 0 });
         setError(`Se produjo un error a mitad de la importación: se crearon ${body.created ?? 0} y faltaron ${body.pending ?? 0}. Podés volver a subir el archivo: los que ya se crearon se omiten como duplicados.`);
         onImported();
       } else {
@@ -174,14 +193,15 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
               <p className="text-sm text-gray-500">
                 {done.categoriesCreated > 0 && <>Categorías nuevas: {done.categoriesCreated}. </>}
                 {done.duplicates > 0 && <>Duplicados omitidos: {done.duplicates}. </>}
-                {done.invalid > 0 && <>Filas con error omitidas: {done.invalid}.</>}
+                {done.invalid > 0 && <>Filas con error omitidas: {done.invalid}. </>}
+                {done.inactive > 0 && <>Inactivos omitidos: {done.inactive}.</>}
               </p>
               {error && <p className="text-sm text-alert font-medium">{error}</p>}
             </div>
           ) : !report ? (
             <>
               <p className="text-sm text-gray-600">
-                Cargá varios productos de una vez con un archivo <b>CSV</b> (en Excel: Guardar como → CSV). Máximo {IMPORT_LIMITS.maxRows} filas y 2 MB.
+                Cargá varios productos de una vez con un archivo <b>Excel (.xlsx)</b> o <b>CSV</b>. Si es .xlsx se lee la hoja "Productos" (o la primera). Máximo {IMPORT_LIMITS.maxRows} filas y 2 MB.
                 Las categorías que no existan se crean solas y los productos repetidos (mismo nombre y categoría) se omiten.
               </p>
               <button onClick={downloadTemplate} className="w-full min-h-[44px] px-4 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50">
@@ -191,13 +211,14 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
                 <p className="font-bold text-gray-600">Columnas</p>
                 <p className="break-words">{TEMPLATE_HEADERS.join(' · ')}</p>
                 <p><b>tipo_venta</b>: unidad o peso. <b>variaciones</b>: etiqueta:precio separadas por | (ej: 100g:1500|1kg:12000); obligatorias si es por peso. <b>destacado</b>: si o no. <b>imagen_url</b>: solo links https.</p>
+                <p>También reconocemos las columnas Categoría, Nombre, Descripción, Precio, Activo y Favorito (como las exporta Fudo); las demás se ignoran. Con Activo = No el producto se omite.</p>
               </div>
               <label className="block">
-                <span className="sr-only">Elegir archivo CSV</span>
+                <span className="sr-only">Elegir archivo .xlsx o CSV</span>
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onChange={handleFile}
                   className="block w-full text-sm text-gray-500 file:mr-3 file:min-h-[44px] file:py-2.5 file:px-4 file:rounded-2xl file:border-0 file:text-sm file:font-bold file:bg-fresco file:text-white hover:file:bg-[#17A06D]"
                 />
@@ -207,7 +228,7 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
           ) : (
             <>
               <div className="flex items-center gap-2 text-sm text-gray-500 min-w-0">
-                <FileText size={16} className="shrink-0" /> <span className="truncate">{fileName}</span>
+                <FileText size={16} className="shrink-0" /> <span className="truncate">{fileName}{sheetInfo ? ` · ${sheetInfo}` : ''}</span>
               </div>
               {/* Resumen */}
               <div className="grid grid-cols-3 gap-2 text-center">
@@ -215,7 +236,8 @@ export default function ProductsImportModal({ existing, hasFeatured, currentCoun
                 <div className="rounded-2xl bg-amber-50 py-3"><p className="text-xl font-extrabold text-amber-700">{report.counts.duplicates}</p><p className="text-[10px] font-bold uppercase text-amber-700">Duplicados</p></div>
                 <div className="rounded-2xl bg-alert/10 py-3"><p className="text-xl font-extrabold text-alert">{report.counts.errors}</p><p className="text-[10px] font-bold uppercase text-alert">Con error</p></div>
               </div>
-              <p className="text-xs text-gray-500">Los duplicados y las filas con error se omiten; el resto se crea al confirmar.</p>
+              <p className="text-xs text-gray-500">Los duplicados{report.counts.inactive > 0 ? ', los inactivos' : ''} y las filas con error se omiten; el resto se crea al confirmar.{report.counts.inactive > 0 && <> Inactivos omitidos: {report.counts.inactive}.</>}</p>
+              <p className="text-xs text-gray-500 font-medium">Ojo: los precios se importan tal como vienen en el archivo (no se convierten ni se redondean). Revisalos en la vista previa.</p>
 
               {limit && !limit.ok && (
                 <div className="rounded-2xl border border-alert/30 bg-alert/5 p-3 space-y-2">
