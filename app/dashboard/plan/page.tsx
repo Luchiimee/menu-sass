@@ -24,6 +24,9 @@ type Restaurant = {
   created_at?: string;
   trial_ends_at?: string | null;
   grace_period_until?: string | null;
+  // Las trae el select('*') de loadData y de refreshRestaurantData; sirven para distinguir "servicio activo tras cancelar"
+  first_paid_at?: string | null;
+  mp_customer_id?: string | null;
 };
 
 const PLANS = [
@@ -424,7 +427,7 @@ function PlanContent() {
   };
 
   const handleCancelPlan = async () => {
-    if (!window.confirm("¿Cancelar la suscripción?\n\nIntentaremos cancelarla en Mercado Pago. Si se confirma, tu plan pasa a cancelado ya mismo y el panel queda limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.")) return;
+    if (!window.confirm("¿Cancelar la suscripción?\n\nIntentaremos cancelarla en Mercado Pago. Si se confirma, no se te cobrará más. Si ya pagaste el período en curso, tu servicio sigue activo hasta que termine; después el panel queda limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.")) return;
     setProcessingPlan(restaurant.subscription_plan);
     try {
       const response = await fetch("/api/mercadopago/subscription/cancel", {
@@ -432,9 +435,20 @@ function PlanContent() {
         body: JSON.stringify({ userId }),
       });
       if (response.ok) {
-        setRestaurant(prev => ({ ...prev, subscription_status: 'cancelled', mp_preapproval_id: null }));
+        // El servidor devuelve serviceUntil (ISO) si el servicio sigue activo hasta el fin del período pagado
+        const okBody = await response.json().catch(() => null);
+        const serviceUntil: string | null = typeof okBody?.serviceUntil === 'string' ? okBody.serviceUntil : null;
+        setRestaurant(prev => ({
+          ...prev,
+          subscription_status: 'cancelled',
+          mp_preapproval_id: null,
+          ...(serviceUntil ? { grace_period_until: serviceUntil } : {}),
+        }));
         setLinkedCard(null);
-        toast.success("Suscripción cancelada.");
+        const untilShort = serviceUntil
+          ? new Date(serviceUntil).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
+          : null;
+        toast.success(untilShort ? `Suscripción cancelada. Tu servicio sigue activo hasta el ${untilShort}.` : "Suscripción cancelada.");
         window.dispatchEvent(new Event("profile-updated"));
       } else {
         const body = await response.json().catch(() => null);
@@ -469,6 +483,15 @@ function PlanContent() {
   );
   const graceUntilFormatted = restaurant.grace_period_until
     ? new Date(restaurant.grace_period_until).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+
+  // "Servicio activo tras cancelar": cancelado, con gracia futura y que ya pagó alguna vez (first_paid_at o
+  // mp_customer_id). Es distinto de la gracia de migración o de pago fallido, que no cumple esta regla y se muestra
+  // como siempre. NO habilita reactivar: los botones de tarjeta y de reactivar siguen ocultos mientras dure la gracia
+  // (reactivar cobra en el acto y se pagaría dos veces el período); al vencer sale el flujo normal "Re-activar".
+  const serviceActiveAfterCancel = isCancelled && inGracePeriod && (!!restaurant.first_paid_at || !!restaurant.mp_customer_id);
+  const graceUntilShort = restaurant.grace_period_until
+    ? new Date(restaurant.grace_period_until).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
     : '';
 
   return (
@@ -596,7 +619,15 @@ function PlanContent() {
                     {isActive && !inGracePeriod && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}
                   </div>
 
-                  {inGracePeriod && (
+                  {inGracePeriod && serviceActiveAfterCancel && (
+                    <div className="p-4 bg-[#F0FAF6] rounded-2xl border border-[#E8F7F1]">
+                      <p className="text-[10px] text-[#17A06D] font-black uppercase leading-relaxed">
+                        Tu servicio sigue activo hasta el <span className="underline">{graceUntilShort}</span>.
+                        Después de esa fecha vas a poder re-activar tu suscripción.
+                      </p>
+                    </div>
+                  )}
+                  {inGracePeriod && !serviceActiveAfterCancel && (
                     <div className="p-4 bg-[#F0FAF6] rounded-2xl border border-[#E8F7F1]">
                       <p className="text-[10px] text-[#17A06D] font-black uppercase leading-relaxed">
                         Tu período activo es hasta el <span className="underline">{graceUntilFormatted}</span>.
