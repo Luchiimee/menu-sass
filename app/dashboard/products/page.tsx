@@ -4,12 +4,13 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { createBrowserClient } from '@supabase/ssr';
-import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, Search, Image as ImageIcon, Trash2, Edit2, UtensilsCrossed, Store, Zap, X, Save, UploadCloud, LayoutGrid, List, Check, Layers, DollarSign, AlignLeft, Tag, Clock, Info, Star, Video, AlertTriangle, Download } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { isAdminEmail } from '@/lib/access';
 import { maxProductsForPlan } from '@/lib/plans';
 import ProductsImportModal from '@/components/dashboard/ProductsImportModal';
+import { exportProductsFile } from '@/lib/productsExport';
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -40,6 +41,7 @@ const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false); 
   const [showExtraModal, setShowExtraModal] = useState(false); 
   const [showImportModal, setShowImportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -148,6 +150,40 @@ const reloadCatalog = async () => {
     if (prods) setProducts(prods);
     const { data: cats } = await supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true });
     if (cats) setCategories(cats);
+};
+
+// Exportar a CSV: lee los productos y categorías del local con la sesión del dueño (RLS) y descarga el archivo
+const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
+const exportProducts = async () => {
+    if (!restaurantId || exporting) return;
+    setExporting(true);
+    try {
+        // Por páginas de 1000: Supabase corta cada consulta en ese tope
+        const prods: any[] = [];
+        let pErr: unknown = null;
+        for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabase.from('products').select('name, description, price, image_url, sale_type, variations, es_destacado, category_id').eq('restaurant_id', restaurantId).order('id', { ascending: true }).range(from, from + 999);
+            if (error) { pErr = error; break; }
+            prods.push(...(data ?? []));
+            if (!data || data.length < 1000) break;
+        }
+        const { data: cats, error: cErr } = await supabase.from('categories').select('id, name, sort_order').eq('restaurant_id', restaurantId).order('sort_order', { ascending: true });
+        if (pErr || cErr) { showToast('No se pudo exportar. Probá de nuevo.'); return; }
+        if (prods.length === 0) { showToast('Todavía no tenés productos para exportar.'); return; }
+        const blob = new Blob([exportProductsFile(prods, cats ?? [])], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'productos.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch {
+        showToast('No se pudo exportar. Probá de nuevo.');
+    } finally {
+        setExporting(false);
+    }
 };
 
 const openCreateModal = () => {
@@ -644,6 +680,9 @@ const maxProds = maxProductsForPlan(currentPlan);
             </div>
             <button onClick={() => setShowImportModal(true)} className="bg-white border border-gray-200 text-gray-700 px-4 py-3 min-h-[44px] rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm active:scale-95">
                 <UploadCloud size={18}/> Importar productos
+            </button>
+            <button onClick={exportProducts} disabled={exporting} className="bg-white border border-gray-200 text-gray-700 px-4 py-3 min-h-[44px] rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm active:scale-95 disabled:opacity-50">
+                {exporting ? <Loader2 size={18} className="animate-spin"/> : <Download size={18}/>} Exportar productos
             </button>
             <button onClick={openCreateModal} className="bg-fresco text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#17A06D] transition shadow-lg active:scale-95">
                 <Plus size={20}/> <span className="hidden lg:inline">Nuevo Producto</span>
