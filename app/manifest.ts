@@ -15,31 +15,23 @@ export default function manifest(): MetadataRoute.Manifest {
     
     icons: [
   {
-    src: '/logo-snappy192.svg',
+    src: '/icon-192.png',
     sizes: '192x192',
-    type: 'image/svg+xml',
+    type: 'image/png',
     purpose: 'any',
   },
   {
-    src: '/logo-snappy512.svg',
+    src: '/icon-512.png',
     sizes: '512x512',
-    type: 'image/svg+xml',
+    type: 'image/png',
     purpose: 'any',
   },
   {
-    src: '/logo-snappy512.svg',
+    src: '/icon-512-maskable.png',
     sizes: '512x512',
-    type: 'image/svg+xml',
+    type: 'image/png',
     purpose: 'maskable',
   },
 ],
-screenshots: [
-  {
-    src: '/logo-snappy512.svg',
-    sizes: '512x512',
-    type: 'image/svg+xml',
-    form_factor: 'narrow'
-  }
-]
   }
 }
