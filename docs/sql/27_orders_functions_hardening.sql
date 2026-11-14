@@ -1,7 +1,11 @@
 -- =============================================================================
 -- 27 — orders: trigger que protege el insert público y solicitar_pago_mesa endurecida
 -- =============================================================================
--- NO APLICADO. Dos piezas independientes (A y B), cada una con su transacción y su rollback: se aplican de a una.
+-- APLICADO en producción el 2026-11-13 (las dos piezas, A y B) y PROBADO en producción con el local Burgers Snappy:
+--   un pedido de RETIRO y uno de MESA enviados desde el menú público entraron (POST a orders 201) con status
+--   'pendiente', payment_status 'pendiente', pago_confirmado false y turno asignado; el pago de mesa por
+--   solicitar_pago_mesa funciona. La pieza A de este archivo es la versión APLICADA (SECURITY DEFINER, ver abajo).
+-- Dos piezas independientes (A y B), cada una con su transacción y su rollback: se aplican de a una.
 -- CORRER A MANO EN EL SQL EDITOR DE SUPABASE. No se ejecuta desde el código.
 --
 -- Problema (verificado en producción)
@@ -18,17 +22,24 @@
 --      intermedio y también sobre uno ya 'pagado', con un método cualquiera y un nombre de largo libre.
 --
 -- Qué hace
---   PIEZA A: función public.protect_orders_insert() (SECURITY INVOKER, search_path = public) y trigger
---     orders_01_protect_insert BEFORE INSERT FOR EACH ROW. Solo actúa si current_user es 'authenticated' o 'anon'
---     y quien inserta NO es dueño del local (no existe restaurants con id = new.restaurant_id y
+--   PIEZA A: función public.protect_orders_insert() (SECURITY DEFINER, search_path = public) y trigger
+--     orders_01_protect_insert BEFORE INSERT FOR EACH ROW. Es DEFINER porque anon no puede leer cash_shifts ni
+--     restaurants: con SECURITY INVOKER los "exists" de abajo se evalúan con el RLS del que inserta y darían
+--     falso (todos los pedidos públicos quedarían sin turno). Con DEFINER la función corre como su dueño, así que
+--     current_user deja de ser 'anon' o 'authenticated' y NO sirve para saber quién inserta: el rol se lee de
+--     auth.role() (el claim del JWT de la petición). Solo actúa si coalesce(auth.role(), '') es 'authenticated'
+--     o 'anon' y quien inserta NO es dueño del local (no existe restaurants con id = new.restaurant_id y
 --     user_id = auth.uid()). En ese caso:
 --       - new.status := 'pendiente'; new.payment_status := 'pendiente'; new.pago_confirmado := false
 --       - RAISE EXCEPTION si order_type no está en ('delivery','retiro','mesa') o es null
 --       - RAISE EXCEPTION si payment_method no está en ('efectivo','transferencia','mercadopago') o es null
 --       - new.shift_id := null si no existe cash_shifts con ese id y restaurant_id = new.restaurant_id
 --     El dueño (insert con su sesión: apertura de caja, venta manual), service_role (webhook de Mercado Pago, que
---     inserta pago_confirmado = true y payment_status 'pagado') y postgres pasan sin cambios. El flujo del cliente
---     no cambia: CartFooter ya manda status 'pendiente', order_type delivery/retiro/mesa y payment_method
+--     inserta pago_confirmado = true y payment_status 'pagado') y postgres (auth.role() null o distinto de anon y
+--     authenticated) pasan sin cambios.
+--     Como la función es DEFINER, se le quita el EXECUTE a public, anon y authenticated: solo la dispara el
+--     trigger (los privilegios de una función de trigger se comprueban al crear el trigger, no al dispararlo).
+--     El flujo del cliente no cambia: CartFooter ya manda status 'pendiente', order_type delivery/retiro/mesa y payment_method
 --     efectivo/transferencia/mercadopago, y no manda payment_status ni pago_confirmado.
 --   PIEZA B: create or replace function public.solicitar_pago_mesa con set search_path = public:
 --       - p_method debe ser 'efectivo', 'tarjeta' o 'transferencia' (si no, error)
@@ -41,14 +52,24 @@
 --     Nunca toca status, pago_confirmado ni total.
 --   get_or_create_shift NO se toca en este script.
 --
--- OJO antes de aplicar
---   1) PIEZA A, cash_shifts: el trigger es SECURITY INVOKER, así que el "exists" sobre cash_shifts y restaurants
---      se evalúa con las políticas RLS del rol que inserta. Si anon NO puede leer cash_shifts, el exists da falso
---      y TODOS los pedidos públicos quedarían con shift_id null (sin turno, fuera de la caja). Ver la consulta (d):
---      si anon no tiene política SELECT sobre cash_shifts, NO aplicar la pieza A tal cual (habría que validar con
---      una función SECURITY DEFINER aparte). Lo mismo con restaurants para el chequeo de dueño: si el dueño no
---      pudiera leer su local, se lo trataría como cliente y sus inserts 'completado' (apertura de caja, venta
---      manual) quedarían 'pendiente'. Probar con la "PRUEBA EN PANTALLA".
+-- Lo que este script NO cubre (etapa 2)
+--   a) El total lo manda el cliente. El trigger no recalcula total, delivery_cost ni discount_amount a partir de
+--      los productos: con la clave pública se puede insertar un pedido con un total falso (por ejemplo 1) y
+--      items cualquiera. Cierra solo el estado, el pago, el turno, el order_type y el payment_method.
+--   b) get_or_create_shift sigue abierta a anon (EXECUTE para anon, SECURITY DEFINER): con un restaurant_id
+--      conocido cualquiera puede crear o reutilizar el turno de caja de ese local. Lo usa CartFooter desde el
+--      navegador anónimo. Pendiente: que el trigger asigne el turno del lado del servidor y revocar anon.
+--   c) Otros campos del insert público no se validan (customer_name, address, description, items, coupon_code,
+--      discount_amount, scheduled_delivery_time, origin_plan) ni hay límite de pedidos por IP.
+--
+-- OJO (ya considerado al aplicar)
+--   1) PIEZA A, SECURITY DEFINER: anon no puede leer cash_shifts ni restaurants (consulta (d)). Un trigger
+--      SECURITY INVOKER evaluaría los "exists" con ese RLS, daría falso y dejaría TODOS los pedidos públicos con
+--      shift_id null (sin turno, fuera de la caja) y trataría al dueño como cliente. Por eso la función es
+--      DEFINER. Consecuencias: (i) current_user ya no sirve (es el dueño de la función), se usa
+--      coalesce(auth.role(), ''); (ii) hay que fijar search_path = public y quitar el EXECUTE a public, anon y
+--      authenticated, para que nadie la llame directo por la API (/rest/v1/rpc); (iii) el trigger sigue
+--      funcionando sin esos permisos.
 --   2) PIEZA A, order_type: se rechaza todo order_type distinto de delivery, retiro y mesa para anon y
 --      authenticated no dueño. Si algún flujo público manda otro valor (el repo no lo hace: CartFooter ofrece solo
 --      esos tres), ese pedido falla. Ver la consulta (e).
@@ -79,8 +100,8 @@
 --   (b) permisos de ejecución (proacl) de solicitar_pago_mesa. GUARDAR el resultado.
 --   (c) triggers actuales de orders. Esperado: ninguno con nombre "orders_01_protect_insert"; revisar cualquier
 --       otro que escriba status, payment_status, pago_confirmado o shift_id.
---   (d) políticas SELECT de cash_shifts y restaurants. Hace falta que anon pueda ver sus cash_shifts (por local) y
---       que el dueño pueda ver su local (ver "OJO" 1). Si anon no lee cash_shifts, no aplicar la pieza A tal cual.
+--   (d) políticas SELECT de cash_shifts y restaurants. Con la pieza A como SECURITY DEFINER no hace falta que
+--       anon las lea (ver "OJO" 1); la consulta sirve para confirmar por qué es DEFINER.
 --   (e) valores reales de order_type y payment_method en orders, para ver qué no entraría. Solo agregados.
 --       Los order_type 'apertura' y 'mostrador' los inserta el dueño (pasan) y los de Mercado Pago son
 --       'mercadopago' en payment_method (pasa).
@@ -123,12 +144,13 @@ begin;
 create or replace function public.protect_orders_insert()
 returns trigger
 language plpgsql
-security invoker
+security definer
 set search_path = public
 as $$
 begin
-  -- Solo los roles de la API pública; service_role, postgres y demás pasan sin cambios
-  if current_user in ('authenticated', 'anon') then
+  -- Solo los roles de la API pública (claim del JWT: con SECURITY DEFINER current_user es el dueño de la función);
+  -- service_role, postgres y demás pasan sin cambios
+  if coalesce(auth.role(), '') in ('authenticated', 'anon') then
     -- El dueño del local inserta con su sesión (apertura de caja, venta manual): sin cambios
     if not exists (
       select 1
@@ -164,6 +186,8 @@ begin
 end;
 $$;
 
+revoke execute on function public.protect_orders_insert() from public, anon, authenticated;
+
 create trigger orders_01_protect_insert
   before insert on public.orders
   for each row
@@ -182,15 +206,16 @@ commit;
 
 -- =============================================================================
 -- VERIFICACIÓN POSTERIOR — PIEZA A (SOLO LECTURA, comentado): correr después de aplicar.
--- Esperado: (a) una fila, tgenabled = 'O', BEFORE INSERT FOR EACH ROW; (b) security_definer = false y proconfig
--- con search_path=public; (c) igual que antes de aplicar o más (los pedidos nuevos), y pedidos_sin_turno sin
--- subir de golpe: si cada pedido nuevo del menú público aparece sin turno, ver "OJO" 1 y correr el ROLLBACK.
+-- Esperado: (a) una fila, tgenabled = 'O', BEFORE INSERT FOR EACH ROW; (b) security_definer = true, proconfig
+-- con search_path=public y proacl SIN anon, authenticated ni PUBLIC (sin "=X/..."); (c) igual que antes de
+-- aplicar o más (los pedidos nuevos), y pedidos_sin_turno sin subir de golpe: si cada pedido nuevo del menú
+-- público aparece sin turno, correr el ROLLBACK.
 -- =============================================================================
 -- select tgname, tgenabled, pg_get_triggerdef(oid) as definicion
 -- from pg_trigger
 -- where tgrelid = 'public.orders'::regclass and not tgisinternal and tgname = 'orders_01_protect_insert';
 --
--- select p.proname, p.prosecdef as security_definer, p.proconfig
+-- select p.proname, p.prosecdef as security_definer, p.proconfig, p.proacl
 -- from pg_proc p
 -- join pg_namespace n on n.oid = p.pronamespace
 -- where n.nspname = 'public' and p.proname = 'protect_orders_insert';
@@ -310,5 +335,9 @@ commit;
 --      panel muestra "El cliente indica que desea pagar por: ...". Volver a elegir otro método: se actualiza.
 --   h. Con el pedido ya 'completado': el pago no se puede solicitar (alert del cliente, error en la red).
 --   i. Confirmar el pago desde el panel: sigue funcionando (el dueño actualiza con su sesión).
+--   Resultado del 2026-11-13 en producción (Burgers Snappy): retiro (efectivo) y mesa 2 (pedido enviado desde el
+--   QR) entraron, POST a orders 201 en el de mesa; ambos quedaron pendiente / pendiente / pago_confirmado false
+--   y con turno asignado; el pago de mesa por solicitar_pago_mesa funcionó. El código HTTP del POST del retiro
+--   no se capturó (el pedido sí se guardó y se leyó por /api/public/order/[id]).
 --   Si falla a, b, c, d o e: ROLLBACK de la pieza A. Si falla g o i: ROLLBACK de la pieza B.
 -- =============================================================================
