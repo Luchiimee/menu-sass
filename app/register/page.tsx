@@ -2,11 +2,23 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, User, Phone, Mail, Lock } from 'lucide-react';
 import { trackCompleteRegistration } from '@/components/MetaPixel';
+
+// Cliente con PKCE y sesión en cookies (el mismo que usa /login): el callback del servidor canjea el código con el
+// verificador guardado en cookies, y la sesión que deja el callback se lee desde acá. El `supabase` plano de arriba
+// (flujo implicit, localStorage) se sigue usando solo para el registro manual.
+let authClient: ReturnType<typeof createBrowserClient> | null = null;
+function getAuthClient() {
+  if (!authClient) {
+    authClient = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  }
+  return authClient;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,7 +36,7 @@ export default function RegisterPage() {
   // --- REGISTRO GOOGLE ---
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await getAuthClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
         // Vuelve por el callback: ahí se decide si es un registro nuevo (evento del píxel) y se sigue al panel

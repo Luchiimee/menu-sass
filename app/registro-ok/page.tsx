@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
 import { trackCompleteRegistration } from '@/components/MetaPixel';
 import { isLikelyNewGoogleUser } from '@/lib/registrationTracking';
 
@@ -18,6 +18,8 @@ export default function RegistroOkPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // Cliente con cookies: la sesión la dejó el callback del servidor en cookies, el supabase plano no la ve
+    const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     (async () => {
       try {
         const { data } = await supabase.auth.getUser();
