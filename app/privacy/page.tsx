@@ -15,7 +15,7 @@ export default function PrivacyPolicy() {
         ← Volver al inicio
       </Link>
       <h1 className="mt-8 text-3xl sm:text-4xl font-black mb-8 uppercase italic tracking-tighter">Política de Privacidad — Snappy</h1>
-      <p className="text-sm text-gray-500 mb-10 italic">Última actualización: 12 de noviembre de 2026</p>
+      <p className="text-sm text-gray-500 mb-10 italic">Última actualización: 14 de noviembre de 2026</p>
 
       <section className="space-y-6">
         <div>
@@ -80,7 +80,7 @@ export default function PrivacyPolicy() {
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">9. Cookies, almacenamiento local y píxel de Meta</h2>
           <p className="mb-3">Usamos cookies y almacenamiento local del navegador que son necesarios para que el servicio funcione: mantener tu sesión iniciada y recordar el carrito y los datos de tus pedidos en el dispositivo.</p>
-          <p className="mb-3">Además, Snappy usa el píxel de Meta (Facebook e Instagram), que se carga solo en la página principal, en el inicio de sesión, en el registro y en las páginas legales (esta política y los términos). No se carga en los menús públicos de los locales ni en el panel. Registra únicamente el evento de visita de página (PageView). Meta puede asociar esa visita con tu navegador o con tu cuenta de Facebook o Instagram, usar cookies propias y usar esa información para medir y optimizar la publicidad. Snappy no envía a Meta, a través del píxel, los datos de pedidos ni de pagos.</p>
+          <p className="mb-3">Además, Snappy usa el píxel de Meta (Facebook e Instagram), que se carga solo en la página principal, en el inicio de sesión, en el registro, en la pantalla intermedia que se muestra al terminar de registrarte con Google (/registro-ok) y en las páginas legales (esta política y los términos). No se carga en los menús públicos de los locales ni en el panel. Registra el evento de visita de página (PageView) y, solo cuando se crea una cuenta nueva, el evento de registro completado (CompleteRegistration), sin enviar tu email, tu teléfono ni tu nombre. Meta puede asociar esa visita con tu navegador o con tu cuenta de Facebook o Instagram, usar cookies propias y usar esa información para medir y optimizar la publicidad. Snappy no envía a Meta, a través del píxel, los datos de pedidos ni de pagos.</p>
           <p>Para desactivar la personalización de anuncios podés ajustar tus preferencias de anuncios en tu cuenta de Facebook o Instagram, bloquear las cookies de terceros o usar un bloqueador de rastreadores en tu navegador. Si preferís que no se cargue en tus visitas, escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
         </div>
 
