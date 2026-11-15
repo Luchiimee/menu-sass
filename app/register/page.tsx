@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, User, Phone, Mail, Lock } from 'lucide-react';
 import { trackCompleteRegistration } from '@/components/MetaPixel';
+import { getStorage, markOAuthPending, watchOAuthResume } from '@/lib/oauthPending';
 
 // Cliente con PKCE y sesión en cookies (el mismo que usa /login): el callback del servidor canjea el código con el
 // verificador guardado en cookies, y la sesión que deja el callback se lee desde acá. El `supabase` plano de arriba
@@ -24,6 +25,17 @@ export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Android con la app instalada: ver lib/oauthPending.ts (vuelve al panel al cerrar la pestaña personalizada de Google)
+  useEffect(() => {
+    return watchOAuthResume({
+      storage: getStorage(window),
+      win: window,
+      doc: document,
+      hasUser: async () => !!(await getAuthClient().auth.getUser()).data.user,
+      onResume: () => router.replace('/dashboard'),
+    });
+  }, [router]);
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -36,6 +48,7 @@ export default function RegisterPage() {
   // --- REGISTRO GOOGLE ---
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
+    markOAuthPending(getStorage(window), Date.now());
     const { error } = await getAuthClient().auth.signInWithOAuth({
       provider: 'google',
       options: {

@@ -6,6 +6,7 @@ import { Loader2, Mail, Lock, ArrowRight, User, Phone, Eye, EyeOff } from 'lucid
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { trackCompleteRegistration } from '@/components/MetaPixel'
+import { getStorage, markOAuthPending, watchOAuthResume } from '@/lib/oauthPending'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -43,10 +44,25 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
+  // Android con la app instalada: el OAuth de Google abre una pestaña personalizada de Chrome y el panel queda ahí.
+  // Cuando el usuario la cierra (la X) y la app vuelve a estar visible o con foco, si hay un OAuth reciente y ya hay
+  // usuario, se entra al panel (lib/oauthPending.ts).
+  useEffect(() => {
+    return watchOAuthResume({
+      storage: getStorage(window),
+      win: window,
+      doc: document,
+      hasUser: async () => !!(await supabase.auth.getUser()).data.user,
+      onResume: () => router.replace('/dashboard'),
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router])
+
  const handleGoogleLogin = async () => {
     setIsLoading(true)
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      markOAuthPending(getStorage(window), Date.now())
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

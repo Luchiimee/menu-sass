@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { trackCompleteRegistration } from '@/components/MetaPixel';
 import { isLikelyNewGoogleUser } from '@/lib/registrationTracking';
+import { clearOAuthPendingIfStandalone } from '@/lib/oauthPending';
 
 // Paso intermedio de un registro nuevo con Google: el panel no tiene píxel, esta ruta sí (ALLOWED_PATHS de
 // MetaPixel). Dispara CompleteRegistration una sola vez (deduplicado por usuario) y sigue al panel. No manda
@@ -29,6 +30,9 @@ export default function RegistroOkPage() {
       } catch {
         // sin sesión o error de red: se sigue al panel igual
       }
+      // Fin del flujo: limpia el indicador de OAuth en curso solo en modo standalone (en la pestaña personalizada lo
+      // necesita la app para volver sola al panel; ver lib/oauthPending.ts)
+      clearOAuthPendingIfStandalone(window);
       setTimeout(() => {
         if (!cancelled) router.replace('/dashboard');
       }, REDIRECT_DELAY_MS);

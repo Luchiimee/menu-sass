@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { callbackDestination } from '@/lib/registrationTracking'
+import { OAUTH_PENDING_KEY } from '@/lib/oauthPending'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -54,6 +55,9 @@ export async function GET(request: Request) {
         `<html>
           <head>
             <script>
+              // Limpia el indicador de OAuth en curso solo si corre dentro de la app instalada (standalone). En la
+              // pestaña personalizada de Android NO: la app lo necesita para volver sola al panel (lib/oauthPending.ts).
+              try { if (window.matchMedia('(display-mode: standalone)').matches) localStorage.removeItem('${OAUTH_PENDING_KEY}') } catch (e) {}
               setTimeout(function() {
                 window.location.replace("${redirectUrl}");
               }, 100);
