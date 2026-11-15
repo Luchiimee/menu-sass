@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, Mail, Lock, ArrowRight, User, Phone, Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { trackCompleteRegistration } from '@/components/MetaPixel'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -87,6 +88,9 @@ export default function LoginPage() {
         })
 
         if (authError) throw authError
+
+        // Igual que en /register: un correo ya registrado no da error, pero vuelve sin identidades.
+        if (authData.user && (authData.user.identities?.length ?? 0) > 0) trackCompleteRegistration(authData.user.id)
 
         setMessage('¡Cuenta creada! Revisa tu email para confirmar.')
 

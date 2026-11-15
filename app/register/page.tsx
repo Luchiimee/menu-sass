@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, User, Phone, Mail, Lock } from 'lucide-react';
+import { trackCompleteRegistration } from '@/components/MetaPixel';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,7 +27,8 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`, // Vuelve al dashboard
+        // Vuelve por el callback: ahí se decide si es un registro nuevo (evento del píxel) y se sigue al panel
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -59,6 +61,10 @@ const handleRegister = async (e: React.FormEvent) => {
 });
 
     if (authError) throw authError;
+
+    // signUp con un correo YA registrado no da error (con confirmación de email devuelve un usuario sin
+    // identidades): solo cuenta como registro nuevo si trae identidades.
+    if (authData.user && (authData.user.identities?.length ?? 0) > 0) trackCompleteRegistration(authData.user.id);
 
     if (authData.user) {
       // 2. CREACIÓN MANUAL DEL RESTAURANTE (Para asegurar el estado 'trialing')
