@@ -1,0 +1,40 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { trackCompleteRegistration } from '@/components/MetaPixel';
+import { isLikelyNewGoogleUser } from '@/lib/registrationTracking';
+
+// Paso intermedio de un registro nuevo con Google: el panel no tiene píxel, esta ruta sí (ALLOWED_PATHS de
+// MetaPixel). Dispara CompleteRegistration una sola vez (deduplicado por usuario) y sigue al panel. No manda
+// ningún dato personal a Meta. Ventana más ancha que la del callback (10 min): pasó tiempo desde que se decidió.
+const PAGE_WINDOW_MS = 10 * 60_000;
+const TRACK_MAX_WAIT_MS = 3000; // espera máxima a que el píxel esté disponible (con bloqueador no se queda en negro)
+const REDIRECT_DELAY_MS = 400; // después de la llamada a fbq, deja salir el pedido antes de pasar a una ruta sin píxel
+
+export default function RegistroOkPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data.user && isLikelyNewGoogleUser(data.user, new Date(), PAGE_WINDOW_MS)) {
+          await trackCompleteRegistration(data.user.id, TRACK_MAX_WAIT_MS);
+        }
+      } catch {
+        // sin sesión o error de red: se sigue al panel igual
+      }
+      setTimeout(() => {
+        if (!cancelled) router.replace('/dashboard');
+      }, REDIRECT_DELAY_MS);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  return <main className="min-h-screen bg-black" aria-busy="true" />;
+}

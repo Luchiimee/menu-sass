@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { callbackDestination } from '@/lib/registrationTracking'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -44,9 +45,11 @@ export async function GET(request: Request) {
 
   // Flujo PKCE — OAuth / magic link
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: exchanged, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const redirectUrl = `${origin}${next}`
+      // Registro nuevo con Google (heurística, ver lib/registrationTracking.ts): pasa por /registro-ok, que dispara
+      // el evento del píxel y sigue al panel. Cualquier otro caso va a "next" como siempre.
+      const redirectUrl = `${origin}${callbackDestination(next, exchanged?.user)}`
       return new NextResponse(
         `<html>
           <head>
