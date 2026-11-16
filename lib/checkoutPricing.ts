@@ -11,6 +11,12 @@
 //   - el descuento total se limita al 100% del subtotal y total <= 0 es error;
 //   - se redondea a 2 decimales UNA sola vez, al final.
 //
+// Pedidos de efectivo / transferencia (POST /api/checkout/order): se activan con `deps.offline`. Sin esa
+// opción el cálculo es exactamente el del pago online. Con ella: se permite 'mesa', se aplica la regla de
+// efectivo (misma selección que CartFooter), se acepta el combo destacado (hero-item, precio de
+// restaurants.hero_price) y el envío con zonas NO sale de una cotización (esa solo existe para MP): el
+// navegador informa el envío y el servidor solo lo acepta si es uno de los configurados (zona 1 o 2).
+//
 // Sin imports con alias (@/): se puede probar con scripts/check-checkout-pricing.mjs
 // pasando un cliente de base falso en `deps.db`.
 
@@ -33,6 +39,8 @@ export type CheckoutErrorCode =
   | 'extra_invalido'
   | 'cupon_invalido'
   | 'total_invalido'
+  | 'envio_invalido'
+  | 'metodo_pago_invalido'
   // envío por zonas (ver shippingCost)
   | 'falta_ubicacion'
   | 'fuera_de_cobertura'
@@ -56,7 +64,9 @@ export type CheckoutCartItem = {
   quantity: number;
 };
 
-export type CheckoutOrderType = 'delivery' | 'retiro';
+export type CheckoutOrderType = 'delivery' | 'retiro' | 'mesa';
+
+export const HERO_ITEM_ID = 'hero-item';
 
 export type PricedLine = {
   productId: string;
@@ -89,6 +99,8 @@ export type PricingDeps = {
   // Distancia en línea recta del cliente al local, en km. La calcula el llamador (otra etapa);
   // con envío por zonas y sin distancia el pedido se rechaza.
   distanceKm?: number | null;
+  // Solo efectivo / transferencia (ver cabecera). clientShipping: el envío que mostró el navegador.
+  offline?: { paymentMethod: 'efectivo' | 'transferencia'; clientShipping?: number | null };
 };
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -118,7 +130,7 @@ function isPositiveInt(n: unknown, max: number): n is number {
 }
 
 // Valida y normaliza el carrito del body. Cualquier forma inesperada es error.
-export function parseCheckoutCart(raw: unknown): CheckoutCartItem[] {
+export function parseCheckoutCart(raw: unknown, opts: { allowHero?: boolean } = {}): CheckoutCartItem[] {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_CART_ITEMS) {
     throw new CheckoutError('carrito_invalido', 'El carrito está vacío o tiene demasiados ítems.');
   }
@@ -129,7 +141,14 @@ export function parseCheckoutCart(raw: unknown): CheckoutCartItem[] {
       throw new CheckoutError('carrito_invalido');
     }
     // El combo / destacado del menú viaja como "hero-item": no es un producto.
-    if (productId.startsWith('hero')) throw new CheckoutError('combo_no_soportado');
+    if (productId.startsWith('hero')) {
+      if (!opts.allowHero || productId !== HERO_ITEM_ID) throw new CheckoutError('combo_no_soportado');
+      if (!isPositiveInt(quantity, MAX_QUANTITY) || (Array.isArray(extras) && extras.length > 0)
+        || (variationIndex !== undefined && variationIndex !== null)) {
+        throw new CheckoutError('carrito_invalido');
+      }
+      return { productId, extras: [], quantity };
+    }
     if (!isPositiveInt(quantity, MAX_QUANTITY)) throw new CheckoutError('carrito_invalido');
     if (variationIndex !== undefined && variationIndex !== null
       && !(typeof variationIndex === 'number' && Number.isInteger(variationIndex) && variationIndex >= 0 && variationIndex < 1000)) {
@@ -225,6 +244,60 @@ function pickAutoRule(rules: any[], subtotal: number): any | undefined {
 }
 
 // ---------------------------------------------------------------------------
+// Solo efectivo / transferencia (deps.offline).
+//
+// Reglas automáticas: misma selección que components/CartFooter.tsx (regla por monto + regla de
+// efectivo con acumulable_efectivo / gana_si_no_acumula). La regla de efectivo solo cuenta si se paga
+// en efectivo. Devuelve la regla por monto ganadora y la regla de efectivo que se aplica (si alguna).
+// ---------------------------------------------------------------------------
+export function pickOfflineRules(rules: any[], subtotal: number, paymentMethod: string) {
+  const montoRule = pickAutoRule(rules, subtotal);
+  const efectivoRule = rules.find((r) => r.tipo === 'efectivo');
+  const efectivoAplicaria = paymentMethod === 'efectivo' && !!efectivoRule;
+
+  let montoGanadora = montoRule;
+  let efectivoGana = false;
+  if (montoRule && efectivoAplicaria) {
+    if (montoRule.acumulable_efectivo === true) {
+      efectivoGana = true;
+    } else {
+      const efectivoDeclaradaGanadora = !!efectivoRule.gana_si_no_acumula && !montoRule.gana_si_no_acumula;
+      if (efectivoDeclaradaGanadora) {
+        montoGanadora = undefined;
+        efectivoGana = true;
+      }
+    }
+  } else if (efectivoAplicaria) {
+    efectivoGana = true;
+  }
+  return { montoGanadora, efectivoRule: efectivoGana ? efectivoRule : undefined };
+}
+
+// Envío de un pedido de efectivo / transferencia. Retiro y mesa no llevan envío; el envío gratis por
+// monto lo decide el servidor; sin zonas es la tarifa fija del local. Con zonas no hay cotización
+// (solo existe para MP): el navegador informa el envío y se acepta únicamente si es el costo de alguna
+// de las zonas configuradas. Residual conocido: el cliente puede elegir una zona más barata que la real.
+export function offlineShippingCost(
+  restaurant: ShippingRestaurant,
+  orderType: CheckoutOrderType,
+  freeShipping: boolean,
+  clientShipping?: number | null
+): number {
+  if (orderType !== 'delivery' || freeShipping) return 0;
+  const zonesEnabled = restaurant.subscription_plan !== 'light' && !!restaurant.delivery_zones_enabled;
+  if (!zonesEnabled) return Math.max(0, Number(restaurant.delivery_cost) || 0);
+
+  const costs = legacyZones(restaurant).map((z) => toNumber(z.cost)).filter((c) => Number.isFinite(c) && c >= 0);
+  if (costs.length === 0) throw new CheckoutError('zonas_mal_configuradas');
+  if (clientShipping === undefined || clientShipping === null) throw new CheckoutError('envio_invalido');
+  const sent = Number(clientShipping);
+  if (!Number.isFinite(sent)) throw new CheckoutError('envio_invalido');
+  const match = costs.find((c) => Math.abs(c - sent) < 0.005);
+  if (match === undefined) throw new CheckoutError('envio_invalido');
+  return match;
+}
+
+// ---------------------------------------------------------------------------
 // Cupón: se revalida contra la base (nunca se confía en un descuento del cliente).
 // ---------------------------------------------------------------------------
 async function loadCoupon(db: SupabaseClient, restaurantId: string, rawCode: string, now: Date) {
@@ -262,24 +335,24 @@ export async function computeOrderTotal(
   const { db } = deps;
   const now = deps.now ?? new Date();
 
-  if (orderType === 'mesa') throw new CheckoutError('mesa_no_soportada');
-  if (orderType !== 'delivery' && orderType !== 'retiro') throw new CheckoutError('tipo_pedido_invalido');
+  if (orderType === 'mesa' && !deps.offline) throw new CheckoutError('mesa_no_soportada');
+  if (orderType !== 'delivery' && orderType !== 'retiro' && orderType !== 'mesa') throw new CheckoutError('tipo_pedido_invalido');
   const type: CheckoutOrderType = orderType;
 
-  const cart = parseCheckoutCart(rawCart);
+  const cart = parseCheckoutCart(rawCart, { allowHero: !!deps.offline });
 
   // --- Restaurante ---
   const { data: restaurant, error: restError } = await db
     .from('restaurants')
-    .select('id, subscription_plan, delivery_cost, delivery_zones_enabled, delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost')
+    .select('id, subscription_plan, delivery_cost, delivery_zones_enabled, delivery_lat, delivery_lng, delivery_zone1_km, delivery_zone1_cost, delivery_zone2_km, delivery_zone2_cost, hero_title, hero_price')
     .eq('id', restaurantId)
     .maybeSingle();
   if (restError) throw new CheckoutError('error_datos', `restaurante: ${restError.message}`);
   if (!restaurant) throw new CheckoutError('restaurante_no_encontrado');
 
   // --- Productos (deben ser del restaurante) ---
-  const productIds = [...new Set(cart.map((c) => c.productId))];
-  const products: any[] = unwrap(
+  const productIds = [...new Set(cart.map((c) => c.productId).filter((id) => id !== HERO_ITEM_ID))];
+  const products: any[] = productIds.length === 0 ? [] : unwrap(
     await db.from('products').select('id, restaurant_id, name, price, sale_type, variations, is_available').in('id', productIds),
     'productos'
   );
@@ -304,6 +377,21 @@ export async function computeOrderTotal(
 
   // --- Renglones ---
   const lines: PricedLine[] = cart.map((item) => {
+    if (item.productId === HERO_ITEM_ID) {
+      // Combo destacado: no es una fila de products, su precio está en el local (solo pedidos offline)
+      const heroPrice = Number(restaurant.hero_price);
+      const heroName = String(restaurant.hero_title ?? '').trim();
+      if (!heroName || !Number.isFinite(heroPrice) || heroPrice <= 0) throw new CheckoutError('producto_no_disponible');
+      return {
+        productId: HERO_ITEM_ID,
+        variationIndex: null,
+        name: heroName,
+        unitBase: heroPrice,
+        extras: [],
+        quantity: item.quantity,
+        lineTotal: heroPrice * item.quantity,
+      };
+    }
     const product = productById.get(item.productId);
     if (!product || String(product.restaurant_id) !== String(restaurantId)) {
       throw new CheckoutError('producto_no_encontrado');
@@ -369,20 +457,35 @@ export async function computeOrderTotal(
     await db.from('discount_rules').select('*').eq('restaurant_id', restaurantId).eq('activo', true),
     'reglas de descuento'
   );
-  const rule = pickAutoRule(rules, subtotal);
+  // Online: una sola regla por monto (la de efectivo no aplica). Offline: ver pickOfflineRules.
+  const picked = deps.offline
+    ? pickOfflineRules(rules, subtotal, deps.offline.paymentMethod)
+    : { montoGanadora: pickAutoRule(rules, subtotal), efectivoRule: undefined as any };
+  const rule = picked.montoGanadora;
   const freeShipping = rule?.tipo === 'envio_gratis' || rule?.tipo === 'porcentaje_envio_gratis';
   let autoDiscount = 0;
   if (rule?.tipo === 'porcentaje' || rule?.tipo === 'porcentaje_envio_gratis') {
     const pct = Number(rule.porcentaje);
     if (Number.isFinite(pct) && pct > 0) autoDiscount = (subtotal * pct) / 100;
   }
+  if (picked.efectivoRule) {
+    const pct = Number(picked.efectivoRule.porcentaje);
+    if (Number.isFinite(pct) && pct > 0) autoDiscount += (subtotal * pct) / 100;
+  }
 
   // --- Total ---
   // El descuento total no puede pasar del 100% del subtotal.
   const discountTotal = Math.min(couponDiscount + autoDiscount, subtotal);
-  const shippingResult = shippingCost(restaurant, type, freeShipping, deps.distanceKm);
-  if (!shippingResult.ok) throw new CheckoutError(shippingResult.reason);
-  const shipping = shippingResult.cost;
+  let shipping: number;
+  let deliveryZone: OrderTotal['deliveryZone'] = null;
+  if (deps.offline) {
+    shipping = offlineShippingCost(restaurant, type, freeShipping, deps.offline.clientShipping);
+  } else {
+    const shippingResult = shippingCost(restaurant, type, freeShipping, deps.distanceKm);
+    if (!shippingResult.ok) throw new CheckoutError(shippingResult.reason);
+    shipping = shippingResult.cost;
+    deliveryZone = shippingResult.zone;
+  }
   const totalRaw = subtotal - discountTotal + shipping;
   if (!Number.isFinite(totalRaw) || totalRaw <= 0) throw new CheckoutError('total_invalido');
 
@@ -395,11 +498,11 @@ export async function computeOrderTotal(
     subtotal: round2(subtotal),
     couponCode: coupon?.code ?? null,
     couponDiscount: round2(couponDiscount),
-    autoRuleId: rule?.id != null ? String(rule.id) : null,
+    autoRuleId: (rule?.id ?? picked.efectivoRule?.id) != null ? String(rule?.id ?? picked.efectivoRule?.id) : null,
     autoDiscount: round2(autoDiscount),
     discountTotal: round2(discountTotal),
     shipping: round2(shipping),
-    deliveryZone: shippingResult.zone,
+    deliveryZone,
     total,
   };
 }

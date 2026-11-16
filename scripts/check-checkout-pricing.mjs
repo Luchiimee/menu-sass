@@ -255,6 +255,108 @@ await expectError('producto con is_available=false', 'producto_no_disponible', (
 report('isProductPurchasable: precio 0 no se puede comprar', !isProductPurchasable({ id: 'x', price: 0, sale_type: 'unidad' }));
 report('isProductPurchasable: peso sin variaciones no se puede comprar', !isProductPurchasable({ id: 'x', sale_type: 'peso', variations: [] }));
 
+// ===========================================================================
+// Pedidos de efectivo / transferencia (deps.offline): POST /api/checkout/order
+// ===========================================================================
+const runOff = (tables, cart, type, offline, coupon = null) =>
+  computeOrderTotal(R1, cart, type, { db: makeDb(tables), couponCode: coupon, now: NOW, offline });
+const burger1 = [{ productId: 'burger', extras: [], quantity: 1 }];
+
+// (o1) el precio y el total del navegador no cuentan: solo ids y cantidades
+{
+  const evil = [{ productId: 'burger', price: 1, total: 1, extras: [], quantity: 2 }];
+  const r = await runOff(baseTables(), evil, 'retiro', { paymentMethod: 'efectivo' });
+  report('(o1) offline: precio manipulado se ignora', r.total === 18000, `total ${r.total}`);
+}
+// (o2) mesa: solo con offline, sin envío
+{
+  const r = await runOff(baseTables(), burger1, 'mesa', { paymentMethod: 'transferencia' });
+  report('(o2) offline: mesa sin envío', r.total === 9000 && r.shipping === 0, `total ${r.total}`);
+}
+// (o3) combo destacado: precio del local, nunca del cliente
+{
+  const t = baseTables();
+  t.restaurants[0].hero_title = 'Combo Pro';
+  t.restaurants[0].hero_price = 15000;
+  const r = await runOff(t, [{ productId: 'hero-item', price: 1, extras: [], quantity: 2 }], 'retiro', { paymentMethod: 'efectivo' });
+  report('(o3) offline: combo destacado usa hero_price (2 × 15.000)', r.total === 30000 && r.lines[0].name === 'Combo Pro', `total ${r.total}`);
+  const mix = await runOff(t, [{ productId: 'hero-item', extras: [], quantity: 1 }, ...burger1], 'retiro', { paymentMethod: 'efectivo' });
+  report('(o3) offline: combo + producto', mix.total === 24000, `total ${mix.total}`);
+  await expectError('(o3) combo sin hero_price cargado', 'producto_no_disponible', () => {
+    const t2 = baseTables();
+    return runOff(t2, [{ productId: 'hero-item', extras: [], quantity: 1 }], 'retiro', { paymentMethod: 'efectivo' });
+  });
+  await expectError('(o3) combo con extras → inválido', 'carrito_invalido',
+    () => runOff(t, [{ productId: 'hero-item', extras: [{ extraId: 'queso', qty: 1 }], quantity: 1 }], 'retiro', { paymentMethod: 'efectivo' }));
+  await expectError('(o3) otro id que empieza con hero sigue rechazado', 'combo_no_soportado',
+    () => runOff(t, [{ productId: 'hero-otro', extras: [], quantity: 1 }], 'retiro', { paymentMethod: 'efectivo' }));
+  // sin offline el combo sigue rechazado (caso (d) de arriba) y el cliente no puede activar offline
+}
+// (o4) regla de efectivo: solo pagando en efectivo
+{
+  const t = baseTables();
+  t.discount_rules = [{ id: 'ef', restaurant_id: R1, activo: true, tipo: 'efectivo', porcentaje: 10 }];
+  const efectivo = await runOff(t, burger1, 'retiro', { paymentMethod: 'efectivo' });
+  const transf = await runOff(t, burger1, 'retiro', { paymentMethod: 'transferencia' });
+  report('(o4) efectivo: 10% de descuento', efectivo.total === 8100 && efectivo.autoDiscount === 900, `total ${efectivo.total}`);
+  report('(o4) transferencia: sin descuento de efectivo', transf.total === 9000, `total ${transf.total}`);
+}
+// (o5) regla de efectivo + regla por monto: acumulable / gana_si_no_acumula / por defecto gana monto
+{
+  const mk = (monto, efectivo) => {
+    const t = baseTables();
+    t.discount_rules = [
+      { id: 'm', restaurant_id: R1, activo: true, tipo: 'porcentaje', porcentaje: 5, monto_minimo: '1000', ...monto },
+      { id: 'ef', restaurant_id: R1, activo: true, tipo: 'efectivo', porcentaje: 10, ...efectivo },
+    ];
+    return t;
+  };
+  const acum = await runOff(mk({ acumulable_efectivo: true }, {}), burger1, 'retiro', { paymentMethod: 'efectivo' });
+  report('(o5) acumulable: 5% + 10% = 15%', acum.total === 7650, `total ${acum.total}`);
+  const efGana = await runOff(mk({}, { gana_si_no_acumula: true }), burger1, 'retiro', { paymentMethod: 'efectivo' });
+  report('(o5) efectivo declarada ganadora: solo 10%', efGana.total === 8100, `total ${efGana.total}`);
+  const montoGana = await runOff(mk({}, {}), burger1, 'retiro', { paymentMethod: 'efectivo' });
+  report('(o5) sin acumular ni ganadora declarada: gana monto (5%)', montoGana.total === 8550, `total ${montoGana.total}`);
+  const ambas = await runOff(mk({ gana_si_no_acumula: true }, { gana_si_no_acumula: true }), burger1, 'retiro', { paymentMethod: 'efectivo' });
+  report('(o5) las dos declaradas ganadoras: gana monto (5%)', ambas.total === 8550, `total ${ambas.total}`);
+}
+// (o6) envío: sin zonas es la tarifa fija e ignora lo que mande el navegador
+{
+  const r = await runOff(baseTables(), burger1, 'delivery', { paymentMethod: 'efectivo', clientShipping: 0 });
+  report('(o6) delivery sin zonas: cobra la tarifa fija aunque el navegador mande 0', r.shipping === 800 && r.total === 9800, `envío ${r.shipping}`);
+  const free = baseTables();
+  free.discount_rules = [{ id: 'g', restaurant_id: R1, activo: true, tipo: 'envio_gratis', monto_minimo: '5000' }];
+  const rf = await runOff(free, burger1, 'delivery', { paymentMethod: 'efectivo', clientShipping: 800 });
+  report('(o6) envío gratis por monto: lo decide el servidor (0)', rf.shipping === 0 && rf.total === 9000, `envío ${rf.shipping}`);
+}
+// (o7) envío con zonas: solo costos configurados
+{
+  const zonas = () => {
+    const t = baseTables();
+    Object.assign(t.restaurants[0], { delivery_zones_enabled: true, delivery_zone1_km: 3, delivery_zone1_cost: 1000, delivery_zone2_km: 7, delivery_zone2_cost: 2000 });
+    return t;
+  };
+  const z1 = await runOff(zonas(), burger1, 'delivery', { paymentMethod: 'efectivo', clientShipping: 1000 });
+  const z2 = await runOff(zonas(), burger1, 'delivery', { paymentMethod: 'efectivo', clientShipping: 2000 });
+  report('(o7) zona 1 y zona 2 aceptadas', z1.total === 10000 && z2.total === 11000, `${z1.total} / ${z2.total}`);
+  for (const bad of [0, 1, 1500, -5, null, undefined, 'abc', NaN]) {
+    await expectError(`(o7) envío con zonas = ${String(bad)} → inválido`, 'envio_invalido',
+      () => runOff(zonas(), burger1, 'delivery', { paymentMethod: 'efectivo', clientShipping: bad }));
+  }
+  const retiro = await runOff(zonas(), burger1, 'retiro', { paymentMethod: 'efectivo', clientShipping: 1 });
+  report('(o7) retiro con zonas: no lleva envío ni valida el informado', retiro.shipping === 0, `envío ${retiro.shipping}`);
+}
+// (o8) totales: descuento que pasa del 100% del subtotal y total 0
+await expectError('(o8) cupón 100% en retiro → total inválido', 'total_invalido',
+  () => runOff(baseTables(), burger1, 'retiro', { paymentMethod: 'efectivo' }, 'TODO'));
+// (o9) el online sigue igual: sin offline, la regla de efectivo no entra
+{
+  const t = baseTables();
+  t.discount_rules = [{ id: 'ef', restaurant_id: R1, activo: true, tipo: 'efectivo', porcentaje: 10 }];
+  const r = await run(t, burger1, 'retiro');
+  report('(o9) online ignora la regla de efectivo', r.total === 9000, `total ${r.total}`);
+}
+
 if (failed > 0) {
   console.error(`\n${failed} caso(s) fallaron`);
   process.exit(1);

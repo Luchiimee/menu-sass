@@ -11,6 +11,8 @@
 //   order:ip:<hash>      GET /api/public/order/[id], por IP
 //   order:id:<uuid>      GET /api/public/order/[id], por pedido
 //   quote:rid:<uuid>     POST /api/checkout/mp/quote, por restaurante
+//   neworder:ip:<hash>   POST /api/checkout/order (efectivo / transferencia), por IP
+//   neworder:rid:<uuid>  POST /api/checkout/order, por restaurante
 // La IP nunca se guarda ni se loguea: solo su sha-256 con sal (RATE_LIMIT_IP_SALT).
 
 import { createHash } from 'node:crypto';
@@ -32,6 +34,10 @@ export const RATE_LIMITS = {
   // no comparte clave con el seguimiento del pedido)
   tableCallPerIp: { limit: 10, windowSeconds: 60 },
   tableCallPerOrder: { limit: 3, windowSeconds: 60 },
+  // Crear un pedido de efectivo / transferencia (POST /api/checkout/order). Más holgado que el pago online: no
+  // llama a MP, y el wifi de un local (QR de mesa) pone a muchos clientes detrás de la misma IP pública
+  newOrderPerIp: { limit: 60, windowSeconds: 10 * 60 },
+  newOrderPerRestaurant: { limit: 600, windowSeconds: 10 * 60 },
   // Cotizar un envío: cada una puede costar una llamada a Google Geocoding (más bajo que el pago)
   quotePerIp: { limit: 6, windowSeconds: 10 * 60 },
   quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
@@ -39,7 +45,7 @@ export const RATE_LIMITS = {
   importPerRestaurant: { limit: 6, windowSeconds: 10 * 60 },
 } satisfies Record<string, LimitRule>;
 
-export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall' | 'import';
+export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall' | 'import' | 'neworder';
 
 // En Vercel, x-real-ip y x-forwarded-for los pone la plataforma con la IP del cliente
 // (sobrescribe lo que mande el cliente). Se prefiere x-real-ip; si no, la primera de

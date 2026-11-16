@@ -36,7 +36,9 @@ function isQty(n: unknown): n is number {
 }
 
 // precio y nombre NO viajan: el servidor recalcula todo desde la base.
-export function convertCartForMp(cart: any[] | null | undefined): MpCartResult {
+// allowHero: solo para pedidos de efectivo / transferencia (POST /api/checkout/order), que sí aceptan el
+// combo destacado ("hero-item"): viaja sin precio y el servidor lo cobra con restaurants.hero_price.
+export function convertCartForMp(cart: any[] | null | undefined, opts: { allowHero?: boolean } = {}): MpCartResult {
   if (!Array.isArray(cart) || cart.length === 0 || cart.length > MAX_CART_LINES) {
     return { ok: false, reason: 'vacio' };
   }
@@ -44,7 +46,12 @@ export function convertCartForMp(cart: any[] | null | undefined): MpCartResult {
   for (const line of cart) {
     const id = String(line?.id ?? '');
     // El combo del menú viaja como "hero-item" (el servidor responde combo_no_soportado)
-    if (id.startsWith('hero')) return { ok: false, reason: 'combo' };
+    if (id.startsWith('hero')) {
+      if (!opts.allowHero || id !== 'hero-item') return { ok: false, reason: 'combo' };
+      if (!isQty(line.quantity)) return { ok: false, reason: 'cantidad' };
+      items.push({ productId: 'hero-item', extras: [], quantity: line.quantity });
+      continue;
+    }
 
     let productId: string;
     let variationIndex: number | undefined;
@@ -114,6 +121,10 @@ const MESSAGES: Record<string, string> = {
   error_datos: 'Tuvimos un problema para procesar tu pedido. Intentá de nuevo.',
   demasiados_intentos: 'Hiciste demasiados intentos. Esperá unos minutos y probá de nuevo.',
   limite_no_disponible: 'No pudimos iniciar el pago en este momento. Probá de nuevo en unos minutos.',
+  // Pedidos de efectivo / transferencia (POST /api/checkout/order)
+  envio_invalido: 'El costo de envío cambió. Revisá tu dirección y volvé a intentar.',
+  metodo_pago_invalido: 'Elegí un medio de pago e intentá de nuevo.',
+  pedido_invalido: 'No pudimos procesar tu pedido. Revisá tus datos e intentá de nuevo.',
   // Envío por zonas (lib/checkoutPricing.ts shippingCost)
   falta_ubicacion: 'Necesitamos tu ubicación para calcular el costo de envío.',
   fuera_de_cobertura: 'Lo sentimos, no llegamos a tu zona.',

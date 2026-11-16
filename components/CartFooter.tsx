@@ -11,7 +11,7 @@ import { convertCartForMp, totalsMatch, mpErrorMessage, MP_PENDING_KEY, UUID_RE 
 import { pickPaymentMethod, NO_METHODS_MESSAGE } from '@/lib/paymentMethods';
 import { orderDisplayTotals, round2 } from '@/lib/orderTotals';
 import { subscribeToOrder } from '@/lib/orderPollClient';
-import { newOrderId, shouldClearOrder, pickOrderAttempt, isDuplicateOrderIdError, type OrderAttempt } from '@/lib/orderPolling';
+import { newOrderId, shouldClearOrder, pickOrderAttempt, type OrderAttempt } from '@/lib/orderPolling';
 import {
     fetchGeo, parseReverseGeocode, parseForwardGeocode, avisoDireccionManual, avisoGps, geoPositionErrorMessage,
     gpsPocoPrecisaMessage, isGpsAccurate, canCalculateCost, GEO_MESSAGES, GEOLOCATION_OPTIONS,
@@ -325,13 +325,16 @@ const handleNotificarPagoMesa = async (metodo: string) => {
 
     useEffect(() => {
         if (!restaurantId) return;
+        // Las reglas las sirve el servidor (la tabla es privada desde docs/sql/19): son las mismas que aplica al
+        // crear el pedido, así que el total que ve el cliente coincide con el que calcula el servidor.
         const loadDiscountRules = async () => {
-            const { data } = await supabase
-                .from('discount_rules')
-                .select('*')
-                .eq('restaurant_id', restaurantId)
-                .eq('activo', true);
-            setDiscountRules(data || []);
+            try {
+                const res = await fetch(`/api/public/discount-rules?rid=${encodeURIComponent(restaurantId)}`);
+                const json = res.ok ? await res.json() : null;
+                setDiscountRules(Array.isArray(json?.rules) ? json.rules : []);
+            } catch {
+                setDiscountRules([]);
+            }
         };
         loadDiscountRules();
     }, [restaurantId]);
@@ -1432,56 +1435,57 @@ const handleCallWaiter = async () => {
         
         // 1. GUARDADO EN BASE DE DATOS (Solo si no es Light)
         if (!isLight) {
-            // Resolver shift_id: usar el activo o auto-crear uno si no hay caja abierta
-            let resolvedShiftId = currentShiftId;
-            if (!resolvedShiftId && restaurantId) {
-                const { data: autoShiftId, error: shiftError } = await supabase.rpc('get_or_create_shift', {
-                    p_restaurant_id: restaurantId,
-                });
-                if (shiftError) {
-                    console.error('[CartFooter] get_or_create_shift falló — pedido sin turno asignado:', {
-                        restaurant_id: restaurantId,
-                        error_message: shiftError.message,
-                        error_code: shiftError.code,
-                    });
-                }
-                resolvedShiftId = autoShiftId ?? null;
+            // El pedido lo crea y lo cobra el SERVIDOR (POST /api/checkout/order): recalcula productos, extras,
+            // cupón, descuentos y envío desde la base. Del navegador solo viajan ids, cantidades y datos de
+            // contacto; total y envío van como referencia (expected_total / delivery_cost) y el servidor los
+            // contrasta. El turno de caja también lo resuelve el servidor.
+            const orderCart = convertCartForMp(cart, { allowHero: true });
+            if (!orderCart.ok) {
+                setIsSending(false);
+                return alert(mpErrorMessage(orderCart.reason === 'combo' ? 'combo_no_soportado' : 'carrito_invalido'));
             }
-
-            // El id se genera acá y se manda en el insert, SIN .select(): leer la fila de vuelta exige
-            // permiso de lectura sobre orders, que el cliente público ya no tiene.
-            const orderPayload = {
+            const orderRequest = {
                 restaurant_id: restaurantId,
+                order_type: metodoEnvio,
+                payment_method: metodoPago,
                 customer_name: nombreCompleto,
-                customer_phone: telCliente, 
+                customer_phone: telCliente,
                 address: metodoEnvio === 'delivery' ? direccionCompleta : '',
-                order_type: metodoEnvio, 
-                payment_method: metodoPago, 
-                total: totalFinal, 
-                status: 'pendiente', 
-                delivery_cost: envio, 
-                origin_plan: planType,
-                items: cart, 
-                table_number: metodoEnvio === 'mesa' ? nroMesa : null, 
-                description: aclaraciones, 
+                table_number: metodoEnvio === 'mesa' ? nroMesa : null,
+                notes: aclaraciones,
                 coupon_code: appliedCoupon?.code || null,
-                // Todo el descuento aplicado (cupón + automático por efectivo / porcentaje);
-                // antes guardaba solo el cupón y el automático quedaba escondido en total
-                discount_amount: round2(montoDescuento + autoDescuento),
                 scheduled_delivery_time: scheduledActive && entregaTipo === 'programada' ? selectedSlot : 'Inmediato',
+                cart: orderCart.items,
+                expected_total: totalFinal,
+                delivery_cost: envio,
             };
-            // El id se conserva entre intentos con el mismo contenido (el turno de caja no entra en la firma)
-            const attempt = pickOrderAttempt(orderAttemptRef.current, JSON.stringify(orderPayload), newOrderId);
+            // El id se conserva entre intentos con el mismo contenido (un reintento tras un corte de red no duplica)
+            const attempt = pickOrderAttempt(orderAttemptRef.current, JSON.stringify(orderRequest), newOrderId);
             orderAttemptRef.current = attempt;
             const newOrderUuid = attempt.id;
-            const { error } = await supabase.from('orders').insert({
-                id: newOrderUuid,
-                ...orderPayload,
-                shift_id: resolvedShiftId ?? null,
-            });
 
-            // 23505 sobre el id: el intento anterior sí llegó a guardarse, se sigue como éxito
-            if (error && !isDuplicateOrderIdError(error)) throw error;
+            let orderRes: Response;
+            try {
+                orderRes = await fetch('/api/checkout/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...orderRequest, order_id: newOrderUuid }),
+                });
+            } catch {
+                setIsSending(false);
+                return alert('No pudimos enviar tu pedido. Revisá tu conexión e intentá de nuevo.');
+            }
+            const orderData = await orderRes.json().catch(() => ({} as any));
+            if (!orderRes.ok) {
+                setIsSending(false);
+                const code = String(orderData?.error ?? '');
+                if (code === 'total_distinto') {
+                    // El menú, el cupón o los descuentos cambiaron: el próximo intento recalcula con un id nuevo
+                    orderAttemptRef.current = null;
+                    return alert(`El total cambió: ahora es ${formatPrice(Number(orderData?.total))} y vos veías ${formatPrice(totalFinal)}. Revisá tu pedido y volvé a intentar.`);
+                }
+                return alert(mpErrorMessage(code));
+            }
             orderAttemptRef.current = null; // pedido completado: el próximo envío usa un id nuevo
             setActiveOrderId(newOrderUuid);
             localStorage.setItem("activeOrderId", newOrderUuid);
