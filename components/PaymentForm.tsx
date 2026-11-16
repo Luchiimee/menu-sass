@@ -165,6 +165,9 @@ export default function PaymentForm({
             <p className="text-[10px] text-gray-400 font-semibold mt-2 px-1">
               Esta tarjeta será reemplazada al guardar una nueva.
             </p>
+            <p className="text-[10px] text-gray-400 font-semibold mt-1 px-1">
+              Mercado Pago puede enviarte un mail avisando que tu suscripción anterior fue cancelada. Es normal: tu plan en Snappy sigue activo.
+            </p>
           </div>
         )}
 
