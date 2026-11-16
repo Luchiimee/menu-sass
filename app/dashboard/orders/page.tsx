@@ -621,6 +621,10 @@ const getActiveOrderForTable = (tableName: string) => {
 };
 
 
+// Siempre apunta a la última versión de loadOrders (la usan el canal y el plan B de abajo)
+const loadOrdersRef = useRef(loadOrders);
+loadOrdersRef.current = loadOrders;
+
 // 🚀 MOTOR DE TIEMPO REAL REFORZADO CON DIAGNÓSTICO
 useEffect(() => {
     if (!restaurantId || isLocked) return;
@@ -691,6 +695,11 @@ useEffect(() => {
         })
         .subscribe((status) => {
             console.log("📡 Estado de la conexión Realtime:", status);
+            // Al (re)conectar, o si el canal se cae, se vuelve a leer la lista: lo que llegó mientras
+            // el websocket estaba caído no se reenvía solo
+            if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                loadOrdersRef.current();
+            }
         });
 
     return () => { 
@@ -698,6 +707,26 @@ useEffect(() => {
         supabase.removeChannel(channel); 
     };
 }, [restaurantId, isLocked]);
+
+  // Plan B del tiempo real: con la pestaña en segundo plano el navegador frena el websocket y puede
+  // caerse sin avisar. Se relee la lista al volver a la pestaña, al recuperar internet y cada 30 s
+  // mientras la pestaña está visible.
+  useEffect(() => {
+    if (!restaurantId || isLocked) return;
+    const refresh = () => {
+      if (document.visibilityState === 'visible') loadOrdersRef.current();
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    const timer = setInterval(refresh, 30000);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+      clearInterval(timer);
+    };
+  }, [restaurantId, isLocked]);
 
   if (loading) {
     
