@@ -121,7 +121,6 @@ function PlanContent() {
   const [showProrateConfirm, setShowProrateConfirm] = useState(false);
   const [pendingPlanChange, setPendingPlanChange] = useState<string | null>(null);
   const [estimatedProrate, setEstimatedProrate] = useState<{ amount: number; days: number }>({ amount: 0, days: 0 });
-  const [retrying, setRetrying] = useState(false);
   const [pendingPhone, setPendingPhone] = useState<string | null>(null);
   const [savingPhone, setSavingPhone] = useState(false);
   const [linkedCard, setLinkedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
@@ -357,29 +356,6 @@ function PlanContent() {
       toast.error("No se pudo activar el plan");
     } finally {
       setProcessingPlan(null);
-    }
-  };
-
-  const handleRetry = async () => {
-    setRetrying(true);
-    try {
-      const res = await fetch('/api/subscriptions/retry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setRestaurant(prev => ({ ...prev, subscription_status: 'active' }));
-        toast.success('Suscripción reactivada. El cobro se reanudará automáticamente.');
-        window.dispatchEvent(new Event("profile-updated"));
-      } else {
-        toast.error('No pudimos reactivar con esta tarjeta. Verificá tu saldo o cambiá la tarjeta.');
-      }
-    } catch {
-      toast.error('Error al reintentar el cobro.');
-    } finally {
-      setRetrying(false);
     }
   };
 
@@ -657,16 +633,6 @@ function PlanContent() {
                     {isActive && !inGracePeriod && (
                       <button onClick={handleOpenUpdateCard} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors flex items-center justify-center gap-1.5">
                         <RefreshCw size={11} /> Cambiar Tarjeta
-                      </button>
-                    )}
-                    {isPaused && (
-                      <button
-                        onClick={handleRetry}
-                        disabled={retrying}
-                        className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-gray-900 text-white flex items-center justify-center gap-1.5 disabled:opacity-50"
-                      >
-                        {retrying ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                        Reintentar cobro
                       </button>
                     )}
                     {isPaused && !inGracePeriod && (
