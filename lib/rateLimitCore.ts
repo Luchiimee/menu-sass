@@ -43,9 +43,14 @@ export const RATE_LIMITS = {
   quotePerRestaurant: { limit: 40, windowSeconds: 10 * 60 },
   // Importar productos desde CSV (POST /api/products/import): hasta 500 filas por request, así que pocas por local
   importPerRestaurant: { limit: 6, windowSeconds: 10 * 60 },
+  // Reservas desde el menú público (POST /api/public/reservations): crear una escribe en la base y avisa al dueño
+  reservationPerIp: { limit: 10, windowSeconds: 10 * 60 },
+  reservationPerRestaurant: { limit: 100, windowSeconds: 10 * 60 },
+  // Consultar una reserva por teléfono (POST /api/public/reservations/lookup): pocas por IP, es un dato personal
+  reservationLookupPerIp: { limit: 10, windowSeconds: 10 * 60 },
 } satisfies Record<string, LimitRule>;
 
-export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall' | 'import' | 'neworder';
+export type LimitScope = 'checkout' | 'public' | 'quote' | 'order' | 'tablecall' | 'import' | 'neworder' | 'reservation' | 'reslookup';
 
 // En Vercel, x-real-ip y x-forwarded-for los pone la plataforma con la IP del cliente
 // (sobrescribe lo que mande el cliente). Se prefiere x-real-ip; si no, la primera de

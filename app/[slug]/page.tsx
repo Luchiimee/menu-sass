@@ -683,25 +683,10 @@ function MenuContent({
     [key: string]: number | null;
   }>({});
   const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
-  const validatePhone = async (phone: string) => {
-    if (phone.length < 8) { // No buscamos si el número es muy corto
-        setPhoneError(null);
-        return;
-    }
-
-    const { data } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('restaurant_id', restaurant.id)
-      .eq('customer_phone', phone)
-      .neq('status', 'cancelada') // Ignoramos si la reserva anterior fue cancelada
-      .maybeSingle();
-
-    if (data) {
-      setPhoneError("⚠️ Ya tenés una reserva activa con este número.");
-    } else {
-      setPhoneError(null);
-    }
+  // La verificación de "ya tenés una reserva" ahora la hace el servidor al enviar (POST /api/public/reservations):
+  // acá solo se limpia el aviso cuando el cliente edita el número.
+  const validatePhone = (_phone: string) => {
+    setPhoneError(null);
   };
 const handleSendReservation = async () => {
     const now = new Date();
@@ -731,33 +716,41 @@ const handleSendReservation = async () => {
     setIsSubmitting(true);
 
     try {
-        // 🚀 VERIFICACIÓN DE ÚLTIMO SEGUNDO
-        const { data: isStillBlocked } = await supabase
-            .from('blocked_dates')
-            .select('id')
-            .eq('restaurant_id', restaurant.id)
-            .eq('blocked_date', resData.date)
-            .maybeSingle();
-
-        if (isStillBlocked) {
-            setIsSubmitting(false);
-            setShowBlockedModal(true);
-            return;
-        }
-
-        const { error } = await supabase.from('reservations').insert({
-            restaurant_id: restaurant.id,
-            customer_name: resData.name,
-            customer_lastname: resData.lastname,
-            customer_phone: resData.phone,
-            reservation_date: resData.date,
-            reservation_time: resData.time,
-            guests: resData.guests,
-            notes: resData.notes,
-            status: 'pendiente'
+        const res = await fetch('/api/public/reservations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                restaurantId: restaurant.id,
+                name: resData.name,
+                lastname: resData.lastname,
+                phone: resData.phone,
+                date: resData.date,
+                time: resData.time,
+                guests: resData.guests,
+                notes: resData.notes,
+            }),
         });
+        const out = await res.json().catch(() => ({} as any));
 
-        if (error) throw error;
+        if (!res.ok) {
+            if (out?.error === 'dia_bloqueado' || out?.error === 'fecha_pasada') {
+                setShowBlockedModal(true);
+                return;
+            }
+            if (out?.error === 'ya_tiene_reserva') {
+                setPhoneError("⚠️ Ya tenés una reserva activa con este número.");
+                return;
+            }
+            if (res.status === 429) {
+                alert("Hiciste muchos intentos. Esperá unos minutos y probá de nuevo.");
+                return;
+            }
+            if (out?.error === 'datos_invalidos') {
+                alert("Revisá los datos: nombre, apellido, WhatsApp (solo números), fecha y hora.");
+                return;
+            }
+            throw new Error("No pudimos enviar la reserva. Probá de nuevo en un momento.");
+        }
 
         setShowSuccessModal(true); 
         setShowReservationModal(false);
@@ -772,19 +765,23 @@ const handleSendReservation = async () => {
   const handleCheckReservation = async () => {
     if (!searchPhone) return alert("Ingresá tu número de WhatsApp");
 
-    const { data, error } = await supabase
-      .from("reservations")
-      .select("*")
-      .eq("customer_phone", searchPhone)
-      .eq("restaurant_id", restaurant.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (data) {
-      setMyReservation(data);
-    } else {
-      alert("No encontramos ninguna reserva con ese número.");
+    try {
+      const res = await fetch('/api/public/reservations/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId: restaurant.id, phone: searchPhone }),
+      });
+      if (res.status === 429) return alert("Hiciste muchas consultas. Esperá unos minutos y probá de nuevo.");
+      if (res.status === 400) return alert("Ingresá tu número de WhatsApp completo, solo con números.");
+      if (!res.ok) return alert("No pudimos consultar tu reserva. Probá de nuevo en un momento.");
+      const out = await res.json();
+      if (out?.reservation) {
+        setMyReservation(out.reservation);
+      } else {
+        alert("No encontramos ninguna reserva con ese número.");
+      }
+    } catch {
+      alert("No pudimos consultar tu reserva. Probá de nuevo en un momento.");
     }
   };
 
