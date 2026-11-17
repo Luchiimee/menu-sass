@@ -56,7 +56,7 @@
 --   a) El total lo manda el cliente. El trigger no recalcula total, delivery_cost ni discount_amount a partir de
 --      los productos: con la clave pública se puede insertar un pedido con un total falso (por ejemplo 1) y
 --      items cualquiera. Cierra solo el estado, el pago, el turno, el order_type y el payment_method.
---   b) get_or_create_shift sigue abierta a anon (EXECUTE para anon, SECURITY DEFINER): con un restaurant_id
+--   b) [CERRADO por docs/sql/29_get_or_create_shift_hardening.sql, 2026-11-17] get_or_create_shift sigue abierta a anon (EXECUTE para anon, SECURITY DEFINER): con un restaurant_id
 --      conocido cualquiera puede crear o reutilizar el turno de caja de ese local. Lo usa CartFooter desde el
 --      navegador anónimo. Pendiente: que el trigger asigne el turno del lado del servidor y revocar anon.
 --   c) Otros campos del insert público no se validan (customer_name, address, description, items, coupon_code,
