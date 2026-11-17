@@ -1,91 +1,119 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import {
-  Calendar as CalendarIcon, Users, Clock, CheckCircle2, XCircle,
-  MessageCircle, Loader2, Trash2, CalendarCheck, ChevronLeft, ChevronRight,
-  BellRing, LayoutList, Columns2, Sparkles, CalendarDays, Plus,
-  X, NotebookPen, Phone, CalendarRange, MessageSquareText, Zap,
+  Users, Clock3, MessageCircle, CalendarCheck, ChevronLeft, ChevronRight,
+  BellRing, List, Columns2, CalendarDays, Plus, X, NotebookPen, Zap,
+  Check, CheckCheck, Ban, Ellipsis, Eye, RefreshCw, Trash2, MessageSquare, ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isAdminEmail } from "@/lib/access";
+import styles from "./reservas.module.css";
+
+const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+
+const STATUS_LABEL: Record<string, string> = {
+  pendiente: "Pendiente",
+  confirmada: "Confirmada",
+  programada: "Reprogramada",
+  suspendida: "Suspendida",
+  cancelada: "Cancelada",
+};
+const STATUS_CLASS: Record<string, string> = {
+  pendiente: styles.statusPendiente,
+  confirmada: styles.statusConfirmada,
+  programada: styles.statusProgramada,
+  suspendida: styles.statusSuspendida,
+  cancelada: styles.statusCancelada,
+};
+const DOT_CLASS: Record<string, string> = {
+  pendiente: styles.dotPendiente,
+  confirmada: styles.dotConfirmada,
+  programada: styles.dotProgramada,
+  suspendida: styles.dotSuspendida,
+  cancelada: styles.dotCancelada,
+};
+
+const getArgentinaDate = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+// Mediodía para que el huso horario no corra el día
+const parseDay = (ymd: string) => new Date(`${ymd}T12:00:00`);
+const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const dateLabel = (ymd: string, short = false) =>
+  parseDay(ymd).toLocaleDateString("es-AR", short ? { day: "numeric", month: "short" } : { weekday: "long", day: "numeric", month: "long" });
+
+// wa.me necesita código de país: un número argentino de 10 dígitos (sin 54) se completa con 549
+const whatsappUrl = (raw: string) => {
+  let digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = digits.replace(/^0+/, "");
+  if (digits.length === 10) digits = `549${digits}`;
+  return `https://wa.me/${digits}`;
+};
+
+type ModalState =
+  | { type: "manual" }
+  | { type: "close" }
+  | { type: "reschedule" | "note" | "detail" | "cancel" | "delete"; res: any }
+  | null;
 
 export default function ReservationsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'split'>('split');
-  const [dailyReservations, setDailyReservations] = useState<any[]>([]); 
-  const [todayReservations, setTodayReservations] = useState<any[]>([]); 
-  const [allConfirmed, setAllConfirmed] = useState<any[]>([]); 
-  const [pendingInBox, setPendingInBox] = useState<any[]>([]); 
-  const [monthData, setMonthData] = useState<any[]>([]); 
+  const [viewMode, setViewMode] = useState<"list" | "split">("split");
+  const [dailyReservations, setDailyReservations] = useState<any[]>([]);
+  const [pendingInBox, setPendingInBox] = useState<any[]>([]);
+  const [monthData, setMonthData] = useState<any[]>([]);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
-  const [calendarView, setCalendarView] = useState<'month' | 'week'>('month'); 
-  
-  // 🚀 ESTADOS DE MODALES Y BLOQUEO
-  const [showClientMsgModal, setShowClientMsgModal] = useState(false); 
-  const [clientMsgText, setClientMsgText] = useState(''); 
-  const [selectedResDetail, setSelectedResDetail] = useState<any>(null);
+  const [calendarView, setCalendarView] = useState<"month" | "week">("month");
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
-  const [showManualModal, setShowManualModal] = useState(false);
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [noteData, setNoteData] = useState({ id: '', text: '' });
-  const [rescheduleData, setRescheduleData] = useState({ id: '', date: '', time: '' });
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState>(null);
+  const [noteData, setNoteData] = useState({ id: "", text: "" });
+  const [rescheduleData, setRescheduleData] = useState({ id: "", date: "", time: "" });
 
-  const getArgentinaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
   const [selectedDate, setSelectedDate] = useState(getArgentinaDate());
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const [manualData, setManualData] = useState({
-    customer_name: '',
-    customer_lastname: '',
-    customer_phone: '',
+    customer_name: "",
+    customer_lastname: "",
+    customer_phone: "",
     reservation_date: getArgentinaDate(),
-    reservation_time: '21:00',
+    reservation_time: "21:00",
     guests: 2,
-    notes: ''
+    notes: "",
   });
 
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
   const refreshAllData = async () => {
     if (!restaurantId) return;
-    const today = getArgentinaDate();
+    const { data: daily } = await supabase.from("reservations").select("*").eq("restaurant_id", restaurantId).eq("reservation_date", selectedDate).order("reservation_time", { ascending: true });
+    const { data: globalPending } = await supabase.from("reservations").select("*").eq("restaurant_id", restaurantId).eq("status", "pendiente").order("reservation_date", { ascending: true }).order("reservation_time", { ascending: true });
+    const { data: month } = await supabase.from("reservations").select("reservation_date, status").eq("restaurant_id", restaurantId);
 
-    const { data: todayRes } = await supabase.from('reservations').select('*').eq('restaurant_id', restaurantId).eq('reservation_date', today).order('reservation_time', { ascending: true });
-    const { data: daily } = await supabase.from('reservations').select('*').eq('restaurant_id', restaurantId).eq('reservation_date', selectedDate).order('reservation_time', { ascending: true });
-    const { data: confirmed } = await supabase.from('reservations').select('*').eq('restaurant_id', restaurantId).in('status', ['confirmada', 'suspendida', 'programada']).gte('reservation_date', today).order('reservation_date', { ascending: true }).order('reservation_time', { ascending: true });
-    const { data: globalPending } = await supabase.from('reservations').select('*').eq('restaurant_id', restaurantId).eq('status', 'pendiente').order('reservation_date', { ascending: true });
-    const { data: month } = await supabase.from('reservations').select('reservation_date, status').eq('restaurant_id', restaurantId);
-
-    setTodayReservations(todayRes || []);
     setDailyReservations(daily || []);
-    setAllConfirmed(confirmed || []);
     setPendingInBox(globalPending || []);
     setMonthData(month || []);
     fetchBlockedDates();
-    setLoading(false);
   };
 
   const fetchBlockedDates = async () => {
     if (!restaurantId) return;
-    const { data } = await supabase.from('blocked_dates').select('blocked_date').eq('restaurant_id', restaurantId);
-    setBlockedDates(data?.map(d => d.blocked_date) || []);
+    const { data } = await supabase.from("blocked_dates").select("blocked_date").eq("restaurant_id", restaurantId);
+    setBlockedDates(data?.map((d) => d.blocked_date) || []);
   };
 
   const toggleBlockDate = async () => {
     const isBlocked = blockedDates.includes(selectedDate);
     if (isBlocked) {
-        await supabase.from('blocked_dates').delete().eq('restaurant_id', restaurantId).eq('blocked_date', selectedDate);
-        toast.success("Día habilitado");
+      await supabase.from("blocked_dates").delete().eq("restaurant_id", restaurantId).eq("blocked_date", selectedDate);
+      toast.success("Día habilitado");
     } else {
-        await supabase.from('blocked_dates').insert({ restaurant_id: restaurantId, blocked_date: selectedDate });
-        toast.error("Reservas cerradas para hoy");
+      await supabase.from("blocked_dates").insert({ restaurant_id: restaurantId, blocked_date: selectedDate });
+      toast.error("Reservas cerradas para este día");
     }
     fetchBlockedDates();
   };
@@ -94,50 +122,55 @@ export default function ReservationsPage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: rest } = await supabase.from('restaurants').select('id, subscription_plan').eq('user_id', user.id).single();
+        const { data: rest } = await supabase.from("restaurants").select("id, subscription_plan").eq("user_id", user.id).single();
         if (rest) {
           // Reservas es exclusiva del Plan Plus
-          setIsLocked(rest.subscription_plan !== 'plus' && !isAdminEmail(user.email));
+          setIsLocked(rest.subscription_plan !== "plus" && !isAdminEmail(user.email));
           setRestaurantId(rest.id);
         }
       }
-      setLoading(false);
     };
     init();
   }, []);
 
-  useEffect(() => { if(restaurantId && !isLocked) refreshAllData(); }, [restaurantId, isLocked, selectedDate, currentMonth]);
+  useEffect(() => { if (restaurantId && !isLocked) refreshAllData(); }, [restaurantId, isLocked, selectedDate, currentMonth]);
+
   useEffect(() => {
     if (!restaurantId || isLocked) return;
-
     const channel = supabase
-      .channel('realtime-reservations') // Nombre único para el canal
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'reservations', 
-          filter: `restaurant_id=eq.${restaurantId}` 
-        }, 
-        () => {
-          console.log("🔔 Cambio detectado en la base de datos");
-          refreshAllData(); // Recarga todo automáticamente
-        }
-      )
+      .channel("realtime-reservations")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        refreshAllData();
+      })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
-}, [restaurantId]);
+  }, [restaurantId]);
+
+  // Menú ⋯ y modales: se cierran tocando afuera / con Escape
+  useEffect(() => {
+    if (!menuId) return;
+    const close = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-res-menu]")) setMenuId(null);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menuId]);
+
+  useEffect(() => {
+    if (!modal) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModal(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [modal]);
 
   const updateStatus = async (id: string, newStatus: string) => {
-    await supabase.from('reservations').update({ status: newStatus }).eq('id', id);
-    toast.success(`Estado actualizado`);
+    await supabase.from("reservations").update({ status: newStatus }).eq("id", id);
+    toast.success(newStatus === "confirmada" ? "Reserva confirmada" : newStatus === "cancelada" ? "Reserva cancelada" : "Estado actualizado");
     refreshAllData();
   };
 
   const handleDelete = async (id: string) => {
-    if(!confirm("¿Borrar definitivamente?")) return;
-    const { error } = await supabase.from('reservations').delete().eq('id', id);
+    const { error } = await supabase.from("reservations").delete().eq("id", id);
     if (!error) {
       toast.success("Reserva eliminada");
       refreshAllData();
@@ -145,58 +178,90 @@ export default function ReservationsPage() {
   };
 
   const saveAdminNote = async () => {
-    await supabase.from('reservations').update({ admin_notes: noteData.text }).eq('id', noteData.id);
+    await supabase.from("reservations").update({ admin_notes: noteData.text }).eq("id", noteData.id);
     toast.success("Nota guardada");
-    setShowNoteModal(false);
+    setModal(null);
     refreshAllData();
   };
 
   const confirmReschedule = async () => {
-    await supabase.from('reservations').update({ reservation_date: rescheduleData.date, reservation_time: rescheduleData.time, status: 'programada' }).eq('id', rescheduleData.id);
+    await supabase.from("reservations").update({ reservation_date: rescheduleData.date, reservation_time: rescheduleData.time, status: "programada" }).eq("id", rescheduleData.id);
     toast.success("Reprogramada");
-    setShowRescheduleModal(false);
+    setModal(null);
     refreshAllData();
   };
 
   const handleManualReserve = async () => {
     if (!manualData.customer_name || !manualData.customer_phone) return toast.error("Faltan datos");
-    const { error } = await supabase.from('reservations').insert([{ ...manualData, restaurant_id: restaurantId, status: 'confirmada' }]);
+    const { error } = await supabase.from("reservations").insert([{ ...manualData, restaurant_id: restaurantId, status: "confirmada" }]);
     if (!error) {
-      setShowManualModal(false);
+      setModal(null);
+      setSelectedDate(manualData.reservation_date);
       refreshAllData();
     }
   };
 
-  const calendarDays = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const days = [];
-    const offset = firstDay === 0 ? 6 : firstDay - 1;
-    for (let i = 0; i < offset; i++) days.push(null);
-    for (let d = 1; d <= daysInMonth; d++) days.push(new Date(year, month, d));
-    return days;
-  }, [currentMonth]);
+  const openModal = (state: NonNullable<ModalState>) => {
+    setMenuId(null);
+    if (state.type === "manual") {
+      setManualData({ customer_name: "", customer_lastname: "", customer_phone: "", reservation_date: selectedDate, reservation_time: "21:00", guests: 2, notes: "" });
+    } else if (state.type === "note") {
+      setNoteData({ id: state.res.id, text: state.res.admin_notes || "" });
+    } else if (state.type === "reschedule") {
+      setRescheduleData({ id: state.res.id, date: state.res.reservation_date, time: String(state.res.reservation_time).slice(0, 5) });
+    }
+    setModal(state);
+  };
 
-  const weekDays = useMemo(() => {
-    const start = new Date(selectedDate);
-    const day = start.getDay();
-    const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Empezar en Lunes
-    const monday = new Date(start.setDate(diff));
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return d;
-    });
-}, [selectedDate]);
+  // ---------- calendario ----------
+  const today = getArgentinaDate();
+  const tomorrow = dateKey(new Date(parseDay(today).getTime() + 86400000));
+
+  const moveDay = (amount: number) => {
+    const d = parseDay(selectedDate);
+    d.setDate(d.getDate() + amount);
+    setSelectedDate(dateKey(d));
+    setCurrentMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+  };
+  const moveCalendar = (amount: number) => {
+    if (calendarView === "week") { moveDay(amount * 7); return; }
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + amount, 1));
+  };
+
+  const calendarCells: (Date | null)[] = (() => {
+    if (calendarView === "month") {
+      const y = currentMonth.getFullYear();
+      const m = currentMonth.getMonth();
+      const offset = (new Date(y, m, 1).getDay() + 6) % 7;
+      const days = new Date(y, m + 1, 0).getDate();
+      return [...Array.from({ length: offset }, () => null), ...Array.from({ length: days }, (_, i) => new Date(y, m, i + 1))];
+    }
+    const monday = parseDay(selectedDate);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+  })();
+
+  const monthLabelRaw = (calendarView === "week" ? parseDay(selectedDate) : currentMonth).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  const monthLabel = monthLabelRaw.charAt(0).toUpperCase() + monthLabelRaw.slice(1);
+
+  const isClosed = blockedDates.includes(selectedDate);
+  // Cancelada y suspendida no cuentan como gente a recibir
+  const expected = dailyReservations.filter((r) => r.status !== "cancelada" && r.status !== "suspendida");
+  const expectedPeople = expected.reduce((sum, r) => sum + (Number(r.guests) || 0), 0);
+  const fullName = (r: any) => `${r.customer_name ?? ""} ${r.customer_lastname ?? ""}`.trim();
+
+  const closeDayButton = (
+    <button className={cx(styles.btn, isClosed ? styles.btnOpen : styles.btnWarning, styles.dayClose)} onClick={() => openModal({ type: "close" })}>
+      <Ban size={14} />{isClosed ? "Reabrir reservas para este día" : "Cerrar reservas para este día"}
+    </button>
+  );
 
   return (
     <>
       {isLocked && (
         <div className="fixed inset-0 z-[150] backdrop-blur-sm bg-white/60 flex items-center justify-center p-4">
           <div className="bg-white shadow-2xl p-10 rounded-[2.5rem] max-w-md w-full text-center border border-gray-100 relative animate-in zoom-in-95">
-            <button onClick={() => router.push('/dashboard')} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+            <button onClick={() => router.push("/dashboard")} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
               <X size={20} className="text-gray-500" />
             </button>
             <div className="mx-auto w-16 h-16 bg-brasa/10 rounded-full flex items-center justify-center mb-5 text-brasa">
@@ -208,377 +273,297 @@ export default function ReservationsPage() {
               <Link href="/dashboard/plan" className="w-full py-4 rounded-2xl font-bold bg-fresco text-white hover:bg-fresco/90 transition shadow-lg uppercase text-xs tracking-widest flex items-center justify-center gap-2">
                 Actualizar a Plus <Zap size={18} fill="currentColor" />
               </Link>
-              <button onClick={() => router.push('/dashboard')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
+              <button onClick={() => router.push("/dashboard")} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 hover:text-gray-600 transition">
                 Volver al inicio
               </button>
             </div>
           </div>
         </div>
       )}
-    <div className={`max-w-[1600px] mx-auto p-4 md:p-8 space-y-6 font-sans pb-24 text-left text-gray-900 transition-all duration-500 ${isLocked ? 'blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-screen' : ''}`}>
 
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl lg:text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-          Agenda de Reservas <CalendarCheck size={32} className="text-brasa"/>
-        </h1>
-
-        <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowManualModal(true)} className="bg-fresco text-white px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg active:scale-95 transition-all">
-                <Plus size={16} strokeWidth={3}/> Carga Manual
-            </button>
-            <div className="flex bg-white p-1 rounded-xl border shadow-sm">
-                <button onClick={() => setViewMode('list')} className={`px-4 py-1.5 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase transition-all ${viewMode === 'list' ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-100'}`}>
-                    <LayoutList size={14}/> Lista
-                </button>
-                <button onClick={() => setViewMode('split')} className={`px-4 py-1.5 rounded-lg flex items-center gap-2 text-[9px] font-black uppercase transition-all ${viewMode === 'split' ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-100'}`}>
-                    <Columns2 size={14}/> Dividida
-                </button>
-            </div>
-        </div>
-      </div>
-
-      {/* 🚀 PANEL DE HOY */}
-      {todayReservations.length > 0 && (
-          <section className="bg-zinc-900 p-5 rounded-[2.5rem] text-white shadow-2xl animate-in fade-in zoom-in-95">
-             <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-brasa rounded-lg animate-pulse"><Clock size={18}/></div>
-                <h2 className="font-black text-xs uppercase italic tracking-widest">Hoy — {getArgentinaDate().split('-').reverse().join('/')}</h2>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                {todayReservations.map(res => (
-                    <ReservationCard 
-                        key={res.id} res={res} 
-                        onStatusChange={(s: string) => updateStatus(res.id, s)} 
-                        onDelete={() => handleDelete(res.id)} 
-                        onReschedule={() => { setRescheduleData({ id: res.id, date: res.reservation_date, time: res.reservation_time }); setShowRescheduleModal(true); }}
-                        onEditNote={(id: string, text: string) => { setNoteData({ id, text }); setShowNoteModal(true); }}
-                        onShowClientMsg={(msg: string) => { setClientMsgText(msg); setShowClientMsgModal(true); }}
-                        onShowDetail={(r: any) => setSelectedResDetail(r)}
-                        isTodayVariant={true}
-                    />
-                ))}
-             </div>
-          </section>
-      )}
-
-      <div className={`grid grid-cols-1 ${viewMode === 'split' ? 'lg:grid-cols-12' : ''} gap-6 lg:gap-10 items-start`}>
-        
-      {/* 🗓️ COLUMNA IZQUIERDA: CALENDARIO OPTIMIZADO */}
-        <div className={`${viewMode === 'split' ? 'lg:col-span-5 xl:col-span-4' : 'w-full max-w-md mx-auto'} flex flex-col gap-4`}>
-          
-          {/* 🚀 BOTÓN DE BLOQUEO: AHORA ARRIBA */}
-          <button 
-              onClick={toggleBlockDate}
-              className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg active:scale-95 ${blockedDates.includes(selectedDate) ? 'bg-fresco text-white' : 'bg-alert text-white'}`}
-          >
-              {blockedDates.includes(selectedDate) ? '✅ Habilitar Reservas' : '🚫 Cerrar Reservas para este día'}
-          </button>
-
-          <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-gray-100 text-center text-gray-900">
-            {/* SELECTOR DE VISTA: MES / SEMANA */}
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-                <button onClick={() => setCalendarView('month')} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${calendarView === 'month' ? 'bg-white text-black shadow-sm' : 'text-gray-400'}`}>Mensual</button>
-                <button onClick={() => setCalendarView('week')} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${calendarView === 'week' ? 'bg-white text-black shadow-sm' : 'text-gray-400'}`}>Semanal</button>
-            </div>
-
-            <div className="flex justify-between items-center mb-6 px-2">
-              <h3 className="font-black text-sm uppercase tracking-tighter italic">
-                {currentMonth.toLocaleString('es-AR', { month: 'long', year: 'numeric' })}
-              </h3>
-              <div className="flex gap-1">
-                <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-1.5 bg-gray-50 hover:bg-gray-100 rounded-full text-gray-900"><ChevronLeft size={16}/></button>
-                <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-1.5 bg-gray-50 hover:bg-gray-100 rounded-full text-gray-900"><ChevronRight size={16}/></button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 text-center mb-4 text-gray-300 font-black text-[9px]">
-              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, idx) => <span key={idx}>{d}</span>)}
-            </div>
-
-            <div className="grid grid-cols-7 gap-2">
-              {/* Alrededor de la línea 240 en ReservationsPage */}
-{(calendarView === 'month' ? calendarDays : weekDays).map((day, i) => {
-    if (!day) return <div key={`empty-${i}`} className="aspect-square" />;
-    const dateStr = day.toLocaleDateString('en-CA');
-    const isSelected = selectedDate === dateStr;
-    const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
-    const isBlocked = blockedDates.includes(dateStr); // 🚀 Detectamos si está bloqueado
-
-    const resOnDay = monthData.filter(r => r.reservation_date === dateStr && r.status !== 'cancelada');
-    const hasPending = resOnDay.some(r => r.status === 'pendiente');
-    const hasConfirmed = resOnDay.some(r => ['confirmada', 'programada', 'suspendida'].includes(r.status));
-
-return (
-  <button 
-    key={dateStr} 
-    onClick={() => setSelectedDate(dateStr)} 
-    className={`relative aspect-square flex items-center justify-center rounded-xl text-xs font-black transition-all 
-      ${isSelected ? 'bg-black text-white scale-110 shadow-lg z-10' : 
-        isToday ? 'bg-brasa/10 text-brasa ring-2 ring-brasa/30' : 
-        'bg-gray-50 text-gray-500 hover:bg-white hover:shadow-md'}`}
-  >
-    {day.getDate()}
-
-    {/* ❌ LA FRANJA ROJA DE BLOQUEO (Tachado) */}
-    {isBlocked && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[80%] h-[2px] bg-alert rotate-45 absolute rounded-full" />
-            <div className="w-[80%] h-[2px] bg-alert -rotate-45 absolute rounded-full" />
-        </div>
-    )}
-
-    {/* Puntitos de estado solo si NO está bloqueado */}
-    {!isBlocked && (
-        <div className="absolute -bottom-1 flex w-full justify-center gap-0.5 px-1">
-            {hasPending && <div className="h-1 flex-1 bg-brasa rounded-full" />}
-            {hasConfirmed && <div className="h-1 flex-1 bg-fresco rounded-full" />}
-        </div>
-    )}
-  </button>
-);
-})}
+      <div className={cx(styles.root, isLocked && "blur-sm pointer-events-none opacity-50 select-none overflow-hidden h-screen")}>
+        {/* ENCABEZADO */}
+        <header className={styles.pageHeader}>
+          <div>
+            <h1 className={cx(styles.pageTitle, styles.display)}>Agenda de reservas <CalendarCheck size={26} strokeWidth={1.8} /></h1>
+            <p className={styles.pageSubtitle}>Cada mesa, cada día. Todo bajo control.</p>
+          </div>
+          <div className={styles.headerActions}>
+            <button className={cx(styles.btn, styles.btnConfirm)} style={{ height: 40, fontSize: 12 }} onClick={() => openModal({ type: "manual" })}><Plus /> Carga manual</button>
+            <div className={styles.segmented} aria-label="Vista de agenda">
+              <button className={cx(styles.btn, styles.btnGhost, styles.btnSegment)} data-active={viewMode === "list"} onClick={() => setViewMode("list")}><List /> Lista</button>
+              <button className={cx(styles.btn, styles.btnGhost, styles.btnSegment)} data-active={viewMode === "split"} onClick={() => setViewMode("split")}><Columns2 /> Dividida</button>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* 📋 COLUMNA DERECHA: LISTAS */}
-        <div className={`${viewMode === 'split' ? 'lg:col-span-7 xl:col-span-8' : 'w-full'} space-y-12`}>
-          <section className="space-y-4">
-             <div className="flex items-center gap-2 px-3">
-                <BellRing size={16} className="text-brasa animate-bounce" />
-                <h3 className="text-[11px] font-black uppercase text-brasa tracking-[0.2em]">Pendientes Globales</h3>
-             </div>
-             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {pendingInBox.map(res => (
-                  <ReservationCard key={res.id} res={res} onStatusChange={(s: string) => updateStatus(res.id, s)} onDelete={() => handleDelete(res.id)} onEditNote={(id: string, text: string) => { setNoteData({ id, text }); setShowNoteModal(true); }} onShowClientMsg={(msg: string) => { setClientMsgText(msg); setShowClientMsgModal(true); }} onShowDetail={(r: any) => setSelectedResDetail(r)}/>
-                ))}
-             </div>
-          </section>
-
-          <section className="space-y-4">
-             <div className="flex items-center gap-2 px-3">
-                <CalendarRange size={16} className="text-fresco" />
-                <h3 className="text-[11px] font-black uppercase text-fresco tracking-[0.2em]">Agenda Completa</h3>
-             </div>
-             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {allConfirmed.map(res => (
-                  <ReservationCard key={res.id} res={res} onStatusChange={(s: string) => updateStatus(res.id, s)} onDelete={() => handleDelete(res.id)} showDate onEditNote={(id: string, text: string) => { setNoteData({ id, text }); setShowNoteModal(true); }} onShowClientMsg={(msg: string) => { setClientMsgText(msg); setShowClientMsgModal(true); }} onShowDetail={(r: any) => setSelectedResDetail(r)}/>
-                ))}
-             </div>
-          </section>
-        </div>
-      </div>
-
-      {/* 🎫 TODOS LOS MODALES AL FINAL (FUERA DE LAS CARDS) */}
-
-      {/* 1. Modal Detalle Reserva */}
-      {selectedResDetail && (
-        <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 text-gray-900 text-left">
-            <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95">
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">{selectedResDetail.customer_name} {selectedResDetail.customer_lastname}</h3>
-                        <p className="text-brasa font-bold text-[10px] uppercase tracking-widest">Información detallada</p>
-                    </div>
-                    <button onClick={() => setSelectedResDetail(null)} className="p-2 bg-gray-50 rounded-full"><X size={20}/></button>
-                </div>
-                <div className="space-y-6">
-                    <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <Phone size={20} className="text-fresco" />
-                        <div>
-                            <p className="text-[9px] font-black text-gray-400 uppercase">WhatsApp</p>
-                            <p className="font-bold text-lg">{selectedResDetail.customer_phone}</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-4 rounded-2xl border">
-                            <p className="text-[9px] font-black text-gray-400 uppercase">Personas</p>
-                            <p className="font-bold">{selectedResDetail.guests}</p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-2xl border">
-                            <p className="text-[9px] font-black text-gray-400 uppercase">Horario</p>
-                            <p className="font-bold">{selectedResDetail.reservation_time.slice(0,5)} hs</p>
-                        </div>
-                    </div>
-                    {selectedResDetail.notes && (
-                        <div className="bg-brasa/10 p-4 rounded-2xl border border-brasa/10">
-                            <p className="text-[9px] font-black text-brasa uppercase mb-1">Descripción del Cliente</p>
-                            <p className="text-sm italic font-bold">"{selectedResDetail.notes}"</p>
-                        </div>
-                    )}
-                    {selectedResDetail.admin_notes && (
-                        <div className="bg-zinc-900 p-4 rounded-2xl text-white">
-                            <p className="text-[9px] font-black text-zinc-500 uppercase mb-1 tracking-widest">Tus Notas Internas</p>
-                            <p className="text-sm font-medium">{selectedResDetail.admin_notes}</p>
-                        </div>
-                    )}
-                </div>
-                <button onClick={() => setSelectedResDetail(null)} className="w-full mt-8 py-5 bg-zinc-900 text-white rounded-2xl font-black uppercase text-xs">Cerrar Detalle</button>
-            </div>
-        </div>
-      )}
-
-      {/* 2. Modal Mensaje Cliente */}
-      {showClientMsgModal && (
-        <div className="fixed inset-0 z-[1500] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 text-left">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 text-gray-900 border-4 border-brasa/10">
-            <div className="flex items-center gap-2 mb-6">
-                <MessageSquareText size={20} className="text-brasa" />
-                <h3 className="text-xl font-black uppercase italic tracking-tighter">Mensaje del Cliente</h3>
-            </div>
-            <div className="bg-brasa/10/50 p-6 rounded-2xl border border-brasa/10 italic font-bold text-gray-700 text-sm leading-relaxed">
-               "{clientMsgText}"
-            </div>
-            <button onClick={() => setShowClientMsgModal(false)} className="w-full mt-6 py-4 bg-zinc-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Cerrar Mensaje</button>
+        {/* PENDIENTES POR CONFIRMAR */}
+        <section className={styles.pendingSection} aria-label="Pendientes por confirmar">
+          <div className={styles.sectionHeading}>
+            <h2 className={styles.display}><BellRing size={17} /> Pendientes por confirmar <span className={styles.pendingCount}>{pendingInBox.length}</span></h2>
+            <span className={styles.pendingHint}>Una respuesta hace la diferencia</span>
           </div>
-        </div>
-      )}
-
-      {/* 3. Modal Nota Admin */}
-      {showNoteModal && (
-        <div className="fixed inset-0 z-[1400] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 text-left text-gray-900">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-xl font-black uppercase italic tracking-widest mb-4">Nota Privada (Admin)</h3>
-            <textarea value={noteData.text} onChange={e => setNoteData({...noteData, text: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm h-32 resize-none outline-none focus:ring-2 ring-black text-gray-900" placeholder="Anotá algo importante..." />
-            <div className="flex gap-2 mt-6">
-                <button onClick={() => setShowNoteModal(false)} className="flex-1 py-4 bg-gray-100 rounded-2xl font-black uppercase text-[10px]">Cerrar</button>
-                <button onClick={saveAdminNote} className="flex-[2] py-4 bg-black text-white rounded-2xl font-black uppercase text-[10px] shadow-lg">Guardar Nota</button>
+          {pendingInBox.length ? (
+            <div className={styles.pendingGrid}>
+              {pendingInBox.map((r) => (
+                <article className={styles.pendingCard} key={r.id}>
+                  <div className={styles.pendingDate}>
+                    <Clock3 size={12} />
+                    {r.reservation_date === today ? "HOY" : r.reservation_date === tomorrow ? "MAÑANA" : dateLabel(r.reservation_date, true).toUpperCase()}
+                    {(r.reservation_date === today || r.reservation_date === tomorrow) && <> · {dateLabel(r.reservation_date, true).toUpperCase()}</>}
+                    <span>{String(r.reservation_time).slice(0, 5)} h</span>
+                  </div>
+                  <h3 className={styles.reservationName}>{fullName(r)}</h3>
+                  <div className={styles.pendingMeta}><Users size={13} />{r.guests} {Number(r.guests) === 1 ? "persona" : "personas"}</div>
+                  <p className={styles.pendingNote}><MessageSquare size={12} />{r.notes || "Sin nota del cliente"}</p>
+                  <div className={styles.pendingActions}>
+                    <button className={cx(styles.btn, styles.btnConfirm)} onClick={() => updateStatus(r.id, "confirmada")}><Check /> Confirmar</button>
+                    <button className={cx(styles.btn, styles.btnCancel)} onClick={() => openModal({ type: "cancel", res: r })}><X /> Cancelar</button>
+                  </div>
+                </article>
+              ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Modal Carga Manual */}
-      {showManualModal && (
-        <div className="fixed inset-0 z-[1200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 text-left text-gray-900">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black uppercase italic tracking-tighter">Nueva Reserva</h3>
-              <button onClick={() => setShowManualModal(false)} className="p-2 bg-gray-50 rounded-full"><X size={20}/></button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nombre" value={manualData.customer_name} onChange={e=>setManualData({...manualData, customer_name: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm focus:ring-2 ring-fresco" />
-                <input type="text" placeholder="Apellido" value={manualData.customer_lastname} onChange={e=>setManualData({...manualData, customer_lastname: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm focus:ring-2 ring-fresco" />
-              </div>
-              <input type="tel" placeholder="WhatsApp" value={manualData.customer_phone} onChange={e=>setManualData({...manualData, customer_phone: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm" />
-              <div className="grid grid-cols-2 gap-3">
-                <input type="date" value={manualData.reservation_date} onChange={e=>setManualData({...manualData, reservation_date: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-xs" />
-                <input type="time" value={manualData.reservation_time} onChange={e=>setManualData({...manualData, reservation_time: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-xs" />
-              </div>
-              <button onClick={handleManualReserve} className="w-full py-5 bg-fresco text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95">Ingresar Reserva</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Modal Reprogramar */}
-      {showRescheduleModal && (
-        <div className="fixed inset-0 z-[1300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 text-left text-gray-900">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-2xl font-black uppercase italic mb-8">Reprogramar</h3>
-            <div className="space-y-6">
-              <input type="date" value={rescheduleData.date} onChange={e => setRescheduleData({...rescheduleData, date: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm" />
-              <input type="time" value={rescheduleData.time} onChange={e => setRescheduleData({...rescheduleData, time: e.target.value})} className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-sm" />
-              <div className="flex gap-2">
-                <button onClick={() => setShowRescheduleModal(false)} className="flex-1 py-4 bg-gray-100 rounded-2xl font-black uppercase text-[10px]">Cancelar</button>
-                <button onClick={confirmReschedule} className="flex-[2] py-4 bg-fresco text-white rounded-2xl font-black uppercase text-[10px] shadow-lg">Confirmar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-    </>
-  );
-}
-
-function ReservationCard({ res, onStatusChange, onReschedule, onEditNote, onDelete, onShowClientMsg, onShowDetail, showDate = false, isTodayVariant = false }: any) {
-  const statusConfig: any = {
-    'confirmada': { color: 'bg-fresco', label: 'CONFIRMADA', border: 'border-fresco/10' },
-    'pendiente': { color: 'bg-brasa', label: 'PENDIENTE', border: 'border-brasa/10' },
-    'suspendida': { color: 'bg-orange-500', label: 'SUSPENDIDA', border: 'border-orange-100' },
-    'programada': { color: 'bg-fresco', label: 'REPROGRAMADA', border: 'border-[#E8F7F1]' },
-    'cancelada': { color: 'bg-alert', label: 'CANCELADA', border: 'border-alert/10' }
-  };
-
-  const currentStatus = statusConfig[res.status] || statusConfig['pendiente'];
-
-  return (
-    <div 
-        onClick={() => onShowDetail(res)}
-        className={`cursor-pointer bg-white p-5 rounded-[2.2rem] border-2 transition-all flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 ${currentStatus.border} ${isTodayVariant ? 'shadow-xl' : 'shadow-sm'} hover:border-gray-900`}
-    >
-      
-      {/* CABECERA */}
-      <div className="flex items-center gap-3 text-left">
-        <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shrink-0 text-white shadow-lg ${currentStatus.color}`}>
-           <span className="text-xs font-black">{res.reservation_time.slice(0,5)}</span>
-           {showDate && <span className="text-[8px] font-black uppercase">{res.reservation_date.split('-')[2]}/{res.reservation_date.split('-')[1]}</span>}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="font-black text-gray-900 uppercase italic text-sm truncate leading-none">
-            {res.customer_name} {res.customer_lastname}
-          </h4>
-          <p className={`text-[9px] font-black mt-1.5 uppercase tracking-widest ${currentStatus.color.replace('bg-', 'text-')}`}>
-            {currentStatus.label}
-          </p>
-        </div>
-      </div>
-
-      {/* FILA DE INFO COMPACTA */}
-      <div className="flex items-center justify-between gap-2 border-y border-gray-50 py-3">
-         <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-xl border border-gray-200">
-            <Users size={12} className="text-gray-400" />
-            <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">
-               {res.guests} <span className="hidden xs:inline">Personas</span>
-            </span>
-         </div>
-
-         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            {res.notes && (
-               <button onClick={() => onShowClientMsg(res.notes)} className="w-9 h-9 flex items-center justify-center bg-brasa/10 text-brasa rounded-xl hover:bg-brasa/10 border border-brasa/20">
-                  <MessageSquareText size={18}/>
-               </button>
-            )}
-
-            <button onClick={() => onEditNote(res.id, res.admin_notes || '')} className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-all ${res.admin_notes ? 'bg-zinc-900 text-white border-zinc-900 shadow-md' : 'bg-white text-gray-400 border-gray-200 hover:text-black'}`}>
-               <NotebookPen size={18}/>
-            </button>
-         </div>
-      </div>
-      
-      {/* BOTONERAS */}
-    
-      <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
-          {/* Si está pendiente, el primer botón es CONFIRMAR */}
-          {res.status === 'pendiente' ? (
-              <button onClick={() => onStatusChange('confirmada')} className="py-2.5 rounded-xl bg-fresco text-white font-black text-[9px] uppercase shadow-md active:scale-95 transition-all">Confirmar</button>
           ) : (
-              <button onClick={() => onReschedule()} className="py-2.5 rounded-xl bg-[#F0FAF6] text-fresco font-bold text-[9px] uppercase border border-[#E8F7F1]">Re-Prog.</button>
+            <div className={styles.pendingEmpty}>
+              <CheckCheck size={30} />
+              <div>
+                <h3>Todo al día</h3>
+                <p>No tenés reservas pendientes por confirmar. ¡Bien ahí!</p>
+              </div>
+            </div>
           )}
+        </section>
 
-          <button 
-            onClick={() => {
-              if (res.status === 'cancelada') { onDelete(); } 
-              else { if(confirm("¿Cancelar reserva?")) onStatusChange('cancelada'); }
-            }} 
-            className="py-2.5 rounded-xl bg-alert/10 text-alert font-bold text-[9px] uppercase border border-alert/10"
-          >
-            {res.status === 'cancelada' ? 'Borrar' : 'Cancelar'}
-          </button>
+        <div className={cx(styles.scheduleLayout, viewMode === "list" && styles.listView)}>
+          {/* CALENDARIO */}
+          <div className={styles.calendarColumn}>
+            <section className={styles.calendarPanel} aria-label="Calendario de reservas">
+              <div className={styles.segmented}>
+                <button className={cx(styles.btn, styles.btnGhost, styles.btnSegment)} data-active={calendarView === "month"} onClick={() => setCalendarView("month")}>Mensual</button>
+                <button className={cx(styles.btn, styles.btnGhost, styles.btnSegment)} data-active={calendarView === "week"} onClick={() => setCalendarView("week")}>Semanal</button>
+              </div>
+              <div className={styles.calendarMonth}>
+                <span>{monthLabel}</span>
+                <div className={styles.calendarNav}>
+                  <button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Período anterior" onClick={() => moveCalendar(-1)}><ChevronLeft /></button>
+                  <button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Período siguiente" onClick={() => moveCalendar(1)}><ChevronRight /></button>
+                </div>
+              </div>
+              <div className={styles.calendarGrid}>
+                {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => <div key={i} className={styles.calendarWeekday}>{d}</div>)}
+                {calendarCells.map((day, i) => {
+                  if (!day) return <div key={`empty-${i}`} />;
+                  const key = dateKey(day);
+                  const statuses = [...new Set(monthData.filter((r) => r.reservation_date === key).map((r) => r.status as string))].slice(0, 3);
+                  const blocked = blockedDates.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      className={styles.calendarDay}
+                      data-selected={key === selectedDate}
+                      data-today={key === today}
+                      data-blocked={blocked}
+                      aria-label={`Ver reservas del ${dateLabel(key)}${blocked ? " (cerrado)" : ""}`}
+                      aria-pressed={key === selectedDate}
+                      onClick={() => { setSelectedDate(key); setMenuId(null); }}
+                    >
+                      <span>{day.getDate()}</span>
+                      {!blocked && (
+                        <span className={styles.dayDots}>
+                          {statuses.map((s) => <span key={s} className={cx(styles.statusDot, DOT_CLASS[s])} />)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={styles.calendarLegend}>
+                {(["pendiente", "confirmada", "programada", "suspendida", "cancelada"] as const).map((s) => (
+                  <span key={s}><i className={cx(styles.statusDot, DOT_CLASS[s])} />{STATUS_LABEL[s]}</span>
+                ))}
+              </div>
+            </section>
+            <div className={styles.dayInfo}>
+              <CalendarCheck size={16} />
+              <span>{isClosed ? "Las reservas están cerradas" : "Las reservas están abiertas"}<br />para el {dateLabel(selectedDate, true)}.</span>
+            </div>
+            {closeDayButton}
+          </div>
+
+          {/* AGENDA DEL DÍA */}
+          <section aria-label="Agenda del día">
+            <div className={styles.agendaHeader}>
+              <div>
+                <h2 className={cx(styles.agendaTitle, styles.display)}>{selectedDate === today ? "Hoy" : "Agenda"}<small> · {dateLabel(selectedDate, true)}</small></h2>
+                <p className={styles.agendaSummary}>
+                  <b>{expected.length} {expected.length === 1 ? "reserva" : "reservas"}</b> · <b>{expectedPeople} {expectedPeople === 1 ? "persona" : "personas"}</b>
+                  {dailyReservations.length > expected.length && <span> a recibir</span>}
+                </p>
+              </div>
+              {viewMode === "list" ? (
+                <div className={styles.listDateControl}>
+                  <button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Día anterior" onClick={() => moveDay(-1)}><ChevronLeft /></button>
+                  <input aria-label="Fecha de la agenda" type="date" value={selectedDate} className={styles.dateInput} onChange={(e) => { if (e.target.value) { setSelectedDate(e.target.value); setCurrentMonth(parseDay(e.target.value)); } }} />
+                  <button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Día siguiente" onClick={() => moveDay(1)}><ChevronRight /></button>
+                </div>
+              ) : (
+                <button className={cx(styles.btn, styles.btnGhost, styles.todayTag)} onClick={() => { setSelectedDate(today); setCurrentMonth(new Date()); }}><CalendarDays size={12} />Hoy</button>
+              )}
+            </div>
+
+            {isClosed && <div className={styles.closedNotice}><Ban size={14} /><span>Reservas cerradas para este día</span></div>}
+
+            {dailyReservations.length ? (
+              <div className={styles.agendaList}>
+                {dailyReservations.map((r) => (
+                  <article className={styles.reservationCard} key={r.id}>
+                    <div className={styles.reservationTop}>
+                      <time className={cx(styles.reservationTime, styles.display)}>{String(r.reservation_time).slice(0, 5)}</time>
+                      <div className={styles.reservationPerson}>
+                        <h3 className={styles.reservationName}>{fullName(r)}</h3>
+                        <div className={styles.reservationPeople}><Users size={13} />{r.guests} {Number(r.guests) === 1 ? "persona" : "personas"}</div>
+                      </div>
+                      <span className={cx(styles.statusBadge, STATUS_CLASS[r.status] || styles.statusPendiente)}><span className={styles.statusDot} />{STATUS_LABEL[r.status] || r.status}</span>
+                      <div className={styles.menuWrap} data-res-menu>
+                        <button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} title="Más acciones" aria-label={`Más acciones para ${fullName(r)}`} aria-expanded={menuId === r.id} onClick={() => setMenuId(menuId === r.id ? null : r.id)}><Ellipsis /></button>
+                        {menuId === r.id && (
+                          <div className={styles.actionMenu}>
+                            <button className={cx(styles.btn, styles.btnGhost)} onClick={() => openModal({ type: "reschedule", res: r })}><RefreshCw />Reprogramar</button>
+                            <button className={cx(styles.btn, styles.btnGhost)} onClick={() => openModal({ type: "note", res: r })}><NotebookPen />Nota privada del dueño</button>
+                            <button className={cx(styles.btn, styles.btnGhost)} onClick={() => openModal({ type: "detail", res: r })}><Eye />Ver detalle</button>
+                            <button className={cx(styles.btn, styles.btnGhost, styles.danger)} onClick={() => openModal({ type: "delete", res: r })}><Trash2 />Eliminar</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {r.notes && <p className={styles.reservationNote}><MessageSquare size={13} />{r.notes}</p>}
+                    {r.admin_notes && <p className={styles.reservationNote}><NotebookPen size={13} />{r.admin_notes}</p>}
+                    <div className={styles.reservationBottom}>
+                      <div className={styles.cardActions}>
+                        {r.status === "pendiente" && <button className={cx(styles.btn, styles.btnConfirm)} onClick={() => updateStatus(r.id, "confirmada")}><Check />Confirmar</button>}
+                        {!["cancelada", "suspendida"].includes(r.status)
+                          ? <button className={cx(styles.btn, styles.btnGhost)} style={{ color: "var(--muted-foreground)" }} onClick={() => openModal({ type: "cancel", res: r })}><X />Cancelar</button>
+                          : <small>No se cuenta en las personas a recibir</small>}
+                      </div>
+                      <a className={cx(styles.btn, styles.btnWhatsapp)} href={whatsappUrl(r.customer_phone)} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle /><span><span className={styles.waLong}>Contactar por </span><span className={styles.waShort}>Escribir por </span>WhatsApp</span><ArrowUpRight />
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                <CalendarDays size={35} strokeWidth={1.5} />
+                <h3>Un día sin reservas, por ahora</h3>
+                <p>Cuando llegue la próxima, la vas a ver acá.<br />También podés anotar una que recibiste por teléfono.</p>
+                <button className={cx(styles.btn, styles.btnConfirm)} onClick={() => openModal({ type: "manual" })}><Plus />Carga manual</button>
+              </div>
+            )}
+            {viewMode === "list" && closeDayButton}
+          </section>
+        </div>
+
+        {/* MODALES */}
+        {modal && (
+          <div className={styles.modalBackdrop} onClick={() => setModal(null)}>
+            <section className={styles.modal} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+              {modal.type === "manual" && (
+                <>
+                  <h2 className={cx(styles.modalTitle, styles.display)}>Nueva reserva<button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Cerrar ventana" onClick={() => setModal(null)}><X /></button></h2>
+                  <div className={styles.twoCols}>
+                    <label>Nombre<input value={manualData.customer_name} onChange={(e) => setManualData({ ...manualData, customer_name: e.target.value })} placeholder="Ej: Sofía" /></label>
+                    <label>Apellido<input value={manualData.customer_lastname} onChange={(e) => setManualData({ ...manualData, customer_lastname: e.target.value })} placeholder="Ej: García" /></label>
+                  </div>
+                  <label>WhatsApp<input type="tel" value={manualData.customer_phone} onChange={(e) => setManualData({ ...manualData, customer_phone: e.target.value })} placeholder="Ej: 1123456789" /></label>
+                  <div className={styles.twoCols}>
+                    <label>Fecha<input type="date" value={manualData.reservation_date} onChange={(e) => setManualData({ ...manualData, reservation_date: e.target.value })} /></label>
+                    <label>Hora<input type="time" value={manualData.reservation_time} onChange={(e) => setManualData({ ...manualData, reservation_time: e.target.value })} /></label>
+                  </div>
+                  <label>Cantidad de personas<input type="number" min={1} max={50} value={manualData.guests} onChange={(e) => setManualData({ ...manualData, guests: Math.max(1, Number(e.target.value) || 1) })} /></label>
+                  <label>Nota del cliente (opcional)<textarea rows={2} value={manualData.notes} onChange={(e) => setManualData({ ...manualData, notes: e.target.value })} /></label>
+                  <div className={styles.modalActions}>
+                    <button className={cx(styles.btn, styles.btnOutline)} onClick={() => setModal(null)}>Volver</button>
+                    <button className={cx(styles.btn, styles.btnConfirm)} onClick={handleManualReserve}><Check />Ingresar reserva</button>
+                  </div>
+                </>
+              )}
+
+              {modal.type === "reschedule" && (
+                <>
+                  <h2 className={cx(styles.modalTitle, styles.display)}>Reprogramar reserva<button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Cerrar ventana" onClick={() => setModal(null)}><X /></button></h2>
+                  <div className={styles.twoCols}>
+                    <label>Fecha<input type="date" value={rescheduleData.date} onChange={(e) => setRescheduleData({ ...rescheduleData, date: e.target.value })} /></label>
+                    <label>Hora<input type="time" value={rescheduleData.time} onChange={(e) => setRescheduleData({ ...rescheduleData, time: e.target.value })} /></label>
+                  </div>
+                  <div className={styles.modalActions}>
+                    <button className={cx(styles.btn, styles.btnOutline)} onClick={() => setModal(null)}>Volver</button>
+                    <button className={cx(styles.btn, styles.btnConfirm)} onClick={confirmReschedule}><Check />Guardar</button>
+                  </div>
+                </>
+              )}
+
+              {modal.type === "note" && (
+                <>
+                  <h2 className={cx(styles.modalTitle, styles.display)}>Nota privada del dueño<button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Cerrar ventana" onClick={() => setModal(null)}><X /></button></h2>
+                  <label>Solo para vos<textarea rows={4} value={noteData.text} onChange={(e) => setNoteData({ ...noteData, text: e.target.value })} placeholder="Anotá algo importante..." /></label>
+                  <div className={styles.modalActions}>
+                    <button className={cx(styles.btn, styles.btnOutline)} onClick={() => setModal(null)}>Volver</button>
+                    <button className={cx(styles.btn, styles.btnConfirm)} onClick={saveAdminNote}><Check />Guardar nota</button>
+                  </div>
+                </>
+              )}
+
+              {modal.type === "detail" && (
+                <>
+                  <h2 className={cx(styles.modalTitle, styles.display)}>Detalle de la reserva<button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Cerrar ventana" onClick={() => setModal(null)}><X /></button></h2>
+                  <div className={styles.detail}>
+                    <p style={{ fontWeight: 600, fontSize: 16 }}>{fullName(modal.res)}</p>
+                    <p>{dateLabel(modal.res.reservation_date)} · {String(modal.res.reservation_time).slice(0, 5)} h</p>
+                    <p>{modal.res.guests} {Number(modal.res.guests) === 1 ? "persona" : "personas"} · {STATUS_LABEL[modal.res.status] || modal.res.status}</p>
+                    <div className={styles.detailBox}><small>WhatsApp</small>{modal.res.customer_phone}</div>
+                    {modal.res.notes && <div className={styles.detailBox}><small>Nota del cliente</small>{modal.res.notes}</div>}
+                    {modal.res.admin_notes && <div className={styles.detailBox}><small>Tus notas internas</small>{modal.res.admin_notes}</div>}
+                  </div>
+                  <div className={styles.modalActions}>
+                    <button className={cx(styles.btn, styles.btnOutline)} onClick={() => setModal(null)}>Cerrar</button>
+                  </div>
+                </>
+              )}
+
+              {(modal.type === "cancel" || modal.type === "delete" || modal.type === "close") && (
+                <>
+                  <h2 className={cx(styles.modalTitle, styles.display)}>
+                    {modal.type === "cancel" ? "Cancelar reserva" : modal.type === "delete" ? "Eliminar reserva" : isClosed ? "Reabrir reservas" : "Cerrar reservas para este día"}
+                    <button className={cx(styles.btn, styles.btnGhost, styles.btnIcon)} aria-label="Cerrar ventana" onClick={() => setModal(null)}><X /></button>
+                  </h2>
+                  <p className={styles.modalText}>
+                    {modal.type === "cancel" && `¿Querés cancelar la reserva de ${fullName(modal.res)}? Ya no se contará en las personas a recibir.`}
+                    {modal.type === "delete" && `¿Querés eliminar la reserva de ${fullName(modal.res)}? Esta acción no se puede deshacer.`}
+                    {modal.type === "close" && (isClosed
+                      ? `Vas a volver a aceptar reservas para el ${dateLabel(selectedDate)}.`
+                      : `No se podrán hacer nuevas reservas para el ${dateLabel(selectedDate)}. Las reservas existentes se mantienen.`)}
+                  </p>
+                  <div className={styles.modalActions}>
+                    <button className={cx(styles.btn, styles.btnOutline)} onClick={() => setModal(null)}>Volver</button>
+                    <button
+                      className={cx(styles.btn, modal.type === "close" && isClosed ? styles.btnConfirm : styles.btnDestructive)}
+                      onClick={() => {
+                        if (modal.type === "cancel") updateStatus(modal.res.id, "cancelada");
+                        if (modal.type === "delete") handleDelete(modal.res.id);
+                        if (modal.type === "close") toggleBlockDate();
+                        setModal(null);
+                      }}
+                    >
+                      {modal.type === "cancel" ? "Sí, cancelar reserva" : modal.type === "delete" ? "Eliminar" : isClosed ? "Reabrir reservas" : "Cerrar reservas"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
+          </div>
+        )}
       </div>
-
-      <a 
-        href={`https://wa.me/${res.customer_phone}`} 
-        target="_blank" 
-        onClick={(e) => e.stopPropagation()}
-        className="w-full py-3 bg-green-50 text-green-600 rounded-2xl font-black text-[10px] uppercase hover:bg-green-100 transition-colors flex items-center justify-center gap-2 border border-green-100"
-      >
-        <MessageCircle size={16}/> <span>Contactar WhatsApp</span>
-      </a>
-    </div>
+    </>
   );
 }

@@ -1,0 +1,190 @@
+/* Agenda de reservas: diseño nuevo (base: prototipo de Lovable), con estilos aislados en este módulo.
+   Tailwind del proyecto es v3: acá no se usa @theme; los colores van como variables en .root. */
+
+.root {
+  --radius: 0.75rem;
+  --background: oklch(0.981 0.003 250);
+  --foreground: oklch(0.23 0.018 255);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.64 0.116 153);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.55 0.018 255);
+  --destructive: oklch(0.57 0.16 25);
+  --border: oklch(0.925 0.006 250);
+  --input: oklch(0.925 0.006 250);
+  --success: oklch(0.47 0.105 153);
+  --success-soft: oklch(0.955 0.028 153);
+  --success-border: oklch(0.87 0.05 153);
+  --warning: oklch(0.56 0.12 72);
+  --warning-soft: oklch(0.978 0.024 85);
+  --warning-border: oklch(0.895 0.074 85);
+  --info: oklch(0.55 0.16 255);
+  --info-soft: oklch(0.951 0.024 255);
+  --danger-soft: oklch(0.965 0.02 25);
+  --danger-border: oklch(0.885 0.055 25);
+  --surface-shadow: 0 3px 14px oklch(0.2 0.015 255 / 0.035);
+  --floating-shadow: 0 12px 40px oklch(0.2 0.015 255 / 0.13);
+
+  color: var(--foreground);
+  text-align: left;
+  max-width: 1720px;
+  margin: 0 auto;
+  padding: 29px 36px 80px;
+}
+.root, .root button, .root input, .root textarea { letter-spacing: 0; }
+.display { font-family: var(--font-space-grotesk, inherit), system-ui, sans-serif; }
+
+/* ---------- botones ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: calc(var(--radius) - 2px); border: 1px solid transparent; background: transparent; color: inherit; font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background-color .15s ease, border-color .15s ease, transform .1s ease, box-shadow .15s ease, filter .15s ease; }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn:active { transform: scale(0.97); }
+.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn:disabled { opacity: .5; pointer-events: none; }
+.btnConfirm { background: var(--primary); color: var(--primary-foreground); box-shadow: 0 1px 2px oklch(0.2 0.015 255 / 0.12); }
+.btnConfirm:hover { filter: brightness(0.94); }
+.btnCancel { background: var(--card); border-color: var(--danger-border); color: var(--destructive); }
+.btnCancel:hover { background: var(--danger-soft); }
+.btnGhost:hover { background: var(--muted); }
+.btnOutline { background: var(--card); border-color: var(--border); color: var(--foreground); }
+.btnOutline:hover { background: var(--muted); }
+.btnWarning { background: var(--danger-soft); border-color: var(--danger-border); color: var(--destructive); }
+.btnWarning:hover { filter: brightness(0.97); }
+.btnOpen { background: var(--success-soft); border-color: var(--success-border); color: var(--success); }
+.btnOpen:hover { filter: brightness(0.97); }
+.btnWhatsapp { background: var(--success-soft); border-color: var(--success-border); color: var(--success); }
+.btnWhatsapp:hover { filter: brightness(0.96); }
+.btnDestructive { background: var(--destructive); color: #fff; }
+.btnDestructive:hover { filter: brightness(0.94); }
+.btnIcon { width: 28px; height: 28px; padding: 0; }
+.btnSegment { color: var(--muted-foreground); height: 32px; padding: 0 12px; font-size: 11px; border-radius: 6px; }
+.btnSegment[data-active=true] { background: var(--card); color: var(--foreground); box-shadow: var(--surface-shadow); }
+
+/* ---------- encabezado ---------- */
+.pageHeader { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 29px; }
+.pageTitle { font-size: 29px; line-height: 1.3; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+.pageTitle svg { color: var(--primary); }
+.pageSubtitle { font-size: 13px; color: var(--muted-foreground); margin-top: 7px; }
+.headerActions { display: flex; align-items: center; gap: 12px; }
+.segmented { display: flex; background: var(--muted); padding: 4px; border: 1px solid var(--border); border-radius: 9px; gap: 2px; }
+
+/* ---------- pendientes ---------- */
+.pendingSection { background: var(--warning-soft); border: 1px solid var(--warning-border); border-radius: 14px; padding: 20px; margin-bottom: 28px; }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+.sectionHeading h2 { font-size: 15px; font-weight: 750; display: flex; align-items: center; gap: 9px; }
+.sectionHeading h2 svg { color: var(--warning); }
+.pendingCount { width: 24px; height: 24px; display: inline-grid; place-items: center; background: var(--warning-border); color: var(--warning); border-radius: 50%; font-size: 11px; }
+.pendingHint { font-size: 11px; color: var(--warning); }
+.pendingGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.pendingCard { background: var(--card); border: 1px solid var(--warning-border); border-radius: 10px; padding: 17px; box-shadow: var(--surface-shadow); animation: cardIn .25s ease both; }
+.pendingDate { color: var(--warning); font-size: 10px; font-weight: 700; margin-bottom: 9px; display: flex; align-items: center; gap: 5px; }
+.pendingDate > span:last-child { margin-left: auto; }
+.reservationName { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+.pendingMeta { font-size: 12px; color: var(--muted-foreground); display: flex; align-items: center; gap: 7px; margin-top: 6px; }
+.pendingNote { font-size: 11px; color: var(--muted-foreground); min-height: 32px; margin: 11px 0 12px; display: flex; gap: 7px; align-items: flex-start; line-height: 1.5; }
+.pendingNote svg { flex-shrink: 0; margin-top: 2px; }
+.pendingActions { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; }
+.pendingActions .btn { height: 38px; font-size: 11px; }
+.pendingEmpty { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
+.pendingEmpty svg { color: var(--primary); flex-shrink: 0; }
+.pendingEmpty h3 { font-weight: 600; font-size: 14px; }
+.pendingEmpty p { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+
+/* ---------- calendario ---------- */
+.scheduleLayout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; align-items: start; }
+.listView { grid-template-columns: 1fr; }
+.listView .calendarColumn { display: none; }
+.calendarPanel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 19px; box-shadow: var(--surface-shadow); }
+.calendarPanel .segmented > button { flex: 1; }
+.calendarMonth { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 15px; font-size: 13px; font-weight: 700; }
+.calendarNav { display: flex; gap: 4px; }
+.calendarGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.calendarWeekday { text-align: center; font-size: 9px; font-weight: 600; color: var(--muted-foreground); padding-bottom: 8px; }
+.calendarDay { height: 36px; width: 100%; padding: 0; border-radius: 7px; font-size: 11px; position: relative; font-weight: 500; border: 1px solid transparent; background: transparent; color: var(--foreground); cursor: pointer; transition: background-color .15s ease, transform .1s ease; display: flex; align-items: center; justify-content: center; }
+.calendarDay:hover { background: var(--muted); }
+.calendarDay:active { transform: scale(0.95); }
+.calendarDay[data-today=true] { border-color: var(--success-border); color: var(--success); background: var(--success-soft); }
+.calendarDay[data-selected=true] { background: var(--foreground); color: var(--card); border-color: transparent; }
+.calendarDay[data-blocked=true]::before, .calendarDay[data-blocked=true]::after { content: ''; position: absolute; left: 12%; right: 12%; top: 50%; height: 2px; background: var(--destructive); border-radius: 2px; opacity: .8; }
+.calendarDay[data-blocked=true]::before { transform: rotate(45deg); }
+.calendarDay[data-blocked=true]::after { transform: rotate(-45deg); }
+.dayDots { position: absolute; bottom: 4px; display: flex; gap: 3px; }
+.statusDot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: inline-block; flex-shrink: 0; }
+.dotPendiente { color: var(--warning); }
+.dotConfirmada { color: var(--success); }
+.dotProgramada { color: var(--info); }
+.dotSuspendida { color: var(--muted-foreground); }
+.dotCancelada { color: var(--destructive); }
+.calendarDay[data-selected=true] .statusDot { filter: brightness(1.6); }
+.calendarLegend { border-top: 1px solid var(--border); margin-top: 17px; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 9px 13px; font-size: 9px; color: var(--muted-foreground); }
+.calendarLegend span { display: flex; align-items: center; gap: 5px; }
+.dayInfo { margin: 17px 3px 0; display: flex; gap: 8px; color: var(--muted-foreground); font-size: 11px; line-height: 1.7; }
+.dayInfo svg { color: var(--primary); flex-shrink: 0; margin-top: 4px; }
+.dayClose { margin-top: 18px; width: 100%; font-size: 11px; height: 40px; }
+
+/* ---------- agenda ---------- */
+.agendaHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 17px; }
+.agendaTitle { font-size: 20px; font-weight: 750; }
+.agendaTitle small { font-weight: 500; color: var(--muted-foreground); font-size: 14px; }
+.agendaSummary { font-size: 12px; color: var(--muted-foreground); margin-top: 5px; }
+.agendaSummary b { color: var(--foreground); font-weight: 600; }
+.todayTag { font-size: 10px; font-weight: 600; background: var(--success-soft); color: var(--success); padding: 5px 9px; border-radius: 5px; height: auto; }
+.listDateControl { display: flex; align-items: center; gap: 4px; }
+.dateInput { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 12px; max-width: 150px; }
+.agendaList { display: grid; gap: 12px; }
+.reservationCard { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 11px; padding: 18px 18px 13px; box-shadow: var(--surface-shadow); animation: cardIn .25s ease both; transition: box-shadow .2s ease, border-color .2s ease; }
+.reservationCard:hover { box-shadow: 0 6px 22px oklch(0.2 0.015 255 / 0.07); }
+.reservationTop { display: flex; align-items: center; gap: 17px; }
+.reservationTime { font-size: 25px; font-weight: 800; min-width: 69px; font-variant-numeric: tabular-nums; }
+.reservationPerson { flex: 1; min-width: 0; }
+.reservationPeople { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted-foreground); margin-top: 4px; }
+.statusBadge { font-size: 10px; font-weight: 550; border-radius: 5px; padding: 5px 7px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.statusPendiente { background: var(--warning-soft); color: var(--warning); }
+.statusConfirmada { background: var(--success-soft); color: var(--success); }
+.statusProgramada { background: var(--info-soft); color: var(--info); }
+.statusSuspendida { background: var(--muted); color: var(--muted-foreground); }
+.statusCancelada { background: var(--danger-soft); color: var(--destructive); }
+.reservationNote { display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: 11px; margin: 13px 0 0 86px; line-height: 1.6; }
+.reservationNote svg { flex-shrink: 0; }
+.reservationBottom { margin-top: 13px; border-top: 1px solid var(--border); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.reservationBottom .btn { font-size: 10px; height: 30px; padding: 0 10px; }
+.reservationBottom .btn svg { width: 13px; height: 13px; }
+.cardActions { display: flex; gap: 6px; align-items: center; }
+.cardActions small { font-size: 10px; color: var(--muted-foreground); }
+.menuWrap { position: relative; }
+.actionMenu { position: absolute; right: 0; top: 35px; z-index: 20; background: var(--card); border: 1px solid var(--border); box-shadow: var(--floating-shadow); border-radius: 9px; padding: 5px; width: 210px; animation: menuIn .12s ease both; }
+.actionMenu .btn { justify-content: flex-start; width: 100%; height: 36px; font-weight: 450; }
+.actionMenu .danger { color: var(--destructive); }
+.emptyState { text-align: center; padding: 45px 20px; color: var(--muted-foreground); }
+.emptyState svg { margin: 0 auto 12px; color: var(--primary); }
+.emptyState h3 { color: var(--foreground); font-size: 16px; font-weight: 650; margin-bottom: 6px; }
+.emptyState p { font-size: 12px; line-height: 1.7; }
+.emptyState .btn { margin-top: 20px; }
+.closedNotice { font-size: 12px; padding: 11px 15px; border: 1px solid var(--danger-border); background: var(--danger-soft); color: var(--destructive); border-radius: 8px; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; }
+
+/* ---------- modales ---------- */
+.modalBackdrop { position: fixed; inset: 0; z-index: 2000; background: oklch(0.15 0.015 255 / 0.4); display: grid; place-items: center; padding: 20px; animation: fadeIn .15s ease both; }
+.modal { background: var(--card); color: var(--foreground); border-radius: 14px; box-shadow: var(--floating-shadow); padding: 26px; width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; animation: modalIn .18s ease both; text-align: left; }
+.modalTitle { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 19px; font-weight: 750; margin-bottom: 20px; }
+.modal label { display: grid; gap: 7px; margin-bottom: 15px; font-size: 12px; font-weight: 550; }
+.modal input, .modal textarea { border: 1px solid var(--input); border-radius: 7px; padding: 10px 12px; width: 100%; font: inherit; font-weight: 400; background: var(--card); outline-color: var(--primary); color: var(--foreground); }
+.modalText { font-size: 13px; color: var(--muted-foreground); line-height: 1.6; }
+.modalActions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 21px; }
+.twoCols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail { font-size: 14px; display: grid; gap: 10px; }
+.detail p { margin: 0; }
+.detailBox { background: var(--muted); border-radius: 9px; padding: 12px 14px; font-size: 13px; }
+.detailBox small { display: block; font-size: 10px; font-weight: 700; color: var(--muted-foreground); text-transform: uppercase; margin-bottom: 4px; }
+
+@keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes menuIn { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+
+.waShort { display: none; }
+
+@media (min-width: 1500px) { .root { padding: 35px 55px 80px; } .scheduleLayout { grid-template-columns: 325px minmax(0, 1fr); gap: 35px; } .reservationCard { padding: 20px 23px 15px; } }
+@media (max-width: 1150px) { .root { padding: 25px 25px 80px; } .pageTitle { font-size: 25px; } .headerActions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; } .scheduleLayout { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; } .pendingGrid { gap: 10px; } .pendingCard { padding: 13px; } .pendingActions .btn { padding: 0 8px; } .reservationTop { gap: 10px; } .reservationTime { font-size: 23px; min-width: 61px; } .reservationNote { margin-left: 71px; } }
+@media (max-width: 900px) { .root { padding: 22px 22px 80px; } .pageHeader { align-items: flex-start; flex-direction: column; gap: 16px; } .headerActions { width: 100%; justify-content: space-between; } .pendingGrid { grid-template-columns: 1fr; } .pendingCard { padding: 15px; } .pendingNote { min-height: auto; } .scheduleLayout { grid-template-columns: 1fr; } .calendarGrid { gap: 7px; } .calendarDay { height: 39px; } .calendarColumn { margin-bottom: 4px; } .dayInfo { display: none; } .dayClose { margin-top: 12px; } }
+@media (max-width: 600px) { .root { padding: 21px 14px 80px; } .pageTitle { font-size: 25px; } .pageSubtitle { font-size: 12px; } .pageHeader { margin-bottom: 22px; } .headerActions > .btn { font-size: 11px; padding: 0 12px; } .pendingSection { padding: 15px; border-radius: 12px; margin-bottom: 22px; } .sectionHeading h2 { font-size: 13px; } .pendingHint { display: none; } .pendingCard { padding: 15px; } .pendingActions .btn { height: 41px; font-size: 12px; } .reservationCard { padding: 16px 13px 12px; } .reservationTime { font-size: 24px; min-width: 64px; } .reservationName { font-size: 12px; } .statusBadge { font-size: 9px; padding: 5px; } .reservationTop { gap: 9px; } .reservationNote { margin-left: 0; } .reservationBottom .btn { padding: 0 7px; } .waLong { display: none; } .waShort { display: inline; } .agendaTitle { font-size: 19px; } .twoCols { gap: 8px; } }
+@media (prefers-reduced-motion: reduce) { .root *, .root *::before, .root *::after, .modalBackdrop, .modal { transition: none !important; animation: none !important; } }
