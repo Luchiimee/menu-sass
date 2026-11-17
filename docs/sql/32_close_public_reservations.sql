@@ -1,6 +1,6 @@
 -- 32 — Cierra el acceso público a `reservations` (queda solo el dueño, por la política de 31)
 --
--- Estado: SIN APLICAR. Aplicar DESPUÉS de publicar el código de las reservas por servidor
+-- Estado: APLICADO 2026-11-17 (probado con rollback: anon no lee ni inserta, dueño ve solo las suyas). Se aplicó DESPUÉS de publicar el código de las reservas por servidor
 --   (POST /api/public/reservations y /api/public/reservations/lookup) y de probarlo en producción.
 --   Si se aplica antes, la página pública deja de poder crear y consultar reservas.
 --
