@@ -123,6 +123,8 @@ function PlanContent() {
   const [estimatedProrate, setEstimatedProrate] = useState<{ amount: number; days: number }>({ amount: 0, days: 0 });
   const [pendingPhone, setPendingPhone] = useState<string | null>(null);
   const [savingPhone, setSavingPhone] = useState(false);
+  // Próximo cobro real (de la suscripción en MP o de la base); null = se usa el cálculo por defecto
+  const [realNextCharge, setRealNextCharge] = useState<Date | null>(null);
   const [linkedCard, setLinkedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const paymentFormRef = useRef<HTMLDivElement>(null);
@@ -168,6 +170,7 @@ function PlanContent() {
             subscription_status: restData.subscription_status || 'trialing',
           });
           if (restData.mp_preapproval_id) fetchLinkedCard();
+          fetchNextCharge();
         }
       } catch (error) {
         console.error("Error cargando datos:", error);
@@ -194,6 +197,8 @@ function PlanContent() {
   const fmtArDay = (d: Date) => d.toLocaleDateString("es-AR", { timeZone: AR_TZ, day: "numeric", month: "long" });
 
   const getChargeDate = () => {
+    // Si se conoce la fecha real del próximo cobro, se muestra esa
+    if (realNextCharge) return fmtArDay(realNextCharge);
     // El primer cobro es el trial_ends_at ya guardado (lo que cobra cron/charge) y, si está
     // vacío, el fin de la prueba por regla (00:00 AR del día 15). Ver firstChargeDate en lib/trial.
     const firstBilling = firstChargeDate(trialBase, restaurant.trial_ends_at);
@@ -374,6 +379,17 @@ function PlanContent() {
     setTimeout(() => paymentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
+  const fetchNextCharge = async () => {
+    try {
+      const res = await fetch('/api/subscriptions/next-charge');
+      const data = await res.json();
+      const d = data?.nextChargeDate ? new Date(data.nextChargeDate) : null;
+      setRealNextCharge(d && !isNaN(d.getTime()) ? d : null);
+    } catch {
+      setRealNextCharge(null);
+    }
+  };
+
   const fetchLinkedCard = async () => {
     try {
       const res = await fetch('/api/subscriptions/card');
@@ -392,6 +408,7 @@ function PlanContent() {
       .maybeSingle();
     if (restData) setRestaurant(prev => ({ ...prev, ...restData }));
     fetchLinkedCard();
+    fetchNextCharge();
     window.dispatchEvent(new Event("profile-updated"));
   };
 
