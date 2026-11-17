@@ -54,6 +54,8 @@ interface ChargeSubscriptionParams {
   plan: string | null;
   payerEmail: string;
   description: string;
+  // Monto a cobrar; si no viene, el precio de lista del plan (el prorrateo de un cambio de plan manda el suyo)
+  amount?: number;
 }
 
 // Cobra un plan sobre una tarjeta ya guardada en el customer de Mercado Pago.
@@ -65,6 +67,7 @@ export async function chargeSubscription({
   plan,
   payerEmail,
   description,
+  amount,
 }: ChargeSubscriptionParams): Promise<ChargeResult> {
   // 1. Crear card token desde la tarjeta guardada
   let cardToken: any;
@@ -108,7 +111,7 @@ export async function chargeSubscription({
   // 2. Cobrar con /v1/payments
   try {
     const paymentBody: Record<string, any> = {
-      transaction_amount: getPlanAmount(plan),
+      transaction_amount: amount ?? getPlanAmount(plan),
       token:              cardToken.id,
       description,
       installments:       1,
@@ -250,5 +253,24 @@ export async function getPreapproval(preapprovalId: string): Promise<GetPreappro
     return { ok: true, data };
   } catch (err: any) {
     return { ok: false, detail: err.message || 'Error de red al consultar la suscripción' };
+  }
+}
+
+// Devuelve un pago aprobado completo (por ejemplo, si se cobró un prorrateo y después no se pudo actualizar
+// la suscripción). No toca la base.
+export async function refundPayment(
+  paymentId: number | string
+): Promise<{ ok: true } | { ok: false; detail: string }> {
+  try {
+    const res = await fetch(`${MP_BASE}/v1/payments/${encodeURIComponent(String(paymentId))}/refunds`, {
+      method: 'POST',
+      headers: mpHeaders(crypto.randomUUID()),
+      body: JSON.stringify({}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, detail: data.message ?? `http=${res.status}` };
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, detail: err.message || 'Error de red al devolver el pago' };
   }
 }

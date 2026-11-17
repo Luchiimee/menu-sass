@@ -97,6 +97,13 @@ export async function POST(request: Request) {
         const payment = await mpRes.json();
         console.log(`📋 Pago ${paymentId}: status=${payment.status}, email=${payment.payer?.email}`);
 
+        // El cobro de la diferencia al subir de plan no es un cobro mensual: no mueve la fecha de cobro
+        // ni, si se rechaza, pausa la cuenta (lo resuelve /api/subscriptions/change)
+        if (String(payment.description ?? '').startsWith('Prorrateo')) {
+            console.log(`↩️ Pago ${paymentId} de prorrateo — sin acción en el webhook`);
+            return NextResponse.json({ received: true });
+        }
+
         const payerEmail: string | undefined = payment.payer?.email;
         if (!payerEmail) {
             console.error('Pago sin payer.email — no se puede identificar el restaurante');

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { chargeSubscription, cancelPreapproval } from '@/lib/mercadopagoBilling';
 import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
+import { isPlanId } from '@/lib/plans';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +18,27 @@ export async function GET(request: Request) {
 
   // 2. Query restaurantes a cobrar
   const now = new Date().toISOString();
+
+  // 2.a Bajadas de plan programadas: al llegar el próximo cobro el cliente pasa al plan más bajo (el monto en MP
+  // ya se fijó cuando pidió el cambio). Va antes del cobro del cron para que este use el plan nuevo.
+  const { data: pendingRows, error: pendingError } = await supabase
+    .from('restaurants')
+    .select('id, pending_plan')
+    .not('pending_plan', 'is', null)
+    .lte('pending_plan_from', now);
+  if (pendingError) {
+    console.error('Cron charge — error leyendo planes pendientes:', pendingError);
+  }
+  let planChangesApplied = 0;
+  for (const row of pendingRows ?? []) {
+    if (!isPlanId(row.pending_plan)) continue;
+    const { error: applyError } = await supabase
+      .from('restaurants')
+      .update({ subscription_plan: row.pending_plan, pending_plan: null, pending_plan_from: null })
+      .eq('id', row.id);
+    if (applyError) console.error(`[cron/charge] no se pudo aplicar el plan pendiente de ${row.id}:`, applyError);
+    else planChangesApplied++;
+  }
 
   const { data: restaurants, error: queryError } = await supabase
     .from('restaurants')
@@ -108,6 +130,7 @@ export async function GET(request: Request) {
     charged,
     failed,
     skipped,
+    planChangesApplied,
   };
   console.log('[cron/charge] Resumen:', summary);
   return NextResponse.json(summary);

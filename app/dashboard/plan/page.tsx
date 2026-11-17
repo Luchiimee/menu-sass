@@ -27,6 +27,9 @@ type Restaurant = {
   // Las trae el select('*') de loadData y de refreshRestaurantData; sirven para distinguir "servicio activo tras cancelar"
   first_paid_at?: string | null;
   mp_customer_id?: string | null;
+  // Bajada de plan programada: pasa a pending_plan en el próximo cobro (pending_plan_from)
+  pending_plan?: string | null;
+  pending_plan_from?: string | null;
 };
 
 const PLANS = [
@@ -269,22 +272,23 @@ function PlanContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, plan: planId, email: profile.email }),
         });
-        if (res.status === 409) {
-          // El servidor no deja cambiar el plan con este estado de suscripción: no se cambió nada
-          const blocked = await res.json().catch(() => ({}));
-          toast.error(blocked.message || 'Para cambiar de plan con tu suscripción actual usá el flujo de pago.');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) {
+          // No se cambió nada (estado de la suscripción, cobro de la diferencia rechazado, Mercado Pago sin respuesta...)
+          toast.error(data.message || 'No se pudo cambiar el plan. Tu plan sigue igual.', { duration: 7000 });
           return; // no se refresca el estado local
         }
-        if (!res.ok) throw new Error('Error al cambiar plan');
-        const data = await res.json();
-        // El server compara contra el monto real del preapproval (puede ser un precio viejo)
-        const isUpgrade: boolean = data.isUpgrade ?? (prices[planId] > prices[restaurant.subscription_plan as string]);
-        if (isUpgrade && data.proratedAmount > 0 && data.prorateCharged) {
+        if (data.pendingPlan) {
+          // Bajada: el plan actual sigue hasta el próximo cobro
+          const from = data.effectiveFrom ? fmtArDay(new Date(data.effectiveFrom)) : 'tu próximo cobro';
+          toast.success(`Listo: pasás al plan ${String(data.pendingPlan).toUpperCase()} el ${from}. Hasta entonces seguís con tu plan actual.`, { duration: 7000 });
+          await refreshRestaurantData();
+          return;
+        }
+        if (data.prorateCharged && data.proratedAmount > 0) {
           toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.`, { duration: 6000 });
-        } else if (isUpgrade && data.proratedAmount > 0 && !data.prorateCharged) {
-          toast.warning(`Plan cambiado a ${planId.toUpperCase()}, pero no se pudo cobrar el prorrateo. Revisá tu tarjeta — se intentará en el próximo ciclo.`, { duration: 7000 });
         } else {
-          toast.success(`Plan cambiado a ${planId.toUpperCase()}. El nuevo precio aplica desde tu próximo ciclo.`);
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Desde tu próximo cobro pagás $${prices[planId].toLocaleString('es-AR')}.`, { duration: 6000 });
         }
       } else {
         // La elección de plan sin cobro la escribe el servidor (subscription_plan no se escribe desde el navegador)
@@ -322,6 +326,17 @@ function PlanContent() {
       try {
         const res = await fetch(`/api/subscriptions/change?userId=${userId}&plan=${planId}`);
         const preview = await res.json();
+        if (restaurant.pending_plan) {
+          toast.error(`Ya tenés un cambio al plan ${String(restaurant.pending_plan).toUpperCase()} programado para tu próximo cobro. Podés cambiar de plan después de esa fecha.`, { duration: 7000 });
+          return;
+        }
+        if (preview.kind === 'downgrade') {
+          const from = preview.effectiveFrom ? fmtArDay(new Date(preview.effectiveFrom)) : 'tu próximo cobro';
+          const ok = window.confirm(
+            `Pasar al plan ${planId.toUpperCase()}\n\nSeguís con tu plan actual hasta tu próximo cobro (${from}). Ese día pasás al plan ${planId.toUpperCase()} y pagás $${prices[planId].toLocaleString('es-AR')}. No hay reembolso por lo ya pagado.\n\n¿Confirmás?`
+          );
+          if (!ok) return;
+        }
         if (preview.proratedAmount > 0) {
           setEstimatedProrate({ amount: preview.proratedAmount, days: preview.daysRemaining });
           setPendingPlanChange(planId);
@@ -610,6 +625,12 @@ function PlanContent() {
                       </div>
                     )}
                     {isActive && !inGracePeriod && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}
+                    {restaurant.pending_plan && (
+                      <p className="text-[10px] text-[#17A06D] font-black uppercase tracking-wide mt-1">
+                        Pasás al plan {String(restaurant.pending_plan).toUpperCase()}
+                        {restaurant.pending_plan_from ? ` el ${fmtArDay(new Date(restaurant.pending_plan_from))}` : ' en tu próximo cobro'}
+                      </p>
+                    )}
                   </div>
 
                   {inGracePeriod && serviceActiveAfterCancel && (

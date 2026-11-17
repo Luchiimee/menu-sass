@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getSessionUser } from '@/lib/auth-server';
 import { PLAN_PRICES as prices, isPlanId, type PlanId } from '@/lib/plans';
 import { changePlanGate } from '@/lib/planChoice';
+import { chargeSubscription, friendlyChargeError, refundPayment } from '@/lib/mercadopagoBilling';
+import { planChangeKind, prorateAmount, PRORATE_MIN_DAYS } from '@/lib/planChange';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +61,46 @@ function daysUntil(date: Date, today: Date): number {
   return Math.max(1, Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+// Tarjeta guardada con la que se cobra la diferencia: la de la base; si falta, la primera del customer de MP
+// (buscado por el email de la base, nunca por uno que mande el navegador).
+async function resolveSavedCard(
+  restaurant: { mp_customer_id?: string | null; mp_card_id?: string | null; card_brand?: string | null },
+  email: string
+): Promise<{ customerId: string; cardId: string; cardBrand: string | null } | null> {
+  if (restaurant.mp_customer_id && restaurant.mp_card_id) {
+    return { customerId: restaurant.mp_customer_id, cardId: restaurant.mp_card_id, cardBrand: restaurant.card_brand ?? null };
+  }
+  try {
+    const customerRes = await fetch(`${MP_BASE}/v1/customers/search?email=${encodeURIComponent(email)}`, { headers: mpHeaders() });
+    const customerId = (await customerRes.json())?.results?.[0]?.id;
+    if (!customerId) return null;
+    const cardsRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
+    const cards = await cardsRes.json();
+    const card = Array.isArray(cards) ? cards[0] : null;
+    if (!card?.id) return null;
+    return { customerId, cardId: card.id, cardBrand: card.payment_method?.id ?? card.payment_method_id ?? null };
+  } catch {
+    return null;
+  }
+}
+
+async function putPreapprovalAmount(preapprovalId: string, amount: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${MP_BASE}/preapproval/${preapprovalId}`, {
+      method: 'PUT',
+      headers: mpHeaders(),
+      body: JSON.stringify({ auto_recurring: { transaction_amount: amount } }),
+    });
+    if (!res.ok) {
+      console.error(`change — PUT monto preapproval ${preapprovalId} falló: http=${res.status}`, await res.json().catch(() => ({})));
+    }
+    return res.ok;
+  } catch (err: any) {
+    console.error(`change — PUT monto preapproval ${preapprovalId} falló:`, err?.message);
+    return false;
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const sessionUser = await getSessionUser();
@@ -88,13 +130,22 @@ export async function GET(req: Request) {
     const preapprovalData = await fetchPreapproval(restaurant.mp_preapproval_id);
     const currentPrice = currentAmountFrom(preapprovalData, currentPlan);
     const newPrice = prices[plan];
-    const isUpgrade = newPrice > currentPrice;
+    const kind = planChangeKind(currentPrice, newPrice);
 
     const today = new Date();
-    const daysRemaining = daysUntil(nextRenewalFrom(preapprovalData, today), today);
-    const proratedAmount = Math.round((daysRemaining / 30) * (newPrice - currentPrice));
+    const renewal = nextRenewalFrom(preapprovalData, today);
+    const daysRemaining = daysUntil(renewal, today);
+    const proratedAmount = prorateAmount(daysRemaining, currentPrice, newPrice);
 
-    return NextResponse.json({ proratedAmount: Math.max(0, proratedAmount), daysRemaining, isUpgrade, currentPrice, newPrice });
+    return NextResponse.json({
+      proratedAmount,
+      daysRemaining,
+      isUpgrade: kind === 'upgrade',
+      kind,
+      currentPrice,
+      newPrice,
+      effectiveFrom: renewal.toISOString(),
+    });
   } catch {
     return NextResponse.json({ proratedAmount: 0, daysRemaining: 0 });
   }
@@ -116,7 +167,7 @@ export async function POST(req: Request) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, mp_preapproval_id, subscription_status, subscription_plan, owner_email')
+      .select('id, mp_preapproval_id, subscription_status, subscription_plan, owner_email, mp_customer_id, mp_card_id, card_brand, pending_plan')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -154,89 +205,124 @@ export async function POST(req: Request) {
     let isUpgrade = false;
 
     if (hasActiveSub && isPlanId(currentPlan)) {
-      // Obtener detalles del preapproval: monto que paga hoy y ciclo
-      const preapprovalData = await fetchPreapproval(preapprovalId);
-      const currentPrice = currentAmountFrom(preapprovalData, currentPlan);
-      const newPrice = prices[plan];
-      isUpgrade = newPrice > currentPrice;
-
-      // Mismo cálculo que el preview (GET) para que el monto cobrado coincida con el mostrado
-      const today = new Date();
-      daysRemaining = daysUntil(nextRenewalFrom(preapprovalData, today), today);
-
-      // Actualizar el monto del preapproval ANTES de cobrar el prorrateo: si MP
-      // no lo acepta, abortamos sin cobrar nada y sin cambiar el plan en la base.
-      const putRes = await fetch(`${MP_BASE}/preapproval/${preapprovalId}`, {
-        method: 'PUT',
-        headers: mpHeaders(),
-        body: JSON.stringify({ auto_recurring: { transaction_amount: newPrice } }),
-      });
-      if (!putRes.ok) {
-        const putErr = await putRes.json().catch(() => ({}));
-        console.error(`change — PUT monto preapproval ${preapprovalId} falló: http=${putRes.status}`, putErr);
+      // Con una bajada ya programada no se acepta otro cambio hasta que se aplique
+      if (restaurant?.pending_plan) {
         return NextResponse.json(
-          { error: 'No pudimos actualizar tu suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
-          { status: 502 }
+          {
+            success: false,
+            code: 'cambio_pendiente',
+            message: `Ya tenés un cambio al plan ${String(restaurant.pending_plan).toUpperCase()} programado para tu próximo cobro. Podés cambiar de plan después de esa fecha.`,
+          },
+          { status: 409 }
         );
       }
 
-      // Cobrar diferencia proporcional solo si es un upgrade
-      if (isUpgrade && email) {
-        proratedAmount = Math.round((daysRemaining / 30) * (newPrice - currentPrice));
+      // Monto que paga hoy y ciclo. Si MP no responde no se adivina: no se cambia nada.
+      const preapprovalData = await fetchPreapproval(preapprovalId);
+      if (!preapprovalData) {
+        return NextResponse.json(
+          { success: false, code: 'mp_no_responde', message: 'No pudimos consultar tu suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
+          { status: 502 }
+        );
+      }
+      const currentPrice = currentAmountFrom(preapprovalData, currentPlan);
+      const newPrice = prices[plan];
+      const kind = planChangeKind(currentPrice, newPrice);
+      isUpgrade = kind === 'upgrade';
 
-        if (proratedAmount > 0) {
-          // Buscar cliente y tarjeta guardada
-          const customerRes = await fetch(`${MP_BASE}/v1/customers/search?email=${encodeURIComponent(email)}`, { headers: mpHeaders() });
-          const customerData = await customerRes.json();
-          const customerId = customerData.results?.[0]?.id;
+      const today = new Date();
+      const renewal = nextRenewalFrom(preapprovalData, today);
+      daysRemaining = daysUntil(renewal, today);
 
-          if (customerId) {
-            const cardsRes = await fetch(`${MP_BASE}/v1/customers/${customerId}/cards`, { headers: mpHeaders() });
-            const cards = await cardsRes.json();
-            const card = Array.isArray(cards) && cards[0];
+      if (kind === 'same') {
+        return NextResponse.json({ success: true, proratedAmount: 0, daysRemaining, prorateCharged: false, isUpgrade: false, kind });
+      }
 
-            if (card) {
-              // Crear token desde la tarjeta guardada (sin CVV para cobros recurrentes)
-              const tokenRes = await fetch(`${MP_BASE}/v1/card_tokens`, {
-                method: 'POST',
-                headers: mpHeaders(),
-                body: JSON.stringify({ card_id: card.id }),
-              });
-              const tokenData = await tokenRes.json();
+      // ── BAJAR: sin reembolso; conserva el plan hasta el próximo cobro y ahí pasa al más bajo ──
+      if (kind === 'downgrade') {
+        // El monto nuevo queda fijado en MP desde ya, así el próximo cobro es el del plan más bajo
+        if (!(await putPreapprovalAmount(preapprovalId, newPrice))) {
+          return NextResponse.json(
+            { success: false, code: 'mp_no_actualizo', message: 'No pudimos actualizar tu suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
+            { status: 502 }
+          );
+        }
+        const { error: pendingError } = await supabase
+          .from('restaurants')
+          .update({ pending_plan: plan, pending_plan_from: renewal.toISOString() })
+          .eq('user_id', userId);
+        if (pendingError) {
+          console.error('change — no se pudo guardar el plan pendiente:', pendingError);
+          await putPreapprovalAmount(preapprovalId, currentPrice); // deja el monto como estaba
+          return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+        }
+        return NextResponse.json({
+          success: true, kind, isUpgrade: false, proratedAmount: 0, daysRemaining, prorateCharged: false,
+          pendingPlan: plan, effectiveFrom: renewal.toISOString(),
+        });
+      }
 
-              if (tokenRes.ok && tokenData.id) {
-                const paymentRes = await fetch(`${MP_BASE}/v1/payments`, {
-                  method: 'POST',
-                  headers: mpHeaders(),
-                  body: JSON.stringify({
-                    transaction_amount: proratedAmount,
-                    token: tokenData.id,
-                    description: `Prorrateo Plan ${plan.toUpperCase()} - Snappy (${daysRemaining} días)`,
-                    installments: 1,
-                    payment_method_id: card.payment_method_id,
-                    payer: { type: 'customer', id: customerId, email },
-                  }),
-                });
+      // ── SUBIR: diferencia proporcional; si no se aprueba, el plan NO cambia ──
+      proratedAmount = prorateAmount(daysRemaining, currentPrice, newPrice);
+      let chargedPaymentId: number | string | null = null;
 
-                const paymentData = await paymentRes.json();
-                // Solo consideramos cobrado si MP lo aprobó
-                if (paymentRes.ok && paymentData.status === 'approved') {
-                  prorateCharged = true;
-                } else {
-                  console.error('MP proration payment error:', paymentData);
-                  // No bloqueamos el cambio de plan si falla el prorrateo
-                }
-              }
-            }
+      if (proratedAmount > 0) {
+        const card = email ? await resolveSavedCard(restaurant!, email) : null;
+        if (!card || !email) {
+          return NextResponse.json(
+            { success: false, code: 'sin_tarjeta', message: 'No encontramos una tarjeta guardada para cobrar la diferencia. Cargá una desde "Cambiar Tarjeta" y volvé a intentar.' },
+            { status: 402 }
+          );
+        }
+        const result = await chargeSubscription({
+          customerId: card.customerId,
+          cardId: card.cardId,
+          cardBrand: card.cardBrand,
+          plan,
+          payerEmail: email,
+          // El webhook de pagos ignora las descripciones que empiezan con "Prorrateo" (no son un cobro mensual)
+          description: `Prorrateo Plan ${plan.toUpperCase()} - Snappy (${daysRemaining} días)`,
+          amount: proratedAmount,
+        });
+        if (result.outcome !== 'approved') {
+          console.error(`change — prorrateo ${result.outcome}:`, result.detail, `restaurant=${restaurant?.id}`);
+          return NextResponse.json(
+            {
+              success: false,
+              code: 'prorrateo_rechazado',
+              message: result.outcome === 'rejected'
+                ? `No pudimos cobrar la diferencia de $${proratedAmount.toLocaleString('es-AR')}. ${friendlyChargeError(result.detail)} Tu plan sigue igual.`
+                : 'No pudimos procesar el cobro de la diferencia. Tu plan sigue igual; intentá de nuevo en unos minutos.',
+            },
+            { status: result.outcome === 'rejected' ? 402 : 502 }
+          );
+        }
+        chargedPaymentId = result.paymentId;
+        prorateCharged = true;
+      }
+
+      // Con la diferencia cobrada (o sin nada que cobrar) se fija el monto nuevo en MP
+      if (!(await putPreapprovalAmount(preapprovalId, newPrice))) {
+        if (chargedPaymentId !== null) {
+          const refund = await refundPayment(chargedPaymentId);
+          if (!refund.ok) {
+            console.error(`change — CRÍTICO: se cobró el prorrateo ${chargedPaymentId} y no se pudo devolver:`, refund.detail, `restaurant=${restaurant?.id}`);
           }
         }
+        return NextResponse.json(
+          { success: false, code: 'mp_no_actualizo', message: 'No pudimos actualizar tu suscripción en Mercado Pago. Intentá de nuevo en unos minutos.' },
+          { status: 502 }
+        );
       }
     }
 
     // Actualizar Supabase
     await supabase.from('restaurants').update({ subscription_plan: plan }).eq('user_id', userId);
 
-    return NextResponse.json({ success: true, proratedAmount, daysRemaining, prorateCharged, isUpgrade });
+    return NextResponse.json({
+      success: true, kind: isUpgrade ? 'upgrade' : 'set', proratedAmount, daysRemaining, prorateCharged, isUpgrade,
+      minDaysForProrate: PRORATE_MIN_DAYS,
+    });
   } catch (err: any) {
     console.error('SERVER ERROR (change):', err);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
