@@ -2,6 +2,23 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // www -> sin www: la sesión de Google (verificador PKCE en cookies) y la lista de Redirect URLs de Supabase están
+  // solo para snappy.uno; entrando por www el login con Google termina en la home sin sesión.
+  if (request.nextUrl.hostname === 'www.snappy.uno') {
+    const url = request.nextUrl.clone()
+    url.hostname = 'snappy.uno'
+    url.port = ''
+    return NextResponse.redirect(url, 308)
+  }
+
+  // Si Supabase manda el código de Google a la raíz (no coincidió con el callback), se lo pasamos al callback con el
+  // mismo código en vez de dejar al usuario sin sesión en la home.
+  if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   // 1. Preparamos la respuesta inicial
   let response = NextResponse.next({
     request: {
