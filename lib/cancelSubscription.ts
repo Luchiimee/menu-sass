@@ -81,7 +81,10 @@ export async function cancelSubscriptionForUser(userId: string): Promise<CancelO
     card_last_four: null,
     card_brand: null,
   };
-  if (serviceUntil) update.grace_period_until = serviceUntil;
+  // Siempre se guarda el fin del servicio: es el día desde el que se cuentan los 90 días de retención de datos
+  // (lib/dataRetention.ts). Con corte inmediato es el momento de la cancelación; así una gracia vieja de una
+  // cancelación anterior no adelanta el borrado. Una fecha pasada no da acceso (los controles piden gracia FUTURA).
+  update.grace_period_until = serviceUntil ?? now.toISOString();
 
   const { error: updateError } = await supabase.from('restaurants').update(update).eq('user_id', userId);
 
