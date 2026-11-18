@@ -199,6 +199,18 @@ export async function deleteCustomerCards(customerId: string): Promise<DeleteCar
   }
 }
 
+// Borra el cliente de Mercado Pago (retención de datos: se borran las tarjetas al cancelar y el cliente al borrar los
+// datos del local). Un 404 (ya no existe) cuenta como ok. No lanza.
+export async function deleteMpCustomer(customerId: string): Promise<{ ok: boolean; detail?: string }> {
+  try {
+    const res = await fetch(`${MP_BASE}/v1/customers/${encodeURIComponent(customerId)}`, { method: 'DELETE', headers: mpHeaders() });
+    if (res.ok || res.status === 404) return { ok: true };
+    return { ok: false, detail: `http=${res.status}` };
+  } catch (err: any) {
+    return { ok: false, detail: err.message || 'Error de red al borrar el cliente' };
+  }
+}
+
 export type CancelPreapprovalResult =
   | { ok: true }
   | { ok: false; detail: string };
