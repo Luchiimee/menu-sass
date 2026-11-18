@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import { friendlyChargeError } from "@/lib/chargeErrors";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
@@ -27,6 +28,8 @@ type Restaurant = {
   // Las trae el select('*') de loadData y de refreshRestaurantData; sirven para distinguir "servicio activo tras cancelar"
   first_paid_at?: string | null;
   mp_customer_id?: string | null;
+  // Motivo del último cobro rechazado por el cron (status_detail de MP); lo escribe el servidor
+  last_charge_error?: string | null;
 };
 
 const PLANS = [
@@ -607,6 +610,9 @@ function PlanContent() {
                     {isPaused && !inGracePeriod && (
                       <div className="mt-2 p-3 bg-alert/10 rounded-2xl border border-alert/10">
                         <p className="text-[10px] text-alert font-black uppercase">Pago fallido. Actualizá tu tarjeta para reactivar.</p>
+                        {restaurant.last_charge_error && (
+                          <p className="text-[10px] text-alert/80 font-bold mt-1 leading-snug">{friendlyChargeError(restaurant.last_charge_error)}</p>
+                        )}
                       </div>
                     )}
                     {isActive && !inGracePeriod && <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wide mt-1">Próximo cobro: <span className="text-gray-900">{getChargeDate()}</span></p>}

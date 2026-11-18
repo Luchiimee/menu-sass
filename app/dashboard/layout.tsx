@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { friendlyChargeError } from '@/lib/chargeErrors';
 import Link from 'next/link';
 import Script from 'next/script';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -258,7 +259,10 @@ const menuItems = [
           <div className="bg-alert text-white px-4 py-2.5 flex justify-between items-center text-xs font-bold shadow-lg z-[50] border-b border-white/10">
             <div className="flex items-center gap-2">
               <AlertTriangle size={16}/>
-              <span>Tu pago falló y la suscripción está pausada. Actualizá tu tarjeta para continuar.</span>
+              <span>
+                Tu pago falló y la suscripción está pausada.{' '}
+                {restaurant.last_charge_error ? friendlyChargeError(restaurant.last_charge_error) : 'Actualizá tu tarjeta para continuar.'}
+              </span>
             </div>
             <Link href="/dashboard/plan" className="bg-white text-alert px-4 py-1.5 rounded-xl font-black uppercase text-[10px] hover:bg-alert/10 transition shadow-sm">Actualizar Tarjeta</Link>
           </div>
@@ -403,7 +407,7 @@ const menuItems = [
               </h2>
               <p className="text-gray-500 text-xs leading-relaxed mb-8 font-bold uppercase tracking-tight">
                 {trialExpired && "Tu período de prueba terminó. Elegí un plan para seguir gestionando tu local."}
-                {isPausedBlocked && "No pudimos procesar tu pago. Reintentá el cobro o actualizá tu tarjeta para continuar."}
+                {isPausedBlocked && `${restaurant.last_charge_error ? friendlyChargeError(restaurant.last_charge_error) : 'No pudimos procesar tu pago.'} Actualizá tu tarjeta para continuar.`}
                 {isCancelledBlocked && "Tu plan está cancelado. Suscribite nuevamente para volver a usar Snappy."}
               </p>
               <Link href="/dashboard/plan" className="block w-full py-5 bg-black text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">
