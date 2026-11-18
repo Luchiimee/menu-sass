@@ -1,6 +1,6 @@
 -- 33 — Motivo del último cobro rechazado (restaurants.last_charge_error / last_charge_error_at)
 --
--- Estado: SIN APLICAR. Hay que correrlo ANTES de publicar el código que escribe estas columnas (cron/charge).
+-- Estado: APLICADO en producción (2026-11-18).
 --
 -- Qué hace:
 --   1. Agrega dos columnas: last_charge_error (status_detail de Mercado Pago o el error) y last_charge_error_at.

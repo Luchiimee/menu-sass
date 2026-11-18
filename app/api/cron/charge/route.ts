@@ -107,6 +107,33 @@ export async function GET(request: Request) {
     }
   }
 
+  // 3b. Control (no cobra nada): cuentas activas con tarjeta, sin preapproval y sin fecha de cobro.
+  // El cron no las elige nunca (next_payment_date vacío), así que seguirían activas sin pagar. Solo se avisa.
+  let sinFecha = 0;
+  const { data: huerfanas, error: huerfanasError } = await supabase
+    .from('restaurants')
+    .select('id, name')
+    .eq('subscription_status', 'active')
+    .not('mp_card_id', 'is', null)
+    .is('mp_preapproval_id', null)
+    .is('next_payment_date', null);
+
+  if (huerfanasError) {
+    console.error('[cron/charge] control sin fecha de cobro — error en query:', huerfanasError.message);
+  } else {
+    for (const r of huerfanas ?? []) {
+      console.error(`[cron/charge] ⚠️ ${r.name} (${r.id}): activa con tarjeta, sin preapproval y sin next_payment_date — no se le cobra`);
+      await supabase
+        .from('restaurants')
+        .update({
+          last_charge_error:    'sin fecha de cobro: activa con tarjeta y sin next_payment_date (no se cobra)',
+          last_charge_error_at: new Date().toISOString(),
+        })
+        .eq('id', r.id);
+      sinFecha++;
+    }
+  }
+
   // 4. Resumen
   const summary = {
     success:   true,
@@ -114,6 +141,7 @@ export async function GET(request: Request) {
     charged,
     failed,
     skipped,
+    sinFecha,
   };
   console.log('[cron/charge] Resumen:', summary);
   return NextResponse.json(summary);
