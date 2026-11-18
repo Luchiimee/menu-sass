@@ -1,6 +1,6 @@
 -- 35 — Borrado de los datos de un local cancelado (retención de datos).
 --
--- Estado: SIN APLICAR. Lo usará el cron de retención (lib/deleteRestaurantData.ts) cuando se active el borrado real.
+-- Estado: APLICADO en producción (2026-11-18). Lo usará el cron de retención (lib/deleteRestaurantData.ts) cuando se active el borrado real.
 --
 -- Qué hace: dos funciones que SOLO puede ejecutar el service_role (el servidor), no el navegador:
 --   retention_image_paths(restaurant_id)  nombres de los archivos del bucket 'images' que usa ese local (logo, banner,
