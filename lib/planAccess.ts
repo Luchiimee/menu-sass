@@ -15,6 +15,7 @@ import { isPlanId, type PlanId } from '@/lib/plans';
 import { isAdminEmail } from '@/lib/access';
 import { isTrialBlocking } from '@/lib/trial';
 import { trialBaseDate } from '@/lib/trialBase';
+import { inPaymentGrace } from '@/lib/paymentGrace';
 
 export type PlanAccessResult =
   | { ok: true; restaurant: { id: string; plan: PlanId } }
@@ -23,7 +24,7 @@ export type PlanAccessResult =
 export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promise<PlanAccessResult> {
   const { data: rest, error } = await getSupabaseAdmin()
     .from('restaurants')
-    .select('id, subscription_plan, subscription_status, created_at, grace_period_until, owner_email, mp_card_id, trial_ends_at')
+    .select('id, subscription_plan, subscription_status, created_at, grace_period_until, payment_grace_until, owner_email, mp_card_id, trial_ends_at')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -43,7 +44,8 @@ export async function requirePlan(userId: string, allowedPlans: PlanId[]): Promi
 
   if (!inGrace && !isAdmin) {
     const status = rest.subscription_status;
-    if (status === 'paused') return { ok: false, status: 403, reason: 'paused' };
+    // Cobro fallido con gracia vigente (lib/paymentGrace): sigue funcionando unos días
+    if (status === 'paused' && !inPaymentGrace(rest, new Date())) return { ok: false, status: 403, reason: 'paused' };
     if (status === 'cancelled') return { ok: false, status: 403, reason: 'cancelled' };
     // La prueba cuenta desde el registro (lib/trialBase); solo se lee el perfil si hace falta
     let baseDate: Date | null = rest.created_at ? new Date(rest.created_at) : null;

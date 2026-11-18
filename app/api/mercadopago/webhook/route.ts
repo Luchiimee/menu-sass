@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { nextMonthlyChargeDate } from '@/lib/billingDate';
+import { paymentGraceUntil } from '@/lib/paymentGrace';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
                 .update({
                     subscription_status: 'active',
                     next_payment_date:   nextPayment.toISOString(),
+                    payment_grace_until: null,
                 })
                 .eq('owner_email', payerEmail);
 
@@ -129,9 +131,19 @@ export async function POST(request: Request) {
             }
 
         } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
+            // Gracia solo en el primer rechazo: si ya estaba pausado no se vuelve a dar (ni se extiende)
+            const { data: before } = await supabase
+                .from('restaurants')
+                .select('subscription_status')
+                .eq('owner_email', payerEmail)
+                .limit(1)
+                .maybeSingle();
+            const update: Record<string, any> = { subscription_status: 'paused' };
+            if (before && before.subscription_status !== 'paused') update.payment_grace_until = paymentGraceUntil(new Date());
+
             const { error } = await supabase
                 .from('restaurants')
-                .update({ subscription_status: 'paused' })
+                .update(update)
                 .eq('owner_email', payerEmail);
 
             if (error) {

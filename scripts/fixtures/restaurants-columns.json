@@ -83,6 +83,7 @@
     "onboarding_completed",
     "opening_hours",
     "owner_email",
+    "payment_grace_until",
     "personalizar_intro_seen",
     "phone",
     "plan_id",

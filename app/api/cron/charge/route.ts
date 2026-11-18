@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { chargeSubscription, cancelPreapproval } from '@/lib/mercadopagoBilling';
 import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 import { nextMonthlyChargeDate } from '@/lib/billingDate';
+import { paymentGraceUntil } from '@/lib/paymentGrace';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
         next_payment_date:   nextPayment.toISOString(),
         last_charge_error:    null,
         last_charge_error_at: null,
+        payment_grace_until:  null,
       };
       if (release.clearId) update.mp_preapproval_id = null;
 
@@ -106,6 +108,8 @@ export async function GET(request: Request) {
           subscription_status: 'paused',
           last_charge_error:    String(result.detail ?? result.outcome).slice(0, 300),
           last_charge_error_at: new Date().toISOString(),
+          // Primer rechazo: unos días de margen antes de cortar el menú (el cron solo recorre cuentas no pausadas)
+          payment_grace_until:  paymentGraceUntil(new Date()),
         })
         .eq('id', restaurant.id);
 

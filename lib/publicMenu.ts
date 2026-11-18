@@ -8,6 +8,7 @@
 // decidir la suspensión se leen aparte en el servidor (SUSPENSION_COLUMNS) y no se devuelven.
 
 import { isTrialBlocking } from './trial.ts';
+import { inPaymentGrace } from './paymentGrace.ts';
 
 // Columnas que el menú (app/[slug]/page.tsx, templates, CartFooter) y la bio usan de restaurants.
 // subscription_plan entra: la página la usa como planType. Ordenadas alfabéticamente.
@@ -107,6 +108,7 @@ export const SUSPENSION_COLUMNS = [
   'mp_card_id',
   'trial_ends_at',
   'grace_period_until',
+  'payment_grace_until', // gracia por cobro fallido (lib/paymentGrace); solo para decidir la suspensión
   'user_id', // solo para leer profiles.created_at (base de la prueba, lib/trialBase); nunca se devuelve
 ] as const;
 
@@ -158,6 +160,7 @@ export type SuspensionRow = {
   mp_card_id?: string | null;
   trial_ends_at?: string | Date | null;
   grace_period_until?: string | Date | null;
+  payment_grace_until?: string | Date | null;
 };
 
 // Copia EXACTA de la lógica de app/[slug]/page.tsx (~:2756-2779):
@@ -184,7 +187,10 @@ export function computeMenuSuspension(
 
   const inGracePeriod = !!(r.grace_period_until && new Date(r.grace_period_until) > now);
 
-  const isSuspended = !isAdmin && !inGracePeriod && (
+  // Gracia por cobro fallido: pausado pero con margen para actualizar la tarjeta (lib/paymentGrace)
+  const inPayGrace = inPaymentGrace({ subscription_status: r.subscription_status, payment_grace_until: r.payment_grace_until }, now);
+
+  const isSuspended = !isAdmin && !inGracePeriod && !inPayGrace && (
     r.subscription_status === 'cancelled' ||
     r.subscription_status === 'paused' ||
     trialExpired

@@ -182,6 +182,7 @@ export async function POST(req: Request) {
           next_payment_date:   null,
           last_charge_error:    null,
           last_charge_error_at: null,
+          payment_grace_until:  null,
         }).eq('user_id', userId);
 
         // Gracias: solo con el cobro aprobado y la tarjeta guardada. No cambia la respuesta.

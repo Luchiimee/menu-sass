@@ -18,6 +18,7 @@ import StaleShiftPrompt from '@/components/dashboard/StaleShiftPrompt';
 import { isAdminEmail, hasAdminSnappyAccess, hasBetaAccess } from '@/lib/access';
 import { trialDaysLeft, isTrialBlocking } from '@/lib/trial';
 import { trialBaseDate } from '@/lib/trialBase';
+import { inPaymentGrace } from '@/lib/paymentGrace';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -92,6 +93,7 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
           plan: rest?.subscription_plan || null,
           status: rest?.subscription_status || 'trialing',
           grace_period_until: rest?.grace_period_until || null,
+          payment_grace_until: rest?.payment_grace_until || null,
           // La prueba cuenta desde el registro: la fecha más antigua entre el perfil y el local (lib/trialBase)
           trial_base_at: trialBaseDate(profile?.created_at, rest?.created_at, session.user.created_at)?.toISOString() ?? null,
       });
@@ -140,7 +142,12 @@ setUserEmail(session.user.email?.toLowerCase() ?? '');
 
   const trialExpired = isTrialExpired && !onPlanPage && !isAdmin && !inGracePeriod;
   const showTrialWarning = daysLeft <= 4 && daysLeft > 0 && restaurant.status === 'trialing' && !hasActivePayment && !onPlanPage && !isAdmin;
-  const isPausedBlocked = restaurant.status === 'paused' && !onPlanPage && !isAdmin && !inGracePeriod;
+  // Cobro fallido con margen vigente (lib/paymentGrace): el panel sigue usable, con el aviso de abajo
+  const inPayGrace = inPaymentGrace({ subscription_status: restaurant.status, payment_grace_until: restaurant.payment_grace_until }, new Date());
+  const payGraceUntilText = restaurant.payment_grace_until
+    ? new Date(restaurant.payment_grace_until).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })
+    : '';
+  const isPausedBlocked = restaurant.status === 'paused' && !onPlanPage && !isAdmin && !inGracePeriod && !inPayGrace;
   const isCancelledBlocked = restaurant.status === 'cancelled' && !onPlanPage && !isAdmin && !inGracePeriod;
   const isBlocked = trialExpired || isPausedBlocked || isCancelledBlocked;
   const missingPhone = !profileData?.phone;
@@ -260,7 +267,9 @@ const menuItems = [
             <div className="flex items-center gap-2">
               <AlertTriangle size={16}/>
               <span>
-                Tu pago falló y la suscripción está pausada.{' '}
+                {inPayGrace
+                  ? `Tu pago falló. Tu menú sigue activo hasta el ${payGraceUntilText}; si no actualizás la tarjeta, se pausa.`
+                  : 'Tu pago falló y la suscripción está pausada.'}{' '}
                 {restaurant.last_charge_error ? friendlyChargeError(restaurant.last_charge_error) : 'Actualizá tu tarjeta para continuar.'}
               </span>
             </div>
@@ -464,4 +473,4 @@ const menuItems = [
       />
     </div>
   );
-}
+}

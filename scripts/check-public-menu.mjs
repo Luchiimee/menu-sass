@@ -21,7 +21,7 @@ console.log('PUBLIC_RESTAURANT_COLUMNS: lista cerrada');
 {
   const SENSIBLES = [
     'owner_email', 'user_id', 'mp_customer_id', 'mp_card_id', 'mp_preapproval_id', 'card_last_four', 'card_brand',
-    'trial_ends_at', 'next_payment_date', 'grace_period_until', 'subscription_status', 'created_at',
+    'trial_ends_at', 'next_payment_date', 'grace_period_until', 'payment_grace_until', 'subscription_status', 'created_at',
     'delivery_address', 'cash_close_hour', 'cash_auto_close_enabled', 'mp_checkout_enabled',
   ];
   for (const col of SENSIBLES) {
@@ -80,6 +80,10 @@ console.log('computeMenuSuspension');
   check('gracia vigente evita el bloqueo (prueba vencida)', run({ grace_period_until: '2026-12-31T00:00:00Z' }, '2026-12-01T15:00:00Z').isSuspended === false);
   check('gracia vigente evita el bloqueo (paused)', run({ subscription_status: 'paused', grace_period_until: '2026-12-31T00:00:00Z' }, '2026-12-01T15:00:00Z').isSuspended === false);
   check('gracia vencida no evita el bloqueo', run({ subscription_status: 'paused', grace_period_until: '2026-11-01T00:00:00Z' }, '2026-12-01T15:00:00Z').isSuspended === true);
+  check('gracia de cobro fallido vigente evita el corte (paused)', run({ subscription_status: 'paused', payment_grace_until: '2026-12-03T00:00:00Z' }, '2026-12-01T15:00:00Z').isSuspended === false);
+  check('gracia de cobro fallido vencida corta', run({ subscription_status: 'paused', payment_grace_until: '2026-12-01T00:00:00Z' }, '2026-12-01T15:00:00Z').isSuspended === true);
+  check('gracia de cobro fallido no salva a una cuenta cancelada', run({ subscription_status: 'cancelled', payment_grace_until: '2026-12-03T00:00:00Z' }, '2026-12-01T15:00:00Z').isSuspended === true);
+  check('paused sin gracia de cobro corta', run({ subscription_status: 'paused', payment_grace_until: null }, '2026-12-01T15:00:00Z').isSuspended === true);
 
   check('paused → suspendido', run({ subscription_status: 'paused' }, '2026-11-08T15:00:00Z').isSuspended === true);
   check('cancelled → suspendido', run({ subscription_status: 'cancelled' }, '2026-11-08T15:00:00Z').isSuspended === true);
