@@ -200,6 +200,36 @@ export async function createSubscription({
   }
 }
 
+export type DeleteCardsResult =
+  | { ok: true; deleted: number }
+  | { ok: false; deleted: number; detail: string };
+
+// Borra TODAS las tarjetas guardadas del cliente en Mercado Pago (al cancelar la suscripción).
+// Mismo criterio que save-card al reemplazar una tarjeta (GET /cards + DELETE /cards/{id}).
+// ok solo si no quedó ninguna sin borrar; el caller no debe bloquear la cancelación si falla.
+export async function deleteCustomerCards(customerId: string): Promise<DeleteCardsResult> {
+  let deleted = 0;
+  try {
+    const listRes = await fetch(`${MP_BASE}/v1/customers/${encodeURIComponent(customerId)}/cards`, { headers: mpHeaders() });
+    const cards = await listRes.json().catch(() => null);
+    if (!listRes.ok || !Array.isArray(cards)) {
+      return { ok: false, deleted, detail: `no se pudo listar las tarjetas: http=${listRes.status}` };
+    }
+    let failed = 0;
+    for (const c of cards) {
+      if (!c?.id) continue;
+      const del = await fetch(
+        `${MP_BASE}/v1/customers/${encodeURIComponent(customerId)}/cards/${encodeURIComponent(String(c.id))}`,
+        { method: 'DELETE', headers: mpHeaders() },
+      );
+      if (del.ok || del.status === 404) deleted++; else failed++;
+    }
+    return failed === 0 ? { ok: true, deleted } : { ok: false, deleted, detail: `${failed} tarjeta(s) sin borrar` };
+  } catch (err: any) {
+    return { ok: false, deleted, detail: err.message || 'Error de red al borrar las tarjetas' };
+  }
+}
+
 export type CancelPreapprovalResult =
   | { ok: true }
   | { ok: false; detail: string };
