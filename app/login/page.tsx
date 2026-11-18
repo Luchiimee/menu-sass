@@ -31,10 +31,11 @@ export default function LoginPage() {
     if (params.get('error') !== 'auth') return
     const c = params.get('c')
     const code = c === 'E0' || c === 'E1' || c === 'E2' || c === 'E3' || c === 'E4' ? c : null
+    // El código (E0-E4) va al final del aviso: si el cliente manda una captura, se sabe en qué paso falló.
     setAuthNotice(
-      code === 'E0'
+      (code === 'E0'
         ? 'Tu inicio de sesión venció. Volvé a tocar «Continuar con Google».'
-        : 'No pudimos iniciar sesión. Probá de nuevo o entrá con tu email y contraseña.'
+        : 'No pudimos iniciar sesión. Probá de nuevo o entrá con tu email y contraseña.') + ` (${code ?? 'E?'})`
     )
     router.replace('/login')
   }, [router])
