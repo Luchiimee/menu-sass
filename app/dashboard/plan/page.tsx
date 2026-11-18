@@ -281,14 +281,14 @@ function PlanContent() {
         if (data.pendingPlan) {
           // Bajada: el plan actual sigue hasta el próximo cobro
           const from = data.effectiveFrom ? fmtArDay(new Date(data.effectiveFrom)) : 'tu próximo cobro';
-          toast.success(`Listo: pasás al plan ${String(data.pendingPlan).toUpperCase()} el ${from}. Hasta entonces seguís con tu plan actual.`, { duration: 7000 });
+          toast.success(`Listo: pasás al plan ${String(data.pendingPlan).toUpperCase()} el ${from}. Hasta entonces seguís con tu plan actual.${MP_MAIL_NOTE}`, { duration: 9000 });
           await refreshRestaurantData();
           return;
         }
         if (data.prorateCharged && data.proratedAmount > 0) {
-          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.`, { duration: 6000 });
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Se cobró $${data.proratedAmount.toLocaleString('es-AR')} por los ${data.daysRemaining} días restantes.${MP_MAIL_NOTE}`, { duration: 9000 });
         } else {
-          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Desde tu próximo cobro pagás $${prices[planId].toLocaleString('es-AR')}.`, { duration: 6000 });
+          toast.success(`Plan cambiado a ${planId.toUpperCase()}. Desde tu próximo cobro pagás $${prices[planId].toLocaleString('es-AR')}.${MP_MAIL_NOTE}`, { duration: 9000 });
         }
       } else {
         // La elección de plan sin cobro la escribe el servidor (subscription_plan no se escribe desde el navegador)
@@ -333,7 +333,7 @@ function PlanContent() {
         if (preview.kind === 'downgrade') {
           const from = preview.effectiveFrom ? fmtArDay(new Date(preview.effectiveFrom)) : 'tu próximo cobro';
           const ok = window.confirm(
-            `Pasar al plan ${planId.toUpperCase()}\n\nSeguís con tu plan actual hasta tu próximo cobro (${from}). Ese día pasás al plan ${planId.toUpperCase()} y pagás $${prices[planId].toLocaleString('es-AR')}. No hay reembolso por lo ya pagado.\n\n¿Confirmás?`
+            `Pasar al plan ${planId.toUpperCase()}\n\nSeguís con tu plan actual hasta tu próximo cobro (${from}). Ese día pasás al plan ${planId.toUpperCase()} y pagás $${prices[planId].toLocaleString('es-AR')}. No hay reembolso por lo ya pagado.\n\n${MP_MAIL_NOTE.trim()}\n\n¿Confirmás?`
           );
           if (!ok) return;
         }
@@ -519,6 +519,9 @@ function PlanContent() {
             </p>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-6">
               A partir del próximo ciclo se cobra {formatARS(prices[pendingPlanChange])}/mes completo.
+            </p>
+            <p className="text-xs text-gray-500 mb-6">
+              {MP_MAIL_NOTE.trim()}
             </p>
             <div className="flex gap-3">
               <button
@@ -832,6 +835,9 @@ function PlanContent() {
     </>
   );
 }
+
+// Mercado Pago avisa por mail cada cambio de monto de la suscripción con su propia plantilla (no se puede cambiar desde Snappy)
+const MP_MAIL_NOTE = " Mercado Pago puede mandarte un mail diciendo que el vendedor Snappy cambió el monto: es su aviso automático por este cambio de plan.";
 
 export default function PlanPage() {
   return (

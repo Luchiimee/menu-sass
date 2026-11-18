@@ -1,6 +1,6 @@
 -- 28 — Bajada de plan programada (restaurants.pending_plan / pending_plan_from)
 --
--- Estado: SIN APLICAR. Hay que correrlo ANTES de publicar la rama feat/cambio-plan-prorrateo a main.
+-- Estado: APLICADO en producción (kbmsohzalgoulysnkher). Ya está en la base; la rama feat/cambio-plan-prorrateo todavía no se publicó a main.
 --
 -- Qué hace:
 --   1. Agrega dos columnas: pending_plan (el plan al que pasa en el próximo cobro) y pending_plan_from (cuándo).
