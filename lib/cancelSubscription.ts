@@ -9,9 +9,12 @@
 // Los logs llevan solo un código corto: nunca ids de MP, correos ni datos del local.
 
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { cancelPreapproval, getPreapproval } from '@/lib/mercadopagoBilling';
+import { cancelPreapproval, getPreapproval, deleteCustomerCards } from '@/lib/mercadopagoBilling';
 import { decideCancel, PRE_NO_ID_CODE, PRE_NO_ID_MESSAGE } from '@/lib/cancelDecision';
 import { computeCancelGrace, resolveServiceUntil } from '@/lib/cancelGrace';
+import { deleteOnFor } from '@/lib/dataRetention';
+import { sendCancelNotice, emailLogCancelNoticeDb } from '@/lib/email/cancelNoticeRun';
+import { sendEmail } from '@/lib/email/send';
 
 export type CancelOutcome = { status: number; body: Record<string, unknown> };
 
@@ -20,7 +23,7 @@ export async function cancelSubscriptionForUser(userId: string): Promise<CancelO
 
   const { data: restaurant, error: restError } = await supabase
     .from('restaurants')
-    .select('id, subscription_status, mp_preapproval_id, mp_card_id, next_payment_date, grace_period_until')
+    .select('id, name, owner_email, subscription_status, mp_preapproval_id, mp_card_id, mp_customer_id, next_payment_date, grace_period_until')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -74,6 +77,9 @@ export async function cancelSubscriptionForUser(userId: string): Promise<CancelO
     subscription_status: 'cancelled',
     mp_preapproval_id: null,
     mp_card_id: null,
+    // los datos visibles de la tarjeta (marca y últimos 4) también se borran
+    card_last_four: null,
+    card_brand: null,
   };
   if (serviceUntil) update.grace_period_until = serviceUntil;
 
@@ -83,6 +89,23 @@ export async function cancelSubscriptionForUser(userId: string): Promise<CancelO
     console.error('Supabase UPDATE error (cancel):', updateError);
     return { status: 500, body: { error: 'Error al cancelar la suscripción' } };
   }
+
+  // Con el cobro ya cortado, se borran las tarjetas guardadas en Mercado Pago. Si falla no se bloquea la cancelación
+  // (ya no se cobra: mp_card_id quedó en null); solo queda un código en el log para revisarlo.
+  if (restaurant.mp_customer_id) {
+    const cards = await deleteCustomerCards(restaurant.mp_customer_id);
+    if (!cards.ok) console.error(`cancel — CARD_DELETE_FAILED restaurant=${restaurant.id}: ${cards.detail}`);
+  }
+
+  // Mail "Lamentamos que te vayas": hasta cuándo sigue el servicio y hasta cuándo se guardan los datos.
+  // Nunca lanza ni bloquea la cancelación (lib/email/cancelNoticeRun.ts).
+  await sendCancelNotice({
+    db: emailLogCancelNoticeDb(supabase),
+    send: (msg) => sendEmail(msg),
+    restaurant: { id: restaurant.id, owner_email: restaurant.owner_email, name: restaurant.name },
+    serviceUntil: serviceUntil ? new Date(serviceUntil) : null,
+    deleteOn: deleteOnFor(serviceUntil, now),
+  });
 
   return { status: 200, body: { success: true, serviceUntil } };
 }
