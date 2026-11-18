@@ -13,6 +13,8 @@ interface PaymentFormProps {
   mpPreapprovalId?: string;
   inline?: boolean;
   currentCard?: { brand: string; last4: string; expMonth: number; expYear: number } | null;
+  // Cuenta pausada: al guardar la tarjeta se intenta el cobro ahora (reactivación). Solo cambia el aviso.
+  chargesNow?: boolean;
   onSuccess: () => void;
   onChargeFailed?: () => void;
   onClose: () => void;
@@ -30,6 +32,7 @@ export default function PaymentForm({
   mpPreapprovalId,
   inline = false,
   currentCard = null,
+  chargesNow = false,
   onSuccess,
   onChargeFailed,
   onClose,
@@ -164,6 +167,11 @@ export default function PaymentForm({
             </div>
             <p className="text-[10px] text-gray-400 font-semibold mt-2 px-1">
               Esta tarjeta será reemplazada al guardar una nueva.
+            </p>
+            <p className="text-[10px] text-gray-400 font-semibold mt-1 px-1">
+              {chargesNow
+                ? 'Tu cuenta está pausada: al guardar la tarjeta nueva se intenta el cobro de tu plan ahora.'
+                : 'No se te cobra nada ahora: desde tu próximo cobro se usará la tarjeta nueva.'}
             </p>
             <p className="text-[10px] text-gray-400 font-semibold mt-1 px-1">
               Mercado Pago puede enviarte un mail avisando que tu suscripción anterior fue cancelada. Es normal: tu plan en Snappy sigue activo.
