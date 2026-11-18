@@ -1,6 +1,6 @@
 -- 36 — Gracia por cobro fallido (restaurants.payment_grace_until)
 --
--- Estado: SIN APLICAR.
+-- Estado: APLICADO en producción (2026-11-18).
 --
 -- Qué hace:
 --   1. Agrega la columna payment_grace_until (timestamptz). Cuando se rechaza un cobro el local pasa a 'paused', y esta
