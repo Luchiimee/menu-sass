@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { nextMonthlyChargeDate } from '@/lib/billingDate';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,8 +105,14 @@ export async function POST(request: Request) {
         }
 
         if (payment.status === 'approved') {
-            const nextPayment = new Date();
-            nextPayment.setDate(nextPayment.getDate() + 30);
+            // Mismo día del mes siguiente (no +30 días), a partir de la fecha de cobro guardada (si hay)
+            const { data: current } = await supabase
+                .from('restaurants')
+                .select('next_payment_date')
+                .eq('owner_email', payerEmail)
+                .limit(1)
+                .maybeSingle();
+            const nextPayment = nextMonthlyChargeDate(current?.next_payment_date);
 
             const { error } = await supabase
                 .from('restaurants')

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { chargeSubscription, cancelPreapproval } from '@/lib/mercadopagoBilling';
 import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
+import { nextMonthlyChargeDate } from '@/lib/billingDate';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,8 +67,13 @@ export async function GET(request: Request) {
     });
 
     if (result.outcome === 'approved') {
-      const nextPayment = new Date();
-      nextPayment.setDate(nextPayment.getDate() + 30);
+      // Mismo día del mes siguiente (no +30 días). Se parte de la fecha de cobro que se acaba de cumplir:
+      // trial_ends_at en el primer cobro, next_payment_date en los siguientes; reactivaciones, desde hoy.
+      const due =
+        restaurant.subscription_status === 'trialing' ? restaurant.trial_ends_at
+        : restaurant.subscription_status === 'active'  ? restaurant.next_payment_date
+        : null;
+      const nextPayment = nextMonthlyChargeDate(due);
 
       // El cobro ya está aprobado (no se repite). El id solo se borra si MP confirma
       // que el preapproval quedó cancelado; si no, se conserva la referencia.
