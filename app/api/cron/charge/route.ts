@@ -79,6 +79,8 @@ export async function GET(request: Request) {
       const update: Record<string, any> = {
         subscription_status: 'active',
         next_payment_date:   nextPayment.toISOString(),
+        last_charge_error:    null,
+        last_charge_error_at: null,
       };
       if (release.clearId) update.mp_preapproval_id = null;
 
@@ -94,7 +96,11 @@ export async function GET(request: Request) {
 
       await supabase
         .from('restaurants')
-        .update({ subscription_status: 'paused' })
+        .update({
+          subscription_status: 'paused',
+          last_charge_error:    String(result.detail ?? result.outcome).slice(0, 300),
+          last_charge_error_at: new Date().toISOString(),
+        })
         .eq('id', restaurant.id);
 
       failed++;
