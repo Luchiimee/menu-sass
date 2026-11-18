@@ -37,7 +37,8 @@ export default function Terminos() {
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">4. Pagos y cancelación</h2>
           <p className="mb-3">Las suscripciones se cobran a través de Mercado Pago, con la periodicidad del plan elegido, y se renuevan automáticamente hasta que las canceles. La moneda y los impuestos aplicables se informan al momento de contratar el plan. Los precios pueden modificarse; si eso ocurre, te vamos a avisar con anticipación razonable.</p>
-          <p>Podés cancelar tu suscripción cuando quieras. La cancelación evita los cobros futuros. Al cancelar, el menú público y el panel quedan pausados, y podés reactivar el servicio cuando quieras con una nueva suscripción. Los reembolsos se evalúan caso por caso; escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
+          <p className="mb-3">Podés cancelar tu suscripción cuando quieras. La cancelación evita los cobros futuros y seguís usando Snappy hasta el final del período ya pagado. Cuando termina, el menú público y el panel quedan pausados y podés reactivar el servicio con una nueva suscripción. Los reembolsos se evalúan caso por caso; escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
+          <p>Al cancelar borramos de Mercado Pago la tarjeta que tenías guardada y te enviamos un correo de confirmación con la fecha en que termina el servicio. Tus datos se conservan 90 días desde esa fecha, por si querés volver. Te avisamos por correo 15 días antes de que se eliminen y, pasado el plazo, se borran de forma definitiva: tu local, productos, pedidos, imágenes y datos de la cuenta. Si querés que se borren antes, escribinos al correo de contacto.</p>
         </div>
 
         <div>

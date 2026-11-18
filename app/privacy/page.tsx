@@ -74,7 +74,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">8. Conservación</h2>
-          <p>Conservamos los datos mientras tu cuenta esté activa y, después de la baja o del vencimiento de la prueba, hasta 3 meses. Pasado ese plazo los eliminamos o anonimizamos a pedido o cuando corresponda. Para solicitar la eliminación antes, escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>. Los registros de pagos se conservan el tiempo que exija la normativa fiscal y contable.</p>
+          <p>Conservamos los datos mientras tu cuenta esté activa. Si cancelás tu suscripción, los conservamos 90 días desde que termina el servicio: te avisamos por correo 15 días antes y, pasado ese plazo, los eliminamos de forma definitiva (local, productos, pedidos, imágenes y datos de la cuenta), junto con tu cliente en Mercado Pago. La tarjeta guardada se borra de Mercado Pago en el momento de cancelar. Si vence la prueba gratuita sin que te suscribas, los conservamos hasta 3 meses desde el vencimiento y luego los eliminamos o anonimizamos a pedido o cuando corresponda. Para solicitar la eliminación antes, escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>. Los registros de pagos se conservan el tiempo que exija la normativa fiscal y contable.</p>
         </div>
 
         <div>
