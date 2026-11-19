@@ -663,7 +663,7 @@ const maxProds = maxProductsForPlan(currentPlan);
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-5 bg-slate-900 text-white rounded-[2rem] opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 shadow-2xl z-[100] border border-white/10 text-left">
                             <p className="text-[10px] leading-relaxed font-medium">
                                 <b className="text-brasa block mb-1 uppercase tracking-widest text-[11px]">¿Cómo funciona?</b>
-                                El sistema analizará tus pedidos reales. Una vez pasados **30 días** desde la activación, creará automáticamente la sección destacada para tus clientes.
+                                El sistema analizará tus pedidos reales. Una vez pasados <b>30 días</b> desde la activación, creará automáticamente la sección destacada para tus clientes.
                             </p>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
                         </div>

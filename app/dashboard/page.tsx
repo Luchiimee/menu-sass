@@ -335,8 +335,8 @@ const PhoneWarningBanner = () => {
                 <div className="space-y-1">
                     <h3 className="font-black text-ink text-lg leading-tight">Probá gratis por 14 días con total tranquilidad</h3>
                     <p className="text-xs text-ink font-medium leading-relaxed">
-                        Podés configurar tu pago ahora y el primer débito se hará **recién en 14 días**. 
-                        Si decidís no seguir, podés dar de baja el plan en **cualquier momento** desde configuración sin cargos.
+                        Podés configurar tu pago ahora y el primer débito se hará <b>recién en 14 días</b>. 
+                        Si decidís no seguir, podés dar de baja el plan en <b>cualquier momento</b> desde configuración sin cargos.
                     </p>
                 </div>
             </div>
@@ -377,7 +377,7 @@ const PhoneWarningBanner = () => {
                 </div>
                 <p className="text-[10px] text-ink font-medium leading-relaxed flex-1">
                    <b>Ideal para:</b> Negocios que crecen. <br/> 
-                   60 productos, **videos animado**, cupones y monitor de pedidos.
+                   60 productos, <b>videos animados</b>, cupones y monitor de pedidos.
                 </p>
                 <span className="mt-4 text-[9px] font-black uppercase text-fresco group-hover:underline">Elegir este plan →</span>
             </Link>
