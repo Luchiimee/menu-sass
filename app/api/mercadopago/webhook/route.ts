@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { nextMonthlyChargeDate } from '@/lib/billingDate';
 import { paymentGraceUntil } from '@/lib/paymentGrace';
+import { rowFromMpPayment, saveBillingPayment } from '@/lib/billingPayments';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,6 +104,20 @@ export async function POST(request: Request) {
         if (!payerEmail) {
             console.error('Pago sin payer.email — no se puede identificar el restaurante');
             return NextResponse.json({ received: true });
+        }
+
+        // Historial de facturación: se anota el cobro (aprobado, rechazado, reembolsado...). Es best-effort: si algo falla
+        // acá, el resto del webhook sigue igual y no cambia lo que se responde.
+        try {
+            const { data: owner } = await supabase
+                .from('restaurants')
+                .select('id, subscription_plan')
+                .eq('owner_email', payerEmail)
+                .limit(1)
+                .maybeSingle();
+            if (owner) await saveBillingPayment(supabase, rowFromMpPayment(payment, owner, new Date()));
+        } catch {
+            console.error('[billing-payments] code=WEBHOOK_RECORD_FAILED');
         }
 
         if (payment.status === 'approved') {

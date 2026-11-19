@@ -111,6 +111,8 @@ function PlanContent() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState({ first_name: "", last_name: "", phone: "", email: "" });
+  // Historial de facturación: cobros anotados por el servidor (billing_payments). Si la tabla no está o falla, queda vacío.
+  const [payments, setPayments] = useState<{ id: string; amount: number | null; status: string; status_detail: string | null; plan: string | null; paid_at: string }[]>([]);
   const [restaurant, setRestaurant] = useState<Restaurant>({
     id: null, mp_preapproval_id: null, business_hours: {},
     subscription_plan: null, subscription_status: "trialing",
@@ -174,6 +176,15 @@ function PlanContent() {
           });
           if (restData.mp_preapproval_id) fetchLinkedCard();
           fetchNextCharge();
+          try {
+            const { data: pays, error: paysError } = await supabase
+              .from('billing_payments')
+              .select('id, amount, status, status_detail, plan, paid_at')
+              .eq('restaurant_id', restData.id)
+              .order('paid_at', { ascending: false })
+              .limit(24);
+            if (!paysError && pays) setPayments(pays);
+          } catch { /* sin historial: se muestra el estado vacío */ }
         }
       } catch (error) {
         console.error("Error cargando datos:", error);
@@ -809,9 +820,37 @@ function PlanContent() {
             <FileText size={18} className="text-gray-400" />
             <h2 className="font-bold text-lg text-gray-900 uppercase italic tracking-tighter">Historial de Facturación</h2>
           </div>
-          <div className="py-10 text-center border-2 border-dashed border-gray-50 rounded-2xl">
-            <p className="text-[10px] font-black text-gray-300 uppercase italic">No se registran facturas anteriores</p>
-          </div>
+          {payments.length === 0 ? (
+            <div className="py-10 text-center border-2 border-dashed border-gray-50 rounded-2xl">
+              <p className="text-[10px] font-black text-gray-300 uppercase italic">No se registran facturas anteriores</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {payments.map((p) => {
+                const ok = p.status === 'approved';
+                const label = ok ? 'Aprobado' : p.status === 'rejected' ? 'Rechazado' : p.status === 'refunded' ? 'Reembolsado' : p.status === 'charged_back' ? 'Contracargo' : 'Cancelado';
+                return (
+                  <li key={p.id} className="py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-gray-900">
+                        {new Date(p.paid_at).toLocaleDateString("es-AR", { timeZone: AR_TZ, day: "numeric", month: "long", year: "numeric" })}
+                      </p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                        {p.plan ? `Plan ${p.plan.toUpperCase()}` : 'Suscripción'}
+                      </p>
+                      {p.status === 'rejected' && p.status_detail && (
+                        <p className="text-[10px] text-alert/80 font-bold mt-1 leading-snug">{friendlyChargeError(p.status_detail)}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-black text-gray-900">{p.amount !== null ? formatARS(Number(p.amount)) : '—'}</p>
+                      <p className={`text-[10px] font-black uppercase ${ok ? 'text-fresco' : 'text-alert'}`}>{label}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
 
       </div>

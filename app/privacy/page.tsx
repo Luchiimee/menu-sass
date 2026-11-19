@@ -74,7 +74,7 @@ export default function PrivacyPolicy() {
 
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">8. Conservación</h2>
-          <p>Conservamos los datos mientras tu cuenta esté activa. Si cancelás tu suscripción, los conservamos 90 días desde que termina el servicio: te avisamos por correo 15 días antes y, pasado ese plazo, los eliminamos de forma definitiva (local, productos, pedidos, imágenes y datos de la cuenta), junto con tu cliente en Mercado Pago. La tarjeta guardada se borra de Mercado Pago en el momento de cancelar. Si vence la prueba gratuita sin que te suscribas, los conservamos hasta 3 meses desde el vencimiento y luego los eliminamos o anonimizamos a pedido o cuando corresponda. Para solicitar la eliminación antes, escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>. Los registros de pagos se conservan el tiempo que exija la normativa fiscal y contable.</p>
+          <p>Conservamos los datos mientras tu cuenta esté activa. Si cancelás tu suscripción, los conservamos 90 días desde que termina el servicio: te avisamos por correo 15 días antes y, pasado ese plazo, los eliminamos de forma definitiva (local, productos, pedidos, imágenes y datos de la cuenta), junto con tu cliente en Mercado Pago. La tarjeta guardada se borra de Mercado Pago en el momento de cancelar. Si vence la prueba gratuita sin que te suscribas, los conservamos hasta 3 meses desde el vencimiento y luego los eliminamos o anonimizamos a pedido o cuando corresponda. Para solicitar la eliminación antes, escribinos a <span className="text-fresco">snappyuno25@gmail.com</span>. El historial de cobros que Snappy guarda (fecha, monto, plan y estado de cada cobro) se borra junto con tu cuenta; Mercado Pago conserva sus propios registros de pago según sus políticas.</p>
         </div>
 
         <div>
@@ -87,7 +87,7 @@ export default function PrivacyPolicy() {
         <div>
           <h2 className="text-xl font-bold mb-3 text-gray-900">10. Tus derechos</h2>
           <p className="mb-3">Según la Ley 25.326 de Protección de Datos Personales de la República Argentina, tenés derecho a acceder a tus datos, rectificarlos, actualizarlos y solicitar su supresión. Podés ver y corregir gran parte de tu información desde la sección "Configuración" de tu panel, o escribiéndonos a <span className="text-fresco">snappyuno25@gmail.com</span>.</p>
-          <p className="mb-3">Podés solicitar la eliminación de tu cuenta y de tus datos personales escribiéndonos a ese correo; algunos datos pueden conservarse el tiempo que exija la ley, por ejemplo registros de pagos, que se conservan el tiempo que exija la normativa fiscal y contable. La opción "Eliminar cuenta" del panel cancela tu suscripción; para borrar tus datos, enviá la solicitud por correo.</p>
+          <p className="mb-3">Podés solicitar la eliminación de tu cuenta y de tus datos personales escribiéndonos a ese correo; algunos datos pueden conservarse el tiempo que exija la ley (por ejemplo, los registros de pago que guarda Mercado Pago). La opción "Eliminar cuenta" del panel cancela tu suscripción; para borrar tus datos, enviá la solicitud por correo.</p>
           <p>La Agencia de Acceso a la Información Pública (AAIP) es el órgano de control de la Ley 25.326 y tiene la atribución de atender las denuncias y reclamos de quienes consideren afectados sus derechos.</p>
         </div>
 

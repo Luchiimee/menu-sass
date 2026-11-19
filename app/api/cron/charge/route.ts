@@ -4,6 +4,8 @@ import { chargeSubscription, cancelPreapproval } from '@/lib/mercadopagoBilling'
 import { releasePreapproval, releaseLogLine } from '@/lib/preapprovalRelease';
 import { nextMonthlyChargeDate } from '@/lib/billingDate';
 import { paymentGraceUntil } from '@/lib/paymentGrace';
+import { rowFromCronCharge, saveBillingPayment } from '@/lib/billingPayments';
+import { getPlanAmount } from '@/lib/plans';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,6 +98,9 @@ export async function GET(request: Request) {
         .from('restaurants')
         .update(update)
         .eq('id', restaurant.id);
+
+      // Historial de facturación (best-effort: no cambia nada del cobro). El webhook después completa el detalle.
+      await saveBillingPayment(supabase, rowFromCronCharge({ restaurantId: restaurant.id, paymentId: result.paymentId, plan: restaurant.subscription_plan, amount: getPlanAmount(restaurant.subscription_plan) }, new Date()));
 
       console.log(`[cron/charge] ✅ ${restaurant.name}: pago aprobado (payment_id=${result.paymentId})`);
       charged++;
