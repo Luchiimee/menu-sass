@@ -125,6 +125,7 @@ function PlanContent() {
   const [paymentMode, setPaymentMode] = useState<'subscribe' | 'update-card'>('subscribe');
   const [showProrateConfirm, setShowProrateConfirm] = useState(false);
   const [pendingPlanChange, setPendingPlanChange] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [estimatedProrate, setEstimatedProrate] = useState<{ amount: number; days: number }>({ amount: 0, days: 0 });
   const [pendingPhone, setPendingPhone] = useState<string | null>(null);
   const [savingPhone, setSavingPhone] = useState(false);
@@ -434,7 +435,6 @@ function PlanContent() {
   };
 
   const handleCancelPlan = async () => {
-    if (!window.confirm("¿Cancelar la suscripción?\n\nIntentaremos cancelarla en Mercado Pago. Si se confirma, no se te cobrará más. Si ya pagaste el período en curso, tu servicio sigue activo hasta que termine; después el panel queda limitado hasta que lo reactives. Si no se puede cancelar, no cambiamos nada.")) return;
     setProcessingPlan(restaurant.subscription_plan);
     try {
       const response = await fetch("/api/mercadopago/subscription/cancel", {
@@ -473,7 +473,7 @@ function PlanContent() {
         throw new Error();
       }
     } catch { toast.error("Error al cancelar la suscripción."); }
-    finally { setProcessingPlan(null); }
+    finally { setProcessingPlan(null); setShowCancelConfirm(false); }
   };
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-gray-300" size={40} /></div>;
@@ -503,6 +503,39 @@ function PlanContent() {
 
   return (
     <>
+      {/* Modal de confirmación de cancelación */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+            <h3 className="font-black text-lg uppercase italic tracking-tighter text-gray-900 mb-3">
+              ¿Cancelar tu suscripción?
+            </h3>
+            <ul className="space-y-2 text-sm text-gray-500 mb-6 leading-snug">
+              <li>No se te va a cobrar más.</li>
+              <li>Tu menú y tu panel siguen funcionando hasta el final del período que ya pagaste. Después queda limitado.</li>
+              <li>Guardamos tus datos por 3 meses. Si volvés en ese tiempo, elegís un plan y recuperás todo como lo dejaste.</li>
+            </ul>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={processingPlan !== null}
+                className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-50"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleCancelPlan}
+                disabled={processingPlan !== null}
+                className="flex-1 py-3 bg-alert text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {processingPlan !== null ? <Loader2 size={14} className="animate-spin" /> : null}
+                Sí, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de confirmación de prorrateo */}
       {showProrateConfirm && pendingPlanChange && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -680,7 +713,7 @@ function PlanContent() {
                       </button>
                     )}
                     {isActive && (
-                      <button onClick={handleCancelPlan} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-alert/10 text-alert hover:bg-alert/10 transition-colors">
+                      <button onClick={() => setShowCancelConfirm(true)} className="w-full py-2.5 text-[9px] font-black uppercase italic tracking-tighter rounded-xl bg-alert/10 text-alert hover:bg-alert/10 transition-colors">
                         Cancelar Plan
                       </button>
                     )}
