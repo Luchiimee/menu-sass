@@ -9,6 +9,8 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { ADMIN_EMAILS } from "@/lib/access";
+import { createBrowserClient } from "@supabase/ssr";
+import { useKeepSession, fetchKeepingSession } from "@/lib/keepSession";
 import { isTrialBlockingHasCard } from "@/lib/trial";
 import { trialBaseDate } from "@/lib/trialBase";
 
@@ -42,7 +44,11 @@ type PromoState =
   | { status: "error"; message: string }
   | { status: "ok"; cupos: number; total: number; con_pago: number; en_plazo: number; locales: PromoLocal[] };
 
+// Cliente solo para mantener viva la sesión (renovar el token); los datos los sigue armando el servidor.
+const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
 export default function AdminSnappyPage() {
+  useKeepSession(supabase);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -55,7 +61,7 @@ export default function AdminSnappyPage() {
   const [promo, setPromo] = useState<PromoState>({ status: "loading" });
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/admin/promo-remeras", { cache: "no-store" })
+    fetchKeepingSession(supabase, "/api/admin/promo-remeras", { cache: "no-store" })
       .then(async (res) => {
         if (cancelled) return;
         if (res.ok) {
@@ -80,7 +86,7 @@ export default function AdminSnappyPage() {
     setLoadError(null);
     try {
       // Los datos los arma el servidor (service role): el navegador ya no lee profiles, restaurants ni snappylinks
-      const res = await fetch("/api/admin/overview", { cache: "no-store" });
+      const res = await fetchKeepingSession(supabase, "/api/admin/overview", { cache: "no-store" });
       if (res.status === 401 || res.status === 403) {
         setLoadError(res.status === 401 ? "Tu sesión venció. Volvé a iniciar sesión." : "No tenés acceso a este panel.");
         return;

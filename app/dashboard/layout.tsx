@@ -19,6 +19,7 @@ import { isAdminEmail, hasAdminSnappyAccess, hasBetaAccess } from '@/lib/access'
 import { trialDaysLeft, isTrialBlocking } from '@/lib/trial';
 import { trialBaseDate } from '@/lib/trialBase';
 import { inPaymentGrace } from '@/lib/paymentGrace';
+import { useKeepSession } from '@/lib/keepSession';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+  useKeepSession(supabase);
 
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null); 
