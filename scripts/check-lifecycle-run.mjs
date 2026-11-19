@@ -311,5 +311,45 @@ console.log('card_check: aviso antes del primer cobro');
   check('sin EMAIL_UNSUB_SECRET igual sale (no lleva link de baja)', send4.sent.length === 1 && r4.sent === 1);
 }
 
+console.log('payment_failed: aviso de cobro rechazado');
+{
+  const GRACE = '2026-11-23T10:00:00Z';
+  const pf = (id, over = {}) => rest(id, 90, {
+    subscription_status: 'paused', mp_card_id: 'card_1', subscription_plan: 'go', card_brand: 'visa', card_last_four: '4242',
+    payment_grace_until: GRACE, last_charge_error: 'cc_rejected_insufficient_amount', last_charge_error_at: '2026-11-20T10:00:00Z', ...over,
+  });
+  const { db, log } = fakeDb([pf('pf1'), pf('pf2', { payment_grace_until: '2026-11-19T10:00:00Z' }), pf('pf3', { subscription_status: 'active' })]);
+  const send = fakeSend();
+  const r = await run(db, send);
+  const m = send.sent.find((x) => x.to === 'pf1@gmail.com');
+  check('solo recibe el pausado con la gracia corriendo', send.sent.length === 1 && !!m && r.sent === 1);
+  check('trae motivo, plan, tarjeta y fecha límite', !!m && m.text.includes('fondos suficientes') && /\$29\.500/.test(m.text) && m.text.includes('Visa terminada en 4242') && m.subject.includes('hasta el'));
+  check('queda en email_log con la clave del rechazo', log.get('payment_failed:pf1:2026-11-23')?.status === 'sent');
+  const again = await run(db, send);
+  check('segunda corrida no lo repite', again.sent === 0 && send.sent.length === 1);
+
+  // otro rechazo un mes después (otra gracia): manda el suyo
+  const { db: dbN, log: logN } = fakeDb([pf('pf4', { payment_grace_until: '2026-12-23T10:00:00Z' })], { logged: ['payment_failed:pf4:2026-11-23'] });
+  const sendN = fakeSend();
+  await runLifecycleEmails({ db: dbN, send: sendN, now: new Date('2026-12-20T15:00:00Z'), adminEmails: ADMINS, dry: false, unsubSecret: SECRET });
+  check('un rechazo nuevo manda su mail aunque el anterior ya se avisó', sendN.sent.length === 1 && logN.get('payment_failed:pf4:2026-12-23')?.status === 'sent');
+
+  // si pagó entre la selección y el envío: se omite
+  const { db: db2, log: log2 } = fakeDb([pf('pf5')], { reread: { pf5: pf('pf5', { subscription_status: 'active', payment_grace_until: null }) } });
+  const send2 = fakeSend();
+  const r2 = await run(db2, send2);
+  check('si ya pagó al releer, no se manda', send2.sent.length === 0 && r2.skipped.changed === 1 && log2.size === 0);
+
+  const { db: db3 } = fakeDb([pf('pf6')]);
+  const send3 = fakeSend();
+  const r3 = await run(db3, send3, { dry: true });
+  check('dry=1: lo lista y no envía', r3.candidates.length === 1 && r3.candidates[0].kind === 'payment_failed' && send3.sent.length === 0);
+
+  const { db: db4 } = fakeDb([pf('pf7')]);
+  const send4 = fakeSend();
+  await run(db4, send4, { unsubSecret: null });
+  check('sin EMAIL_UNSUB_SECRET igual sale (aviso del servicio)', send4.sent.length === 1);
+}
+
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallo(s)`);
 process.exit(failures === 0 ? 0 : 1);

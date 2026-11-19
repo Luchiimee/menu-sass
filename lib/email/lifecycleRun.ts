@@ -4,7 +4,7 @@
 //
 // Orden por cada candidato (un fallo en uno no corta a los demás):
 //   a) releer el local y volver a aplicar el filtro (pudo cargar la tarjeta desde la selección);
-//   (card_check, como trial_ending, es un aviso del servicio: no consulta la lista de bajas)
+//   (card_check y payment_failed, como trial_ending, son avisos del servicio: no consultan la lista de bajas)
 //   a') solo el mail B (trial_followup): omitirlo si el email está en email_unsubscribes o si falta
 //       EMAIL_UNSUB_SECRET (sin secreto no hay link de baja válido: se omiten TODOS los B). Los
 //       mails A (trial_ending) no consultan la lista;
@@ -14,7 +14,8 @@
 // Un mail 'failed' o 'pending' trabado NO se reintenta solo (el unique lo bloquea): se revisa a mano.
 
 import {
-  dedupeKey, selectTrialEnding, selectTrialFollowup, selectCardCheck, trialEndingEmail, trialFollowupEmail, cardCheckEmail, trialLastDay,
+  dedupeKeyFor, selectTrialEnding, selectTrialFollowup, selectCardCheck, selectPaymentFailed,
+  trialEndingEmail, trialFollowupEmail, cardCheckEmail, paymentFailedEmail, paymentFailedReason, trialLastDay,
   type EmailKind, type LifecycleEmail, type LifecycleRestaurant,
 } from './lifecycle.ts';
 import { unsubscribeUrl, unsubscribeApiUrl } from './unsubscribe.ts';
@@ -67,6 +68,7 @@ const SELECTORS: Record<EmailKind, typeof selectTrialEnding> = {
   trial_ending: selectTrialEnding,
   trial_followup: selectTrialFollowup,
   card_check: selectCardCheck,
+  payment_failed: selectPaymentFailed,
 };
 
 const lower = (email: string) => email.trim().toLowerCase();
@@ -76,6 +78,12 @@ function render(kind: EmailKind, r: LifecycleRestaurant, links?: { page: string;
   if (kind === 'card_check') {
     return cardCheckEmail({
       name: r.name, chargeDate: firstChargeDate(r.created_at, r.trial_ends_at) as Date,
+      plan: r.subscription_plan, cardBrand: r.card_brand, cardLast4: r.card_last_four,
+    });
+  }
+  if (kind === 'payment_failed') {
+    return paymentFailedEmail({
+      name: r.name, graceUntil: new Date(r.payment_grace_until as string), reason: paymentFailedReason(r),
       plan: r.subscription_plan, cardBrand: r.card_brand, cardLast4: r.card_last_four,
     });
   }
@@ -105,13 +113,13 @@ export async function runLifecycleEmails(opts: {
 
   const rows = await db.listCandidates(now);
   const picked: { kind: EmailKind; r: LifecycleRestaurant }[] = [];
-  for (const kind of ['trial_ending', 'trial_followup', 'card_check'] as EmailKind[]) {
+  for (const kind of ['trial_ending', 'trial_followup', 'card_check', 'payment_failed'] as EmailKind[]) {
     for (const r of SELECTORS[kind](rows, now, adminEmails)) picked.push({ kind, r });
   }
 
-  const logged = await db.loggedKeys(picked.map((p) => dedupeKey(p.kind, p.r.id)));
+  const logged = await db.loggedKeys(picked.map((p) => dedupeKeyFor(p.kind, p.r)));
   const pending = picked.filter((p) => {
-    if (logged.has(dedupeKey(p.kind, p.r.id))) { result.skipped.already_logged++; return false; }
+    if (logged.has(dedupeKeyFor(p.kind, p.r))) { result.skipped.already_logged++; return false; }
     return true;
   });
 
@@ -151,7 +159,7 @@ export async function runLifecycleEmails(opts: {
       const fresh = await db.getRestaurant(r.id);
       if (!fresh || SELECTORS[kind]([fresh], now, adminEmails).length !== 1) { result.skipped.changed++; continue; }
 
-      const key = dedupeKey(kind, fresh.id);
+      const key = dedupeKeyFor(kind, fresh);
       const to = (fresh.owner_email as string).trim();
 
       // a') mail B: dado de baja → se omite, antes de reservar y de enviar. Si la consulta falla,

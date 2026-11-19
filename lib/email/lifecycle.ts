@@ -6,6 +6,10 @@
 //                  de la tarjeta (sobre todo el DNI del titular) estén bien, porque un dato mal cargado no se detecta
 //                  al guardar durante la prueba y recién falla el día del cobro.
 //
+//   payment_failed cobro rechazado: el local quedó 'paused' con los días de gracia corriendo. Explica el motivo probable y
+//                  hasta cuándo tiene para arreglar la tarjeta. Se manda una vez por rechazo (la clave lleva el día en que
+//                  vence la gracia: un rechazo de otro mes, con otra gracia, manda el suyo).
+//
 // Estos mails siguen contando desde restaurants.created_at A PROPÓSITO: la prueba ahora cuenta desde el registro
 // (lib/trialBase.ts), pero cambiar la base acá mandaría mails retroactivos a cuentas existentes.
 //
@@ -16,7 +20,9 @@
 //
 // Importa solo con rutas relativas (sin alias) para probarla sin red: scripts/check-lifecycle-emails.mjs.
 
-import { diasDesde, fechaLargaArg } from './dates.ts';
+import { diasDesde, diaArg, fechaLargaArg } from './dates.ts';
+import { inPaymentGrace, PAYMENT_GRACE_DAYS } from '../paymentGrace.ts';
+import { friendlyChargeError } from '../chargeErrors.ts';
 import { TRIAL_DAYS, trialExpiresAt, trialLastDay as trialLastDayOf, firstChargeDate } from '../trial.ts';
 import { PLAN_PRICES, isPlanId } from '../plans.ts';
 import { cardLabel } from './thanks.ts';
@@ -35,9 +41,10 @@ export const CARD_CHECK_MAX_DAYS_BEFORE = 2;
 
 export const PLAN_URL = 'https://snappy.uno/dashboard/plan';
 export const WA_TEXT_ENDING = 'Hola, tengo una duda sobre mi prueba de Snappy';
+export const WA_TEXT_PAYMENT = 'Hola, no pudieron cobrarme la suscripción de Snappy y necesito ayuda';
 export const WA_TEXT_FOLLOWUP = 'Hola, probé Snappy y quiero ayuda para empezar';
 
-export type EmailKind = 'trial_ending' | 'trial_followup' | 'card_check';
+export type EmailKind = 'trial_ending' | 'trial_followup' | 'card_check' | 'payment_failed';
 
 // Campos de restaurants que usan los mails (nombres reales de la tabla).
 export type LifecycleRestaurant = {
@@ -55,9 +62,23 @@ export type LifecycleRestaurant = {
   card_last_four?: string | null;
   card_brand?: string | null;
   first_paid_at?: string | null;
+  // Solo los usa payment_failed
+  payment_grace_until?: string | null;
+  last_charge_error?: string | null;
+  last_charge_error_at?: string | null;
 };
 
 export const dedupeKey = (kind: EmailKind, restaurantId: string) => `${kind}:${restaurantId}`;
+
+// Clave de email_log de un mail para este local. payment_failed lleva además el día (argentino) en que vence la gracia:
+// cada rechazo tiene su propia gracia, así un rechazo de otro mes manda su mail y uno ya avisado no se repite.
+export function dedupeKeyFor(kind: EmailKind, r: Pick<LifecycleRestaurant, 'id' | 'payment_grace_until'>): string {
+  if (kind === 'payment_failed' && r.payment_grace_until) {
+    const t = new Date(r.payment_grace_until);
+    if (!Number.isNaN(t.getTime())) return `${dedupeKey(kind, r.id)}:${diaArg(t)}`;
+  }
+  return dedupeKey(kind, r.id);
+}
 
 const norm = (e?: string | null) => (e ?? '').toLowerCase().trim();
 
@@ -105,6 +126,11 @@ export function selectCardCheck(rows: LifecycleRestaurant[], now: Date, adminEma
     const d = daysUntilFirstCharge(r, now);
     return d !== null && d >= CARD_CHECK_MIN_DAYS_BEFORE && d <= CARD_CHECK_MAX_DAYS_BEFORE;
   });
+}
+
+// Local pausado por un cobro rechazado, con la gracia todavía corriendo.
+export function selectPaymentFailed(rows: LifecycleRestaurant[], now: Date, adminEmails: string[]): LifecycleRestaurant[] {
+  return rows.filter((r) => passesCommon(r, now, adminEmails) && inPaymentGrace(r, now));
 }
 
 export function selectTrialFollowup(rows: LifecycleRestaurant[], now: Date, adminEmails: string[]): LifecycleRestaurant[] {
@@ -236,6 +262,88 @@ Recibiste este email porque tenés una cuenta en snappy.uno.
 © ${new Date().getFullYear()} Snappy · hola@snappy.uno
 `;
   return { subject: `Tu primer cobro de Snappy es el ${fecha}: revisá tu tarjeta`, html, text };
+}
+
+// El motivo del rechazo (last_charge_error) solo vale si es de ESTE rechazo: lo escribe el cron de cobros al rechazar, pero un
+// rechazo que llegó por el webhook de Mercado Pago no lo escribe y podría quedar el de un mes anterior. Se acepta si se
+// guardó dentro de los días de gracia + 1 antes de que venza esta gracia; si no, se explica en general.
+const REASON_FRESH_MS = (PAYMENT_GRACE_DAYS + 1) * 86400000;
+
+export function paymentFailedReason(r: Pick<LifecycleRestaurant, 'payment_grace_until' | 'last_charge_error' | 'last_charge_error_at'>): string | null {
+  if (!hasValue(r.last_charge_error) || !r.last_charge_error_at || !r.payment_grace_until) return null;
+  const at = new Date(r.last_charge_error_at).getTime();
+  const until = new Date(r.payment_grace_until).getTime();
+  if (!Number.isFinite(at) || !Number.isFinite(until)) return null;
+  if (at > until || until - at > REASON_FRESH_MS) return null;
+  return friendlyChargeError(r.last_charge_error);
+}
+
+export function paymentFailedEmail(data: {
+  name: string | null;
+  graceUntil: Date;
+  reason?: string | null;
+  plan?: string | null;
+  cardBrand?: string | null;
+  cardLast4?: string | null;
+}): LifecycleEmail {
+  const name = display(data.name);
+  const hasta = fechaLargaArg(data.graceUntil);
+  const price = isPlanId(data.plan) ? `$${new Intl.NumberFormat('es-AR').format(PLAN_PRICES[data.plan])}` : null;
+  const card = cardLabel(data.cardBrand, data.cardLast4);
+  const cobro = `${price ? `de ${price} ` : ''}${card ? `a tu ${card}` : 'a tu tarjeta'}`.trim();
+  const motivo = data.reason && data.reason.trim()
+    ? data.reason.trim()
+    : 'Suele ser por falta de saldo o límite, una tarjeta vencida o dada de baja, un dato mal cargado (sobre todo el DNI del titular) o un bloqueo del banco para compras online.';
+  const html = emailLayout('No pudimos cobrar tu suscripción de Snappy', `
+              <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#15160E;letter-spacing:-0.5px;line-height:1.2;">
+                No pudimos hacer el cobro
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#86877B;line-height:1.6;">
+                Un aviso para que <strong>${escapeHtml(name)}</strong> no tenga interrupciones.
+              </p>
+              <p style="margin:0 0 16px;font-size:15px;color:#15160E;line-height:1.6;">
+                Intentamos cobrar tu suscripción ${escapeHtml(cobro)} y el pago no se pudo completar.
+              </p>
+              <p style="margin:0 0 16px;font-size:15px;color:#15160E;line-height:1.6;">
+                <strong>Motivo probable:</strong> ${escapeHtml(motivo)}
+              </p>
+              <p style="margin:0 0 32px;font-size:15px;color:#15160E;line-height:1.6;">
+                No se corta nada de golpe: tenés <strong>${PAYMENT_GRACE_DAYS} días, hasta el ${hasta}</strong>, con tu menú y tu panel
+                funcionando. Si en ese plazo actualizás la tarjeta, seguís como siempre; si no, el servicio se limita.
+              </p>
+
+              ${emailButton(PLAN_URL, 'Actualizar mi tarjeta')}
+
+              <p style="margin:24px 0 0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                ¿Dudas? <a href="${whatsappLink(WA_TEXT_PAYMENT)}" style="color:#1BB179;text-decoration:none;">Escribinos por WhatsApp</a>
+              </p>
+
+              <hr style="border:none;border-top:1px solid #ECEBE3;margin:40px 0;" />
+
+              <p style="margin:0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                Recibiste este email porque tenés una cuenta en
+                <a href="https://snappy.uno" style="color:#1BB179;text-decoration:none;">snappy.uno</a>.
+              </p>
+`);
+  const text = `No pudimos hacer el cobro
+
+Un aviso para que ${name} no tenga interrupciones.
+
+Intentamos cobrar tu suscripción ${cobro} y el pago no se pudo completar.
+
+Motivo probable: ${motivo}
+
+No se corta nada de golpe: tenés ${PAYMENT_GRACE_DAYS} días, hasta el ${hasta}, con tu menú y tu panel funcionando. Si en ese plazo actualizás la tarjeta, seguís como siempre; si no, el servicio se limita.
+
+Actualizar mi tarjeta: ${PLAN_URL}
+
+¿Dudas? Escribinos por WhatsApp: ${whatsappLink(WA_TEXT_PAYMENT)}
+
+Recibiste este email porque tenés una cuenta en snappy.uno.
+
+© ${new Date().getFullYear()} Snappy · hola@snappy.uno
+`;
+  return { subject: `No pudimos cobrar tu suscripción de Snappy: actualizá tu tarjeta hasta el ${hasta}`, html, text };
 }
 
 // `unsubscribeUrl`: link de baja (página /baja) que va visible al pie, en HTML y en texto.

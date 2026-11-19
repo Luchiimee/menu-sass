@@ -10,14 +10,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const FIELDS = 'id, name, owner_email, created_at, subscription_status, mp_card_id, mp_preapproval_id, trial_ends_at, grace_period_until, subscription_plan, card_last_four, card_brand, first_paid_at';
+const FIELDS = 'id, name, owner_email, created_at, subscription_status, mp_card_id, mp_preapproval_id, trial_ends_at, grace_period_until, subscription_plan, card_last_four, card_brand, first_paid_at, payment_grace_until, last_charge_error, last_charge_error_at';
 // Ventana más larga (día 30) más margen: no hace falta leer locales más viejos.
 const LOOKBACK_DAYS = 32;
 
 const db: LifecycleDb = {
   async listCandidates(now) {
     const since = new Date(now.getTime() - LOOKBACK_DAYS * 86400000).toISOString();
-    const { data, error } = await supabase.from('restaurants').select(FIELDS).gte('created_at', since).limit(2000);
+    // Recientes (mails de prueba) + pausados con la gracia por cobro rechazado todavía corriendo (pueden ser de cualquier antigüedad)
+    const { data, error } = await supabase.from('restaurants').select(FIELDS)
+      .or(`created_at.gte.${since},and(subscription_status.eq.paused,payment_grace_until.gt.${now.toISOString()})`)
+      .limit(2000);
     if (error) throw new Error('restaurants_query_failed');
     return (data ?? []) as LifecycleRestaurant[];
   },

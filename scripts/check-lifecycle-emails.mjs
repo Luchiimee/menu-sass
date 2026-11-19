@@ -4,7 +4,7 @@
 
 import { diaArg, diasDesde, addDays, fechaLargaArg, inicioDiaArg } from '../lib/email/dates.ts';
 import {
-  selectTrialEnding, selectTrialFollowup, selectCardCheck, cardCheckEmail, trialEndingEmail, trialFollowupEmail, trialEndDate, trialLastDay, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
+  selectTrialEnding, selectTrialFollowup, selectCardCheck, cardCheckEmail, selectPaymentFailed, paymentFailedEmail, paymentFailedReason, dedupeKeyFor, trialEndingEmail, trialFollowupEmail, trialEndDate, trialLastDay, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
 } from '../lib/email/lifecycle.ts';
 import { escapeHtml } from '../lib/email/layout.ts';
 import { WHATSAPP_NUMBER, whatsappLink } from '../lib/email/contact.ts';
@@ -175,6 +175,39 @@ console.log('card_check: aviso antes del primer cobro (1 a 2 días antes, triali
   check('sin plan ni tarjeta: texto genérico y sin "undefined"', sinDatos.text.includes('a la tarjeta que cargaste') && !/undefined|null/.test(sinDatos.text + sinDatos.html));
   check('el nombre se escapa', cardCheckEmail({ name: '<b>x</b>', chargeDate: new Date() }).html.includes('&lt;b&gt;'));
   check('no lleva link de baja (es un aviso del servicio, como trial_ending)', !/baja/i.test(m.text));
+}
+
+console.log('payment_failed: cobro rechazado (pausado con la gracia corriendo)');
+{
+  const NOWP = new Date('2026-11-20T15:00:00Z');
+  const GRACE = '2026-11-23T10:00:00Z';
+  const base = { id: 'p1', name: 'Local', owner_email: 'p1@gmail.com', created_at: '2026-01-10T12:00:00Z', subscription_status: 'paused', mp_card_id: 'c', mp_preapproval_id: null, trial_ends_at: null, grace_period_until: null, payment_grace_until: GRACE };
+  const ids = (rows) => selectPaymentFailed(rows, NOWP, ['admin@snappy.uno']).map((r) => r.id);
+  check('pausado con gracia futura → sí (aunque la cuenta sea vieja)', ids([base]).join() === 'p1');
+  check('gracia vencida → no', ids([{ ...base, payment_grace_until: '2026-11-19T10:00:00Z' }]).length === 0);
+  check('sin gracia → no', ids([{ ...base, payment_grace_until: null }]).length === 0);
+  check('activo o cancelado con gracia vieja guardada → no', ids([{ ...base, subscription_status: 'active' }, { ...base, id: 'p2', subscription_status: 'cancelled' }]).length === 0);
+  check('admin o sin email → no', ids([{ ...base, owner_email: 'admin@snappy.uno' }, { ...base, id: 'p3', owner_email: '' }]).length === 0);
+
+  check('clave por rechazo: lleva el día en que vence la gracia', dedupeKeyFor('payment_failed', base) === 'payment_failed:p1:2026-11-23');
+  check('otro rechazo (otra gracia) → otra clave', dedupeKeyFor('payment_failed', { ...base, payment_grace_until: '2026-12-23T10:00:00Z' }) === 'payment_failed:p1:2026-12-23');
+  check('los demás tipos siguen con la clave de siempre', dedupeKeyFor('card_check', base) === 'card_check:p1' && dedupeKeyFor('trial_ending', base) === dedupeKey('trial_ending', 'p1'));
+
+  const at = (iso) => ({ payment_grace_until: GRACE, last_charge_error: 'cc_rejected_insufficient_amount', last_charge_error_at: iso });
+  check('motivo reciente → se usa el mensaje claro', /fondos suficientes/.test(paymentFailedReason(at('2026-11-20T10:00:00Z')) ?? ''));
+  check('motivo viejo (de un rechazo anterior) → se ignora', paymentFailedReason(at('2026-10-20T10:00:00Z')) === null);
+  check('motivo posterior a la gracia o sin fecha → se ignora', paymentFailedReason(at('2026-11-25T10:00:00Z')) === null && paymentFailedReason({ payment_grace_until: GRACE, last_charge_error: 'x', last_charge_error_at: null }) === null);
+  check('sin motivo → null', paymentFailedReason({ payment_grace_until: GRACE, last_charge_error: null, last_charge_error_at: null }) === null);
+
+  const m = paymentFailedEmail({ name: 'Local ñ', graceUntil: new Date(GRACE), reason: 'La tarjeta no tiene fondos suficientes. Probá con otra tarjeta.', plan: 'light', cardBrand: 'debvisa', cardLast4: '9980' });
+  check('asunto con la fecha límite', m.subject.includes('hasta el') && m.subject.includes(fechaLargaArg(new Date(GRACE))));
+  check('explica el motivo, los 3 días y la fecha', m.text.includes('fondos suficientes') && m.text.includes('3 días') && m.text.includes(fechaLargaArg(new Date(GRACE))));
+  check('lleva plan y tarjeta', /\$22\.000|\$\d/.test(m.text) && m.text.includes('Visa'));
+  check('botón a Mi plan y WhatsApp', m.html.includes(PLAN_URL) && m.text.includes(PLAN_URL) && m.html.includes('wa.me'));
+  const gen = paymentFailedEmail({ name: null, graceUntil: new Date(GRACE) });
+  check('sin motivo: texto general y sin "undefined"', gen.text.includes('Suele ser por') && !/undefined|null/.test(gen.text + gen.html));
+  check('el nombre se escapa', paymentFailedEmail({ name: '<b>x</b>', graceUntil: new Date(GRACE) }).html.includes('&lt;b&gt;'));
+  check('no lleva link de baja (aviso del servicio)', !/baja/i.test(m.text));
 }
 
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallo(s)`);
