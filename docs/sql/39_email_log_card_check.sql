@@ -1,6 +1,6 @@
 -- 39 — email_log acepta el mail 'card_check' (aviso 1 a 2 días antes del primer cobro: "revisá los datos de tu tarjeta").
 --
--- Estado: SIN APLICAR. Hace falta aplicarlo ANTES de publicar el código que manda ese mail: sin esto el insert en
+-- Estado: APLICADO en producción (2026-11-19). Hacía falta ANTES de publicar el código que manda ese mail: sin esto el insert en
 -- email_log falla, el mail no sale y queda un log "reserve_error" en la corrida (nada más se rompe).
 --
 -- Qué hace: reemplaza el check de email_log.kind por uno que además permite 'card_check'.
