@@ -76,6 +76,23 @@ export function rowFromCronCharge(
   };
 }
 
+// Aviso 'subscription_authorized_payment' de Mercado Pago: es el cobro de una suscripción (preapproval): el primero al
+// suscribirse o reactivar, y los mensuales. GET /authorized_payments/:id trae el pago real adentro (payment.id) y a
+// qué suscripción pertenece. null si todavía no hay pago asociado (cobro programado, aún sin intentar).
+export function subscriptionPaymentTarget(
+  authorizedPayment: any,
+): { paymentId: string; preapprovalId: string | null; externalReference: string | null } | null {
+  const id = authorizedPayment?.payment?.id;
+  if (id === undefined || id === null || String(id).trim() === '') return null;
+  const pre = authorizedPayment?.preapproval_id;
+  const ref = authorizedPayment?.external_reference;
+  return {
+    paymentId: String(id),
+    preapprovalId: typeof pre === 'string' && pre.trim() !== '' ? pre : null,
+    externalReference: typeof ref === 'string' && ref.trim() !== '' ? ref : null,
+  };
+}
+
 // Guarda (o actualiza si Mercado Pago avisa dos veces del mismo pago). Nunca lanza: devuelve true/false y un log corto.
 export async function saveBillingPayment(
   client: { from: (table: string) => any },

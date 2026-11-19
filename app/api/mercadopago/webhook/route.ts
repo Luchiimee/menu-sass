@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { nextMonthlyChargeDate } from '@/lib/billingDate';
 import { paymentGraceUntil } from '@/lib/paymentGrace';
-import { rowFromMpPayment, saveBillingPayment } from '@/lib/billingPayments';
+import { rowFromMpPayment, saveBillingPayment, subscriptionPaymentTarget } from '@/lib/billingPayments';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +59,42 @@ function isValidSignature(request: Request, dataId: string | null): boolean {
     }
 }
 
+// Cobros de suscripciones de Mercado Pago (primer cobro al suscribirse o reactivar, y los mensuales): llegan como
+// 'subscription_authorized_payment', no como 'payment'. Solo se anotan en el historial de facturación; NO se cambia el
+// estado de la cuenta (eso lo hacen save-card y las suscripciones). Best-effort: nunca rompe la respuesta del webhook.
+async function recordSubscriptionPayment(authorizedPaymentId: string): Promise<void> {
+    try {
+        const headers = { Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}` };
+        const apRes = await fetch(`${MP_BASE}/authorized_payments/${encodeURIComponent(authorizedPaymentId)}`, { headers });
+        if (!apRes.ok) { console.error(`[billing-payments] code=AUTH_PAYMENT_HTTP_${apRes.status}`); return; }
+        const target = subscriptionPaymentTarget(await apRes.json());
+        if (!target) return; // todavía sin pago asociado
+
+        const payRes = await fetch(`${MP_BASE}/v1/payments/${encodeURIComponent(target.paymentId)}`, { headers });
+        if (!payRes.ok) { console.error(`[billing-payments] code=SUB_PAYMENT_HTTP_${payRes.status}`); return; }
+        const payment = await payRes.json();
+
+        // A qué local pertenece: por la suscripción (si ya está guardada), por external_reference (= user_id, que se
+        // manda al crear la suscripción: sirve cuando el aviso llega antes de que save-card guarde el id) o por el mail.
+        const cols = 'id, subscription_plan';
+        let owner: { id: string; subscription_plan: string | null } | null = null;
+        if (target.preapprovalId) {
+            owner = (await supabase.from('restaurants').select(cols).eq('mp_preapproval_id', target.preapprovalId).limit(1).maybeSingle()).data;
+        }
+        if (!owner && target.externalReference) {
+            owner = (await supabase.from('restaurants').select(cols).eq('user_id', target.externalReference).limit(1).maybeSingle()).data;
+        }
+        if (!owner && payment?.payer?.email) {
+            owner = (await supabase.from('restaurants').select(cols).eq('owner_email', payment.payer.email).limit(1).maybeSingle()).data;
+        }
+        if (!owner) { console.error('[billing-payments] code=SUB_PAYMENT_NO_OWNER'); return; }
+
+        await saveBillingPayment(supabase, rowFromMpPayment(payment, owner, new Date()));
+    } catch {
+        console.error('[billing-payments] code=SUB_PAYMENT_RECORD_FAILED');
+    }
+}
+
 export async function POST(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -72,6 +108,12 @@ export async function POST(request: Request) {
         if (!isValidSignature(request, dataId ? String(dataId) : null)) {
             console.error('🚫 Webhook con firma inválida — rechazado');
             return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
+        }
+
+        // Cobro de una suscripción: solo se anota en el historial (ver recordSubscriptionPayment)
+        if (type === 'subscription_authorized_payment' && data?.id) {
+            await recordSubscriptionPayment(String(data.id));
+            return NextResponse.json({ received: true });
         }
 
         // Solo procesamos eventos de pago; cualquier otro tipo se ignora

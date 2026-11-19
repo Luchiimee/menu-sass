@@ -1,6 +1,6 @@
 // Verificación de lib/billingPayments.ts (historial de facturación). Sin red.
 //   node scripts/check-billing-payments.mjs
-import { isRecordedStatus, planFromDescription, rowFromMpPayment, rowFromCronCharge, saveBillingPayment } from '../lib/billingPayments.ts';
+import { isRecordedStatus, planFromDescription, rowFromMpPayment, rowFromCronCharge, saveBillingPayment, subscriptionPaymentTarget } from '../lib/billingPayments.ts';
 
 let failures = 0;
 const check = (name, cond) => { console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${name}`); if (!cond) failures++; };
@@ -36,6 +36,23 @@ check('error de la base: devuelve false, no lanza y loguea solo código + id', (
 const throws = { from: () => { throw new Error('caída'); } };
 check('excepción: devuelve false y no lanza', (await saveBillingPayment(throws, cron, () => {})) === false);
 check('fila nula: no llama a la base', (await saveBillingPayment({ from: () => { throw new Error('no debía llamarse'); } }, null)) === false);
+
+console.log('subscriptionPaymentTarget (aviso subscription_authorized_payment)');
+{
+  const ap = { id: 7034129298, preapproval_id: 'pre_1', external_reference: 'user-uuid-1', payment: { id: 123456, status: 'approved' } };
+  const t = subscriptionPaymentTarget(ap);
+  check('toma el pago, la suscripción y la referencia', t?.paymentId === '123456' && t.preapprovalId === 'pre_1' && t.externalReference === 'user-uuid-1');
+  check('sin pago asociado (cobro programado) → null', subscriptionPaymentTarget({ ...ap, payment: undefined }) === null && subscriptionPaymentTarget({ ...ap, payment: {} }) === null);
+  check('payment.id vacío → null', subscriptionPaymentTarget({ ...ap, payment: { id: ' ' } }) === null);
+  check('sin suscripción ni referencia: igual devuelve el pago', (() => { const x = subscriptionPaymentTarget({ payment: { id: 9 } }); return x?.paymentId === '9' && x.preapprovalId === null && x.externalReference === null; })());
+  check('basura → null y no explota', subscriptionPaymentTarget(null) === null && subscriptionPaymentTarget('x') === null && subscriptionPaymentTarget(undefined) === null);
+  check('id numérico se vuelve texto', typeof subscriptionPaymentTarget({ payment: { id: 55 } })?.paymentId === 'string');
+  // El pago de la suscripción se anota igual que cualquier otro: aprobado y rechazado
+  const approved = rowFromMpPayment({ id: 123456, status: 'approved', transaction_amount: 20000, description: 'Snappy - Plan LIGHT', date_approved: '2026-11-19T14:39:00Z' }, rest, now);
+  const rejected = rowFromMpPayment({ id: 123457, status: 'rejected', status_detail: 'cc_rejected_other_reason', transaction_amount: 20000 }, rest, now);
+  check('el cobro de la suscripción aprobado se anota con monto y plan', approved?.status === 'approved' && approved.amount === 20000 && approved.plan === 'light');
+  check('el rechazado también, con el motivo', rejected?.status === 'rejected' && rejected.status_detail === 'cc_rejected_other_reason');
+}
 
 console.log(failures ? `\n${failures} FALLARON` : '\nTodo OK');
 process.exit(failures ? 1 : 0);
