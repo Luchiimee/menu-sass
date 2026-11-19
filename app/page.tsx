@@ -7,6 +7,7 @@ import PromoBanner from "@/components/PromoBanner";
 import PromoLoginModal from "@/components/PromoLoginModal";
 import PromoCounter from "@/components/PromoCounter";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
+import { RUBROS, RUBRO_PATH } from "@/lib/rubros";
 import {
   ArrowRight, Check, Zap, QrCode, MessageCircle, Menu, X, Layout,
   Smartphone, MousePointer2, HelpCircle, CreditCard, PlayCircle,
@@ -2242,7 +2243,15 @@ export default function LandingPage() {
             </ul>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 mt-20 pt-8 border-t border-white/10 text-[10px] font-bold text-gray-600 uppercase tracking-widest text-center md:text-left">
+        <nav aria-label="Menú digital por rubro" className="max-w-7xl mx-auto px-6 mt-16 relative z-10 text-center md:text-left">
+          <h4 className="font-bold mb-4 text-fresco uppercase text-[10px] tracking-[3px]">Menú digital para</h4>
+          <ul className="flex flex-wrap gap-x-6 gap-y-3 justify-center md:justify-start text-gray-500 text-sm font-medium">
+            {RUBROS.map((r) => (
+              <li key={r.slug}><Link href={RUBRO_PATH(r.slug)}>{r.nombre.charAt(0).toUpperCase() + r.nombre.slice(1)}</Link></li>
+            ))}
+          </ul>
+        </nav>
+        <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-white/10 text-[10px] font-bold text-gray-600 uppercase tracking-widest text-center md:text-left">
           <p>
             &copy; {new Date().getFullYear()} Snappy Menu. Todos los derechos
             reservados.
