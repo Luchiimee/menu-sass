@@ -1,6 +1,6 @@
 -- 37 — El borrado de datos también acepta PRUEBAS GRATIS ABANDONADAS (delete_restaurant_data)
 --
--- Estado: SIN APLICAR.
+-- Estado: APLICADO en producción (2026-11-19).
 --
 -- Qué hace: reemplaza public.delete_restaurant_data(uuid) (ver 35). Antes solo borraba locales 'cancelled'. Ahora también
 -- borra un local 'trialing' que NUNCA tuvo tarjeta, cliente ni suscripción en Mercado Pago (mp_card_id, mp_customer_id,
