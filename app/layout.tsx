@@ -15,9 +15,31 @@ const spaceGrotesk = localFont({
   variable: "--font-space-grotesk",
 });
 
+const SITE_URL = "https://snappy.uno";
+const SITE_DESCRIPTION =
+  "Creá el menú digital de tu negocio en minutos: pedidos, reservas y SnappyLinks desde un solo lugar. Para restaurantes, kioscos, dietéticas y más. Sin comisión por ventas. Probá gratis 14 días.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Snappy | Tu Menú Digital",
-  description: "Tu carta digital inteligente.",
+  description: SITE_DESCRIPTION,
+  // Siempre la dirección sin www: así Google junta todo en una sola versión del sitio
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Snappy",
+    locale: "es_AR",
+    title: "Snappy | Tu Menú Digital",
+    description: SITE_DESCRIPTION,
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "Snappy" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Snappy | Tu Menú Digital",
+    description: SITE_DESCRIPTION,
+    images: ["/icon-512.png"],
+  },
   icons: {
     icon: '/icon-192.png',
     apple: '/apple-touch-icon.png',
@@ -77,6 +99,44 @@ export default function RootLayout({
         </Script>
       </head>
       <body>
+        {/* Datos estructurados (schema.org): le dicen a Google qué es Snappy. No se ven en la página. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": `${SITE_URL}/#organization`,
+                  name: "Snappy",
+                  url: SITE_URL,
+                  logo: `${SITE_URL}/icon-512.png`,
+                  email: "snappyuno25@gmail.com",
+                  areaServed: "AR",
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": `${SITE_URL}/#website`,
+                  url: SITE_URL,
+                  name: "Snappy",
+                  inLanguage: "es-AR",
+                  publisher: { "@id": `${SITE_URL}/#organization` },
+                },
+                {
+                  "@type": "SoftwareApplication",
+                  name: "Snappy",
+                  applicationCategory: "BusinessApplication",
+                  operatingSystem: "Web",
+                  url: SITE_URL,
+                  description: SITE_DESCRIPTION,
+                  inLanguage: "es-AR",
+                  offers: { "@type": "AggregateOffer", priceCurrency: "ARS", lowPrice: "20000", highPrice: "47000", offerCount: "3" },
+                },
+              ],
+            }),
+          }}
+        />
         <MetaPixel />
         {children}
         <Toaster position="top-center" richColors closeButton />
