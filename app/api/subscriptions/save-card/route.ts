@@ -94,7 +94,9 @@ export async function POST(req: Request) {
     const userId = sessionUser.id;
 
     // 2. Body
-    const { token, paymentMethodId, email, planId } = await req.json();
+    const { token, paymentMethodId, email, planId, cardLast4 } = await req.json();
+    // Últimos 4 de la tarjeta recién cargada (los manda el formulario, solo para mostrarlos en el panel): 4 dígitos o nada.
+    const typedLast4: string = typeof cardLast4 === 'string' && /^\d{4}$/.test(cardLast4) ? cardLast4 : '';
     if (!token || !email) {
       return NextResponse.json(
         { error: 'Faltan datos: token y email son requeridos' },
@@ -171,6 +173,12 @@ export async function POST(req: Request) {
             brand = cards[0].payment_method?.id ?? '';
           }
         } catch { /* display best-effort */ }
+        // La suscripción guarda la tarjeta por su cuenta: el listado del cliente puede estar vacío o traer una tarjeta
+        // vieja. Los 4 dígitos de la tarjeta que se acaba de cargar mandan sobre lo que haya en ese listado.
+        if (typedLast4) {
+          if (typedLast4 !== last4) brand = paymentMethodId ?? '';
+          last4 = typedLast4;
+        }
 
         // next_payment_date en null → el cron NO los recobra (MP maneja lo recurrente)
         const { error: reactivationUpdateError } = await supabase.from('restaurants').update({

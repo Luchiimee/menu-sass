@@ -13,6 +13,7 @@ import { trialBaseDate } from "@/lib/trialBase";
 import { PRE_NO_ID_CODE, PRE_NO_ID_MESSAGE } from "@/lib/cancelDecision";
 import { whatsappLink } from "@/lib/email/contact";
 import { PLAN_PRICES, PLAN_ORIGINAL_PRICES, formatARS } from "@/lib/plans";
+import { pickShownCard, cardBrandName } from "@/lib/cardDisplay";
 
 type Restaurant = {
   id: string | null;
@@ -27,6 +28,8 @@ type Restaurant = {
   grace_period_until?: string | null;
   // Las trae el select('*') de loadData y de refreshRestaurantData; sirven para distinguir "servicio activo tras cancelar"
   first_paid_at?: string | null;
+  card_last_four?: string | null;
+  card_brand?: string | null;
   mp_customer_id?: string | null;
   // Motivo del último cobro rechazado por el cron (status_detail de MP); lo escribe el servidor
   last_charge_error?: string | null;
@@ -131,6 +134,8 @@ function PlanContent() {
   const [savingPhone, setSavingPhone] = useState(false);
   // Próximo cobro real (de la suscripción en MP o de la base); null = se usa el cálculo por defecto
   const [realNextCharge, setRealNextCharge] = useState<Date | null>(null);
+  // true cuando ya se consultó la fecha real (llegue o no): hasta entonces no se muestra la calculada, que puede estar corrida
+  const [nextChargeChecked, setNextChargeChecked] = useState(false);
   const [linkedCard, setLinkedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const paymentFormRef = useRef<HTMLDivElement>(null);
@@ -214,6 +219,8 @@ function PlanContent() {
   const getChargeDate = () => {
     // Si se conoce la fecha real del próximo cobro, se muestra esa
     if (realNextCharge) return fmtArDay(realNextCharge);
+    // Todavía no se consultó: un guion es mejor que una fecha calculada que puede no ser la real
+    if (!nextChargeChecked) return '—';
     // El primer cobro es el trial_ends_at ya guardado (lo que cobra cron/charge) y, si está
     // vacío, el fin de la prueba por regla (00:00 AR del día 15). Ver firstChargeDate en lib/trial.
     const firstBilling = firstChargeDate(trialBase, restaurant.trial_ends_at);
@@ -402,6 +409,8 @@ function PlanContent() {
       setRealNextCharge(d && !isNaN(d.getTime()) ? d : null);
     } catch {
       setRealNextCharge(null);
+    } finally {
+      setNextChargeChecked(true);
     }
   };
 
@@ -497,6 +506,7 @@ function PlanContent() {
   // como siempre. NO habilita reactivar: los botones de tarjeta y de reactivar siguen ocultos mientras dure la gracia
   // (reactivar cobra en el acto y se pagaría dos veces el período); al vencer sale el flujo normal "Re-activar".
   const serviceActiveAfterCancel = isCancelled && inGracePeriod && (!!restaurant.first_paid_at || !!restaurant.mp_customer_id);
+  const shownCard = pickShownCard({ last4: restaurant.card_last_four, brand: restaurant.card_brand }, linkedCard);
   const graceUntilShort = restaurant.grace_period_until
     ? new Date(restaurant.grace_period_until).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
     : '';
@@ -680,18 +690,20 @@ function PlanContent() {
                     </div>
                   )}
 
-                  {linkedCard && (isActive || isPaused) && !inGracePeriod && (
+                  {shownCard && (isActive || isPaused) && !inGracePeriod && (
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                       <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
                         <CreditCard size={16} className="text-white" />
                       </div>
                       <div className="leading-tight">
                         <p className="text-xs font-black text-gray-900 uppercase tracking-tight">
-                          {linkedCard.brand} ···· {linkedCard.last4}
+                          {cardBrandName(shownCard.brand)} ···· {shownCard.last4}
                         </p>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                          Vence {String(linkedCard.expMonth).padStart(2, '0')}/{String(linkedCard.expYear).slice(-2)}
-                        </p>
+                        {shownCard.expMonth > 0 && (
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                            Vence {String(shownCard.expMonth).padStart(2, '0')}/{String(shownCard.expYear).slice(-2)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

@@ -87,7 +87,11 @@ export default function PaymentForm({
       });
 
       const endpoint = '/api/subscriptions/save-card';
-      const body = { token: token.id, email: userEmail, planId: plan };
+      const body = {
+        token: token.id, email: userEmail, planId: plan,
+        // Solo para mostrar la tarjeta en el panel (el servidor lo valida: 4 dígitos o se ignora)
+        cardLast4: typeof token?.last_four_digits === 'string' ? token.last_four_digits : undefined,
+      };
 
       const res = await fetch(endpoint, {
         method: 'POST',
