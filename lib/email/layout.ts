@@ -1,4 +1,5 @@
 // Layout visual común de los mails de Snappy (encabezado negro, tarjeta blanca, pie).
+// El logo va en PNG: Gmail y otros clientes de mail no muestran los SVG.
 // Sin imports (ni alias) para poder probarlo sin red.
 
 export function escapeHtml(s: string): string {
@@ -45,7 +46,7 @@ export function emailLayout(title: string, content: string): string {
           <!-- HEADER NEGRO -->
           <tr>
             <td style="background-color:#15160E;border-radius:24px 24px 0 0;padding:40px 48px;text-align:center;">
-              <img src="https://snappy.uno/logo-snappy.svg" alt="Snappy" width="48" height="48"
+              <img src="https://snappy.uno/logo-snappy-mail.png" alt="Snappy" width="48" height="67"
                 style="display:block;margin:0 auto 16px;" />
               <span style="color:#F5F5EF;font-size:22px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;">
                 Snappy

@@ -128,7 +128,7 @@ console.log('plantillas');
   check('ending: html y texto con la fecha', a.html.includes('14 de noviembre de 2026') && a.text.includes('14 de noviembre de 2026'));
   check('ending: botón principal "Cargar mi tarjeta" a /dashboard/plan', a.html.includes(`href="${PLAN_URL}"`) && a.html.includes('Cargar mi tarjeta') && a.text.includes(PLAN_URL));
   check('ending: link chico de WhatsApp', a.html.includes(`href="${whatsappLink(WA_TEXT_ENDING)}"`) && a.html.includes('¿Dudas?') && a.text.includes(whatsappLink(WA_TEXT_ENDING)));
-  check('ending: mismo layout (header negro, logo, footer)', a.html.includes('#15160E') && a.html.includes('logo-snappy.svg') && a.html.includes('hola@snappy.uno'));
+  check('ending: mismo layout (header negro, logo, footer)', a.html.includes('#15160E') && a.html.includes('logo-snappy-mail.png') && !a.html.includes('.svg') && a.html.includes('hola@snappy.uno'));
 
   const f = trialFollowupEmail({ name: 'Pizzería Ñandú' });
   check('followup: asunto y texto', f.subject.includes('venció') && f.text.includes('¿Necesitás ayuda?'));
