@@ -36,6 +36,7 @@ export type SendDeleteWarningOptions = {
   send: DeleteWarningSendFn;
   restaurant: { id: string; owner_email: string | null; name: string | null };
   deleteOn: Date;
+  reason?: 'cancelled' | 'trial';
   maxMs?: number;
   log?: (line: string) => void;
 };
@@ -47,7 +48,7 @@ async function run(o: SendDeleteWarningOptions): Promise<DeleteWarningResult> {
 
   let msg: { subject: string; html: string; text: string };
   try {
-    msg = deleteWarningEmail({ name: restaurant.name, deleteOn: o.deleteOn });
+    msg = deleteWarningEmail({ name: restaurant.name, deleteOn: o.deleteOn, reason: o.reason });
   } catch {
     return { outcome: 'error', code: 'DELETE_WARNING_RENDER_ERROR' };
   }

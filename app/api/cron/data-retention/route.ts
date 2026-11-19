@@ -1,4 +1,5 @@
-// Cron diario de retención de datos (vercel.json). Para cada local CANCELADO:
+// Cron diario de retención de datos (vercel.json). Para cada local CANCELADO o con la PRUEBA GRATIS ABANDONADA (nunca
+// cargó tarjeta ni pagó; la prueba cuenta 14 días desde que se creó el local):
 //   - 15 días antes del borrado manda el mail de aviso (kind 'delete_warning');
 //   - el día del borrado (con el aviso ya enviado hace 14+ días) ELIMINARÍA los datos.
 //
@@ -35,9 +36,11 @@ export async function GET(request: Request) {
 
   const { data: rows, error } = await supabase
     .from('restaurants')
-    .select('id, name, owner_email, subscription_status, grace_period_until')
-    .eq('subscription_status', 'cancelled')
-    .not('grace_period_until', 'is', null)
+    .select('id, name, owner_email, subscription_status, grace_period_until, created_at, mp_card_id, mp_customer_id, mp_preapproval_id, first_paid_at')
+    .or(
+      'and(subscription_status.eq.cancelled,grace_period_until.not.is.null),' +
+      'and(subscription_status.eq.trialing,mp_card_id.is.null,mp_customer_id.is.null,mp_preapproval_id.is.null,first_paid_at.is.null)',
+    )
     .limit(2000);
   if (error) {
     console.error('[cron/data-retention] code=RESTAURANTS_QUERY_FAILED');
@@ -82,6 +85,7 @@ export async function GET(request: Request) {
         send: (msg) => sendEmail(msg),
         restaurant: { id: r.id, owner_email: r.owner_email, name: r.name },
         deleteOn: a.deleteOn,
+        reason: a.reason,
       });
       if (res.outcome === 'sent') summary.warned++; else if (res.outcome !== 'duplicate') summary.warn_failed++;
       continue;
