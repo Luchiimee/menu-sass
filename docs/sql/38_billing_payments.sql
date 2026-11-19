@@ -1,6 +1,6 @@
 -- 38 — Historial de facturación (public.billing_payments)
 --
--- Estado: SIN APLICAR.
+-- Estado: APLICADO en producción (2026-11-19).
 --
 -- Qué hace: crea la tabla donde se anota cada cobro de la suscripción (fecha, monto, plan, estado y motivo si se
 -- rechazó, e id del pago en Mercado Pago). La escriben solo el servidor (service_role): el cron de cobro y el webhook
