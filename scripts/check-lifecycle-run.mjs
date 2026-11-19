@@ -275,5 +275,41 @@ console.log('exclusiones se aplican en la corrida');
   check('ninguno recibe mail', send.sent.length === 0);
 }
 
+console.log('card_check: aviso antes del primer cobro');
+{
+  // alta hace 12 días → el primer cobro cae dentro de 2 días
+  const conTarjeta = (id, dias, over = {}) => rest(id, dias, { mp_card_id: 'card_1', subscription_plan: 'go', card_brand: 'visa', card_last_four: '4242', ...over });
+  const { db, log } = fakeDb([conTarjeta('k1', 12), conTarjeta('k2', 5), rest('k3', 12)]);
+  const send = fakeSend();
+  const r = await run(db, send);
+  const mailK1 = send.sent.find((m) => m.to === 'k1@gmail.com');
+  const mailK3 = send.sent.find((m) => m.to === 'k3@gmail.com');
+  check('k1 (con tarjeta, a 2 días del cobro) recibe card_check; k2 (aún lejos) no', !!mailK1 && mailK1.subject.includes('primer cobro') && !send.sent.some((m) => m.to === 'k2@gmail.com'));
+  check('k3 (sin tarjeta) recibe el aviso de siempre, no card_check', !!mailK3 && mailK3.subject.includes('termina el') && r.sent === 2);
+  check('el mail trae plan, tarjeta y pide revisar el DNI', /\$29\.500/.test(mailK1.text) && mailK1.text.includes('Visa terminada en 4242') && /DNI del titular/.test(mailK1.text));
+  check('queda en email_log como card_check:k1 en sent', log.get('card_check:k1')?.status === 'sent');
+  check('k3 (sin tarjeta) no recibe card_check', !log.has('card_check:k3'));
+  const again = await run(db, send);
+  check('segunda corrida no repite ninguno', again.sent === 0 && send.sent.length === 2 && again.skipped.already_logged >= 2);
+
+  // si cargó otra cosa entre la selección y el envío (ya cobró): se omite
+  const { db: db2, log: log2 } = fakeDb([conTarjeta('k4', 12)], { reread: { k4: conTarjeta('k4', 12, { subscription_status: 'active' }) } });
+  const send2 = fakeSend();
+  const r2 = await run(db2, send2);
+  check('si ya está activo al releer, no se manda', send2.sent.length === 0 && r2.skipped.changed === 1 && log2.size === 0);
+
+  // dry=1 lo informa sin enviar
+  const { db: db3 } = fakeDb([conTarjeta('k5', 12)]);
+  const send3 = fakeSend();
+  const r3 = await run(db3, send3, { dry: true });
+  check('dry=1: lo lista y no envía', r3.candidates.length === 1 && r3.candidates[0].kind === 'card_check' && send3.sent.length === 0);
+
+  // no depende del secreto de bajas (es aviso del servicio)
+  const { db: db4 } = fakeDb([conTarjeta('k6', 12)]);
+  const send4 = fakeSend();
+  const r4 = await run(db4, send4, { unsubSecret: null });
+  check('sin EMAIL_UNSUB_SECRET igual sale (no lleva link de baja)', send4.sent.length === 1 && r4.sent === 1);
+}
+
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallo(s)`);
 process.exit(failures === 0 ? 0 : 1);

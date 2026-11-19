@@ -10,7 +10,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const FIELDS = 'id, name, owner_email, created_at, subscription_status, mp_card_id, mp_preapproval_id, trial_ends_at, grace_period_until';
+const FIELDS = 'id, name, owner_email, created_at, subscription_status, mp_card_id, mp_preapproval_id, trial_ends_at, grace_period_until, subscription_plan, card_last_four, card_brand, first_paid_at';
 // Ventana más larga (día 30) más margen: no hace falta leer locales más viejos.
 const LOOKBACK_DAYS = 32;
 

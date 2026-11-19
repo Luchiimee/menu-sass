@@ -4,7 +4,7 @@
 
 import { diaArg, diasDesde, addDays, fechaLargaArg, inicioDiaArg } from '../lib/email/dates.ts';
 import {
-  selectTrialEnding, selectTrialFollowup, trialEndingEmail, trialFollowupEmail, trialEndDate, trialLastDay, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
+  selectTrialEnding, selectTrialFollowup, selectCardCheck, cardCheckEmail, trialEndingEmail, trialFollowupEmail, trialEndDate, trialLastDay, dedupeKey, PLAN_URL, WA_TEXT_ENDING, WA_TEXT_FOLLOWUP,
 } from '../lib/email/lifecycle.ts';
 import { escapeHtml } from '../lib/email/layout.ts';
 import { WHATSAPP_NUMBER, whatsappLink } from '../lib/email/contact.ts';
@@ -144,6 +144,37 @@ console.log('plantillas');
   }
   check('sin nombre → "tu local"', trialFollowupEmail({ name: null }).text.includes('tu local'));
   check('escapeHtml', escapeHtml(`<a href="x">'&`) === '&lt;a href=&quot;x&quot;&gt;&#39;&amp;');
+}
+
+console.log('card_check: aviso antes del primer cobro (1 a 2 días antes, trialing con tarjeta, sin cobro previo)');
+{
+  // Alta hace N días: la prueba termina 00:00 AR del día 15 → el cobro cae el día (alta + 14).
+  // Con NOW = 20/11 12:00 AR: alta hace 12 días → cobro dentro de 2 días; hace 13 → mañana; hace 14 → hoy.
+  const cc = (over, now = NOW) => selectCardCheck([base({ mp_card_id: 'c1', ...over })], now, ADMINS).length === 1;
+  check('faltan 3 días (alta hace 11) → no', !cc({ created_at: created(11) }));
+  check('faltan 2 días (alta hace 12) → sí', cc({ created_at: created(12) }));
+  check('falta 1 día (alta hace 13) → sí', cc({ created_at: created(13) }));
+  check('el día del cobro (alta hace 14) → no', !cc({ created_at: created(14) }));
+  check('sin tarjeta → no (a ese le toca trial_ending)', !cc({ created_at: created(12), mp_card_id: null }));
+  check('mp_card_id vacío o con espacios → no', !cc({ created_at: created(12), mp_card_id: '  ' }));
+  check('ya activo → no', !cc({ created_at: created(12), subscription_status: 'active' }));
+  check('pausado o cancelado → no', !cc({ created_at: created(12), subscription_status: 'paused' }) && !cc({ created_at: created(12), subscription_status: 'cancelled' }));
+  check('ya cobró alguna vez (first_paid_at) → no', !cc({ created_at: created(12), first_paid_at: '2026-11-15T16:11:45Z' }));
+  check('sin email → no', !cc({ created_at: created(12), owner_email: null }));
+  check('admin → no', !cc({ created_at: created(12), owner_email: 'ADMIN@snappy.uno' }));
+  check('usa trial_ends_at si está guardado: cobro en 1 día aunque el alta sea vieja',
+    cc({ created_at: created(40), trial_ends_at: new Date(NOW.getTime() + 20 * 3600000).toISOString() }));
+  check('created_at inválido y sin trial_ends_at → no', !cc({ created_at: 'nada' }));
+
+  const m = cardCheckEmail({ name: 'Local ñ', chargeDate: new Date('2026-11-22T03:00:00Z'), plan: 'light', cardBrand: 'debvisa', cardLast4: '9980' });
+  check('asunto con la fecha del cobro', m.subject.includes('22 de noviembre de 2026'));
+  check('dice el monto del plan y la tarjeta', m.text.includes('$20.000') && m.text.includes('Visa Débito terminada en 9980'));
+  check('pide revisar el DNI del titular', /DNI del titular/.test(m.text) && /DNI del titular/.test(m.html));
+  check('lleva al panel del plan', m.text.includes(PLAN_URL) && m.html.includes(PLAN_URL));
+  const sinDatos = cardCheckEmail({ name: null, chargeDate: new Date('2026-11-22T03:00:00Z') });
+  check('sin plan ni tarjeta: texto genérico y sin "undefined"', sinDatos.text.includes('a la tarjeta que cargaste') && !/undefined|null/.test(sinDatos.text + sinDatos.html));
+  check('el nombre se escapa', cardCheckEmail({ name: '<b>x</b>', chargeDate: new Date() }).html.includes('&lt;b&gt;'));
+  check('no lleva link de baja (es un aviso del servicio, como trial_ending)', !/baja/i.test(m.text));
 }
 
 console.log(failures === 0 ? '\nTodo ok' : `\n${failures} fallo(s)`);

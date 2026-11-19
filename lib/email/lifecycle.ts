@@ -2,6 +2,9 @@
 //
 //   trial_ending   días 10 a 13 desde el alta, local en prueba sin tarjeta ni preapproval.
 //   trial_followup días 20 a 30 desde el alta, local que NUNCA se suscribió.
+//   card_check     1 a 2 días antes del primer cobro, local en prueba CON tarjeta guardada: pide revisar que los datos
+//                  de la tarjeta (sobre todo el DNI del titular) estén bien, porque un dato mal cargado no se detecta
+//                  al guardar durante la prueba y recién falla el día del cobro.
 //
 // Estos mails siguen contando desde restaurants.created_at A PROPÓSITO: la prueba ahora cuenta desde el registro
 // (lib/trialBase.ts), pero cambiar la base acá mandaría mails retroactivos a cuentas existentes.
@@ -14,7 +17,9 @@
 // Importa solo con rutas relativas (sin alias) para probarla sin red: scripts/check-lifecycle-emails.mjs.
 
 import { diasDesde, fechaLargaArg } from './dates.ts';
-import { TRIAL_DAYS, trialExpiresAt, trialLastDay as trialLastDayOf } from '../trial.ts';
+import { TRIAL_DAYS, trialExpiresAt, trialLastDay as trialLastDayOf, firstChargeDate } from '../trial.ts';
+import { PLAN_PRICES, isPlanId } from '../plans.ts';
+import { cardLabel } from './thanks.ts';
 import { whatsappLink } from './contact.ts';
 import { emailButton, emailLayout, escapeHtml } from './layout.ts';
 import { unsubscribeHeaders } from './unsubscribe.ts';
@@ -24,12 +29,15 @@ export const TRIAL_ENDING_FROM_DAY = 10;
 export const TRIAL_ENDING_TO_DAY = 13;
 export const TRIAL_FOLLOWUP_FROM_DAY = 20;
 export const TRIAL_FOLLOWUP_TO_DAY = 30;
+// card_check: se manda cuando faltan entre 1 y 2 días de calendario argentino para el primer cobro.
+export const CARD_CHECK_MIN_DAYS_BEFORE = 1;
+export const CARD_CHECK_MAX_DAYS_BEFORE = 2;
 
 export const PLAN_URL = 'https://snappy.uno/dashboard/plan';
 export const WA_TEXT_ENDING = 'Hola, tengo una duda sobre mi prueba de Snappy';
 export const WA_TEXT_FOLLOWUP = 'Hola, probé Snappy y quiero ayuda para empezar';
 
-export type EmailKind = 'trial_ending' | 'trial_followup';
+export type EmailKind = 'trial_ending' | 'trial_followup' | 'card_check';
 
 // Campos de restaurants que usan los mails (nombres reales de la tabla).
 export type LifecycleRestaurant = {
@@ -42,6 +50,11 @@ export type LifecycleRestaurant = {
   mp_preapproval_id: string | null;
   trial_ends_at: string | null;
   grace_period_until: string | null;
+  // Solo los usa card_check; opcionales para no romper a quien arma filas sin estos campos.
+  subscription_plan?: string | null;
+  card_last_four?: string | null;
+  card_brand?: string | null;
+  first_paid_at?: string | null;
 };
 
 export const dedupeKey = (kind: EmailKind, restaurantId: string) => `${kind}:${restaurantId}`;
@@ -73,6 +86,25 @@ export function selectTrialEnding(rows: LifecycleRestaurant[], now: Date, adminE
     !hasValue(r.mp_preapproval_id) &&
     inWindow(r, now, TRIAL_ENDING_FROM_DAY, TRIAL_ENDING_TO_DAY)
   );
+}
+
+// Días de calendario argentino que faltan para el primer cobro (la fecha que cobra cron/charge). null si no hay fecha.
+function daysUntilFirstCharge(r: LifecycleRestaurant, now: Date): number | null {
+  const charge = firstChargeDate(r.created_at, r.trial_ends_at);
+  if (!charge) return null;
+  const d = diasDesde(charge, now); // días desde el cobro hasta hoy: negativo si el cobro es futuro
+  return d === null ? null : -d;
+}
+
+export function selectCardCheck(rows: LifecycleRestaurant[], now: Date, adminEmails: string[]): LifecycleRestaurant[] {
+  return rows.filter((r) => {
+    if (!passesCommon(r, now, adminEmails)) return false;
+    if (r.subscription_status !== 'trialing') return false;
+    if (!hasValue(r.mp_card_id)) return false;
+    if (hasValue(r.first_paid_at)) return false; // ya cobró alguna vez: no es un primer cobro
+    const d = daysUntilFirstCharge(r, now);
+    return d !== null && d >= CARD_CHECK_MIN_DAYS_BEFORE && d <= CARD_CHECK_MAX_DAYS_BEFORE;
+  });
 }
 
 export function selectTrialFollowup(rows: LifecycleRestaurant[], now: Date, adminEmails: string[]): LifecycleRestaurant[] {
@@ -143,6 +175,67 @@ Recibiste este email porque tenés una cuenta en snappy.uno.
 © ${new Date().getFullYear()} Snappy · hola@snappy.uno
 `;
   return { subject: `Tu prueba de Snappy termina el ${fecha}`, html, text };
+}
+
+export function cardCheckEmail(data: {
+  name: string | null;
+  chargeDate: Date;
+  plan?: string | null;
+  cardBrand?: string | null;
+  cardLast4?: string | null;
+}): LifecycleEmail {
+  const name = display(data.name);
+  const fecha = fechaLargaArg(data.chargeDate);
+  const price = isPlanId(data.plan) ? `$${new Intl.NumberFormat('es-AR').format(PLAN_PRICES[data.plan])}` : null;
+  const card = cardLabel(data.cardBrand, data.cardLast4);
+  const cobro = `${price ? `${price} ` : ''}${card ? `a tu ${card}` : 'a la tarjeta que cargaste'}`.trim();
+  const html = emailLayout('Revisá tu tarjeta antes del primer cobro', `
+              <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#15160E;letter-spacing:-0.5px;line-height:1.2;">
+                Tu primer cobro es el ${fecha}
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#86877B;line-height:1.6;">
+                Un aviso tranquilo para que todo salga bien en <strong>${escapeHtml(name)}</strong>.
+              </p>
+              <p style="margin:0 0 16px;font-size:15px;color:#15160E;line-height:1.6;">
+                Ese día, cuando termina tu prueba gratis, vamos a cobrar ${escapeHtml(cobro)}.
+              </p>
+              <p style="margin:0 0 32px;font-size:15px;color:#15160E;line-height:1.6;">
+                Revisá que los datos de la tarjeta estén bien, sobre todo el <strong>DNI del titular</strong>:
+                tiene que ser el de la persona a cuyo nombre está la tarjeta. Si algo no coincide, podés cambiarla
+                en un minuto desde Mi plan. Si el cobro no se pudo hacer, no se corta nada de golpe: tenés unos días
+                para corregirla con tu menú funcionando.
+              </p>
+
+              ${emailButton(PLAN_URL, 'Revisar mi tarjeta')}
+
+              <p style="margin:24px 0 0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                ¿Dudas? <a href="${whatsappLink(WA_TEXT_ENDING)}" style="color:#1BB179;text-decoration:none;">Escribinos por WhatsApp</a>
+              </p>
+
+              <hr style="border:none;border-top:1px solid #ECEBE3;margin:40px 0;" />
+
+              <p style="margin:0;font-size:12px;color:#86877B;text-align:center;line-height:1.6;">
+                Recibiste este email porque tenés una cuenta en
+                <a href="https://snappy.uno" style="color:#1BB179;text-decoration:none;">snappy.uno</a>.
+              </p>
+`);
+  const text = `Tu primer cobro es el ${fecha}
+
+Un aviso tranquilo para que todo salga bien en ${name}.
+
+Ese día, cuando termina tu prueba gratis, vamos a cobrar ${cobro}.
+
+Revisá que los datos de la tarjeta estén bien, sobre todo el DNI del titular: tiene que ser el de la persona a cuyo nombre está la tarjeta. Si algo no coincide, podés cambiarla en un minuto desde Mi plan. Si el cobro no se pudo hacer, no se corta nada de golpe: tenés unos días para corregirla con tu menú funcionando.
+
+Revisar mi tarjeta: ${PLAN_URL}
+
+¿Dudas? Escribinos por WhatsApp: ${whatsappLink(WA_TEXT_ENDING)}
+
+Recibiste este email porque tenés una cuenta en snappy.uno.
+
+© ${new Date().getFullYear()} Snappy · hola@snappy.uno
+`;
+  return { subject: `Tu primer cobro de Snappy es el ${fecha}: revisá tu tarjeta`, html, text };
 }
 
 // `unsubscribeUrl`: link de baja (página /baja) que va visible al pie, en HTML y en texto.
