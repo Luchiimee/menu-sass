@@ -32,6 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import uno.snappy.app.data.OrderStatus
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.delay
 
 @Composable
 fun AppRoot(state: UiState, vm: AppController) {
@@ -48,6 +54,25 @@ private data class NavEntry(val icon: ImageVector, val label: String)
 private fun MainScaffold(state: UiState, vm: AppController) {
     var tab by remember { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
+
+    // Al volver a la app se vuelve a leer todo, y mientras está abierta se revisa cada minuto
+    // por si se cortó el "en vivo" (internet, celu dormido, etc.).
+    val owner = LocalLifecycleOwner.current
+    var foreground by remember { mutableStateOf(true) }
+    DisposableEffect(owner) {
+        val obs = LifecycleEventObserver { _, e ->
+            if (e == Lifecycle.Event.ON_START) { foreground = true; vm.resync() }
+            if (e == Lifecycle.Event.ON_STOP) foreground = false
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    LaunchedEffect(foreground) {
+        while (foreground) {
+            delay(60_000)
+            vm.resync()
+        }
+    }
 
     LaunchedEffect(state.message) {
         state.message?.let {

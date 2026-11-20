@@ -56,6 +56,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -87,8 +89,11 @@ private enum class OrderTab(val kind: String, val label: String) {
     MESA("mesa", "Mesa"),
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OrdersScreen(state: UiState, vm: AppController) {
+    var refreshing by remember { mutableStateOf(false) }
+    val refreshScope = rememberCoroutineScope()
     val orders = state.orders.filter { it.orderType != "apertura" }
     // El salón es del plan plus; si ya hay un pedido de mesa, la pestaña aparece igual.
     val hasSalon = state.restaurant?.subscriptionPlan == "plus" || orders.any { it.orderType == "mesa" }
@@ -139,6 +144,11 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = { refreshing = true; refreshScope.launch { vm.resyncNow(); refreshing = false } },
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            ) {
             when {
                 searching && q.isNotEmpty() ->
                     // Resultados de todos los tipos, con los finalizados incluidos.
@@ -147,6 +157,7 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                 tab == OrderTab.MESA -> MesaSection(list, wide, vm, state)
                 wide -> Board(list, tab.kind, vm)
                 else -> OrderList(list, vm)
+            }
             }
         }
     }
@@ -165,7 +176,6 @@ private fun Header(state: UiState, vm: AppController) {
             }
         }
         Switch(checked = open, onCheckedChange = vm::setOpen)
-        IconButton(onClick = vm::refreshOrders) { Icon(Icons.Filled.Refresh, contentDescription = "Actualizar") }
     }
 }
 

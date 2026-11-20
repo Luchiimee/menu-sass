@@ -167,6 +167,24 @@ class AppController(private val app: Application) {
         }
     }
 
+    // Vuelve a leer todo y re-engancha el "en vivo". Se usa al volver a la app, cada tanto y al tirar hacia abajo.
+    fun resync() { scope.launch { resyncNow() } }
+
+    suspend fun resyncNow(): Boolean {
+        val id = _state.value.restaurant?.id ?: return false
+        val orders = runCatching { repo.recentOrders(id) }.getOrNull()
+        val tables = runCatching { repo.tables(id) }.getOrNull()
+        if (orders != null) _state.update { it.copy(orders = orders) }
+        if (tables != null) _state.update { it.copy(tables = tables) }
+        if (orders == null) {
+            _state.update { it.copy(message = "No hay conexión. Revisá tu internet.") }
+            return false
+        }
+        startLive(id)
+        startTablesLive(id)
+        return true
+    }
+
     fun refreshTables() {
         val id = _state.value.restaurant?.id ?: return
         scope.launch { runCatching { repo.tables(id) }.onSuccess { t -> _state.update { it.copy(tables = t) } } }
