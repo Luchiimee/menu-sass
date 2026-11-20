@@ -55,7 +55,8 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
   return json.access_token;
 }
 
-// Manda un mensaje de solo datos (la app arma la notificación) a cada token.
+// Manda a cada token un mensaje con notificación (lo muestra el sistema, llega al instante aunque la app esté
+// cerrada o el celu bloqueado) más los datos (la app los usa si está abierta en pantalla).
 // Devuelve cuántos salieron y qué tokens ya no sirven (celu desinstalado o token vencido) para limpiarlos.
 export async function sendFcm(
   tokens: string[],
@@ -75,7 +76,21 @@ export async function sendFcm(
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: { token, data, android: { priority: 'HIGH', ttl: '600s' } },
+          message: {
+            token,
+            notification: { title: data.title ?? 'Nuevo pedido', body: data.body ?? '' },
+            data,
+            android: {
+              priority: 'HIGH',
+              ttl: '600s',
+              notification: {
+                channel_id: 'pedidos',
+                sound: 'default',
+                notification_priority: 'PRIORITY_HIGH',
+                visibility: 'PUBLIC',
+              },
+            },
+          },
         }),
       });
       if (res.ok) {
