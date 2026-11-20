@@ -145,6 +145,64 @@ class Repository {
         return channel to flow
     }
 
+    // ---- Mesas ----
+    suspend fun tables(restaurantId: String): List<TableDto> =
+        supabase.from("tables")
+            .select { filter { eq("restaurant_id", restaurantId) }; order("name", Order.ASCENDING) }
+            .decodeList<TableDto>()
+
+    suspend fun resetAttention(tableId: String) {
+        supabase.from("tables").update({ set("needs_attention", false) }) { filter { eq("id", tableId) } }
+    }
+
+    // Cambios en vivo de las mesas (llamados al mozo, etc.): solo avisa que hay que releer la lista.
+    suspend fun tableChanges(restaurantId: String): Pair<RealtimeChannel, Flow<Unit>> {
+        val channel = supabase.channel("tables-$restaurantId")
+        val flow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "tables"
+            filter("restaurant_id", FilterOperator.EQ, restaurantId)
+        }.map { }
+        channel.subscribe()
+        return channel to flow
+    }
+
+    // "Ocupar mesa" del panel web: pedido de mesa en cocina, a nombre de "Cliente Local", en el turno vigente.
+    suspend fun openTable(restaurantId: String, tableName: String) {
+        val shiftId = runCatching {
+            supabase.postgrest.rpc("get_or_create_shift", buildJsonObject { put("p_restaurant_id", restaurantId) }).decodeAs<String>()
+        }.getOrNull()
+        supabase.from("orders").insert(buildJsonObject {
+            put("restaurant_id", restaurantId)
+            put("table_number", tableName)
+            put("customer_name", "Cliente Local")
+            put("order_type", "mesa")
+            put("status", OrderStatus.EN_PROCESO)
+            put("total", 0)
+            put("items", kotlinx.serialization.json.JsonArray(emptyList()))
+            put("payment_method", "efectivo")
+            if (shiftId != null) put("shift_id", shiftId)
+        })
+    }
+
+    // Suma un producto (cantidad 1) al consumo de la mesa y al total, con la misma forma de ítem que el panel web.
+    suspend fun addItemToOrder(order: OrderDto, name: String, price: Double) {
+        val old = (order.items as? kotlinx.serialization.json.JsonArray)?.toList() ?: emptyList()
+        val item = buildJsonObject {
+            put("id", "app-${UUID.randomUUID()}")
+            put("name", name)
+            put("price", price)
+            put("quantity", 1)
+            put("uniqueId", UUID.randomUUID().toString())
+            put("extrasList", kotlinx.serialization.json.JsonArray(emptyList()))
+        }
+        val items = kotlinx.serialization.json.JsonArray(old + item)
+        val total = (order.total ?: 0.0) + price
+        supabase.from("orders").update({
+            set("items", items)
+            set("total", total)
+        }) { filter { eq("id", order.id) } }
+    }
+
     // ---- Catálogo ----
     suspend fun categories(restaurantId: String): List<CategoryDto> =
         supabase.from("categories")

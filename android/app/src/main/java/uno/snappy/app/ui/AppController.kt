@@ -25,6 +25,7 @@ import uno.snappy.app.data.OrderDto
 import uno.snappy.app.data.OrderStatus
 import uno.snappy.app.data.ProductDto
 import uno.snappy.app.data.RestaurantDto
+import uno.snappy.app.data.TableDto
 import uno.snappy.app.data.ImageUtil
 import uno.snappy.app.data.Repository
 
@@ -38,6 +39,7 @@ data class UiState(
     val orders: List<OrderDto> = emptyList(),
     val categories: List<CategoryDto> = emptyList(),
     val products: List<ProductDto> = emptyList(),
+    val tables: List<TableDto> = emptyList(),
     val message: String? = null,
     val savingProduct: Boolean = false,
     val formError: String? = null,
@@ -63,6 +65,8 @@ class AppController(private val app: Application) {
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var liveJob: Job? = null
+    private var tablesJob: Job? = null
+    private var tablesChannel: RealtimeChannel? = null
     private var liveChannel: RealtimeChannel? = null
 
     init {
@@ -139,7 +143,9 @@ class AppController(private val app: Application) {
         applyKeepAlive()
         refreshOrders()
         refreshCatalog()
+        refreshTables()
         startLive(restaurant.id)
+        startTablesLive(restaurant.id)
         registerPush()
     }
 
@@ -159,6 +165,37 @@ class AppController(private val app: Application) {
                 .onSuccess { list -> _state.update { it.copy(orders = list) } }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudieron cargar los pedidos.") } }
         }
+    }
+
+    fun refreshTables() {
+        val id = _state.value.restaurant?.id ?: return
+        scope.launch { runCatching { repo.tables(id) }.onSuccess { t -> _state.update { it.copy(tables = t) } } }
+    }
+
+    fun openTable(table: TableDto) {
+        val id = _state.value.restaurant?.id ?: return
+        scope.launch {
+            runCatching { repo.openTable(id, table.name) }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo abrir la mesa.") } }
+        }
+    }
+
+    fun addProductToOrder(order: OrderDto, product: ProductDto) {
+        val price = product.price ?: return
+        _state.update { s ->
+            s.copy(orders = s.orders.map {
+                if (it.id != order.id) it else it.copy(total = (it.total ?: 0.0) + price)
+            })
+        }
+        scope.launch {
+            runCatching { repo.addItemToOrder(order, product.name, price) }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo agregar el producto.") }; refreshOrders() }
+        }
+    }
+
+    fun resetAttention(table: TableDto) {
+        _state.update { s -> s.copy(tables = s.tables.map { if (it.id == table.id) it.copy(needsAttention = false) else it }) }
+        scope.launch { runCatching { repo.resetAttention(table.id) }.onFailure { refreshTables() } }
     }
 
     fun refreshCatalog() {
@@ -200,7 +237,23 @@ class AppController(private val app: Application) {
         }
     }
 
+    private fun startTablesLive(restaurantId: String) {
+        tablesJob?.cancel()
+        tablesJob = scope.launch {
+            try {
+                val (channel, flow) = repo.tableChanges(restaurantId)
+                tablesChannel = channel
+                flow.collect { refreshTables() }
+            } catch (_: Exception) { }
+        }
+    }
+
     private fun stopLive() {
+        tablesJob?.cancel()
+        tablesJob = null
+        val tch = tablesChannel
+        tablesChannel = null
+        if (tch != null) scope.launch { runCatching { tch.unsubscribe() } }
         liveJob?.cancel()
         liveJob = null
         val ch = liveChannel

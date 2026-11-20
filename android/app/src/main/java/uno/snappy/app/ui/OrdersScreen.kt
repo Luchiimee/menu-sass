@@ -72,6 +72,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import uno.snappy.app.data.OrderDto
 import uno.snappy.app.data.OrderStage
+import uno.snappy.app.data.ProductDto
+import uno.snappy.app.data.TableDto
 import uno.snappy.app.data.nextStep
 import uno.snappy.app.data.orderKind
 import uno.snappy.app.data.orderStage
@@ -108,6 +110,12 @@ fun OrdersScreen(state: UiState, vm: AppController) {
         Column(Modifier.fillMaxSize()) {
             Header(state, vm, searching) { searching = !searching; if (!searching) query = "" }
             if (state.ringing) RingingBanner(vm)
+            TypeTabs(
+                tabs = tabs,
+                selected = tab,
+                pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
+                onSelect = { selected = it },
+            )
             if (searching) {
                 OutlinedTextField(
                     value = query, onValueChange = { query = it }, singleLine = true,
@@ -117,22 +125,14 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
-            if (searching && q.isNotEmpty()) {
-                // Resultados de todos los tipos, con los finalizados incluidos.
-                if (results.isEmpty()) Text("No hay pedidos de \"${query.trim()}\".", color = Graphite, modifier = Modifier.padding(24.dp))
-                else OrderList(results, vm, foldFinal = false, showKind = true)
-            } else {
-                TypeTabs(
-                    tabs = tabs,
-                    selected = tab,
-                    pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
-                    onSelect = { selected = it },
-                )
-                when {
-                    tab == OrderTab.MESA -> MesaSection(list, wide, vm)
-                    wide -> Board(list, tab.kind, vm)
-                    else -> OrderList(list, vm)
-                }
+            when {
+                searching && q.isNotEmpty() ->
+                    // Resultados de todos los tipos, con los finalizados incluidos.
+                    if (results.isEmpty()) Text("No hay pedidos de \"${query.trim()}\".", color = Graphite, modifier = Modifier.padding(24.dp))
+                    else OrderList(results, vm, foldFinal = false, showKind = true)
+                tab == OrderTab.MESA -> MesaSection(list, wide, vm, state)
+                wide -> Board(list, tab.kind, vm)
+                else -> OrderList(list, vm)
             }
         }
     }
@@ -361,34 +361,42 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
 }
 
 // ---------- Mesas ----------
-@Composable
-private fun MesaSection(orders: List<OrderDto>, wide: Boolean, vm: AppController) {
-    // Una ficha por mesa con pedido abierto (el más reciente de cada una).
-    val tables = orders.filter { orderStage(it) != OrderStage.FINAL }
-        .groupBy { it.tableNumber ?: "-" }
-        .map { (_, v) -> v.maxByOrNull { it.createdAt ?: "" }!! }
-        .sortedWith(compareBy({ orderStage(it).ordinal }, { it.tableNumber ?: "" }))
-    var selId by rememberSaveable { mutableStateOf<String?>(null) }
-    val sel = tables.firstOrNull { it.id == selId }
+// Una mesa del salón: con su pedido abierto (si lo hay) y si está llamando al mozo.
+private data class MesaEntry(val name: String, val table: TableDto?, val order: OrderDto?) {
+    val calling get() = table?.needsAttention == true
+    val stage get() = order?.let { orderStage(it) }
+}
 
-    if (tables.isEmpty()) {
-        Text("No hay mesas con pedido abierto.", color = Graphite, modifier = Modifier.padding(24.dp))
+@Composable
+private fun MesaSection(orders: List<OrderDto>, wide: Boolean, vm: AppController, state: UiState) {
+    val open = orders.filter { orderStage(it) != OrderStage.FINAL }
+        .groupBy { it.tableNumber ?: "-" }
+        .mapValues { (_, v) -> v.maxByOrNull { it.createdAt ?: "" }!! }
+    // Todas las mesas del local, más cualquier pedido abierto de una mesa que ya no exista en la lista.
+    val entries = (state.tables.map { MesaEntry(it.name, it, open[it.name]) } +
+        open.filterKeys { k -> state.tables.none { it.name == k } }.map { (k, o) -> MesaEntry(k, null, o) })
+        .sortedWith(compareBy({ if (it.calling) 0 else 1 }, { it.stage?.ordinal ?: 9 }, { it.name }))
+    var selName by rememberSaveable { mutableStateOf<String?>(null) }
+    val sel = entries.firstOrNull { it.name == selName }
+
+    if (entries.isEmpty()) {
+        Text("Todavía no hay mesas. Se crean desde el panel web.", color = Graphite, modifier = Modifier.padding(24.dp))
         return
     }
     if (wide) {
         Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.weight(1.3f)) { MesaGrid(tables, 3, sel?.id) { selId = it.id } }
+            Box(Modifier.weight(1.3f)) { MesaGrid(entries, 3, sel?.name) { selName = it.name } }
             Box(Modifier.weight(1f).fillMaxHeight()) {
-                if (sel != null) MesaDetail(sel, vm, wide = true, onClose = { selId = null })
+                if (sel != null) MesaDetail(sel, vm, state.products, wide = true, onClose = { selName = null })
                 else Text("Tocá una mesa para ver el consumo.", color = Graphite, modifier = Modifier.padding(16.dp))
             }
         }
     } else {
-        MesaGrid(tables, 2, null) { selId = it.id }
+        MesaGrid(entries, 2, null) { selName = it.name }
         if (sel != null) {
-            Dialog(onDismissRequest = { selId = null }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+            Dialog(onDismissRequest = { selName = null }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
                 Surface(Modifier.fillMaxSize(), color = Paper) {
-                    Box(Modifier.statusBarsPadding().navigationBarsPadding()) { MesaDetail(sel, vm, wide = false, onClose = { selId = null }) }
+                    Box(Modifier.statusBarsPadding().navigationBarsPadding()) { MesaDetail(sel, vm, state.products, wide = false, onClose = { selName = null }) }
                 }
             }
         }
@@ -396,7 +404,7 @@ private fun MesaSection(orders: List<OrderDto>, wide: Boolean, vm: AppController
 }
 
 @Composable
-private fun MesaGrid(tables: List<OrderDto>, columns: Int, selectedId: String?, onTap: (OrderDto) -> Unit) {
+private fun MesaGrid(entries: List<MesaEntry>, columns: Int, selectedName: String?, onTap: (MesaEntry) -> Unit) {
     LazyVerticalGrid(
         GridCells.Fixed(columns),
         Modifier.fillMaxSize(),
@@ -404,22 +412,40 @@ private fun MesaGrid(tables: List<OrderDto>, columns: Int, selectedId: String?, 
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        gridItems(tables, key = { it.id }) { o ->
-            val stage = orderStage(o)
-            val st = stageStyle(stage)
-            val urgent = stage == OrderStage.NUEVO
-            val bg = if (urgent) st.accent else st.soft
-            val fg = if (urgent) Color.White else st.onSoft
+        gridItems(entries, key = { it.name }) { e ->
+            val stage = e.stage
+            val st = stageStyle(stage ?: OrderStage.FINAL)
+            val urgent = e.calling || stage == OrderStage.NUEVO
+            val bg = when {
+                urgent -> Alert
+                stage == null -> Color.White
+                else -> st.soft
+            }
+            val fg = when {
+                urgent -> Color.White
+                stage == null -> Ink
+                else -> st.onSoft
+            }
+            val border = when {
+                urgent -> Alert
+                stage == null -> Surface2
+                else -> st.accent
+            }
+            val subtitle = when {
+                e.calling -> "Llama al mozo"
+                e.order == null -> "Libre"
+                else -> statusText(e.order)
+            }
             Card(
-                onClick = { onTap(o) },
+                onClick = { onTap(e) },
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = bg),
-                border = BorderStroke(if (o.id == selectedId) 3.dp else 1.5.dp, if (o.id == selectedId) Ink else st.accent),
+                border = BorderStroke(if (e.name == selectedName) 3.dp else 1.5.dp, if (e.name == selectedName) Ink else border),
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(tableLabel(o.tableNumber), color = fg, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                    Text(statusText(o), color = fg, fontSize = 13.sp)
-                    Text("${formatAgo(o.createdAt)} · ${formatMoney(o.total)}", color = fg, fontSize = 12.sp)
+                    Text(tableLabel(e.name), color = fg, fontWeight = FontWeight.Black, fontSize = 17.sp)
+                    Text(subtitle, color = fg, fontSize = 13.sp)
+                    if (e.order != null) Text("${formatAgo(e.order.createdAt)} · ${formatMoney(e.order.total)}", color = fg, fontSize = 12.sp)
                 }
             }
         }
@@ -427,28 +453,50 @@ private fun MesaGrid(tables: List<OrderDto>, columns: Int, selectedId: String?, 
 }
 
 @Composable
-private fun MesaDetail(order: OrderDto, vm: AppController, wide: Boolean, onClose: () -> Unit) {
-    val stage = orderStage(order)
-    val step = nextStep(order.status, order.orderType)
-    val needsTransferCheck = order.paymentMethod == "transferencia" && order.pagoConfirmado != true
+private fun MesaDetail(entry: MesaEntry, vm: AppController, products: List<ProductDto>, wide: Boolean, onClose: () -> Unit) {
+    val order = entry.order
+    val stage = order?.let { orderStage(it) }
+    val step = order?.let { nextStep(it.status, it.orderType) }
+    val needsTransferCheck = order != null && order.paymentMethod == "transferencia" && order.pagoConfirmado != true
     var confirmClose by remember { mutableStateOf(false) }
     var confirmCancel by remember { mutableStateOf(false) }
-    val lines = itemLines(order)
+    var adding by remember { mutableStateOf(false) }
+    val lines = order?.let { itemLines(it) } ?: emptyList()
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (!wide) IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
-            Text(tableLabel(order.tableNumber), fontWeight = FontWeight.Black, fontSize = 22.sp, modifier = Modifier.weight(1f))
-            StatusChip(order)
+            Text(tableLabel(entry.name), fontWeight = FontWeight.Black, fontSize = 22.sp, modifier = Modifier.weight(1f))
+            if (order != null) StatusChip(order)
+        }
+        if (entry.calling && entry.table != null) {
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { vm.resetAttention(entry.table) },
+                colors = ButtonDefaults.buttonColors(containerColor = Alert, contentColor = Color.White),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) { Text("Atendido: apagar llamado", fontWeight = FontWeight.Bold) }
+        }
+        if (order == null) {
+            Spacer(Modifier.height(16.dp))
+            Text("Mesa libre.", color = Graphite)
+            Spacer(Modifier.height(12.dp))
+            if (entry.table != null) {
+                Button(onClick = { vm.openTable(entry.table) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text("Abrir mesa", fontWeight = FontWeight.Bold)
+                }
+            }
+            return@Column
         }
         Spacer(Modifier.height(4.dp))
-        Text(listOfNotNull(order.customerName, order.customerPhone).joinToString(" · "), color = Graphite)
+        Text(listOfNotNull(order.customerName, order.customerPhone?.takeIf { it.isNotBlank() }).joinToString(" · "), color = Graphite)
         Text(formatAgo(order.createdAt), color = Graphite, fontSize = 13.sp)
         Spacer(Modifier.height(14.dp))
         Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.padding(14.dp)) {
                 Text("CONSUMO", color = Graphite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
+                if (lines.isEmpty()) Text("Todavía no hay productos.", color = Graphite)
                 lines.forEach { Text(it, modifier = Modifier.padding(vertical = 2.dp)) }
                 order.notes?.takeIf { it.isNotBlank() }?.let { Text("Nota: $it", color = Brasa, modifier = Modifier.padding(top = 6.dp)) }
                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
@@ -458,6 +506,10 @@ private fun MesaDetail(order: OrderDto, vm: AppController, wide: Boolean, onClos
                 }
                 Text(order.paymentMethod ?: "", color = Graphite, fontSize = 13.sp)
             }
+        }
+        if (stage != OrderStage.FINAL) {
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Agregar producto") }
         }
         if (needsTransferCheck) {
             Spacer(Modifier.height(10.dp))
@@ -478,6 +530,8 @@ private fun MesaDetail(order: OrderDto, vm: AppController, wide: Boolean, onClos
             }
         }
     }
+    if (order == null) return
+    if (adding) AddProductDialog(products, onAdd = { vm.addProductToOrder(order, it) }, onClose = { adding = false })
     if (confirmClose) {
         AlertDialog(
             onDismissRequest = { confirmClose = false },
@@ -496,4 +550,38 @@ private fun MesaDetail(order: OrderDto, vm: AppController, wide: Boolean, onClos
             dismissButton = { TextButton(onClick = { confirmCancel = false }) { Text("Volver") } },
         )
     }
+}
+
+// Elegir productos del catálogo para sumar al consumo (de a uno; queda abierto para sumar varios).
+@Composable
+private fun AddProductDialog(products: List<ProductDto>, onAdd: (ProductDto) -> Unit, onClose: () -> Unit) {
+    var query by remember { mutableStateOf("") }
+    var added by remember { mutableStateOf<String?>(null) }
+    val list = products.filter { it.isAvailable != false && it.price != null && it.name.contains(query.trim(), ignoreCase = true) }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Agregar producto") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = query, onValueChange = { query = it }, singleLine = true, placeholder = { Text("Buscar") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) }, modifier = Modifier.fillMaxWidth(),
+                )
+                added?.let { Text("Agregado: $it", color = Fresco, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp)) }
+                LazyColumn(Modifier.height(280.dp).padding(top = 6.dp)) {
+                    items(list, key = { it.id }) { p ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable { onAdd(p); added = p.name }.padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(p.name, modifier = Modifier.weight(1f))
+                            Text(formatMoney(p.price), fontWeight = FontWeight.Bold)
+                        }
+                        HorizontalDivider()
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Listo") } },
+    )
 }

@@ -60,3 +60,11 @@ data class ProductDto(
     @SerialName("is_available") val isAvailable: Boolean? = null,
     @SerialName("sale_type") val saleType: String? = null,
 )
+
+@Serializable
+data class TableDto(
+    val id: String,
+    val name: String,
+    val status: String? = null,
+    @SerialName("needs_attention") val needsAttention: Boolean? = null,
+)
