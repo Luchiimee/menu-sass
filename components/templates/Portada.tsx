@@ -4,6 +4,17 @@ import { getProductDisplayPrice } from '@/lib/productPricing';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { useCart } from '@/context/CartContext';
 
+// Selector − / cantidad / + (se usa para unidades, cantidades por peso y extras).
+function Stepper({ value, onChange, min = 0, label, fg, bg, plusBg, plusFg }: { value: number; onChange: (n: number) => void; min?: number; label: string; fg: string; bg: string; plusBg: string; plusFg: string }) {
+  return (
+    <div className="flex items-center gap-1 rounded-full p-1 shrink-0" style={{ background: bg, border: '1px solid rgba(128,128,128,0.2)' }}>
+      <button type="button" aria-label={`Quitar ${label}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-30" style={{ color: fg }}><Minus size={16} /></button>
+      <span className="font-black text-sm w-6 text-center" style={{ color: fg }} aria-live="polite">{value}</span>
+      <button type="button" aria-label={`Sumar ${label}`} onClick={() => onChange(value + 1)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: plusBg, color: plusFg }}><Plus size={16} /></button>
+    </div>
+  );
+}
+
 // Diseño "Portada": foto de portada grande, logo superpuesto, categorías en píldoras
 // y tarjetas de producto en grilla de 2 columnas. Toda la lógica (carrito, variaciones,
 // extras, info del local, mesa, local cerrado) es la misma que usan las demás plantillas.
@@ -17,7 +28,7 @@ export default function Portada({ restaurant, products, categories, fetchedExtra
   const [selectedCategory, setSelectedCategory] = useState<any>('todos');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
+  const [extraQty, setExtraQty] = useState<Record<string, number>>({});
   const [variationsQuantities, setVariationsQuantities] = useState<{ [key: number]: number }>({});
 
   const displayCategories = categories?.filter((c: any) => c.name.toLowerCase() !== 'general') || [];
@@ -95,7 +106,7 @@ export default function Portada({ restaurant, products, categories, fetchedExtra
     if (!isOpen && !isMockup) return setShowClosedModal(true);
     setSelectedProduct(p);
     setQuantity(1);
-    setSelectedExtras([]);
+    setExtraQty({});
     setVariationsQuantities({});
   };
 
@@ -117,10 +128,20 @@ export default function Portada({ restaurant, products, categories, fetchedExtra
     ? (fetchedExtras || []).filter((ex: any) => ex.product_extras?.some((re: any) => String(re.product_id) === String(selectedProduct.id)))
     : [];
   const isPeso = selectedProduct?.sale_type === 'peso' && selectedProduct?.variations?.length > 0;
+  // Extras con cantidad: cada extra se suma "por unidad" del producto (el carrito ya lo maneja así).
+  const extrasElegidos = extrasDelProducto
+    .map((ex: any) => ({ ...ex, qty: extraQty[String(ex.id)] || 0 }))
+    .filter((ex: any) => ex.qty > 0);
+  const extrasPorUnidad = extrasElegidos.reduce((sum: number, ex: any) => sum + Number(ex.price) * ex.qty, 0);
+  const totalModal = !selectedProduct
+    ? 0
+    : isPeso
+      ? Object.entries(variationsQuantities).reduce((sum, [idx, q]) => sum + (Number(selectedProduct.variations[Number(idx)]?.price) + extrasPorUnidad) * q, 0)
+      : (Number(selectedProduct.price) + extrasPorUnidad) * quantity;
 
   const confirmar = () => {
     if (!isOpen && !isMockup) return setShowClosedModal(true);
-    const extrasPayload = selectedExtras.map((ex: any) => ({ id: ex.id, name: ex.name, price: Number(ex.price), quantity: 1 }));
+    const extrasPayload = extrasElegidos.map((ex: any) => ({ id: ex.id, name: ex.name, price: Number(ex.price), quantity: ex.qty }));
     if (isPeso) {
       Object.entries(variationsQuantities).forEach(([idx, qty]) => {
         if (qty > 0) {
@@ -137,7 +158,7 @@ export default function Portada({ restaurant, products, categories, fetchedExtra
     }
     setSelectedProduct(null);
   };
-  const cerrarModal = () => { setSelectedProduct(null); setQuantity(1); setVariationsQuantities({}); setSelectedExtras([]); };
+  const cerrarModal = () => { setSelectedProduct(null); setQuantity(1); setVariationsQuantities({}); setExtraQty({}); };
   const hayCantidadElegida = !isPeso || Object.values(variationsQuantities).some((q) => q > 0);
 
   return (
@@ -230,83 +251,73 @@ export default function Portada({ restaurant, products, categories, fetchedExtra
 
       {/* MODAL DE PRODUCTO */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={cerrarModal}>
-          <div className="relative w-full max-w-sm rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" style={{ background: bg, color: text }} onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={cerrarModal} aria-label="Cerrar" className="absolute top-4 right-5 z-[210] p-1.5 rounded-full shadow-lg" style={{ background: cardBg, color: text }}>
-              <X size={18} />
-            </button>
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={cerrarModal}>
+          <div role="dialog" aria-modal="true" aria-label={selectedProduct.name} className="relative w-full max-w-md rounded-t-[1.75rem] sm:rounded-[1.75rem] overflow-hidden shadow-2xl flex flex-col" style={{ background: bg, color: text, maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
+              <h2 className="text-lg font-black">Elegí a tu gusto</h2>
+              <button type="button" onClick={cerrarModal} aria-label="Cerrar" className="p-2 rounded-full" style={{ background: cardBg, color: text }}><X size={18} /></button>
+            </div>
             <div className="overflow-y-auto flex-1">
-              <div className="relative aspect-[16/12] w-full overflow-hidden flex items-center justify-center" style={{ background: catBg }}>
+              <div className="relative w-full overflow-hidden flex items-center justify-center" style={{ background: catBg, aspectRatio: '16 / 10' }}>
                 {selectedProduct.video_url ? (
                   <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover"><source src={selectedProduct.video_url} /></video>
                 ) : selectedProduct.image_url ? (
-                  <img src={getOptimizedImageUrl(selectedProduct.image_url, 700, 75)} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                  <img src={getOptimizedImageUrl(selectedProduct.image_url, 800, 75)} className="w-full h-full object-cover" alt={selectedProduct.name} />
                 ) : (
                   <Utensils size={64} strokeWidth={1} style={{ color: descColor, opacity: 0.5 }} />
                 )}
               </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-2 gap-3">
-                  <h2 className="text-xl font-black leading-tight" style={{ color: nameColor }}>{selectedProduct.name}</h2>
-                  {!isPeso && <span className="text-xl font-black shrink-0" style={{ color: priceColor }}>{formatPrice(selectedProduct.price)}</span>}
-                </div>
-                {selectedProduct.description && <p className="text-xs leading-relaxed mb-6" style={{ color: descColor }}>{selectedProduct.description}</p>}
+              <div className="px-5 pt-5 pb-3">
+                <h3 className="text-2xl font-black leading-tight" style={{ color: nameColor }}>{selectedProduct.name}</h3>
+                {selectedProduct.description && <p className="text-sm leading-relaxed mt-2" style={{ color: descColor }}>{selectedProduct.description}</p>}
+                {!isPeso && <div className="text-xl font-black mt-4" style={{ color: priceColor }}>{formatPrice(selectedProduct.price)}</div>}
 
-                {isPeso ? (
-                  <div className="space-y-3 mb-6">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: descColor }}>Elegí las cantidades</p>
-                    {selectedProduct.variations.map((v: any, idx: number) => {
-                      const qty = variationsQuantities[idx] || 0;
-                      return (
-                        <div key={idx} className="flex items-center justify-between p-3 rounded-2xl border-2 transition-all" style={{ background: cardBg, borderColor: qty > 0 ? accent : 'rgba(0,0,0,0.06)' }}>
-                          <div className="flex flex-col text-left">
-                            <span className="font-black text-sm" style={{ color: nameColor }}>{v.label}</span>
-                            <span className="font-bold text-xs" style={{ color: qty > 0 ? accent : descColor }}>{formatPrice(v.price)}</span>
+                {isPeso && (
+                  <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
+                    <div className="flex items-baseline justify-between mb-3">
+                      <h4 className="text-sm font-black">Elegí las cantidades</h4>
+                      <span className="text-[11px]" style={{ color: descColor }}>Obligatorio</span>
+                    </div>
+                    <div className="space-y-3">
+                      {selectedProduct.variations.map((v: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold" style={{ color: nameColor }}>{v.label}</p>
+                            <p className="text-xs" style={{ color: descColor }}>{formatPrice(v.price)}</p>
                           </div>
-                          <div className="flex items-center gap-3 rounded-full p-1" style={{ background: bg }}>
-                            <button type="button" aria-label="Quitar" onClick={() => setVariationsQuantities({ ...variationsQuantities, [idx]: Math.max(0, qty - 1) })} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ color: descColor }}><Minus size={16} /></button>
-                            <span className="font-black text-sm w-4 text-center">{qty}</span>
-                            <button type="button" aria-label="Sumar" onClick={() => setVariationsQuantities({ ...variationsQuantities, [idx]: qty + 1 })} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: btnBg, color: btnText }}><Plus size={16} /></button>
-                          </div>
+                          <Stepper value={variationsQuantities[idx] || 0} label={v.label} fg={text} bg={cardBg} plusBg={btnBg} plusFg={btnText} onChange={(n) => setVariationsQuantities({ ...variationsQuantities, [idx]: n })} />
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-4 rounded-2xl mb-6" style={{ background: cardBg }}>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: descColor }}>Unidades</p>
-                    <div className="flex items-center gap-4 rounded-full p-1" style={{ background: bg }}>
-                      <button type="button" aria-label="Quitar" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ color: descColor }}><Minus size={16} /></button>
-                      <span className="font-black text-sm w-4 text-center">{quantity}</span>
-                      <button type="button" aria-label="Sumar" onClick={() => setQuantity(quantity + 1)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: btnBg, color: btnText }}><Plus size={16} /></button>
+                      ))}
                     </div>
                   </div>
                 )}
 
                 {extrasDelProducto.length > 0 && (
-                  <div className="space-y-3 pb-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: descColor }}>¿Querés sumar algo más?</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {extrasDelProducto.map((ex: any) => {
-                        const isSelected = selectedExtras.some((s) => s.id === ex.id);
-                        return (
-                          <button type="button" key={ex.id} onClick={() => setSelectedExtras((prev) => (isSelected ? prev.filter((s) => s.id !== ex.id) : [...prev, ex]))} className="flex items-center justify-between p-3 rounded-2xl border-2 transition-all" style={{ background: cardBg, borderColor: isSelected ? accent : 'rgba(0,0,0,0.06)' }}>
-                            <div className="flex items-center gap-3">
-                              <div className="w-4 h-4 rounded-full border-2" style={{ background: isSelected ? accent : 'transparent', borderColor: isSelected ? accent : descColor }} />
-                              <span className="text-xs font-bold text-left" style={{ color: nameColor }}>{ex.name}</span>
-                            </div>
-                            <span className="text-xs font-bold" style={{ color: descColor }}>+{formatPrice(ex.price)}</span>
-                          </button>
-                        );
-                      })}
+                  <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(128,128,128,0.2)' }}>
+                    <div className="flex items-baseline justify-between mb-3">
+                      <h4 className="text-sm font-black">Hacelo más tuyo</h4>
+                      <span className="text-[11px]" style={{ color: descColor }}>Opcional</span>
+                    </div>
+                    <div className="space-y-3">
+                      {extrasDelProducto.map((ex: any) => (
+                        <div key={ex.id} className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold" style={{ color: nameColor }}>{ex.name}</p>
+                            <p className="text-xs" style={{ color: descColor }}>+{formatPrice(ex.price)} por unidad</p>
+                          </div>
+                          <Stepper value={extraQty[String(ex.id)] || 0} label={ex.name} fg={text} bg={cardBg} plusBg={btnBg} plusFg={btnText} onChange={(n) => setExtraQty({ ...extraQty, [String(ex.id)]: n })} />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            <div className="p-5 pt-3">
-              <button type="button" disabled={!hayCantidadElegida} onClick={confirmar} className="w-full py-4 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all disabled:opacity-40" style={{ background: btnBg, color: btnText }}>
-                Confirmar
+            <div className="flex items-center gap-3 px-5 py-4" style={{ borderTop: '1px solid rgba(128,128,128,0.2)', background: bg }}>
+              {!isPeso && <Stepper value={quantity} min={1} label="unidades" fg={text} bg={cardBg} plusBg={btnBg} plusFg={btnText} onChange={setQuantity} />}
+              <button type="button" disabled={!hayCantidadElegida} onClick={confirmar} className="flex-1 flex items-center justify-between px-5 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all disabled:opacity-40" style={{ background: btnBg, color: btnText }}>
+                <span>Agregar</span>
+                <span>{formatPrice(totalModal)}</span>
               </button>
             </div>
           </div>
