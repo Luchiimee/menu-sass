@@ -357,7 +357,7 @@ const PREVIEW_MOCK: Record<string, any> = {
     categories: [{ id: 'pag1', name: 'Burgers' }],
   },
   portada: {
-    restaurant: { name: 'Brasa Smash', description: 'Buenas burgers. Sin vueltas.', city: 'Palermo, Buenos Aires', theme_color: '#1BB179', bg_color: '#F5F5EF', text_color: '#15160E', show_banner: true, show_promo: true, promo_message: 'Hoy, tu segunda burger tiene 20% OFF', banner_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80' },
+    restaurant: { name: 'Brasa Smash', description: 'Buenas burgers. Sin vueltas.', address: 'Calle 25 N° 1111', theme_color: '#1BB179', bg_color: '#F5F5EF', text_color: '#15160E', show_banner: true, show_promo: true, promo_message: 'Hoy, tu segunda burger tiene 20% OFF', banner_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80' },
     products: [
       { id: 'pt1', name: 'Brasa Classic', description: 'Carne smash, cheddar y salsa de la casa.', price: 9500, image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=80', category_id: 'ppt1', es_destacado: true },
       { id: 'pt2', name: 'Cheese & Bacon', description: 'Doble carne, cheddar y panceta.', price: 11500, image_url: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=300&q=80', category_id: 'ppt1' },

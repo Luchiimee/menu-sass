@@ -55,10 +55,12 @@ export default function Portada({ restaurant, products, categories, fetchedExtra
   const promoText = restaurant.promo_text_color || '#0F7A53';
   const showPromo = restaurant.show_promo !== false && !!restaurant.promo_message;
   const showBanner = restaurant.show_banner !== false && !!restaurant.banner_url;
-  const location = restaurant.city || restaurant.address || '';
+  // La dirección es la misma que se carga en "Información y redes" y que muestra el ícono ⓘ.
+  const location = (restaurant.address || '').trim();
 
   const styles = `
     .pt-root { background: ${bg}; color: ${text}; min-height: 100vh; padding-bottom: 120px; font-family: 'Inter', sans-serif; text-align: left; }
+    .pt-root > * { flex-shrink: 0; }
     .pt-cover { position: relative; height: ${isMockup ? '120px' : '200px'}; background: ${accent}; overflow: hidden; }
     .pt-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .pt-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, ${bg} 0%, transparent 45%); }
