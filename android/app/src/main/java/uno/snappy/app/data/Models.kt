@@ -77,6 +77,7 @@ data class ProductDto(
     @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("is_available") val isAvailable: Boolean? = null,
     @SerialName("sale_type") val saleType: String? = null,
+    @SerialName("es_destacado") val esDestacado: Boolean? = null,
 )
 
 @Serializable

@@ -175,7 +175,7 @@ private fun Header(state: UiState, vm: AppController) {
                 Text(if (open) "Abierto · recibiendo pedidos" else "Cerrado · no recibís pedidos", color = if (open) Color(0xFF0B7A52) else Graphite, style = MaterialTheme.typography.labelLarge)
             }
         }
-        Switch(checked = open, onCheckedChange = vm::setOpen)
+        Switch(checked = open, onCheckedChange = vm::setOpen, colors = snappySwitchColors())
     }
 }
 

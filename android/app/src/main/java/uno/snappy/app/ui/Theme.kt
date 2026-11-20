@@ -98,3 +98,10 @@ private val Scheme = lightColorScheme(
 fun SnappyTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = Scheme, typography = SnappyTypography, shapes = SnappyShapes, content = content)
 }
+
+
+@androidx.compose.runtime.Composable
+fun snappySwitchColors() = androidx.compose.material3.SwitchDefaults.colors(
+    checkedThumbColor = Color.White, checkedTrackColor = Fresco, checkedBorderColor = Fresco,
+    uncheckedThumbColor = Color.White, uncheckedTrackColor = Color(0xFFD9DAD0), uncheckedBorderColor = Color(0xFFD9DAD0),
+)

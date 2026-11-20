@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uno.snappy.app.data.CategoryDto
 import uno.snappy.app.data.OrderDto
@@ -242,9 +243,13 @@ class AppController(private val app: Application) {
     private fun startLive(restaurantId: String) {
         stopLive()
         liveJob = scope.launch {
+            var failures = 0
+            // Si el "en vivo" se corta (internet, celu dormido) se reconecta solo, sin molestar con avisos.
+            while (true) {
             try {
                 val (channel, flow) = repo.orderEvents(restaurantId)
                 liveChannel = channel
+                failures = 0
                 flow.collect { event ->
                     when (event) {
                         is Repository.OrderEvent.Inserted -> {
@@ -262,8 +267,16 @@ class AppController(private val app: Application) {
                             _state.update { s -> s.copy(orders = s.orders.filter { it.id != event.id }) }
                     }
                 }
+                failures = 0
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (_: Exception) {
-                _state.update { it.copy(message = "Se perdió la conexión en vivo. Tirá hacia abajo para actualizar.") }
+                failures++
+                if (failures == 4) _state.update { it.copy(message = "Sin conexión en vivo. Tirá hacia abajo para actualizar.") }
+            }
+            runCatching { liveChannel?.unsubscribe() }
+            delay(if (failures < 4) 3_000L else 15_000L)
+            if (failures > 0) runCatching { resyncNow() }
             }
         }
     }
@@ -398,7 +411,12 @@ class AppController(private val app: Application) {
     }
 
     // Crea (id == null) o edita un producto. Si hay foto nueva, la achica y la sube antes de guardar.
-    fun saveProduct(id: String?, name: String, description: String, price: Double?, categoryId: String?, imageUri: android.net.Uri?, onDone: () -> Unit) {
+    fun loadProductExtras(productId: String, onResult: (List<String>) -> Unit) {
+        scope.launch { runCatching { repo.productExtraIds(productId) }.onSuccess(onResult) }
+    }
+
+    fun saveProduct(id: String?, name: String, description: String, price: Double?, categoryId: String?, imageUri: android.net.Uri?,
+                    extraIds: List<String>, destacado: Boolean, onDone: () -> Unit) {
         val s = _state.value
         android.util.Log.d("Snappy", "saveProduct: tocó guardar (id=$id, foto=${imageUri != null}, productos=${s.products.size}, plan=${s.restaurant?.subscriptionPlan})")
         val restaurantId = s.restaurant?.id
@@ -419,7 +437,7 @@ class AppController(private val app: Application) {
                         ?: error("No se pudo leer la foto.")
                     repo.uploadProductImage(bytes)
                 }
-                repo.saveProduct(restaurantId, id, name.trim(), description.trim(), price, categoryId, url)
+                repo.saveProduct(restaurantId, id, name.trim(), description.trim(), price, categoryId, url, extraIds, destacado)
             }.onSuccess {
                 refreshCatalog()
                 _state.update { it.copy(savingProduct = false) }

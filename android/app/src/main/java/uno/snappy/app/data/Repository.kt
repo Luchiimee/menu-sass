@@ -243,10 +243,12 @@ class Repository {
     suspend fun saveProduct(
         restaurantId: String, id: String?, name: String, description: String,
         price: Double?, categoryId: String?, imageUrl: String?,
+        extraIds: List<String>, destacado: Boolean,
     ) {
+        var productId = id
         if (id == null) {
             val cat = categoryId ?: defaultCategoryId(restaurantId)
-            supabase.from("products").insert(buildJsonObject {
+            productId = supabase.from("products").insert(buildJsonObject {
                 put("restaurant_id", restaurantId)
                 put("name", name)
                 put("description", description)
@@ -254,7 +256,8 @@ class Repository {
                 if (imageUrl != null) put("image_url", imageUrl)
                 if (cat != null) put("category_id", cat) else put("category_id", JsonNull)
                 put("sale_type", "unidad")
-            })
+                put("es_destacado", destacado)
+            }) { select() }.decodeSingle<ProductDto>().id
         } else {
             supabase.from("products").update({
                 set("name", name)
@@ -262,9 +265,24 @@ class Repository {
                 if (price != null) set("price", price)
                 if (imageUrl != null) set("image_url", imageUrl)
                 if (categoryId != null) set("category_id", categoryId)
+                set("es_destacado", destacado)
             }) { filter { eq("id", id) } }
         }
+        val pid = productId ?: return
+        // Solo un destacado a la vez (igual que la web)
+        if (destacado) supabase.from("products").update({ set("es_destacado", false) }) {
+            filter { eq("restaurant_id", restaurantId); neq("id", pid); eq("es_destacado", true) }
+        }
+        supabase.from("product_extras").delete { filter { eq("product_id", pid) } }
+        if (extraIds.isNotEmpty()) supabase.from("product_extras").insert(extraIds.map { eid ->
+            buildJsonObject { put("product_id", pid); put("extra_id", eid) }
+        })
     }
+
+    suspend fun productExtraIds(productId: String): List<String> =
+        supabase.from("product_extras").select { filter { eq("product_id", productId) } }
+            .decodeList<kotlinx.serialization.json.JsonObject>()
+            .mapNotNull { it["extra_id"]?.let { v -> (v as? kotlinx.serialization.json.JsonPrimitive)?.content } }
 
     suspend fun deleteProduct(productId: String) {
         supabase.from("products").delete { filter { eq("id", productId) } }

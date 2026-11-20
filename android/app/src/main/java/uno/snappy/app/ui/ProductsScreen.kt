@@ -2,6 +2,8 @@ package uno.snappy.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,7 +89,7 @@ fun ProductsScreen(state: UiState, vm: AppController) {
                 Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, contentDescription = "Buscar")
             }
             Box(
-                Modifier.size(44.dp).clip(CircleShape).background(Ink).clickable {
+                Modifier.size(44.dp).clip(CircleShape).background(Fresco).clickable {
                     when (tab) {
                         CatalogTab.PRODUCTOS -> creating = true
                         CatalogTab.ADICIONALES -> newExtra = true
@@ -95,17 +97,17 @@ fun ProductsScreen(state: UiState, vm: AppController) {
                     }
                 },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Add, contentDescription = "Agregar", tint = Color.White) }
+            ) { Icon(Icons.Filled.Add, contentDescription = "Agregar", tint = Ink) }
         }
 
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CatalogTab.entries.forEach { t ->
                 val on = t == tab
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) Ink else Surface2)
+                    Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) Color(0xFFD6F3E6) else Surface2)
                         .clickable { tab = t }.padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text(t.label, color = if (on) Color.White else Ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                ) { Text(t.label, color = if (on) Color(0xFF0B5A3C) else Ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
             }
         }
 
@@ -187,7 +189,16 @@ private fun RowCard(title: String, subtitle: String, onEdit: () -> Unit, onDelet
 
 @Composable
 private fun ProductList(state: UiState, vm: AppController, q: String, onEdit: (ProductDto) -> Unit) {
-    val products = state.products.filter { q.isEmpty() || it.name.lowercase().contains(q) }
+    var filterCat by remember { mutableStateOf<String?>(null) }
+    val products = state.products.filter { (q.isEmpty() || it.name.lowercase().contains(q)) && (filterCat == null || it.categoryId == filterCat) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf<Pair<String?, String>>(null to "Todos").plus(state.categories.map { it.id to it.name }).forEach { (id, label) ->
+            val on = filterCat == id
+            Box(
+                Modifier.clip(RoundedCornerShape(50)).background(if (on) Color(0xFFD6F3E6) else Color.White).clickable { filterCat = id }.padding(horizontal = 14.dp, vertical = 7.dp),
+            ) { Text(label, color = if (on) Color(0xFF0B5A3C) else Graphite, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, fontSize = 13.sp) }
+        }
+    }
     if (state.products.isEmpty()) Text("Todavía no hay productos cargados.", color = Graphite, modifier = Modifier.padding(20.dp))
     else if (products.isEmpty()) Text("No hay productos con \"$q\".", color = Graphite, modifier = Modifier.padding(20.dp))
 
@@ -220,6 +231,7 @@ private fun ProductRow(p: ProductDto, onToggle: (Boolean) -> Unit, onEdit: () ->
                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(Surface2),
             )
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                if (p.esDestacado == true) Text("⭐ Destacado", fontSize = 11.sp, color = Color(0xFFB8860B))
                 Text(
                     p.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 16.sp,
                     color = if (available) Ink else Graphite,
@@ -228,7 +240,7 @@ private fun ProductRow(p: ProductDto, onToggle: (Boolean) -> Unit, onEdit: () ->
                 Text(formatMoney(p.price) + if (p.saleType == "peso") " (por peso)" else "", color = Graphite, style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Editar producto") }
-            Switch(checked = available, onCheckedChange = onToggle)
+            Switch(checked = available, onCheckedChange = onToggle, colors = snappySwitchColors())
         }
     }
 }

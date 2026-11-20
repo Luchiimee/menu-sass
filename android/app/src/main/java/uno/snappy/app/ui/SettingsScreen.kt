@@ -72,7 +72,7 @@ fun SettingsScreen(state: UiState, vm: AppController) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            Switch(checked = state.keepAlive, onCheckedChange = vm::setKeepAlive)
+            Switch(checked = state.keepAlive, onCheckedChange = vm::setKeepAlive, colors = snappySwitchColors())
         }
         BatteryStatus()
     }
