@@ -1,15 +1,23 @@
 package uno.snappy.app.ui
 
 import android.app.Application
-import android.media.RingtoneManager
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
+import android.content.Intent
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import uno.snappy.app.push.KeepAliveService
+import uno.snappy.app.data.AlertSettings
+import uno.snappy.app.push.AlertPlayer
 import com.google.firebase.messaging.FirebaseMessaging
 import io.github.jan.supabase.realtime.RealtimeChannel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uno.snappy.app.data.CategoryDto
@@ -30,18 +38,54 @@ data class UiState(
     val categories: List<CategoryDto> = emptyList(),
     val products: List<ProductDto> = emptyList(),
     val message: String? = null,
+    // Aviso de pedido nuevo (ajustes de este dispositivo)
+    val alertRepeat: Boolean = false,
+    val alertSound: String = AlertSettings.SOUND_NOTIFICATION,
+    val alertInterval: Int = 20,
+    val keepAlive: Boolean = true,
+    val ringing: Boolean = false,
+    val silenced: Boolean = false,
 )
 
-class AppViewModel(app: Application) : AndroidViewModel(app) {
+private data class AlarmKey(val pending: Int, val repeat: Boolean, val sound: String, val interval: Int, val silenced: Boolean)
+
+// Cerebro de la app. Vive mientras viva el proceso (no la pantalla): así la escucha de pedidos y la alarma
+// siguen andando aunque se cierre la ventana o se apague la pantalla.
+class AppController(private val app: Application) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val repo = Repository()
-    private val _state = MutableStateFlow(UiState())
+    private val settings = AlertSettings(app)
+    private val alertPlayer = AlertPlayer(app)
+    private val _state = MutableStateFlow(UiState(alertRepeat = settings.repeat, alertSound = settings.sound, alertInterval = settings.intervalSec, keepAlive = settings.keepAlive))
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var liveJob: Job? = null
     private var liveChannel: RealtimeChannel? = null
 
     init {
-        viewModelScope.launch {
+        // Alarma de pedido nuevo: si está en "repetir", suena hasta que no queden pedidos sin atender (o se silencie).
+        scope.launch {
+            var lastPending = 0
+            _state
+                .map { s ->
+                    AlarmKey(
+                        pending = if (s.stage == Stage.READY) s.orders.count { it.status == OrderStatus.PENDIENTE } else 0,
+                        repeat = s.alertRepeat, sound = s.alertSound, interval = s.alertInterval, silenced = s.silenced,
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { key ->
+                    // Un pedido nuevo vuelve a hacer sonar aunque se haya silenciado el anterior
+                    if (key.silenced && (key.pending == 0 || key.pending > lastPending)) {
+                        _state.update { it.copy(silenced = false) }
+                    }
+                    lastPending = key.pending
+                    val ring = key.repeat && key.pending > 0 && !key.silenced
+                    if (ring) alertPlayer.start(key.sound, key.interval) else alertPlayer.stop()
+                    _state.update { if (it.ringing == ring) it else it.copy(ringing = ring) }
+                }
+        }
+        scope.launch {
             runCatching { repo.awaitSession() }
             if (repo.hasSession()) enter() else _state.update { it.copy(stage = Stage.LOGIN) }
         }
@@ -53,7 +97,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         _state.update { it.copy(loggingIn = true, loginError = null) }
-        viewModelScope.launch {
+        scope.launch {
             try {
                 repo.signIn(email, password)
                 enter()
@@ -64,7 +108,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun signOut() {
-        viewModelScope.launch {
+        scope.launch {
             stopLive()
             // Sacamos este celu de los avisos antes de cerrar sesión (si no, seguiría recibiendo pedidos).
             runCatching {
@@ -76,7 +120,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (token != null) repo.deleteFcmToken(token)
             }
             runCatching { repo.signOut() }
-            _state.value = UiState(stage = Stage.LOGIN)
+            _state.value = UiState(stage = Stage.LOGIN, alertRepeat = settings.repeat, alertSound = settings.sound, alertInterval = settings.intervalSec, keepAlive = settings.keepAlive)
+            applyKeepAlive()
         }
     }
 
@@ -88,6 +133,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         _state.update { it.copy(stage = Stage.READY, loggingIn = false, restaurant = restaurant) }
+        applyKeepAlive()
         refreshOrders()
         refreshCatalog()
         startLive(restaurant.id)
@@ -98,14 +144,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun registerPush() {
         runCatching {
             FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-                viewModelScope.launch { runCatching { repo.saveFcmToken(token) } }
+                scope.launch { runCatching { repo.saveFcmToken(token) } }
             }
         }
     }
 
     fun refreshOrders() {
         val id = _state.value.restaurant?.id ?: return
-        viewModelScope.launch {
+        scope.launch {
             runCatching { repo.recentOrders(id) }
                 .onSuccess { list -> _state.update { it.copy(orders = list) } }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudieron cargar los pedidos.") } }
@@ -114,7 +160,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun refreshCatalog() {
         val id = _state.value.restaurant?.id ?: return
-        viewModelScope.launch {
+        scope.launch {
             runCatching { repo.categories(id) to repo.products(id) }
                 .onSuccess { (c, p) -> _state.update { it.copy(categories = c, products = p) } }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudo cargar el catálogo.") } }
@@ -124,7 +170,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // Pedidos en vivo: un pedido nuevo suena y aparece solo.
     private fun startLive(restaurantId: String) {
         stopLive()
-        liveJob = viewModelScope.launch {
+        liveJob = scope.launch {
             try {
                 val (channel, flow) = repo.orderEvents(restaurantId)
                 liveChannel = channel
@@ -134,7 +180,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             _state.update { s ->
                                 if (s.orders.any { it.id == event.order.id }) s else s.copy(orders = listOf(event.order) + s.orders)
                             }
-                            if (event.order.status == OrderStatus.PENDIENTE) beep()
+                            // El sonido lo pone el aviso de Firebase; la app solo suena si las notificaciones están bloqueadas
+                            if (event.order.status == OrderStatus.PENDIENTE && !_state.value.alertRepeat &&
+                                !NotificationManagerCompat.from(app).areNotificationsEnabled()
+                            ) beep()
                         }
                         is Repository.OrderEvent.Updated ->
                             _state.update { s -> s.copy(orders = s.orders.map { if (it.id == event.order.id) event.order else it }) }
@@ -153,21 +202,52 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         liveJob = null
         val ch = liveChannel
         liveChannel = null
-        if (ch != null) viewModelScope.launch { runCatching { ch.unsubscribe() } }
+        if (ch != null) scope.launch { runCatching { ch.unsubscribe() } }
     }
 
-    private fun beep() {
+    private fun beep() = alertPlayer.playOnce(_state.value.alertSound)
+
+    // ---- Ajustes del aviso ----
+    fun setAlertRepeat(value: Boolean) {
+        settings.repeat = value
+        _state.update { it.copy(alertRepeat = value) }
+    }
+
+    fun setAlertSound(sound: String) {
+        settings.sound = sound
+        _state.update { it.copy(alertSound = sound) }
+        alertPlayer.playOnce(sound)
+    }
+
+    fun setAlertInterval(seconds: Int) {
+        settings.intervalSec = seconds
+        _state.update { it.copy(alertInterval = seconds) }
+    }
+
+    fun setKeepAlive(value: Boolean) {
+        settings.keepAlive = value
+        _state.update { it.copy(keepAlive = value) }
+        applyKeepAlive()
+    }
+
+    // Enciende o apaga el servicio en primer plano según la sesión y el ajuste
+    private fun applyKeepAlive() {
         runCatching {
-            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            RingtoneManager.getRingtone(getApplication(), uri)?.play()
+            val intent = Intent(app, KeepAliveService::class.java)
+            val s = _state.value
+            if (s.stage == Stage.READY && s.keepAlive) ContextCompat.startForegroundService(app, intent) else app.stopService(intent)
         }
     }
+
+    fun testSound() = alertPlayer.playOnce(_state.value.alertSound)
+
+    fun silence() = _state.update { it.copy(silenced = true) }
 
     // ---- Acciones sobre pedidos (primero se ve el cambio, después se guarda) ----
     fun advance(order: OrderDto, newStatus: String) {
         val restaurantId = _state.value.restaurant?.id ?: return
         _state.update { s -> s.copy(orders = s.orders.map { if (it.id == order.id) it.copy(status = newStatus) else it }) }
-        viewModelScope.launch {
+        scope.launch {
             runCatching {
                 if (order.status == OrderStatus.PENDIENTE && newStatus == OrderStatus.RECIBIDO) repo.takeOrder(order, restaurantId)
                 else repo.setOrderStatus(order.id, newStatus)
@@ -182,7 +262,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun confirmTransfer(order: OrderDto) {
         _state.update { s -> s.copy(orders = s.orders.map { if (it.id == order.id) it.copy(pagoConfirmado = true) else it }) }
-        viewModelScope.launch {
+        scope.launch {
             runCatching { repo.confirmTransferPayment(order.id) }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudo confirmar el pago."); }; refreshOrders() }
         }
@@ -191,7 +271,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setOpen(open: Boolean) {
         val r = _state.value.restaurant ?: return
         _state.update { it.copy(restaurant = r.copy(isOpen = open)) }
-        viewModelScope.launch {
+        scope.launch {
             runCatching { repo.setOpen(r.id, open) }
                 .onFailure { _state.update { s -> s.copy(restaurant = r, message = "No se pudo cambiar el estado del local.") } }
         }
@@ -200,7 +280,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- Catálogo ----
     fun setAvailable(product: ProductDto, available: Boolean) {
         _state.update { s -> s.copy(products = s.products.map { if (it.id == product.id) it.copy(isAvailable = available) else it }) }
-        viewModelScope.launch {
+        scope.launch {
             runCatching { repo.setProductAvailable(product.id, available) }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudo guardar.") }; refreshCatalog() }
         }
@@ -208,16 +288,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setPrice(product: ProductDto, price: Double) {
         _state.update { s -> s.copy(products = s.products.map { if (it.id == product.id) it.copy(price = price) else it }) }
-        viewModelScope.launch {
+        scope.launch {
             runCatching { repo.setProductPrice(product.id, price) }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudo guardar el precio.") }; refreshCatalog() }
         }
     }
 
     fun messageShown() = _state.update { it.copy(message = null) }
-
-    override fun onCleared() {
-        stopLive()
-        super.onCleared()
-    }
 }

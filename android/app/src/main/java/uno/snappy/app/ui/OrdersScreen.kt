@@ -43,7 +43,7 @@ import uno.snappy.app.data.orderTypeLabel
 import uno.snappy.app.data.statusLabel
 
 @Composable
-fun OrdersScreen(state: UiState, vm: AppViewModel) {
+fun OrdersScreen(state: UiState, vm: AppController) {
     var tab by remember { mutableIntStateOf(0) }
     val active = state.orders.filter { OrderStatus.isActive(it.status) }
     val history = state.orders.filter { !OrderStatus.isActive(it.status) }
@@ -58,6 +58,17 @@ fun OrdersScreen(state: UiState, vm: AppViewModel) {
             }
             Switch(checked = state.restaurant?.isOpen == true, onCheckedChange = vm::setOpen)
             IconButton(onClick = vm::refreshOrders) { Icon(Icons.Filled.Refresh, contentDescription = "Actualizar") }
+        }
+        if (state.ringing) {
+            Card(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
+            ) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔔 Pedido nuevo sin atender", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = Color(0xFF5C4400))
+                    Button(onClick = vm::silence) { Text("Silenciar") }
+                }
+            }
         }
         TabRow(selectedTabIndex = tab) {
             Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Activos (${active.size})") })
@@ -88,7 +99,7 @@ private fun itemLines(order: OrderDto): List<String> {
 }
 
 @Composable
-private fun OrderCard(order: OrderDto, vm: AppViewModel) {
+private fun OrderCard(order: OrderDto, vm: AppController) {
     val step = nextStep(order.status, order.orderType)
     val isNew = order.status == OrderStatus.PENDIENTE
     val needsTransferCheck = order.paymentMethod == "transferencia" && order.pagoConfirmado != true && OrderStatus.isActive(order.status)

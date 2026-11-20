@@ -19,6 +19,18 @@ import uno.snappy.app.R
 // Canal de avisos de pedidos nuevos: importancia alta (suena y aparece arriba aunque el celu esté bloqueado).
 object Notifications {
     const val CHANNEL_ID = "pedidos"
+    const val SERVICE_CHANNEL_ID = "servicio"
+
+    fun ensureServiceChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < 26) return
+        val nm = context.getSystemService(NotificationManager::class.java)
+        if (nm.getNotificationChannel(SERVICE_CHANNEL_ID) != null) return
+        nm.createNotificationChannel(
+            NotificationChannel(SERVICE_CHANNEL_ID, "Escuchando pedidos", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Aviso fijo que mantiene a Snappy despierta para no perder pedidos"
+            }
+        )
+    }
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < 26) return

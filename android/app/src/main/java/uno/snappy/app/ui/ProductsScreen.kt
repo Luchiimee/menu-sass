@@ -40,7 +40,7 @@ import coil.compose.AsyncImage
 import uno.snappy.app.data.ProductDto
 
 @Composable
-fun ProductsScreen(state: UiState, vm: AppViewModel) {
+fun ProductsScreen(state: UiState, vm: AppController) {
     var editing by remember { mutableStateOf<ProductDto?>(null) }
 
     Column(Modifier.fillMaxSize()) {

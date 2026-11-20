@@ -6,15 +6,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uno.snappy.app.ui.AppRoot
-import uno.snappy.app.ui.AppViewModel
+import uno.snappy.app.ui.AppController
 import uno.snappy.app.ui.SnappyTheme
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: AppViewModel by viewModels()
+    private val viewModel: AppController get() = (application as SnappyApp).controller
 
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* sin acción: es un permiso opcional */ }
