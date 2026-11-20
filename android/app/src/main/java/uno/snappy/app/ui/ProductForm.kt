@@ -82,7 +82,7 @@ private fun Label(text: String) = Text(text.uppercase(), style = MaterialTheme.t
 @Composable
 private fun Pill(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(50)).background(if (selected) Color(0xFFD6F3E6) else Color.White)
+        Modifier.clip(RoundedCornerShape(50)).background(if (selected) Color(0xFFD6F3E6) else Surface2)
             .then(Modifier.clickable(onClick = onClick))
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
@@ -104,6 +104,9 @@ fun ProductFormDialog(product: ProductDto?, state: UiState, vm: AppController, o
     var destacado by remember { mutableStateOf(product?.esDestacado == true) }
     var extraIds by remember { mutableStateOf<List<String>>(emptyList()) }
     var confirmDelete by remember { mutableStateOf(false) }
+    // Solo puede haber un destacado: si ya hay otro, hay que apagarlo primero
+    val otroDestacado = state.products.firstOrNull { it.esDestacado == true && it.id != product?.id }
+    var blockedBy by remember { mutableStateOf<ProductDto?>(null) }
 
     val focusManager = LocalFocusManager.current
     androidx.compose.runtime.DisposableEffect(Unit) { vm.clearFormError(); onDispose { vm.clearFormError() } }
@@ -183,7 +186,7 @@ fun ProductFormDialog(product: ProductDto?, state: UiState, vm: AppController, o
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             state.extras.forEach { e ->
                                 val on = e.id in extraIds
-                                Pill("${e.name}  ${formatMoney(e.price)}", on) { extraIds = if (on) extraIds - e.id else extraIds + e.id }
+                                Pill((if (on) "✓  " else "+  ") + "${e.name}  ${formatMoney(e.price)}", on) { extraIds = if (on) extraIds - e.id else extraIds + e.id }
                             }
                         }
                     }
@@ -196,7 +199,11 @@ fun ProductFormDialog(product: ProductDto?, state: UiState, vm: AppController, o
                                 Text("Destacado", fontWeight = FontWeight.SemiBold)
                                 Text("Va primero en el menú. Solo uno a la vez.", style = MaterialTheme.typography.bodySmall, color = Graphite)
                             }
-                            Switch(checked = destacado, onCheckedChange = { destacado = it }, colors = snappySwitchColors())
+                            Switch(
+                                checked = destacado,
+                                onCheckedChange = { want -> if (want && otroDestacado != null) blockedBy = otroDestacado else destacado = want },
+                                colors = snappySwitchColors(),
+                            )
                         }
                         Text("No todos los diseños del menú lo muestran.", style = MaterialTheme.typography.bodySmall, color = Graphite)
                     }
@@ -220,6 +227,15 @@ fun ProductFormDialog(product: ProductDto?, state: UiState, vm: AppController, o
                 }
             }
         }
+    }
+
+    blockedBy?.let { other ->
+        AlertDialog(
+            onDismissRequest = { blockedBy = null },
+            title = { Text("Ya hay un destacado") },
+            text = { Text("«${other.name}» es el producto destacado. Solo puede haber uno: desactivalo primero en ese producto para activarlo acá.") },
+            confirmButton = { TextButton(onClick = { blockedBy = null }) { Text("Entendido") } },
+        )
     }
 
     if (confirmDelete && product != null) {

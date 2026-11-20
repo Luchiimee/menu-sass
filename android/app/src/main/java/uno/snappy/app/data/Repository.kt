@@ -66,6 +66,15 @@ class Repository {
         supabase.from("restaurants").update({ set("is_open", open) }) { filter { eq("id", restaurantId) } }
     }
 
+    // "Más pedidos": igual que la web, guarda la fecha de activación (el sistema arma la sección a los 30 días)
+    suspend fun setBestSellers(restaurantId: String, on: Boolean) {
+        val today = java.time.LocalDate.now().toString()
+        supabase.from("restaurants").update({
+            set("show_best_sellers", on)
+            if (on) set("best_sellers_activated_at", today) else setToNull("best_sellers_activated_at")
+        }) { filter { eq("id", restaurantId) } }
+    }
+
     // ---- Pedidos ----
     // Últimos 7 días, sin los de apertura de caja (igual que el panel web).
     suspend fun recentOrders(restaurantId: String): List<OrderDto> {

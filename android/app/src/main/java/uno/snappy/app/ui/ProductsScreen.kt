@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -199,6 +200,7 @@ private fun ProductList(state: UiState, vm: AppController, q: String, onEdit: (P
             ) { Text(label, color = if (on) Color(0xFF0B5A3C) else Graphite, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, fontSize = 13.sp) }
         }
     }
+    BestSellersRow(state, vm)
     if (state.products.isEmpty()) Text("Todavía no hay productos cargados.", color = Graphite, modifier = Modifier.padding(20.dp))
     else if (products.isEmpty()) Text("No hay productos con \"$q\".", color = Graphite, modifier = Modifier.padding(20.dp))
 
@@ -218,6 +220,28 @@ private fun ProductList(state: UiState, vm: AppController, q: String, onEdit: (P
                 items(items, key = { it.id }) { p -> ProductRow(p, onToggle = { vm.setAvailable(p, it) }, onEdit = { onEdit(p) }) }
             }
         }
+    }
+}
+
+@Composable
+private fun BestSellersRow(state: UiState, vm: AppController) {
+    var info by remember { mutableStateOf(false) }
+    val on = state.restaurant?.showBestSellers == true
+    val supported = state.restaurant?.templateId in setOf("marketpro", "alterna-pro", "spotlight", "urban", "classic", "minimal")
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(horizontal = 14.dp, vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("⚡", fontSize = 18.sp)
+            Text("  Más pedidos", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            IconButton(onClick = { info = !info }, modifier = Modifier.size(36.dp)) {
+                Icon(androidx.compose.material.icons.Icons.Filled.Info, contentDescription = "Qué es esto", tint = Graphite)
+            }
+            Switch(checked = on, onCheckedChange = vm::setBestSellers, colors = snappySwitchColors())
+        }
+        if (info) Text(
+            "Muestra arriba de tu menú una sección con los productos que más se piden. La calcula el sistema con tus pedidos reales y aparece a los 30 días de activarla." +
+                if (supported) "" else " Ojo: tu plantilla actual no muestra esta sección.",
+            style = MaterialTheme.typography.bodySmall, color = Graphite, modifier = Modifier.padding(bottom = 6.dp),
+        )
     }
 }
 

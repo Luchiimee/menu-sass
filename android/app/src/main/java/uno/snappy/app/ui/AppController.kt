@@ -377,6 +377,16 @@ class AppController(private val app: Application) {
         }
     }
 
+    fun setBestSellers(on: Boolean) {
+        val r = _state.value.restaurant ?: return
+        _state.update { it.copy(restaurant = r.copy(showBestSellers = on)) }
+        scope.launch {
+            runCatching { repo.setBestSellers(r.id, on) }
+                .onSuccess { if (on) showMessage("Activado. La sección aparece en tu menú a los 30 días, calculada con tus ventas reales.") }
+                .onFailure { _state.update { s -> s.copy(restaurant = r, message = "No se pudo cambiar la opción.") } }
+        }
+    }
+
     fun setOpen(open: Boolean) {
         val r = _state.value.restaurant ?: return
         _state.update { it.copy(restaurant = r.copy(isOpen = open)) }
