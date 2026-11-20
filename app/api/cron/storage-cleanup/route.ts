@@ -4,6 +4,10 @@
 // El borrado REAL solo corre si STORAGE_CLEANUP_DELETE = '1' en las variables de Vercel (por defecto NO: solo anota en el log
 // cuántas se borrarían y cuánto pesan). Aun activado: máximo MAX_PER_RUN por corrida (el resto cae en la próxima).
 // Los logs llevan solo cantidades, nunca nombres de archivos.
+//
+// Corrida manual (primera limpieza): además del Bearer CRON_SECRET acepta el header x-cleanup-key si existe la variable
+// STORAGE_CLEANUP_KEY (se crea solo para esa corrida y se borra después: sin la variable este camino queda apagado).
+// Una corrida manual SOLO lista salvo que se pase ?apply=1.
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -21,9 +25,14 @@ const BATCH = 100;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const manualKey = process.env.STORAGE_CLEANUP_KEY;
+  const isManual = !!manualKey && request.headers.get('x-cleanup-key') === manualKey;
+  if (!isManual && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const mayDelete = isManual
+    ? new URL(request.url).searchParams.get('apply') === '1'
+    : process.env.STORAGE_CLEANUP_DELETE === '1';
 
   const { data, error } = await supabase.rpc('storage_orphan_images', { min_age_days: MIN_AGE_DAYS });
   if (error) {
@@ -34,7 +43,7 @@ export async function GET(request: Request) {
   const batch = orphans.slice(0, MAX_PER_RUN);
   const totalMb = (orphans.reduce((a, o) => a + (o.bytes || 0), 0) / 1048576).toFixed(1);
 
-  if (process.env.STORAGE_CLEANUP_DELETE !== '1') {
+  if (!mayDelete) {
     console.log(`[cron/storage-cleanup] DRY_RUN huerfanas=${orphans.length} mb=${totalMb} (se borrarian ${batch.length})`);
     return NextResponse.json({ ok: true, dry_run: true, orphans: orphans.length, mb: Number(totalMb), would_delete: batch.length });
   }
