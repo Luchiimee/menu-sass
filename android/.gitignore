@@ -1,0 +1,15 @@
+# Build y archivos de Android Studio
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+# Claves locales (no se suben)
+snappy.properties
+*.jks
+*.keystore
+google-services.json
+.kotlin/
