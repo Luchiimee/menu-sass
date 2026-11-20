@@ -46,6 +46,7 @@ import ClassicDelivery from "@/components/templates/ClassicDelivery";
 import MinimalWhite from "@/components/templates/MinimalWhite";
 import Carta from "@/components/templates/Carta";
 import Argentina from "@/components/templates/Argentina";
+import Portada from "@/components/templates/Portada";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -1686,6 +1687,24 @@ case "spotlight":
       case "argentina":
         return (
           <Argentina
+            restaurant={restaurant}
+            products={allProducts}
+            categories={displayCats}
+            fetchedExtras={restaurant.fetched_extras || []}
+            isOpen={isOpen}
+            mesaLabel={mesaLabel}
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              // Una sola combinación: qty unidades, cada una con estos extras (por unidad)
+              addItem(product, qty, extras);
+              mostrarAviso("✅ Agregado");
+            }}
+            isMockup={false}
+            setShowInfo={setShowInfo}
+          />
+        );
+      case "portada":
+        return (
+          <Portada
             restaurant={restaurant}
             products={allProducts}
             categories={displayCats}

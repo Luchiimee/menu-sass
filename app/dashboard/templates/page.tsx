@@ -17,6 +17,7 @@ import MarketProTemplate from '@/components/templates/MarketProTemplate';
 import AlternaPro from '@/components/templates/AlternaPro';
 import Carta from '@/components/templates/Carta';
 import Argentina from '@/components/templates/Argentina';
+import Portada from '@/components/templates/Portada';
 
 // --- 1. AGREGAMOS ESTO: COLORES POR DEFECTO PARA EL RESET ---
 const TEMPLATE_DEFAULTS: any = {
@@ -222,6 +223,15 @@ pop: {
     cat_active_bg_color: '#3E7CB1', cat_active_text_color: '#ffffff',
     search_bg_color: '#f3f4f6', search_icon_color: '#3E7CB1',
     hero_badge_bg: '#F2B705', hero_badge_color: '#4a3600'
+  },
+  portada: {
+    theme: '#1BB179', bg: '#F5F5EF', card: '#FFFFFF', text: '#15160E', desc: '#86877B',
+    card_name: '#15160E', card_desc: '#86877B', card_price: '#15160E',
+    btn_bg: '#1BB179', btn_text: '#FFFFFF', promo: '#E4F6EE', promo_text: '#0F7A53',
+    banner: true,
+    cat_bg_color: '#ECEBE3', cat_text_color: '#15160E',
+    cat_active_bg_color: '#1BB179', cat_active_text_color: '#FFFFFF',
+    search_bg_color: '#ECEBE3', search_icon_color: '#86877B'
   }
 };
 
@@ -346,6 +356,16 @@ const PREVIEW_MOCK: Record<string, any> = {
     ],
     categories: [{ id: 'pag1', name: 'Burgers' }],
   },
+  portada: {
+    restaurant: { name: 'Brasa Smash', description: 'Buenas burgers. Sin vueltas.', city: 'Palermo, Buenos Aires', theme_color: '#1BB179', bg_color: '#F5F5EF', text_color: '#15160E', show_banner: true, show_promo: true, promo_message: 'Hoy, tu segunda burger tiene 20% OFF', banner_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80' },
+    products: [
+      { id: 'pt1', name: 'Brasa Classic', description: 'Carne smash, cheddar y salsa de la casa.', price: 9500, image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=80', category_id: 'ppt1', es_destacado: true },
+      { id: 'pt2', name: 'Cheese & Bacon', description: 'Doble carne, cheddar y panceta.', price: 11500, image_url: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=300&q=80', category_id: 'ppt1' },
+      { id: 'pt3', name: 'Papas rústicas', description: 'Con cheddar y verdeo.', price: 5200, image_url: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=300&q=80', category_id: 'ppt1' },
+      { id: 'pt4', name: 'Limonada', description: 'Con menta y jengibre.', price: 3200, image_url: 'https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e?w=300&q=80', category_id: 'ppt1' },
+    ],
+    categories: [{ id: 'ppt1', name: 'Burgers' }],
+  },
 };
 
 function renderRealTemplate(id: string, isOpen: boolean) {
@@ -361,6 +381,7 @@ function renderRealTemplate(id: string, isOpen: boolean) {
     case 'alterna-pro': return <AlternaPro         restaurant={m['alterna-pro'].restaurant} products={m['alterna-pro'].products}                                  isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} setSelectedProduct={PREVIEW_NOOP} isMockup={true} />;
     case 'carta':       return <Carta              restaurant={m.carta.restaurant}       products={m.carta.products}       categories={m.carta.categories}       fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
     case 'argentina':   return <Argentina          restaurant={m.argentina.restaurant}   products={m.argentina.products}   categories={m.argentina.categories}   fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
+    case 'portada':     return <Portada            restaurant={m.portada.restaurant}     products={m.portada.products}     categories={m.portada.categories}     fetchedExtras={[]} isOpen={isOpen} onAddToCart={PREVIEW_NOOP} setShowInfo={PREVIEW_NOOP} isMockup={true} />;
     default: return null;
   }
 }
@@ -378,6 +399,7 @@ const TEMPLATES = [
   { id: 'alterna-pro', name: 'Alterna Pro',       type: 'alterna-pro', category: 'completas', sale_type: ['unidad', 'peso'], hasPhotos: true,  premium: true, businessCategory: 'elegante',     idealFor: 'Ideal para carta compleja y mercado', featured: true },
   { id: 'carta',       name: 'Carta',             type: 'carta',       category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para restaurante con menú destacado' },
   { id: 'argentina',   name: 'Argentina',         type: 'argentina',   category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para locales con identidad argentina — parrillas, hamburgueserías y más' },
+  { id: 'portada',     name: 'Portada',           type: 'portada',     category: 'completas', sale_type: 'unidad',           hasPhotos: true,  premium: true, businessCategory: 'restaurante',  idealFor: 'Ideal para hamburguesería, cafetería y locales con fotos grandes' },
 ];
 
 function GalleryContent() {

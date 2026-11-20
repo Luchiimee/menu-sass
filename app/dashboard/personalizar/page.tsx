@@ -28,6 +28,7 @@ import AlternaPro from '../../../components/templates/AlternaPro';
 import HeladeriaSoft from '../../../components/templates/HeladeriaSoft';
 import Carta from '../../../components/templates/Carta';
 import Argentina from '../../../components/templates/Argentina';
+import Portada from '../../../components/templates/Portada';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 const ColorBubble = ({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) => (
@@ -144,6 +145,15 @@ visualgrid: {
     cat_active_bg_color: '#3E7CB1', cat_active_text_color: '#ffffff',
     search_bg_color: '#f3f4f6', search_icon_color: '#3E7CB1',
     hero_badge_bg: '#F2B705', hero_badge_color: '#4a3600'
+  },
+  portada: {
+    theme: '#1BB179', bg: '#F5F5EF', text: '#15160E', desc: '#86877B',
+    card: '#FFFFFF', card_name: '#15160E', card_desc: '#86877B', card_price: '#15160E',
+    btn_bg: '#1BB179', btn_text: '#FFFFFF',
+    promo_bg_color: '#E4F6EE', promo_text_color: '#0F7A53', banner: true,
+    cat_bg_color: '#ECEBE3', cat_text_color: '#15160E',
+    cat_active_bg_color: '#1BB179', cat_active_text_color: '#FFFFFF',
+    search_bg_color: '#ECEBE3', search_icon_color: '#86877B'
   },
 };
 
@@ -309,6 +319,7 @@ isMockup: isMockup,
               case 'icecream-v1': return <HeladeriaSoft restaurant={finalRenderData} products={displayProds} onAddToCart={() => {}} isMockup={true} />;
               case 'carta': return <Carta {...props} />;
               case 'argentina': return <Argentina {...props} />;
+              case 'portada': return <Portada {...props} />;
               default: return <ClassicDelivery {...props} />;
             }
           })()}
@@ -614,17 +625,17 @@ const getTemplateConfig = () => {
     return {
       editable: true, group: id,
       showClassicBanner: id === 'classic',
-      showBannerImg: ['spotlight', 'marketpro', 'carta'].includes(id),
+      showBannerImg: ['spotlight', 'marketpro', 'carta', 'portada'].includes(id),
       promoMessageDisabled: id === 'carta',
 
-      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant', 'classic', 'minimal'].includes(id),
+      showAccent: ['urban', 'visualgrid', 'marketpro', 'icecream-v1', 'alterna-pro', 'elegant', 'classic', 'minimal', 'portada'].includes(id),
       showCard: true,
       showHeroEditor: ['spotlight', 'carta'].includes(id),
 
-      showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight', 'argentina'].includes(id),
+      showSearch: ['marketpro', 'classic', 'urban', 'minimal', 'spotlight', 'argentina', 'portada'].includes(id),
       showFonts: ['marketpro', 'elegant', 'bistro'].includes(id),
      
-      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic', 'minimal'].includes(id),
+      showCategories: ['marketpro', 'alterna-pro', 'icecream-v1', 'urban', 'classic', 'minimal', 'portada'].includes(id),
     };
   };
 
@@ -1032,7 +1043,7 @@ const confirmReset = () => {
                           {tConfig.showAccent && <ColorBubble label="Acento" value={data.theme_color} onChange={(v) => setData({ ...data, theme_color: v })} />}
                      {['alterna-pro', 'marketpro', 'urban', 'classic', 'minimal'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat." value={data.cat_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, cat_bg_color: v })} /><ColorBubble label="Texto Cat." value={data.cat_text_color || '#999999'} onChange={(v) => setData({ ...data, cat_text_color: v })} /></>)}
                      {['alterna-pro', 'marketpro', 'urban', 'classic', 'minimal', 'visualgrid'].includes(data.template_id) && (<><ColorBubble label="Fondo Cat. Activa" value={data.cat_active_bg_color || '#000000'} onChange={(v) => setData({ ...data, cat_active_bg_color: v })} /><ColorBubble label="Texto Cat. Activa" value={data.cat_active_text_color || '#ffffff'} onChange={(v) => setData({ ...data, cat_active_text_color: v })} /></>)}
-                        {['marketpro', 'urban', 'classic', 'minimal', 'visualgrid', 'spotlight'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
+                        {['marketpro', 'urban', 'classic', 'minimal', 'visualgrid', 'spotlight', 'portada'].includes(data.template_id) && (<><ColorBubble label="Fondo Buscar" value={data.search_bg_color || '#f3f4f6'} onChange={(v) => setData({ ...data, search_bg_color: v })} /><ColorBubble label="Lupa Buscar" value={data.search_icon_color || '#9ca3af'} onChange={(v) => setData({ ...data, search_icon_color: v })} /></>)}
                           {tConfig.showClassicBanner && <ColorBubble 
   label="Banner Nom" 
   value={data.theme_color} 

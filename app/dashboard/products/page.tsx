@@ -61,7 +61,7 @@ const [formData, setFormData] = useState({
 });
 
 // Templates que soportan "Producto Destacado" vía es_destacado — sumar acá cuando otro template lo adopte
-const FEATURED_TOGGLE_TEMPLATES = ['argentina'];
+const FEATURED_TOGGLE_TEMPLATES = ['argentina', 'portada'];
   const [extraFormData, setExtraFormData] = useState({ name: '', price: '' });
 
   const supabase = createBrowserClient(
