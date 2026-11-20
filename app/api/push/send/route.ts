@@ -51,6 +51,12 @@ const orderType = record.order_type;
       return NextResponse.json({ error: 'Missing restaurantId' }, { status: 400 });
     }
 
+    // Solo los pedidos de clientes entran como 'pendiente' (checkout y Mercado Pago). Lo que carga el propio
+    // negocio (abrir una mesa a mano, venta de mostrador, apertura de caja) entra con otro estado y no avisa.
+    if (record.status !== 'pendiente') {
+      return NextResponse.json({ ok: true, sent: 0, skipped: 'no es un pedido de cliente' });
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
