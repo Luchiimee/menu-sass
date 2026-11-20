@@ -181,9 +181,18 @@ class AppController(private val app: Application) {
     }
 
     // Vuelve a leer todo y re-engancha el "en vivo". Se usa al volver a la app, cada tanto y al tirar hacia abajo.
-    fun resync() { scope.launch { resyncNow() } }
+    // Al volver del celu dormido el wifi tarda un poco: si falla, reintenta solo (sin avisos) antes de rendirse.
+    fun resync() {
+        scope.launch {
+            for (wait in listOf(0L, 2_000L, 5_000L, 10_000L)) {
+                delay(wait)
+                if (resyncNow(quiet = true)) return@launch
+            }
+            _state.update { it.copy(message = "No hay conexión. Revisá tu internet.") }
+        }
+    }
 
-    suspend fun resyncNow(): Boolean {
+    suspend fun resyncNow(quiet: Boolean = false): Boolean {
         val id = _state.value.restaurant?.id ?: return false
         val orders = runCatching { repo.recentOrders(id) }.getOrNull()
         val tables = runCatching { repo.tables(id) }.getOrNull()
@@ -191,7 +200,7 @@ class AppController(private val app: Application) {
         if (tables != null) _state.update { it.copy(tables = tables) }
         loadCash()
         if (orders == null) {
-            _state.update { it.copy(message = "No hay conexión. Revisá tu internet.") }
+            if (!quiet) _state.update { it.copy(message = "No hay conexión. Revisá tu internet.") }
             return false
         }
         startLive(id)
@@ -274,9 +283,11 @@ class AppController(private val app: Application) {
                 failures++
                 if (failures == 4) _state.update { it.copy(message = "Sin conexión en vivo. Tirá hacia abajo para actualizar.") }
             }
-            runCatching { liveChannel?.unsubscribe() }
+            liveChannel?.let { repo.closeChannel(it) }
+            liveChannel = null
             delay(if (failures < 4) 3_000L else 15_000L)
-            if (failures > 0) runCatching { resyncNow() }
+            // Mientras se reconecta, se vuelven a leer los pedidos para no perder ninguno
+            runCatching { repo.recentOrders(restaurantId) }.getOrNull()?.let { o -> _state.update { it.copy(orders = o) } }
             }
         }
     }
@@ -297,12 +308,12 @@ class AppController(private val app: Application) {
         tablesJob = null
         val tch = tablesChannel
         tablesChannel = null
-        if (tch != null) scope.launch { runCatching { tch.unsubscribe() } }
+        if (tch != null) scope.launch { repo.closeChannel(tch) }
         liveJob?.cancel()
         liveJob = null
         val ch = liveChannel
         liveChannel = null
-        if (ch != null) scope.launch { runCatching { ch.unsubscribe() } }
+        if (ch != null) scope.launch { repo.closeChannel(ch) }
     }
 
     private fun beep() = alertPlayer.playOnce(_state.value.alertSound)

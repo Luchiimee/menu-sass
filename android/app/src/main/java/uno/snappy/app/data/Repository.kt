@@ -9,6 +9,7 @@ import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.storage.storage
@@ -138,7 +139,7 @@ class Repository {
     }
 
     suspend fun orderEvents(restaurantId: String): Pair<RealtimeChannel, Flow<OrderEvent>> {
-        val channel = supabase.channel("orders-$restaurantId")
+        val channel = supabase.channel("orders-$restaurantId-${System.nanoTime()}")
         val flow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "orders"
             filter("restaurant_id", FilterOperator.EQ, restaurantId)
@@ -154,6 +155,12 @@ class Repository {
         return channel to flow
     }
 
+    // Cierra un canal en vivo y lo saca del cliente (cada suscripción usa un canal nuevo, así no se pisan al reenganchar).
+    suspend fun closeChannel(channel: RealtimeChannel) {
+        runCatching { channel.unsubscribe() }
+        runCatching { supabase.realtime.removeChannel(channel) }
+    }
+
     // ---- Mesas ----
     suspend fun tables(restaurantId: String): List<TableDto> =
         supabase.from("tables")
@@ -166,7 +173,7 @@ class Repository {
 
     // Cambios en vivo de las mesas (llamados al mozo, etc.): solo avisa que hay que releer la lista.
     suspend fun tableChanges(restaurantId: String): Pair<RealtimeChannel, Flow<Unit>> {
-        val channel = supabase.channel("tables-$restaurantId")
+        val channel = supabase.channel("tables-$restaurantId-${System.nanoTime()}")
         val flow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "tables"
             filter("restaurant_id", FilterOperator.EQ, restaurantId)
