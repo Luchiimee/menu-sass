@@ -11,6 +11,9 @@ import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.storage.storage
+import java.util.UUID
+import kotlinx.serialization.json.JsonNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerialName
@@ -151,5 +154,53 @@ class Repository {
 
     suspend fun setProductPrice(productId: String, price: Double) {
         supabase.from("products").update({ set("price", price) }) { filter { eq("id", productId) } }
+    }
+
+    // ---- Alta, edición y baja de productos ----
+    // Sube la foto al mismo bucket público "images" que usa la web (prod_<id>.jpg) y devuelve la URL pública.
+    suspend fun uploadProductImage(bytes: ByteArray): String {
+        val path = "prod_${UUID.randomUUID()}.jpg"
+        val bucket = supabase.storage.from("images")
+        bucket.upload(path, bytes)
+        return bucket.publicUrl(path)
+    }
+
+    // Igual que la web: si no hay categoría elegida usa la primera, y si no existe ninguna crea "General".
+    private suspend fun defaultCategoryId(restaurantId: String): String? {
+        categories(restaurantId).firstOrNull()?.let { return it.id }
+        return supabase.from("categories")
+            .insert(buildJsonObject { put("restaurant_id", restaurantId); put("name", "General"); put("sort_order", 1) }) { select() }
+            .decodeSingle<CategoryDto>().id
+    }
+
+    // imageUrl == null: no se toca la foto actual. price == null: no se toca el precio (productos por peso).
+    suspend fun saveProduct(
+        restaurantId: String, id: String?, name: String, description: String,
+        price: Double?, categoryId: String?, imageUrl: String?,
+    ) {
+        if (id == null) {
+            val cat = categoryId ?: defaultCategoryId(restaurantId)
+            supabase.from("products").insert(buildJsonObject {
+                put("restaurant_id", restaurantId)
+                put("name", name)
+                put("description", description)
+                put("price", price ?: 0.0)
+                if (imageUrl != null) put("image_url", imageUrl)
+                if (cat != null) put("category_id", cat) else put("category_id", JsonNull)
+                put("sale_type", "unidad")
+            })
+        } else {
+            supabase.from("products").update({
+                set("name", name)
+                set("description", description)
+                if (price != null) set("price", price)
+                if (imageUrl != null) set("image_url", imageUrl)
+                if (categoryId != null) set("category_id", categoryId)
+            }) { filter { eq("id", id) } }
+        }
+    }
+
+    suspend fun deleteProduct(productId: String) {
+        supabase.from("products").delete { filter { eq("id", productId) } }
     }
 }

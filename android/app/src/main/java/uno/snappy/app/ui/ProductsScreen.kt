@@ -11,7 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,9 +44,16 @@ import uno.snappy.app.data.ProductDto
 @Composable
 fun ProductsScreen(state: UiState, vm: AppController) {
     var editing by remember { mutableStateOf<ProductDto?>(null) }
+    var creating by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        Text("Catálogo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, modifier = Modifier.padding(16.dp))
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Catálogo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+            Button(onClick = { creating = true }) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(" Nuevo")
+            }
+        }
         if (state.products.isEmpty()) Text("Todavía no hay productos cargados.", color = Graphite, modifier = Modifier.padding(16.dp))
 
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -66,27 +75,8 @@ fun ProductsScreen(state: UiState, vm: AppController) {
         }
     }
 
-    editing?.let { p ->
-        var text by remember(p.id) { mutableStateOf(((p.price ?: 0.0).toLong()).toString()) }
-        AlertDialog(
-            onDismissRequest = { editing = null },
-            title = { Text("Precio de ${p.name}") },
-            text = {
-                OutlinedTextField(
-                    value = text, onValueChange = { text = it.filter { c -> c.isDigit() } },
-                    label = { Text("Precio en pesos") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    text.toDoubleOrNull()?.let { vm.setPrice(p, it) }
-                    editing = null
-                }) { Text("Guardar") }
-            },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text("Cancelar") } },
-        )
-    }
+    if (creating) ProductFormDialog(product = null, state = state, vm = vm, onClose = { creating = false })
+    editing?.let { p -> ProductFormDialog(product = p, state = state, vm = vm, onClose = { editing = null }) }
 }
 
 @Composable
@@ -102,7 +92,7 @@ private fun ProductRow(p: ProductDto, onToggle: (Boolean) -> Unit, onEdit: () ->
                 Text(p.name, fontWeight = FontWeight.Bold, color = if (available) Ink else Graphite)
                 Text(formatMoney(p.price) + if (p.saleType == "peso") " (por peso)" else "", color = Graphite)
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Editar precio") }
+            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Editar producto") }
             Switch(checked = available, onCheckedChange = onToggle)
         }
     }

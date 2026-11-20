@@ -25,6 +25,7 @@ import uno.snappy.app.data.OrderDto
 import uno.snappy.app.data.OrderStatus
 import uno.snappy.app.data.ProductDto
 import uno.snappy.app.data.RestaurantDto
+import uno.snappy.app.data.ImageUtil
 import uno.snappy.app.data.Repository
 
 enum class Stage { LOADING, LOGIN, READY }
@@ -38,6 +39,8 @@ data class UiState(
     val categories: List<CategoryDto> = emptyList(),
     val products: List<ProductDto> = emptyList(),
     val message: String? = null,
+    val savingProduct: Boolean = false,
+    val formError: String? = null,
     // Aviso de pedido nuevo (ajustes de este dispositivo)
     val alertRepeat: Boolean = false,
     val alertSound: String = AlertSettings.SOUND_NOTIFICATION,
@@ -291,6 +294,57 @@ class AppController(private val app: Application) {
         scope.launch {
             runCatching { repo.setProductPrice(product.id, price) }
                 .onFailure { _state.update { s -> s.copy(message = "No se pudo guardar el precio.") }; refreshCatalog() }
+        }
+    }
+
+    // Tope de productos por plan (el mismo que la web: Light 20, GO 60, Plus sin tope). La base no lo fuerza, lo controla el cliente.
+    fun productLimit(): Int = when (_state.value.restaurant?.subscriptionPlan) {
+        "light" -> 20
+        "go" -> 60
+        else -> Int.MAX_VALUE
+    }
+
+    // Crea (id == null) o edita un producto. Si hay foto nueva, la achica y la sube antes de guardar.
+    fun saveProduct(id: String?, name: String, description: String, price: Double?, categoryId: String?, imageUri: android.net.Uri?, onDone: () -> Unit) {
+        val s = _state.value
+        android.util.Log.d("Snappy", "saveProduct: tocó guardar (id=$id, foto=${imageUri != null}, productos=${s.products.size}, plan=${s.restaurant?.subscriptionPlan})")
+        val restaurantId = s.restaurant?.id
+        if (restaurantId == null) {
+            _state.update { it.copy(formError = "No se encontró tu local. Cerrá sesión y volvé a entrar.") }
+            return
+        }
+        if (s.savingProduct) return
+        if (id == null && s.products.size >= productLimit()) {
+            _state.update { it.copy(formError = "Llegaste al límite de ${productLimit()} productos de tu plan. Para cargar más, cambiá de plan desde la web.") }
+            return
+        }
+        _state.update { it.copy(savingProduct = true, formError = null) }
+        scope.launch {
+            runCatching {
+                val url = imageUri?.let { uri ->
+                    val bytes = kotlinx.coroutines.withContext(Dispatchers.IO) { ImageUtil.compress(app, uri) }
+                        ?: error("No se pudo leer la foto.")
+                    repo.uploadProductImage(bytes)
+                }
+                repo.saveProduct(restaurantId, id, name.trim(), description.trim(), price, categoryId, url)
+            }.onSuccess {
+                refreshCatalog()
+                _state.update { it.copy(savingProduct = false) }
+                onDone()
+            }.onFailure { e ->
+                _state.update { it.copy(savingProduct = false, formError = "No se pudo guardar: ${e::class.simpleName}: ${e.message?.take(180)}") }
+                android.util.Log.e("Snappy", "saveProduct", e)
+            }
+        }
+    }
+
+    fun clearFormError() = _state.update { it.copy(formError = null) }
+
+    fun deleteProduct(product: ProductDto, onDone: () -> Unit) {
+        scope.launch {
+            runCatching { repo.deleteProduct(product.id) }
+                .onSuccess { refreshCatalog(); onDone() }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo borrar el producto.") } }
         }
     }
 

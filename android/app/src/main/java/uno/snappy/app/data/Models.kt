@@ -12,6 +12,7 @@ data class RestaurantDto(
     val id: String,
     val name: String? = null,
     @SerialName("is_open") val isOpen: Boolean? = null,
+    @SerialName("subscription_plan") val subscriptionPlan: String? = null,
 )
 
 @Serializable
