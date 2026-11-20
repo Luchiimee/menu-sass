@@ -11,18 +11,22 @@ private val money = NumberFormat.getCurrencyInstance(ar).apply { maximumFraction
 private val hour = DateTimeFormatter.ofPattern("HH:mm", ar).withZone(ZoneId.of("America/Argentina/Buenos_Aires"))
 private val dayHour = DateTimeFormatter.ofPattern("dd/MM HH:mm", ar).withZone(ZoneId.of("America/Argentina/Buenos_Aires"))
 
+// Supabase manda "2026-11-20T21:43:12.34+00:00": Instant.parse solo acepta la "Z" final.
+private fun parseInstant(iso: String?): Instant =
+    runCatching { java.time.OffsetDateTime.parse(iso).toInstant() }.getOrElse { Instant.parse(iso) }
+
 fun formatMoney(value: Double?): String = money.format(value ?: 0.0)
 
-fun formatTime(iso: String?): String = runCatching { dayHour.format(Instant.parse(iso)) }.getOrDefault("")
-fun formatHour(iso: String?): String = runCatching { hour.format(Instant.parse(iso)) }.getOrDefault("")
+fun formatTime(iso: String?): String = runCatching { dayHour.format(parseInstant(iso)) }.getOrDefault("")
+fun formatHour(iso: String?): String = runCatching { hour.format(parseInstant(iso)) }.getOrDefault("")
 
 // "recién", "hace 7 min", "hace 2 h 10 min"; pasadas 24 h muestra la fecha.
 fun formatAgo(iso: String?): String = runCatching {
-    val mins = java.time.Duration.between(Instant.parse(iso), Instant.now()).toMinutes()
+    val mins = java.time.Duration.between(parseInstant(iso), Instant.now()).toMinutes()
     when {
         mins < 1 -> "recién"
         mins < 60 -> "hace $mins min"
         mins < 24 * 60 -> "hace ${mins / 60} h ${mins % 60} min"
-        else -> dayHour.format(Instant.parse(iso))
+        else -> dayHour.format(parseInstant(iso))
     }
 }.getOrDefault("")

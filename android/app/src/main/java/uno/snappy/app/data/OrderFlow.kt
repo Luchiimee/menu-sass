@@ -82,9 +82,11 @@ fun stageLabel(stage: OrderStage, kind: String): String = when (stage) {
     OrderStage.FINAL -> "Finalizados"
 }
 
-// "4" pasa a "Mesa 4"; si ya viene con nombre ("Terraza 2") se deja como está.
+// "4", "mesa1" y "Mesa 1" se muestran como "Mesa N"; si ya viene con otro nombre ("Terraza 2") se respeta.
 fun tableLabel(name: String?): String {
     val n = name?.trim().orEmpty()
     if (n.isEmpty()) return "Mesa"
-    return if (n.all { it.isDigit() }) "Mesa $n" else n
+    if (n.all { it.isDigit() }) return "Mesa $n"
+    Regex("^mesa\\s*(\\d+)$", RegexOption.IGNORE_CASE).find(n)?.let { return "Mesa ${it.groupValues[1]}" }
+    return n.replaceFirstChar { it.uppercase() }
 }
