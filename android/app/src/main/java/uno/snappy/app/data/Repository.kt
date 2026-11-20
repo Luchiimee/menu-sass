@@ -109,6 +109,14 @@ class Repository {
         }) { filter { eq("id", order.id) } }
     }
 
+    // "Confirmar pago y cerrar" de una mesa: igual que el panel web (la mesa queda libre al completarse).
+    suspend fun closeTableOrder(orderId: String) {
+        supabase.from("orders").update({
+            set("status", OrderStatus.COMPLETADO)
+            set("payment_status", "pagado")
+        }) { filter { eq("id", orderId) } }
+    }
+
     suspend fun confirmTransferPayment(orderId: String) {
         supabase.from("orders").update({ set("pago_confirmado", true) }) { filter { eq("id", orderId) } }
     }

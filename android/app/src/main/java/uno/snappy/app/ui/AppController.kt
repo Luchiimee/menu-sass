@@ -261,6 +261,15 @@ class AppController(private val app: Application) {
         }
     }
 
+    // Mesa: confirmar el cobro y liberar la mesa.
+    fun closeTableOrder(order: OrderDto) {
+        _state.update { s -> s.copy(orders = s.orders.map { if (it.id == order.id) it.copy(status = OrderStatus.COMPLETADO, paymentStatus = "pagado") else it }) }
+        scope.launch {
+            runCatching { repo.closeTableOrder(order.id) }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo cerrar la mesa.") }; refreshOrders() }
+        }
+    }
+
     fun cancel(order: OrderDto) = advance(order, OrderStatus.CANCELADO)
 
     fun confirmTransfer(order: OrderDto) {

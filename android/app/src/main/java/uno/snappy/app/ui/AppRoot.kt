@@ -1,6 +1,8 @@
 package uno.snappy.app.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +15,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -25,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
 import uno.snappy.app.data.OrderStatus
 
 @Composable
@@ -35,6 +41,8 @@ fun AppRoot(state: UiState, vm: AppController) {
         Stage.READY -> MainScaffold(state = state, vm = vm)
     }
 }
+
+private data class NavEntry(val icon: ImageVector, val label: String)
 
 @Composable
 private fun MainScaffold(state: UiState, vm: AppController) {
@@ -49,36 +57,48 @@ private fun MainScaffold(state: UiState, vm: AppController) {
     }
 
     val pending = state.orders.count { it.status == OrderStatus.PENDIENTE }
+    val entries = listOf(
+        NavEntry(Icons.Filled.Receipt, if (pending > 0) "Pedidos ($pending)" else "Pedidos"),
+        NavEntry(Icons.Filled.Inventory2, "Catálogo"),
+        NavEntry(Icons.Filled.Settings, "Ajustes"),
+    )
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = tab == 0, onClick = { tab = 0 },
-                    icon = { Icon(Icons.Filled.Receipt, contentDescription = null) },
-                    label = { Text(if (pending > 0) "Pedidos ($pending)" else "Pedidos") },
-                )
-                NavigationBarItem(
-                    selected = tab == 1, onClick = { tab = 1 },
-                    icon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
-                    label = { Text("Catálogo") },
-                )
-                NavigationBarItem(
-                    selected = tab == 2, onClick = { tab = 2 },
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    label = { Text("Ajustes") },
-                )
-            }
-        },
-    ) { padding: PaddingValues ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-            if (state.keepAlive) BatteryBanner()
-            Box(Modifier.weight(1f).fillMaxSize()) {
-                when (tab) {
-                    0 -> OrdersScreen(state = state, vm = vm)
-                    1 -> ProductsScreen(state = state, vm = vm)
-                    else -> SettingsScreen(state = state, vm = vm)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Tablet: barra lateral. Celular: barra de abajo.
+        val wide = maxWidth >= 720.dp
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbar) },
+            bottomBar = {
+                if (!wide) NavigationBar {
+                    entries.forEachIndexed { i, e ->
+                        NavigationBarItem(
+                            selected = tab == i, onClick = { tab = i },
+                            icon = { Icon(e.icon, contentDescription = null) },
+                            label = { Text(e.label) },
+                        )
+                    }
+                }
+            },
+        ) { padding: PaddingValues ->
+            Row(Modifier.padding(padding).fillMaxSize()) {
+                if (wide) NavigationRail {
+                    entries.forEachIndexed { i, e ->
+                        NavigationRailItem(
+                            selected = tab == i, onClick = { tab = i },
+                            icon = { Icon(e.icon, contentDescription = null) },
+                            label = { Text(e.label) },
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f).fillMaxSize()) {
+                    if (state.keepAlive) BatteryBanner()
+                    Box(Modifier.weight(1f).fillMaxSize()) {
+                        when (tab) {
+                            0 -> OrdersScreen(state = state, vm = vm)
+                            1 -> ProductsScreen(state = state, vm = vm)
+                            else -> SettingsScreen(state = state, vm = vm)
+                        }
+                    }
                 }
             }
         }

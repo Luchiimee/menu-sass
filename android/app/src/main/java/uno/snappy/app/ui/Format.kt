@@ -15,3 +15,14 @@ fun formatMoney(value: Double?): String = money.format(value ?: 0.0)
 
 fun formatTime(iso: String?): String = runCatching { dayHour.format(Instant.parse(iso)) }.getOrDefault("")
 fun formatHour(iso: String?): String = runCatching { hour.format(Instant.parse(iso)) }.getOrDefault("")
+
+// "recién", "hace 7 min", "hace 2 h 10 min"; pasadas 24 h muestra la fecha.
+fun formatAgo(iso: String?): String = runCatching {
+    val mins = java.time.Duration.between(Instant.parse(iso), Instant.now()).toMinutes()
+    when {
+        mins < 1 -> "recién"
+        mins < 60 -> "hace $mins min"
+        mins < 24 * 60 -> "hace ${mins / 60} h ${mins % 60} min"
+        else -> dayHour.format(Instant.parse(iso))
+    }
+}.getOrDefault("")
