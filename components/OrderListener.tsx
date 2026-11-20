@@ -55,7 +55,11 @@ export default function OrderListener() {
 
             console.log('🔔 PEDIDO NUEVO:', payload);
             window.dispatchEvent(new Event('order-received'));
-            
+
+            // Aviso y sonido solo para pedidos de clientes (entran como 'pendiente'). Lo que carga el propio
+            // negocio (abrir una mesa a mano, venta de mostrador) refresca los paneles pero no suena.
+            if (payload.new.status !== 'pendiente') return;
+
             // 1. Mostrar Pop-up Negro (Sonner)
             toast.success('¡Nuevo Pedido Recibido!', {
                 description: `Total: $${payload.new.total}`,
