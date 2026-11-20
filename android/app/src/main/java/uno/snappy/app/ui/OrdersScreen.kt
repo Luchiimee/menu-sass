@@ -33,7 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -91,29 +94,52 @@ fun OrdersScreen(state: UiState, vm: AppController) {
     var selected by rememberSaveable { mutableStateOf(OrderTab.DELIVERY) }
     val tab = if (selected in tabs) selected else OrderTab.DELIVERY
     val list = orders.filter { orderKind(it) == tab.kind }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    val q = query.trim().lowercase()
+    val results = if (q.isEmpty()) emptyList() else orders.filter {
+        (it.customerName ?: "").lowercase().contains(q) ||
+            (it.customerPhone ?: "").contains(q) ||
+            it.id.lowercase().startsWith(q.removePrefix("#"))
+    }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 720.dp
         Column(Modifier.fillMaxSize()) {
-            Header(state, vm)
+            Header(state, vm, searching) { searching = !searching; if (!searching) query = "" }
             if (state.ringing) RingingBanner(vm)
-            TypeTabs(
-                tabs = tabs,
-                selected = tab,
-                pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
-                onSelect = { selected = it },
-            )
-            when {
-                tab == OrderTab.MESA -> MesaSection(list, wide, vm)
-                wide -> Board(list, tab.kind, vm)
-                else -> OrderList(list, vm)
+            if (searching) {
+                OutlinedTextField(
+                    value = query, onValueChange = { query = it }, singleLine = true,
+                    placeholder = { Text("Buscar por nombre o teléfono") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Close, contentDescription = "Borrar") } },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
+            if (searching && q.isNotEmpty()) {
+                // Resultados de todos los tipos, con los finalizados incluidos.
+                if (results.isEmpty()) Text("No hay pedidos de \"${query.trim()}\".", color = Graphite, modifier = Modifier.padding(24.dp))
+                else OrderList(results, vm, foldFinal = false, showKind = true)
+            } else {
+                TypeTabs(
+                    tabs = tabs,
+                    selected = tab,
+                    pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
+                    onSelect = { selected = it },
+                )
+                when {
+                    tab == OrderTab.MESA -> MesaSection(list, wide, vm)
+                    wide -> Board(list, tab.kind, vm)
+                    else -> OrderList(list, vm)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Header(state: UiState, vm: AppController) {
+private fun Header(state: UiState, vm: AppController, searching: Boolean, onSearch: () -> Unit) {
     val open = state.restaurant?.isOpen == true
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -121,6 +147,7 @@ private fun Header(state: UiState, vm: AppController) {
             Text(if (open) "Abierto" else "Cerrado", color = if (open) Fresco else Graphite)
         }
         Switch(checked = open, onCheckedChange = vm::setOpen)
+        IconButton(onClick = onSearch) { Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, contentDescription = "Buscar") }
         IconButton(onClick = vm::refreshOrders) { Icon(Icons.Filled.Refresh, contentDescription = "Actualizar") }
     }
 }
@@ -163,7 +190,7 @@ private val openOrder = compareBy<OrderDto>({ orderStage(it).ordinal }, { it.cre
 
 // ---------- Celular: una lista, con los finalizados plegados al final ----------
 @Composable
-private fun OrderList(orders: List<OrderDto>, vm: AppController) {
+private fun OrderList(orders: List<OrderDto>, vm: AppController, foldFinal: Boolean = true, showKind: Boolean = false) {
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
     var showFinal by rememberSaveable { mutableStateOf(false) }
     val open = orders.filter { orderStage(it) != OrderStage.FINAL }.sortedWith(openOrder)
@@ -179,9 +206,13 @@ private fun OrderList(orders: List<OrderDto>, vm: AppController) {
         }
         items(open, key = { it.id }) { o ->
             val default = orderStage(o) == OrderStage.NUEVO
-            OrderCard(o, expanded[o.id] ?: default, { expanded[o.id] = !(expanded[o.id] ?: default) }, vm)
+            OrderCard(o, expanded[o.id] ?: default, { expanded[o.id] = !(expanded[o.id] ?: default) }, vm, showKind)
         }
-        if (done.isNotEmpty()) {
+        if (done.isNotEmpty() && !foldFinal) {
+            items(done.take(60), key = { it.id }) { o ->
+                OrderCard(o, expanded[o.id] ?: false, { expanded[o.id] = !(expanded[o.id] ?: false) }, vm, showKind)
+            }
+        } else if (done.isNotEmpty()) {
             item(key = "final-header") {
                 Row(
                     Modifier.fillMaxWidth().clickable { showFinal = !showFinal }.padding(vertical = 10.dp, horizontal = 4.dp),
@@ -255,7 +286,7 @@ private fun StatusChip(order: OrderDto) {
 
 // ---------- Tarjeta: resumen siempre, detalle al tocarla ----------
 @Composable
-private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, vm: AppController) {
+private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, vm: AppController, showKind: Boolean = false) {
     val stage = orderStage(order)
     val st = stageStyle(stage)
     val step = nextStep(order.status, order.orderType)
@@ -279,7 +310,8 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
                 Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "${formatAgo(order.createdAt)} · ${lines.size} ${if (lines.size == 1) "ítem" else "ítems"}",
+                        (if (showKind) (if (order.orderType == "mesa") tableLabel(order.tableNumber) else if (order.orderType == "retiro") "Retiro" else "Delivery") + " · " else "") +
+                            "${formatAgo(order.createdAt)} · ${lines.size} ${if (lines.size == 1) "ítem" else "ítems"}",
                         color = if (stage == OrderStage.NUEVO) Alert else Graphite,
                         fontWeight = if (stage == OrderStage.NUEVO) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 13.sp, modifier = Modifier.weight(1f),
