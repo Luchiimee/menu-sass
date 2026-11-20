@@ -146,7 +146,11 @@ private fun Header(state: UiState, vm: AppController) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(state.restaurant?.name ?: "Mi local", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-            Text(if (open) "Abierto" else "Cerrado", color = if (open) Fresco else Graphite)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(if (open) Fresco else Graphite))
+                Spacer(Modifier.width(6.dp))
+                Text(if (open) "Abierto" else "Cerrado", color = if (open) Color(0xFF0B7A52) else Graphite, style = MaterialTheme.typography.labelLarge)
+            }
         }
         Switch(checked = open, onCheckedChange = vm::setOpen)
         IconButton(onClick = vm::refreshOrders) { Icon(Icons.Filled.Refresh, contentDescription = "Actualizar") }
@@ -156,7 +160,7 @@ private fun Header(state: UiState, vm: AppController) {
 @Composable
 private fun RingingBanner(vm: AppController) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Alert).padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).background(Alert).padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Pedido nuevo sin atender", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = Color.White)
@@ -171,10 +175,10 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
             val on = t == selected
             val pending = pendingOf(t)
             Row(
-                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if (on) Ink else Surface2).clickable { onSelect(t) }.padding(vertical = 11.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) Ink else Surface2).clickable { onSelect(t) }.padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(t.label, color = if (on) Color.White else Ink, fontWeight = FontWeight.Bold)
+                Text(t.label, color = if (on) Color.White else Ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 if (pending > 0) {
                     Spacer(Modifier.width(6.dp))
                     Box(Modifier.size(20.dp).clip(CircleShape).background(Alert), contentAlignment = Alignment.Center) {
@@ -300,7 +304,7 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
 
     Card(
         onClick = onToggle,
-        shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 14.dp, bottomEnd = 14.dp),
+        shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 18.dp, bottomEnd = 18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -308,7 +312,7 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
             Box(Modifier.width(5.dp).fillMaxHeight().background(st.accent))
             Column(Modifier.padding(12.dp).weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(order.customerName?.takeIf { it.isNotBlank() } ?: "Sin nombre", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                    Text(order.customerName?.takeIf { it.isNotBlank() } ?: "Sin nombre", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
                     StatusChip(order)
                 }
                 Spacer(Modifier.height(2.dp))
@@ -320,7 +324,7 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
                         fontWeight = if (stage == OrderStage.NUEVO) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 13.sp, modifier = Modifier.weight(1f),
                     )
-                    Text(formatMoney(order.total), fontWeight = FontWeight.Bold)
+                    Text(formatMoney(order.total), fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 if (expanded) {
                     Spacer(Modifier.height(8.dp))
@@ -420,36 +424,43 @@ private fun MesaGrid(entries: List<MesaEntry>, columns: Int, selectedName: Strin
             val stage = e.stage
             val st = stageStyle(stage ?: OrderStage.FINAL)
             val urgent = e.calling || stage == OrderStage.NUEVO
+            // Mesa abierta a mano que todavía no pidió nada: no está "en cocina".
+            val empty = e.order != null && !urgent && itemLines(e.order).isEmpty()
             val bg = when {
                 urgent -> Alert
+                empty -> Color(0xFFE3F6EE)
                 stage == null -> Color.White
                 else -> st.soft
             }
             val fg = when {
                 urgent -> Color.White
+                empty -> Color(0xFF0B5A3C)
                 stage == null -> Ink
                 else -> st.onSoft
             }
             val border = when {
                 urgent -> Alert
-                stage == null -> Surface2
+                empty -> Fresco
+                stage == null -> Color(0xFFE2E2D8)
                 else -> st.accent
             }
             val subtitle = when {
                 e.calling -> "Llama al mozo"
                 e.order == null -> "Libre"
+                empty -> "Abierta · sin consumo"
                 else -> statusText(e.order)
             }
             Card(
                 onClick = { onTap(e) },
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = bg),
                 border = BorderStroke(if (e.name == selectedName) 3.dp else 1.5.dp, if (e.name == selectedName) Ink else border),
             ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(tableLabel(e.name), color = fg, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                    Text(subtitle, color = fg, fontSize = 13.sp)
-                    if (e.order != null) Text("${formatAgo(e.order.createdAt)} · ${formatMoney(e.order.total)}", color = fg, fontSize = 12.sp)
+                Column(Modifier.padding(14.dp)) {
+                    Text(tableLabel(e.name), color = fg, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Text(subtitle, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    if (e.order != null) Text("${formatAgo(e.order.createdAt)} · ${formatMoney(e.order.total)}", color = fg.copy(alpha = 0.85f), fontSize = 12.sp)
                 }
             }
         }

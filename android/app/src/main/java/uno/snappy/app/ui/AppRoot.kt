@@ -69,7 +69,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
-                if (!wide) NavigationBar {
+                if (!wide) NavigationBar(containerColor = androidx.compose.ui.graphics.Color.White) {
                     entries.forEachIndexed { i, e ->
                         NavigationBarItem(
                             selected = tab == i, onClick = { tab = i },
@@ -81,7 +81,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
             },
         ) { padding: PaddingValues ->
             Row(Modifier.padding(padding).fillMaxSize()) {
-                if (wide) NavigationRail {
+                if (wide) NavigationRail(containerColor = androidx.compose.ui.graphics.Color.White) {
                     entries.forEachIndexed { i, e ->
                         NavigationRailItem(
                             selected = tab == i, onClick = { tab = i },
