@@ -118,12 +118,24 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                 searching = searching,
                 onSearch = { searching = !searching; if (!searching) query = "" },
             )
+            if (!searching) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).height(44.dp)
+                        .clip(RoundedCornerShape(14.dp)).background(Color.White)
+                        .clickable { searching = true }.padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Search, contentDescription = null, tint = Graphite, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("Buscar por nombre o teléfono", color = Graphite)
+                }
+            }
             if (searching) {
                 OutlinedTextField(
                     value = query, onValueChange = { query = it }, singleLine = true,
                     placeholder = { Text("Buscar por nombre o teléfono") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Close, contentDescription = "Borrar") } },
+                    trailingIcon = { IconButton(onClick = { query = ""; searching = false }) { Icon(Icons.Filled.Close, contentDescription = "Cerrar búsqueda") } },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
@@ -149,7 +161,7 @@ private fun Header(state: UiState, vm: AppController) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(if (open) Fresco else Graphite))
                 Spacer(Modifier.width(6.dp))
-                Text(if (open) "Abierto" else "Cerrado", color = if (open) Color(0xFF0B7A52) else Graphite, style = MaterialTheme.typography.labelLarge)
+                Text(if (open) "Abierto · recibiendo pedidos" else "Cerrado · no recibís pedidos", color = if (open) Color(0xFF0B7A52) else Graphite, style = MaterialTheme.typography.labelLarge)
             }
         }
         Switch(checked = open, onCheckedChange = vm::setOpen)
@@ -182,13 +194,19 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
                 if (pending > 0) {
                     Spacer(Modifier.width(6.dp))
                     Box(Modifier.size(20.dp).clip(CircleShape).background(Alert), contentAlignment = Alignment.Center) {
-                        Text("$pending", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "$pending", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                            style = androidx.compose.ui.text.TextStyle(
+                                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+                                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                                    androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                                    androidx.compose.ui.text.style.LineHeightStyle.Trim.Both,
+                                ),
+                            ),
+                        )
                     }
                 }
             }
-        }
-        IconButton(onClick = onSearch, modifier = Modifier.size(46.dp)) {
-            Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, contentDescription = "Buscar")
         }
     }
 }
