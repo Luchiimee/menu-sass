@@ -108,13 +108,15 @@ fun OrdersScreen(state: UiState, vm: AppController) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 720.dp
         Column(Modifier.fillMaxSize()) {
-            Header(state, vm, searching) { searching = !searching; if (!searching) query = "" }
+            Header(state, vm)
             if (state.ringing) RingingBanner(vm)
             TypeTabs(
                 tabs = tabs,
                 selected = tab,
                 pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
                 onSelect = { selected = it },
+                searching = searching,
+                onSearch = { searching = !searching; if (!searching) query = "" },
             )
             if (searching) {
                 OutlinedTextField(
@@ -139,7 +141,7 @@ fun OrdersScreen(state: UiState, vm: AppController) {
 }
 
 @Composable
-private fun Header(state: UiState, vm: AppController, searching: Boolean, onSearch: () -> Unit) {
+private fun Header(state: UiState, vm: AppController) {
     val open = state.restaurant?.isOpen == true
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -147,7 +149,6 @@ private fun Header(state: UiState, vm: AppController, searching: Boolean, onSear
             Text(if (open) "Abierto" else "Cerrado", color = if (open) Fresco else Graphite)
         }
         Switch(checked = open, onCheckedChange = vm::setOpen)
-        IconButton(onClick = onSearch) { Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, contentDescription = "Buscar") }
         IconButton(onClick = vm::refreshOrders) { Icon(Icons.Filled.Refresh, contentDescription = "Actualizar") }
     }
 }
@@ -164,7 +165,7 @@ private fun RingingBanner(vm: AppController) {
 }
 
 @Composable
-private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (OrderTab) -> Int, onSelect: (OrderTab) -> Unit) {
+private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (OrderTab) -> Int, onSelect: (OrderTab) -> Unit, searching: Boolean, onSearch: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         tabs.forEach { t ->
             val on = t == selected
@@ -181,6 +182,9 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
                     }
                 }
             }
+        }
+        IconButton(onClick = onSearch, modifier = Modifier.size(46.dp)) {
+            Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, contentDescription = "Buscar")
         }
     }
 }
