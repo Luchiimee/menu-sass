@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { isValidWebhookSecret } from '@/lib/webhookAuth';
+import { sendFcm } from '@/lib/fcm';
 
 // Configuramos VAPID de forma perezosa y protegida: NO al cargar el módulo
 // (eso corre durante el build y, si las claves faltan o están mal, rompe el
@@ -70,13 +71,19 @@ if (!restaurant?.user_id) {
 if (restaurant?.subscription_plan === 'light') {
   return NextResponse.json({ ok: true, message: 'Plan Light no incluye Push' });
 }
-    // 2. Buscar todas las suscripciones push del dueño
+    // 2. Buscar las suscripciones web push y los celulares Android (FCM) del dueño
     const { data: subscriptions } = await supabaseAdmin
       .from('push_subscriptions')
       .select('*')
       .eq('user_id', restaurant.user_id);
 
-    if (!subscriptions || subscriptions.length === 0) {
+    const { data: fcmRows } = await supabaseAdmin
+      .from('fcm_tokens')
+      .select('token')
+      .eq('user_id', restaurant.user_id);
+    const fcmTokens = (fcmRows || []).map((r) => r.token as string);
+
+    if ((!subscriptions || subscriptions.length === 0) && fcmTokens.length === 0) {
       return NextResponse.json({ ok: true, sent: 0 });
     }
 
@@ -104,7 +111,7 @@ if (restaurant?.subscription_plan === 'light') {
     let sentCount = 0;
 
     await Promise.allSettled(
-      subscriptions.map(async (sub) => {
+      (subscriptions || []).map(async (sub) => {
         try {
          await webpush.sendNotification(
 
@@ -147,7 +154,25 @@ if (restaurant?.subscription_plan === 'light') {
         .in('endpoint', expiredEndpoints);
     }
 
-    return NextResponse.json({ ok: true, sent: sentCount, cleaned: expiredEndpoints.length });
+    // 6. Android (FCM): mensaje de solo datos, la app arma la notificación con sonido
+    let fcmSent = 0;
+    if (fcmTokens.length > 0) {
+      try {
+        const fcm = await sendFcm(fcmTokens, {
+          title: `${orderTypeEmoji} Nuevo Pedido - ${orderTypeLabel}`,
+          body: `${customerName} • $${Number(total).toLocaleString('es-AR')}`,
+          orderId: String(record.id ?? ''),
+        });
+        fcmSent = fcm.sent;
+        if (fcm.invalid.length > 0) {
+          await supabaseAdmin.from('fcm_tokens').delete().in('token', fcm.invalid);
+        }
+      } catch (err) {
+        console.error('FCM error:', err);
+      }
+    }
+
+    return NextResponse.json({ ok: true, sent: sentCount, fcm: fcmSent, cleaned: expiredEndpoints.length });
   } catch (err) {
     console.error('Push send route error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
