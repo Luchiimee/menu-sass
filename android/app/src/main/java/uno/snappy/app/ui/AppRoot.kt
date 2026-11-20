@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -31,7 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
-import uno.snappy.app.data.OrderStatus
+import uno.snappy.app.data.OrderStage
+import uno.snappy.app.data.orderStage
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -48,7 +52,14 @@ fun AppRoot(state: UiState, vm: AppController) {
     }
 }
 
-private data class NavEntry(val icon: ImageVector, val label: String)
+private data class NavEntry(val icon: ImageVector, val label: String, val badge: Int = 0)
+
+@Composable
+private fun NavIcon(e: NavEntry) {
+    if (e.badge > 0) BadgedBox(badge = { Badge(containerColor = Alert, contentColor = androidx.compose.ui.graphics.Color.White) { Text("${e.badge}") } }) {
+        Icon(e.icon, contentDescription = null)
+    } else Icon(e.icon, contentDescription = null)
+}
 
 @Composable
 private fun MainScaffold(state: UiState, vm: AppController) {
@@ -81,11 +92,13 @@ private fun MainScaffold(state: UiState, vm: AppController) {
         }
     }
 
-    val pending = state.orders.count { it.status == OrderStatus.PENDIENTE }
+    // Un solo globito: todo lo que está sin atender (delivery + retiro + mesa)
+    val pending = state.orders.count { orderStage(it) == OrderStage.NUEVO }
     val entries = listOf(
-        NavEntry(Icons.Filled.Receipt, if (pending > 0) "Pedidos ($pending)" else "Pedidos"),
-        NavEntry(Icons.Filled.Inventory2, "Catálogo"),
-        NavEntry(Icons.Filled.Settings, "Ajustes"),
+        NavEntry(Icons.Filled.Receipt, "Pedidos", pending),
+        NavEntry(Icons.Filled.Restaurant, "Catálogo"),
+        NavEntry(Icons.Filled.Payments, "Caja"),
+        NavEntry(Icons.Filled.Menu, "Más"),
     )
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -98,7 +111,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                     entries.forEachIndexed { i, e ->
                         NavigationBarItem(
                             selected = tab == i, onClick = { tab = i },
-                            icon = { Icon(e.icon, contentDescription = null) },
+                            icon = { NavIcon(e) },
                             label = { Text(e.label) },
                         )
                     }
@@ -110,7 +123,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                     entries.forEachIndexed { i, e ->
                         NavigationRailItem(
                             selected = tab == i, onClick = { tab = i },
-                            icon = { Icon(e.icon, contentDescription = null) },
+                            icon = { NavIcon(e) },
                             label = { Text(e.label) },
                         )
                     }
@@ -121,7 +134,8 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                         when (tab) {
                             0 -> OrdersScreen(state = state, vm = vm)
                             1 -> ProductsScreen(state = state, vm = vm)
-                            else -> SettingsScreen(state = state, vm = vm)
+                            2 -> CajaScreen(state = state, vm = vm)
+                            else -> MoreScreen(state = state, vm = vm)
                         }
                     }
                 }

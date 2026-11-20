@@ -41,8 +41,6 @@ import uno.snappy.app.data.AlertSettings
 @Composable
 fun SettingsScreen(state: UiState, vm: AppController) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("Ajustes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-
         Section("Aviso de pedido nuevo")
         Choice("Sonar una vez", "Como un mensaje común.", !state.alertRepeat) { vm.setAlertRepeat(false) }
         Choice("Repetir hasta atender", "Suena una y otra vez hasta que tomes el pedido (o toques Silenciar).", state.alertRepeat) { vm.setAlertRepeat(true) }
@@ -77,9 +75,6 @@ fun SettingsScreen(state: UiState, vm: AppController) {
             Switch(checked = state.keepAlive, onCheckedChange = vm::setKeepAlive)
         }
         BatteryStatus()
-
-        HorizontalDivider(Modifier.padding(vertical = 20.dp))
-        OutlinedButton(onClick = vm::signOut, modifier = Modifier.fillMaxWidth()) { Text("Cerrar sesión") }
     }
 }
 

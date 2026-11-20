@@ -40,6 +40,24 @@ data class OrderDto(
 data class CashShiftDto(
     val id: String,
     @SerialName("closed_at") val closedAt: String? = null,
+    @SerialName("opened_at") val openedAt: String? = null,
+    @SerialName("opening_balance") val openingBalance: Double? = null,
+)
+
+@Serializable
+data class ExtraDto(
+    val id: String,
+    val name: String,
+    val price: Double? = null,
+    @SerialName("is_available") val isAvailable: Boolean? = null,
+)
+
+@Serializable
+data class ExpenseDto(
+    val id: String,
+    val description: String? = null,
+    val amount: Double? = null,
+    val category: String? = null,
 )
 
 @Serializable

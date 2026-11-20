@@ -26,6 +26,10 @@ import uno.snappy.app.data.OrderStatus
 import uno.snappy.app.data.ProductDto
 import uno.snappy.app.data.RestaurantDto
 import uno.snappy.app.data.TableDto
+import uno.snappy.app.data.CashShiftDto
+import uno.snappy.app.data.ExpenseDto
+import uno.snappy.app.data.ExtraDto
+import uno.snappy.app.data.buildCashSummary
 import uno.snappy.app.data.ImageUtil
 import uno.snappy.app.data.Repository
 
@@ -40,6 +44,12 @@ data class UiState(
     val categories: List<CategoryDto> = emptyList(),
     val products: List<ProductDto> = emptyList(),
     val tables: List<TableDto> = emptyList(),
+    val extras: List<ExtraDto> = emptyList(),
+    // Caja: turno abierto (null = no hay), sus pedidos y gastos
+    val shift: CashShiftDto? = null,
+    val shiftOrders: List<OrderDto> = emptyList(),
+    val expenses: List<ExpenseDto> = emptyList(),
+    val cashLoaded: Boolean = false,
     val message: String? = null,
     val savingProduct: Boolean = false,
     val formError: String? = null,
@@ -143,6 +153,8 @@ class AppController(private val app: Application) {
         applyKeepAlive()
         refreshOrders()
         refreshCatalog()
+        refreshExtras()
+        refreshCash()
         refreshTables()
         startLive(restaurant.id)
         startTablesLive(restaurant.id)
@@ -176,6 +188,7 @@ class AppController(private val app: Application) {
         val tables = runCatching { repo.tables(id) }.getOrNull()
         if (orders != null) _state.update { it.copy(orders = orders) }
         if (tables != null) _state.update { it.copy(tables = tables) }
+        loadCash()
         if (orders == null) {
             _state.update { it.copy(message = "No hay conexión. Revisá tu internet.") }
             return false
@@ -428,5 +441,102 @@ class AppController(private val app: Application) {
         }
     }
 
+    // ---- Adicionales y categorías ----
+    fun refreshExtras() {
+        val id = _state.value.restaurant?.id ?: return
+        scope.launch { runCatching { repo.extras(id) }.onSuccess { e -> _state.update { it.copy(extras = e) } } }
+    }
+
+    fun saveExtra(id: String?, name: String, price: Double, onDone: () -> Unit) {
+        val rid = _state.value.restaurant?.id ?: return
+        scope.launch {
+            runCatching { repo.saveExtra(rid, id, name.trim(), price) }
+                .onSuccess { refreshExtras(); onDone() }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo guardar el adicional.") } }
+        }
+    }
+
+    fun deleteExtra(extra: ExtraDto) {
+        scope.launch {
+            runCatching { repo.deleteExtra(extra.id) }
+                .onSuccess { refreshExtras() }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo borrar el adicional.") } }
+        }
+    }
+
+    fun saveCategory(id: String?, name: String, onDone: () -> Unit) {
+        val rid = _state.value.restaurant?.id ?: return
+        val order = _state.value.categories.size + 1
+        scope.launch {
+            runCatching { repo.saveCategory(rid, id, name.trim(), order) }
+                .onSuccess { refreshCatalog(); onDone() }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo guardar la categoría.") } }
+        }
+    }
+
+    fun deleteCategory(category: CategoryDto) {
+        scope.launch {
+            runCatching { repo.deleteCategory(category.id) }
+                .onSuccess { refreshCatalog() }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo borrar la categoría.") } }
+        }
+    }
+
+    // ---- Caja ----
+    fun refreshCash() { scope.launch { loadCash() } }
+
+    private suspend fun loadCash() {
+        val rid = _state.value.restaurant?.id ?: return
+        val shift = runCatching { repo.currentShift(rid) }.getOrElse { return }
+        if (shift == null) {
+            _state.update { it.copy(shift = null, shiftOrders = emptyList(), expenses = emptyList(), cashLoaded = true) }
+            return
+        }
+        val orders = runCatching { repo.shiftOrders(shift.id) }.getOrNull()
+        val exps = runCatching { repo.shiftExpenses(shift.id) }.getOrNull()
+        _state.update { it.copy(shift = shift, shiftOrders = orders ?: it.shiftOrders, expenses = exps ?: it.expenses, cashLoaded = true) }
+    }
+
+    fun openShift(opening: Double) {
+        val rid = _state.value.restaurant?.id ?: return
+        scope.launch {
+            runCatching { repo.openShift(rid, opening) }
+                .onSuccess { loadCash() }
+                .onFailure { _state.update { s -> s.copy(message = "No se pudo iniciar el turno.") } }
+        }
+    }
+
+    fun closeShift() {
+        val s = _state.value
+        val shift = s.shift ?: return
+        val summary = buildCashSummary(s.shiftOrders, s.expenses, shift.openingBalance ?: 0.0).toJson()
+        scope.launch {
+            runCatching { repo.closeShift(shift.id, summary) }
+                .onSuccess { loadCash(); _state.update { it.copy(message = "Caja cerrada.") } }
+                .onFailure { _state.update { st -> st.copy(message = "No se pudo cerrar la caja.") } }
+        }
+    }
+
+    fun addExpense(description: String, amount: Double) {
+        val s = _state.value
+        val rid = s.restaurant?.id ?: return
+        val shift = s.shift ?: return
+        scope.launch {
+            runCatching { repo.addExpense(rid, shift.id, description.trim(), amount) }
+                .onSuccess { loadCash() }
+                .onFailure { _state.update { st -> st.copy(message = "No se pudo guardar el gasto.") } }
+        }
+    }
+
+    fun deleteExpense(expense: ExpenseDto) {
+        scope.launch {
+            runCatching { repo.deleteExpense(expense.id) }
+                .onSuccess { loadCash() }
+                .onFailure { _state.update { st -> st.copy(message = "No se pudo borrar el gasto.") } }
+        }
+    }
+
     fun messageShown() = _state.update { it.copy(message = null) }
+
+    fun showMessage(text: String) = _state.update { it.copy(message = text) }
 }

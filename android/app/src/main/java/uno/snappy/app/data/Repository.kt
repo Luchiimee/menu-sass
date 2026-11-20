@@ -269,4 +269,94 @@ class Repository {
     suspend fun deleteProduct(productId: String) {
         supabase.from("products").delete { filter { eq("id", productId) } }
     }
+
+    // ---- Adicionales (tabla extras, igual que la web) ----
+    suspend fun extras(restaurantId: String): List<ExtraDto> =
+        supabase.from("extras")
+            .select { filter { eq("restaurant_id", restaurantId) }; order("name", Order.ASCENDING) }
+            .decodeList<ExtraDto>()
+
+    suspend fun saveExtra(restaurantId: String, id: String?, name: String, price: Double) {
+        if (id == null) {
+            supabase.from("extras").insert(buildJsonObject {
+                put("restaurant_id", restaurantId); put("name", name); put("price", price); put("is_available", true)
+            })
+        } else {
+            supabase.from("extras").update({ set("name", name); set("price", price) }) { filter { eq("id", id) } }
+        }
+    }
+
+    suspend fun deleteExtra(id: String) {
+        supabase.from("extras").delete { filter { eq("id", id) } }
+    }
+
+    // ---- Categorías (sin imagen en la app) ----
+    suspend fun saveCategory(restaurantId: String, id: String?, name: String, sortOrder: Int) {
+        if (id == null) {
+            supabase.from("categories").insert(buildJsonObject {
+                put("restaurant_id", restaurantId); put("name", name); put("sort_order", sortOrder)
+            })
+        } else {
+            supabase.from("categories").update({ set("name", name) }) { filter { eq("id", id) } }
+        }
+    }
+
+    suspend fun deleteCategory(id: String) {
+        supabase.from("categories").delete { filter { eq("id", id) } }
+    }
+
+    // ---- Caja: turnos, gastos y cierre (mismas tablas y mismo resumen que el panel web) ----
+    suspend fun currentShift(restaurantId: String): CashShiftDto? =
+        supabase.from("cash_shifts")
+            .select { filter { eq("restaurant_id", restaurantId); exact("closed_at", null) }; order("opened_at", Order.DESCENDING); limit(1) }
+            .decodeList<CashShiftDto>().firstOrNull()
+
+    suspend fun shiftOrders(shiftId: String): List<OrderDto> =
+        supabase.from("orders").select { filter { eq("shift_id", shiftId) } }.decodeList<OrderDto>()
+
+    suspend fun shiftExpenses(shiftId: String): List<ExpenseDto> =
+        supabase.from("cash_expenses")
+            .select { filter { eq("shift_id", shiftId) }; order("created_at", Order.ASCENDING) }
+            .decodeList<ExpenseDto>()
+
+    suspend fun addExpense(restaurantId: String, shiftId: String, description: String, amount: Double) {
+        supabase.from("cash_expenses").insert(buildJsonObject {
+            put("restaurant_id", restaurantId); put("shift_id", shiftId); put("description", description); put("amount", amount)
+        })
+    }
+
+    suspend fun deleteExpense(id: String) {
+        supabase.from("cash_expenses").delete { filter { eq("id", id) } }
+    }
+
+    // Como /api/cash/open de la web: crea el turno y la orden "apertura" con el monto de cambio.
+    suspend fun openShift(restaurantId: String, opening: Double) {
+        val shift = supabase.from("cash_shifts")
+            .insert(buildJsonObject { put("restaurant_id", restaurantId); put("opening_balance", opening) }) { select() }
+            .decodeSingle<CashShiftDto>()
+        try {
+            supabase.from("orders").insert(buildJsonObject {
+                put("restaurant_id", restaurantId)
+                put("total", opening)
+                put("order_type", "apertura")
+                put("customer_name", "MONTO INICIAL (CAMBIO)")
+                put("payment_method", "efectivo")
+                put("status", OrderStatus.COMPLETADO)
+                put("shift_id", shift.id)
+                put("items", kotlinx.serialization.json.JsonArray(emptyList()))
+            })
+        } catch (e: Exception) {
+            // No dejar un turno abierto sin su apertura
+            runCatching { supabase.from("cash_shifts").update({ set("closed_at", Instant.now().toString()) }) { filter { eq("id", shift.id) } } }
+            throw e
+        }
+    }
+
+    suspend fun closeShift(shiftId: String, summary: kotlinx.serialization.json.JsonObject) {
+        supabase.from("cash_shifts").update({
+            set("closed_at", Instant.now().toString())
+            set("close_type", "manual")
+            set("summary", summary)
+        }) { filter { eq("id", shiftId) } }
+    }
 }
