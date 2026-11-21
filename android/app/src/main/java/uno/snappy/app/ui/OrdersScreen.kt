@@ -62,7 +62,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -218,7 +224,8 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
                 val dot = if (pending == 0) dotOf(t) else null
                 if (dot != null) {
                     Spacer(Modifier.width(7.dp))
-                    Box(Modifier.size(11.dp).clip(CircleShape).background(dot))
+                    // Rojo = llaman al mozo: titila para que no se pase
+                    Box(Modifier.size(11.dp).alpha(if (dot == Alert) blinkAlpha() else 1f).clip(CircleShape).background(dot))
                 }
                 if (pending > 0) {
                     Spacer(Modifier.width(6.dp))
@@ -499,6 +506,7 @@ private fun MesaGrid(entries: List<MesaEntry>, columns: Int, selectedName: Strin
             }
             Card(
                 onClick = { onTap(e) },
+                modifier = if (e.calling) Modifier.alpha(blinkAlpha()) else Modifier,
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = bg),
                 border = BorderStroke(if (e.name == selectedName) 3.dp else 1.5.dp, if (e.name == selectedName) Ink else border),
@@ -646,4 +654,12 @@ private fun AddProductDialog(products: List<ProductDto>, onAdd: (ProductDto) -> 
         },
         confirmButton = { TextButton(onClick = onClose) { Text("Listo") } },
     )
+}
+
+
+@Composable
+private fun blinkAlpha(): Float {
+    val t = rememberInfiniteTransition(label = "blink")
+    val a by t.animateFloat(1f, 0.35f, infiniteRepeatable(tween(650), RepeatMode.Reverse), label = "a")
+    return a
 }

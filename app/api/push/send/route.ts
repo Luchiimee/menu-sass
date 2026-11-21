@@ -46,15 +46,28 @@ const restaurantId = record.restaurant_id;
 const customerName = record.customer_name;
 const total = record.total;
 const orderType = record.order_type;
+    const oldRecord = webhookPayload.old_record;
+
+    // Avisos que arma el propio webhook según qué cambió:
+    //  - INSERT en orders con status 'pendiente'  → pedido nuevo de un cliente
+    //  - UPDATE en tables: needs_attention pasó a true → "Llamar al mozo"
+    //  - UPDATE en orders: payment_status pasó a 'esperando_confirmacion' → "Pagar cuenta"
+    let kind: 'pedido' | 'mozo' | 'cuenta' | null = null;
+    if (webhookPayload.table === 'tables') {
+      if (webhookPayload.type === 'UPDATE' && record.needs_attention === true && oldRecord?.needs_attention !== true) kind = 'mozo';
+    } else if (webhookPayload.type === 'UPDATE') {
+      if (record.order_type !== 'delivery' && record.order_type !== 'retiro' && record.payment_status === 'esperando_confirmacion' && oldRecord?.payment_status !== 'esperando_confirmacion') kind = 'cuenta';
+    } else if (record.status === 'pendiente') {
+      // Solo los pedidos de clientes entran como 'pendiente' (checkout y Mercado Pago). Lo que carga el propio
+      // negocio (abrir una mesa a mano, venta de mostrador, apertura de caja) entra con otro estado y no avisa.
+      kind = 'pedido';
+    }
+    if (!kind) {
+      return NextResponse.json({ ok: true, sent: 0, skipped: 'sin aviso para este evento' });
+    }
 
     if (!restaurantId) {
       return NextResponse.json({ error: 'Missing restaurantId' }, { status: 400 });
-    }
-
-    // Solo los pedidos de clientes entran como 'pendiente' (checkout y Mercado Pago). Lo que carga el propio
-    // negocio (abrir una mesa a mano, venta de mostrador, apertura de caja) entra con otro estado y no avisa.
-    if (record.status !== 'pendiente') {
-      return NextResponse.json({ ok: true, sent: 0, skipped: 'no es un pedido de cliente' });
     }
 
     const supabaseAdmin = createClient(
@@ -104,10 +117,20 @@ if (restaurant?.subscription_plan === 'light') {
       orderType === 'retiro' ? '🏃' :
       '🍽️';
 
+    const pushTitle =
+      kind === 'mozo' ? '🔔 Llaman al mozo' :
+      kind === 'cuenta' ? '💳 Piden la cuenta' :
+      `${orderTypeEmoji} Nuevo Pedido - ${orderTypeLabel}`;
+    const pushBody =
+      kind === 'mozo' ? `${record.name ?? 'Una mesa'} necesita atención` :
+      kind === 'cuenta' ? `${customerName ?? 'Mesa'} • $${Number(total).toLocaleString('es-AR')}` :
+      `${customerName} • $${Number(total).toLocaleString('es-AR')}`;
+    const pushType = kind === 'pedido' ? orderType : 'mesa';
+
     const payload = JSON.stringify({
-      title: `${orderTypeEmoji} Nuevo Pedido - ${orderTypeLabel}`,
-      body: `${customerName} • $${Number(total).toLocaleString('es-AR')}\nTocá para ver el detalle`,
-      orderType,
+      title: pushTitle,
+      body: `${pushBody}\nTocá para ver el detalle`,
+      orderType: pushType,
       customerName,
       total,
     });
@@ -165,10 +188,10 @@ if (restaurant?.subscription_plan === 'light') {
     if (fcmTokens.length > 0) {
       try {
         const fcm = await sendFcm(fcmTokens, {
-          title: `${orderTypeEmoji} Nuevo Pedido - ${orderTypeLabel}`,
-          body: `${customerName} • $${Number(total).toLocaleString('es-AR')}`,
-          orderId: String(record.id ?? ''),
-          orderType: String(orderType ?? ''),
+          title: pushTitle,
+          body: pushBody,
+          orderId: kind === 'mozo' ? '' : String(record.id ?? ''),
+          orderType: String(pushType ?? ''),
         });
         fcmSent = fcm.sent;
         if (fcm.invalid.length > 0) {

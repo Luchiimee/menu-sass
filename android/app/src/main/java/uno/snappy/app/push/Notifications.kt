@@ -72,7 +72,7 @@ object Notifications {
             .setAutoCancel(true)
             .setContentIntent(pending)
             .build()
-        val id = (orderId ?: System.currentTimeMillis().toString()).hashCode()
+        val id = (orderId?.takeIf { it.isNotBlank() } ?: System.currentTimeMillis().toString()).hashCode()
         runCatching { NotificationManagerCompat.from(context).notify(id, notification) }
     }
 }
