@@ -100,6 +100,10 @@ fun OrdersScreen(state: UiState, vm: AppController) {
     val tabs = if (hasSalon) OrderTab.entries.toList() else listOf(OrderTab.DELIVERY, OrderTab.RETIRO)
     var selected by rememberSaveable { mutableStateOf(OrderTab.DELIVERY) }
     val tab = if (selected in tabs) selected else OrderTab.DELIVERY
+    androidx.compose.runtime.LaunchedEffect(state.focusKind) {
+        state.focusKind?.let { k -> OrderTab.entries.firstOrNull { it.kind == k }?.let { selected = it } }
+        if (state.focusKind != null) vm.focusConsumed()
+    }
     val list = orders.filter { orderKind(it) == tab.kind }
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }

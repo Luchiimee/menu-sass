@@ -50,13 +50,14 @@ object Notifications {
         nm.createNotificationChannel(channel)
     }
 
-    fun showOrder(context: Context, title: String, body: String, orderId: String?) {
+    fun showOrder(context: Context, title: String, body: String, orderId: String?, orderType: String? = null) {
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
         ensureChannel(context)
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (orderType != null) putExtra("orderType", orderType)
         }
         val pending = PendingIntent.getActivity(
             context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

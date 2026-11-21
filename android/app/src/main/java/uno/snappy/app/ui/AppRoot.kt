@@ -65,6 +65,8 @@ private fun NavIcon(e: NavEntry) {
 private fun MainScaffold(state: UiState, vm: AppController) {
     var tab by remember { mutableIntStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
+    // Tocar un aviso de pedido lleva a la pestaña Pedidos
+    LaunchedEffect(state.focusKind) { if (state.focusKind != null) tab = 0 }
 
     // Al volver a la app se vuelve a leer todo, y mientras está abierta se revisa cada minuto
     // por si se cortó el "en vivo" (internet, celu dormido, etc.).

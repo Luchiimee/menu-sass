@@ -37,6 +37,7 @@ import uno.snappy.app.data.Repository
 enum class Stage { LOADING, LOGIN, READY }
 
 data class UiState(
+    val focusKind: String? = null,
     val stage: Stage = Stage.LOADING,
     val loginError: String? = null,
     val loggingIn: Boolean = false,
@@ -394,6 +395,9 @@ class AppController(private val app: Application) {
                 .onFailure { _state.update { s -> s.copy(message = "No se pudo confirmar el pago."); }; refreshOrders() }
         }
     }
+
+    fun focusOrderType(type: String) = _state.update { it.copy(focusKind = when (type) { "retiro" -> "retiro"; "mesa" -> "mesa"; else -> "delivery" }) }
+    fun focusConsumed() = _state.update { it.copy(focusKind = null) }
 
     fun setBestSellers(on: Boolean) {
         val r = _state.value.restaurant ?: return

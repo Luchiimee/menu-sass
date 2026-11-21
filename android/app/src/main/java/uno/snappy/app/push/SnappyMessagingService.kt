@@ -17,7 +17,7 @@ class SnappyMessagingService : FirebaseMessagingService() {
         val data = message.data
         val title = data["title"] ?: message.notification?.title ?: "Nuevo pedido"
         val body = data["body"] ?: message.notification?.body ?: "Tocá para ver el detalle"
-        Notifications.showOrder(applicationContext, title, body, data["orderId"])
+        Notifications.showOrder(applicationContext, title, body, data["orderId"], data["orderType"])
     }
 
     // Firebase renueva el token de vez en cuando: si hay sesión iniciada lo guardamos de nuevo.
