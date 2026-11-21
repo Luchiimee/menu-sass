@@ -586,6 +586,10 @@ const handleCallWaiter = async () => {
             body: JSON.stringify({ order_id: activeOrderId }),
         });
         const body = await res.json().catch(() => null);
+        if (res.status === 429) {
+            showWaiterError("Ya avisamos al mozo, esperá un momento");
+            return;
+        }
         if (!res.ok || body?.ok !== true) throw new Error('HTTP ' + res.status);
 
         setAvisoError(false);

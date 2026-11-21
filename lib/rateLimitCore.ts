@@ -33,7 +33,7 @@ export const RATE_LIMITS = {
   // Llamar al mozo (POST /api/public/table/call): pocas llamadas por IP y menos por pedido (contador propio,
   // no comparte clave con el seguimiento del pedido)
   tableCallPerIp: { limit: 10, windowSeconds: 60 },
-  tableCallPerOrder: { limit: 3, windowSeconds: 60 },
+  tableCallPerOrder: { limit: 2, windowSeconds: 60 },
   // Crear un pedido de efectivo / transferencia (POST /api/checkout/order). Más holgado que el pago online: no
   // llama a MP, y el wifi de un local (QR de mesa) pone a muchos clientes detrás de la misma IP pública
   newOrderPerIp: { limit: 60, windowSeconds: 10 * 60 },

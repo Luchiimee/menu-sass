@@ -54,7 +54,7 @@ const orderType = record.order_type;
     //  - UPDATE en orders: payment_status pasó a 'esperando_confirmacion' → "Pagar cuenta"
     let kind: 'pedido' | 'mozo' | 'cuenta' | null = null;
     if (webhookPayload.table === 'tables') {
-      if (webhookPayload.type === 'UPDATE' && record.needs_attention === true && oldRecord?.needs_attention !== true) kind = 'mozo';
+      if (webhookPayload.type === 'UPDATE' && record.needs_attention === true && (oldRecord?.needs_attention !== true || record.last_call_at !== oldRecord?.last_call_at)) kind = 'mozo';
     } else if (webhookPayload.type === 'UPDATE') {
       if (record.order_type !== 'delivery' && record.order_type !== 'retiro' && record.payment_status === 'esperando_confirmacion' && oldRecord?.payment_status !== 'esperando_confirmacion') kind = 'cuenta';
     } else if (record.status === 'pendiente') {
