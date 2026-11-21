@@ -133,6 +133,7 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                     val open = orders.filter { orderKind(it) == t.kind }.map { orderStage(it) }
                     when {
                         t == OrderTab.MESA && state.tables.any { it.needsAttention == true } -> Alert
+                        t == OrderTab.MESA && orders.any { orderKind(it) == OrderTab.MESA.kind && it.paymentStatus == "esperando_confirmacion" && orderStage(it) != OrderStage.FINAL } -> Brasa
                         OrderStage.LISTO in open -> stageStyle(OrderStage.LISTO).accent
                         OrderStage.COCINA in open -> stageStyle(OrderStage.COCINA).accent
                         else -> null
@@ -426,6 +427,8 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
 // Una mesa del salón: con su pedido abierto (si lo hay) y si está llamando al mozo.
 private data class MesaEntry(val name: String, val table: TableDto?, val order: OrderDto?) {
     val calling get() = table?.needsAttention == true
+    // Pidió la cuenta desde el celu del cliente (espera que el negocio confirme el cobro)
+    val billing get() = order?.paymentStatus == "esperando_confirmacion"
     val stage get() = order?.let { orderStage(it) }
 }
 
@@ -437,7 +440,7 @@ private fun MesaSection(orders: List<OrderDto>, wide: Boolean, vm: AppController
     // Todas las mesas del local, más cualquier pedido abierto de una mesa que ya no exista en la lista.
     val entries = (state.tables.map { MesaEntry(it.name, it, open[it.name]) } +
         open.filterKeys { k -> state.tables.none { it.name == k } }.map { (k, o) -> MesaEntry(k, null, o) })
-        .sortedWith(compareBy({ if (it.calling) 0 else 1 }, { it.stage?.ordinal ?: 9 }, { it.name }))
+        .sortedWith(compareBy({ if (it.calling) 0 else if (it.billing) 1 else 2 }, { it.stage?.ordinal ?: 9 }, { it.name }))
     var selName by rememberSaveable { mutableStateOf<String?>(null) }
     val sel = entries.firstOrNull { it.name == selName }
 
@@ -478,28 +481,32 @@ private fun MesaGrid(entries: List<MesaEntry>, columns: Int, selectedName: Strin
             val stage = e.stage
             val st = stageStyle(stage ?: OrderStage.FINAL)
             val urgent = e.calling || stage == OrderStage.NUEVO
+            val bill = e.billing && !urgent
             // Mesa abierta a mano que todavía no pidió nada: no está "en cocina".
             val empty = e.order != null && !urgent && itemLines(e.order).isEmpty()
             val bg = when {
                 urgent -> Alert
+                bill -> Brasa
                 empty -> Color(0xFFE3F6EE)
                 stage == null -> Color.White
                 else -> st.soft
             }
             val fg = when {
-                urgent -> Color.White
+                urgent || bill -> Color.White
                 empty -> Color(0xFF0B5A3C)
                 stage == null -> Ink
                 else -> st.onSoft
             }
             val border = when {
                 urgent -> Alert
+                bill -> Brasa
                 empty -> Fresco
                 stage == null -> Color(0xFFE2E2D8)
                 else -> st.accent
             }
             val subtitle = when {
                 e.calling -> "Llama al mozo"
+                bill -> "Pide la cuenta" + (e.order?.paymentMethod?.let { " · $it" } ?: "")
                 e.order == null -> "Libre"
                 empty -> "Abierta · sin consumo"
                 else -> statusText(e.order)

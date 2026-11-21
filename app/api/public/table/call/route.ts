@@ -86,7 +86,7 @@ export async function POST(req: Request) {
   // Solo needs_attention, solo esa mesa y solo de ese local
   const upd = await db
     .from('tables')
-    .update({ needs_attention: true })
+    .update({ needs_attention: true, last_call_at: new Date().toISOString() }) // last_call_at: cada llamado dispara el push, aunque ya estuviera llamando
     .eq('id', pick.row.id)
     .eq('restaurant_id', restaurantId)
     .select('id');
