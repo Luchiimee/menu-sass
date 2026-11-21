@@ -123,6 +123,15 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                 tabs = tabs,
                 selected = tab,
                 pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
+                dotOf = { t ->
+                    val open = orders.filter { orderKind(it) == t.kind }.map { orderStage(it) }
+                    when {
+                        t == OrderTab.MESA && state.tables.any { it.needsAttention == true } -> Alert
+                        OrderStage.LISTO in open -> stageStyle(OrderStage.LISTO).accent
+                        OrderStage.COCINA in open -> stageStyle(OrderStage.COCINA).accent
+                        else -> null
+                    }
+                },
                 onSelect = { selected = it; vm.rememberOrdersKind(it.kind) },
                 searching = searching,
                 onSearch = { searching = !searching; if (!searching) query = "" },
@@ -195,7 +204,7 @@ private fun RingingBanner(vm: AppController) {
 }
 
 @Composable
-private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (OrderTab) -> Int, onSelect: (OrderTab) -> Unit, searching: Boolean, onSearch: () -> Unit) {
+private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (OrderTab) -> Int, dotOf: (OrderTab) -> Color?, onSelect: (OrderTab) -> Unit, searching: Boolean, onSearch: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         tabs.forEach { t ->
             val on = t == selected
@@ -205,6 +214,12 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(t.label, color = if (on) Color.White else Ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                // Sin numerito: un punto de color avisa que hay algo abierto en esa solapa (en cocina, listo/servida o llamando al mozo)
+                val dot = if (pending == 0) dotOf(t) else null
+                if (dot != null) {
+                    Spacer(Modifier.width(7.dp))
+                    Box(Modifier.size(11.dp).clip(CircleShape).background(dot))
+                }
                 if (pending > 0) {
                     Spacer(Modifier.width(6.dp))
                     Box(Modifier.size(20.dp).clip(CircleShape).background(Alert), contentAlignment = Alignment.Center) {
