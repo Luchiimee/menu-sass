@@ -168,6 +168,7 @@ if (restaurant?.subscription_plan === 'light') {
           title: `${orderTypeEmoji} Nuevo Pedido - ${orderTypeLabel}`,
           body: `${customerName} • $${Number(total).toLocaleString('es-AR')}`,
           orderId: String(record.id ?? ''),
+          orderType: String(orderType ?? ''),
         });
         fcmSent = fcm.sent;
         if (fcm.invalid.length > 0) {
