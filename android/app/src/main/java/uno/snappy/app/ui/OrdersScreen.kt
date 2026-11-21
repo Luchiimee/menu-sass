@@ -98,7 +98,7 @@ fun OrdersScreen(state: UiState, vm: AppController) {
     // El salón es del plan plus; si ya hay un pedido de mesa, la pestaña aparece igual.
     val hasSalon = state.restaurant?.subscriptionPlan == "plus" || orders.any { it.orderType == "mesa" }
     val tabs = if (hasSalon) OrderTab.entries.toList() else listOf(OrderTab.DELIVERY, OrderTab.RETIRO)
-    var selected by rememberSaveable { mutableStateOf(OrderTab.DELIVERY) }
+    var selected by remember { mutableStateOf(OrderTab.entries.firstOrNull { it.kind == state.ordersKind } ?: OrderTab.DELIVERY) }
     val tab = if (selected in tabs) selected else OrderTab.DELIVERY
     androidx.compose.runtime.LaunchedEffect(state.focusKind) {
         state.focusKind?.let { k -> OrderTab.entries.firstOrNull { it.kind == k }?.let { selected = it } }
@@ -123,7 +123,7 @@ fun OrdersScreen(state: UiState, vm: AppController) {
                 tabs = tabs,
                 selected = tab,
                 pendingOf = { t -> orders.count { orderKind(it) == t.kind && orderStage(it) == OrderStage.NUEVO } },
-                onSelect = { selected = it },
+                onSelect = { selected = it; vm.rememberOrdersKind(it.kind) },
                 searching = searching,
                 onSearch = { searching = !searching; if (!searching) query = "" },
             )

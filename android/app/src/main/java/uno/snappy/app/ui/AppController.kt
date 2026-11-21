@@ -37,6 +37,8 @@ import uno.snappy.app.data.Repository
 enum class Stage { LOADING, LOGIN, READY }
 
 data class UiState(
+    val ordersKind: String = "delivery",
+    val mainTab: Int = 0,
     val focusKind: String? = null,
     val stage: Stage = Stage.LOADING,
     val loginError: String? = null,
@@ -396,7 +398,9 @@ class AppController(private val app: Application) {
         }
     }
 
-    fun focusOrderType(type: String) = _state.update { it.copy(focusKind = when (type) { "retiro" -> "retiro"; "mesa" -> "mesa"; else -> "delivery" }) }
+    fun focusOrderType(type: String) = _state.update { it.copy(focusKind = when (type) { "retiro" -> "retiro"; "mesa" -> "mesa"; else -> "delivery" }, ordersKind = when (type) { "retiro" -> "retiro"; "mesa" -> "mesa"; else -> "delivery" }) }
+    fun rememberOrdersKind(kind: String) = _state.update { it.copy(ordersKind = kind) }
+    fun rememberMainTab(tab: Int) = _state.update { it.copy(mainTab = tab) }
     fun focusConsumed() = _state.update { it.copy(focusKind = null) }
 
     fun setBestSellers(on: Boolean) {

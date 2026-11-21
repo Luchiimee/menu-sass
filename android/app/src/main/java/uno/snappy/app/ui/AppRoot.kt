@@ -63,10 +63,11 @@ private fun NavIcon(e: NavEntry) {
 
 @Composable
 private fun MainScaffold(state: UiState, vm: AppController) {
-    var tab by remember { mutableIntStateOf(0) }
+    var tab by remember { mutableIntStateOf(state.mainTab) }
+    val setTab: (Int) -> Unit = { tab = it; vm.rememberMainTab(it) }
     val snackbar = remember { SnackbarHostState() }
     // Tocar un aviso de pedido lleva a la pestaña Pedidos
-    LaunchedEffect(state.focusKind) { if (state.focusKind != null) tab = 0 }
+    LaunchedEffect(state.focusKind) { if (state.focusKind != null) setTab(0) }
 
     // Al volver a la app se vuelve a leer todo, y mientras está abierta se revisa cada minuto
     // por si se cortó el "en vivo" (internet, celu dormido, etc.).
@@ -112,7 +113,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                 if (!wide) NavigationBar(containerColor = androidx.compose.ui.graphics.Color.White) {
                     entries.forEachIndexed { i, e ->
                         NavigationBarItem(
-                            selected = tab == i, onClick = { tab = i },
+                            selected = tab == i, onClick = { setTab(i) },
                             icon = { NavIcon(e) },
                             label = { Text(e.label) },
                         )
@@ -124,7 +125,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                 if (wide) NavigationRail(containerColor = androidx.compose.ui.graphics.Color.White) {
                     entries.forEachIndexed { i, e ->
                         NavigationRailItem(
-                            selected = tab == i, onClick = { tab = i },
+                            selected = tab == i, onClick = { setTab(i) },
                             icon = { NavIcon(e) },
                             label = { Text(e.label) },
                         )
