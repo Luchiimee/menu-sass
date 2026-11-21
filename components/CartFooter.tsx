@@ -427,13 +427,6 @@ useEffect(() => {
             first = false;
             // Primera respuesta: lo que antes cargaba syncStatus
             setMetodoPago(data.payment_method as string);
-            // total, envío, descuento y renglones guardados (con descuentos y zona reales)
-            setSavedOrder({
-                total: data.total,
-                delivery_cost: data.delivery_cost,
-                discount_amount: data.discount_amount,
-                items: Array.isArray(data.items) ? data.items : [],
-            });
             if (data.payment_method === 'mercadopago') {
                 if (data.order_type === 'delivery' || data.order_type === 'retiro') {
                     setMetodoEnvio(data.order_type);
@@ -441,6 +434,15 @@ useEffect(() => {
                 }
             }
         }
+
+        // Total, envío, descuento y renglones guardados (con descuentos y zona reales). En cada respuesta, no solo
+        // en la primera: si el local agrega un producto a la mesa (panel o app), el cliente lo ve sin recargar.
+        setSavedOrder({
+            total: data.total,
+            delivery_cost: data.delivery_cost,
+            discount_amount: data.discount_amount,
+            items: Array.isArray(data.items) ? data.items : [],
+        });
 
         // Cada respuesta: lo que antes llegaba por Realtime
         setOrderStatus(data.status);
