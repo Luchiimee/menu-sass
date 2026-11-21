@@ -554,6 +554,22 @@ private fun MesaDetail(entry: MesaEntry, vm: AppController, products: List<Produ
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) { Text("Atendido: apagar llamado", fontWeight = FontWeight.Bold) }
         }
+        if (order != null && order.paymentStatus == "esperando_confirmacion") {
+            Spacer(Modifier.height(8.dp))
+            Card(colors = CardDefaults.cardColors(containerColor = Brasa), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp)) {
+                    Text("Pide la cuenta", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text(
+                        listOfNotNull(
+                            order.paymentMethod?.let { "Paga con $it" },
+                            order.payerName?.takeIf { it.isNotBlank() }?.let { "a nombre de $it" },
+                            formatMoney(order.total),
+                        ).joinToString(" · "),
+                        color = Color.White, fontSize = 14.sp,
+                    )
+                }
+            }
+        }
         if (order == null) {
             Spacer(Modifier.height(16.dp))
             Text("Mesa libre.", color = Graphite)

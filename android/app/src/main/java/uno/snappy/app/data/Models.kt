@@ -30,6 +30,7 @@ data class OrderDto(
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("payment_method") val paymentMethod: String? = null,
     @SerialName("payment_status") val paymentStatus: String? = null,
+    @SerialName("payer_name") val payerName: String? = null,
     @SerialName("pago_confirmado") val pagoConfirmado: Boolean? = null,
     @SerialName("order_type") val orderType: String? = null,
     @SerialName("customer_name") val customerName: String? = null,
