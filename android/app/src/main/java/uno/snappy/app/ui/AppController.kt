@@ -194,7 +194,14 @@ class AppController(private val app: Application) {
 
     suspend fun resyncNow(quiet: Boolean = false): Boolean {
         val id = _state.value.restaurant?.id ?: return false
-        val orders = runCatching { repo.recentOrders(id) }.getOrNull()
+        repo.ensureSession()
+        var orders = runCatching { repo.recentOrders(id) }.getOrNull()
+        // Una lista vacía justo al volver, cuando antes había pedidos, casi seguro es una lectura sin sesión: se vuelve a leer.
+        if (orders != null && orders.isEmpty() && _state.value.orders.isNotEmpty()) {
+            delay(1_500)
+            repo.ensureSession()
+            orders = runCatching { repo.recentOrders(id) }.getOrNull()
+        }
         val tables = runCatching { repo.tables(id) }.getOrNull()
         if (orders != null) _state.update { it.copy(orders = orders) }
         if (tables != null) _state.update { it.copy(tables = tables) }

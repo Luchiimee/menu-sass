@@ -155,6 +155,13 @@ class Repository {
         return channel to flow
     }
 
+    // Al volver a la app, antes de leer hay que asegurar la sesión: sin ella las consultas salen como anónimas y vuelven vacías.
+    suspend fun ensureSession() {
+        runCatching { supabase.auth.awaitInitialization() }
+        val expiring = supabase.auth.currentSessionOrNull()?.let { it.expiresAt.epochSeconds - System.currentTimeMillis() / 1000 < 120 } ?: true
+        if (expiring) runCatching { supabase.auth.refreshCurrentSession() }
+    }
+
     // Cierra un canal en vivo y lo saca del cliente (cada suscripción usa un canal nuevo, así no se pisan al reenganchar).
     suspend fun closeChannel(channel: RealtimeChannel) {
         runCatching { channel.unsubscribe() }
