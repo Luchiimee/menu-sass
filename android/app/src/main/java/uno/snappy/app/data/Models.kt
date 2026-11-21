@@ -15,6 +15,8 @@ data class RestaurantDto(
     @SerialName("subscription_plan") val subscriptionPlan: String? = null,
     @SerialName("template_id") val templateId: String? = null,
     @SerialName("show_best_sellers") val showBestSellers: Boolean? = null,
+    @SerialName("cash_close_hour") val cashCloseHour: String? = null,
+    @SerialName("cash_auto_close_enabled") val cashAutoCloseEnabled: Boolean? = null,
 )
 
 @Serializable
@@ -44,6 +46,9 @@ data class CashShiftDto(
     @SerialName("closed_at") val closedAt: String? = null,
     @SerialName("opened_at") val openedAt: String? = null,
     @SerialName("opening_balance") val openingBalance: Double? = null,
+    @SerialName("close_type") val closeType: String? = null,
+    @SerialName("opened_type") val openedType: String? = null,
+    val summary: kotlinx.serialization.json.JsonObject? = null,
 )
 
 @Serializable
@@ -60,6 +65,7 @@ data class ExpenseDto(
     val description: String? = null,
     val amount: Double? = null,
     val category: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 @Serializable

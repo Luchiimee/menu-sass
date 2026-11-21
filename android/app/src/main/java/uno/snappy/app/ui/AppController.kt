@@ -31,12 +31,20 @@ import uno.snappy.app.data.CashShiftDto
 import uno.snappy.app.data.ExpenseDto
 import uno.snappy.app.data.ExtraDto
 import uno.snappy.app.data.buildCashSummary
+import uno.snappy.app.data.cashShiftRange
+import uno.snappy.app.data.normalizeCloseHour
+import uno.snappy.app.data.todayAR
 import uno.snappy.app.data.ImageUtil
 import uno.snappy.app.data.Repository
 
 enum class Stage { LOADING, LOGIN, READY }
 
 data class UiState(
+    val cashDate: String? = null,
+    val viewShift: CashShiftDto? = null,
+    val dayShifts: List<CashShiftDto> = emptyList(),
+    val cashLocked: Boolean = false,
+    val staleDismissed: Boolean = false,
     val ordersKind: String = "delivery",
     val mainTab: Int = 0,
     val focusKind: String? = null,
@@ -539,44 +547,68 @@ class AppController(private val app: Application) {
     // ---- Caja ----
     fun refreshCash() { scope.launch { loadCash() } }
 
-    private suspend fun loadCash() {
-        val rid = _state.value.restaurant?.id ?: return
-        val shift = runCatching { repo.currentShift(rid) }.getOrElse { return }
-        if (shift == null) {
-            _state.update { it.copy(shift = null, shiftOrders = emptyList(), expenses = emptyList(), cashLoaded = true) }
-            return
+    private val cashPrefs by lazy { app.getSharedPreferences("snappy_cash", android.content.Context.MODE_PRIVATE) }
+    private val betaEmails = setOf("luchiimee2@gmail.com")
+
+    // Caja es del Plan Plus (o acceso anticipado), igual que la web
+    private fun cashLockedFor(r: RestaurantDto): Boolean =
+        r.subscriptionPlan != "plus" && (repo.currentEmail() ?: "").lowercase().trim() !in betaEmails
+
+    // Lee la Caja del día elegido: sus turnos y los pedidos/gastos del turno que se está mirando.
+    // `shift` es el turno abierto de verdad (el que recibe los pedidos), aunque sea de otro día.
+    private suspend fun loadCash(pickShiftId: String? = null) {
+        val st = _state.value
+        val r = st.restaurant ?: return
+        if (cashLockedFor(r)) { _state.update { it.copy(cashLocked = true, cashLoaded = true) }; return }
+        val active = runCatching { repo.currentShift(r.id) }.getOrElse { return }
+        val date = st.cashDate ?: todayAR()
+        val (start, end) = cashShiftRange(date, normalizeCloseHour(r.cashCloseHour))
+        val list = runCatching { repo.shiftsInRange(r.id, start, end) }.getOrElse { return }
+        val keep = pickShiftId ?: st.viewShift?.id
+        val idx = list.indexOfFirst { it.id == keep }.let { if (it >= 0) it else list.lastIndex }
+        val view = list.getOrNull(idx)
+        var orders = emptyList<OrderDto>()
+        var exps = emptyList<ExpenseDto>()
+        if (view != null) {
+            orders = runCatching { repo.shiftOrders(view.id) }.getOrNull() ?: st.shiftOrders
+            exps = runCatching { repo.shiftExpenses(view.id) }.getOrNull() ?: st.expenses
         }
-        val orders = runCatching { repo.shiftOrders(shift.id) }.getOrNull()
-        val exps = runCatching { repo.shiftExpenses(shift.id) }.getOrNull()
-        _state.update { it.copy(shift = shift, shiftOrders = orders ?: it.shiftOrders, expenses = exps ?: it.expenses, cashLoaded = true) }
+        _state.update { it.copy(cashLocked = false, shift = active, dayShifts = list, viewShift = view, shiftOrders = orders, expenses = exps, cashLoaded = true) }
     }
+
+    fun setCashDate(date: String) {
+        _state.update { it.copy(cashDate = date, viewShift = null) }
+        refreshCash()
+    }
+
+    fun pickShift(id: String) { scope.launch { loadCash(id) } }
 
     fun openShift(opening: Double) {
         val rid = _state.value.restaurant?.id ?: return
         scope.launch {
             runCatching { repo.openShift(rid, opening) }
-                .onSuccess { loadCash() }
-                .onFailure { _state.update { s -> s.copy(message = "No se pudo iniciar el turno.") } }
+                .onSuccess { _state.update { it.copy(cashDate = null, viewShift = null, staleDismissed = false) }; loadCash() }
+                .onFailure { e -> _state.update { s -> s.copy(message = e.message?.takeIf { m -> m.startsWith("Ya hay") } ?: "No se pudo iniciar el turno.") } }
         }
     }
 
     fun closeShift() {
         val s = _state.value
-        val shift = s.shift ?: return
+        val shift = s.viewShift ?: return
         val summary = buildCashSummary(s.shiftOrders, s.expenses, shift.openingBalance ?: 0.0).toJson()
         scope.launch {
             runCatching { repo.closeShift(shift.id, summary) }
-                .onSuccess { loadCash(); _state.update { it.copy(message = "Caja cerrada.") } }
-                .onFailure { _state.update { st -> st.copy(message = "No se pudo cerrar la caja.") } }
+                .onSuccess { loadCash(); _state.update { it.copy(message = "Turno cerrado.") } }
+                .onFailure { _state.update { st -> st.copy(message = "No se pudo cerrar el turno.") } }
         }
     }
 
-    fun addExpense(description: String, amount: Double) {
+    fun addExpense(description: String, amount: Double, category: String?) {
         val s = _state.value
         val rid = s.restaurant?.id ?: return
-        val shift = s.shift ?: return
+        val shift = s.viewShift ?: return
         scope.launch {
-            runCatching { repo.addExpense(rid, shift.id, description.trim(), amount) }
+            runCatching { repo.addExpense(rid, shift.id, description.trim(), amount, category) }
                 .onSuccess { loadCash() }
                 .onFailure { _state.update { st -> st.copy(message = "No se pudo guardar el gasto.") } }
         }
@@ -589,6 +621,53 @@ class AppController(private val app: Application) {
                 .onFailure { _state.update { st -> st.copy(message = "No se pudo borrar el gasto.") } }
         }
     }
+
+    fun addManualSale(concept: String, total: Double, method: String) {
+        val s = _state.value
+        val rid = s.restaurant?.id ?: return
+        scope.launch {
+            runCatching { repo.addManualSale(rid, s.viewShift?.id, concept, total, method) }
+                .onSuccess { loadCash() }
+                .onFailure { _state.update { st -> st.copy(message = "No se pudo registrar la venta.") } }
+        }
+    }
+
+    fun updateOpeningBalance(value: Double) {
+        val shift = _state.value.viewShift ?: return
+        scope.launch {
+            runCatching { repo.updateOpeningBalance(shift.id, value) }
+                .onSuccess { loadCash() }
+                .onFailure { _state.update { st -> st.copy(message = "No se pudo cambiar el monto inicial.") } }
+        }
+    }
+
+    fun setCashCloseHour(hhmm: String) {
+        val r = _state.value.restaurant ?: return
+        _state.update { it.copy(restaurant = r.copy(cashCloseHour = hhmm)) }
+        scope.launch {
+            runCatching { repo.setCashCloseHour(r.id, hhmm) }
+                .onSuccess { _state.update { it.copy(message = "Hora de cierre guardada. Aplica desde el próximo turno.") } }
+                .onFailure { _state.update { st -> st.copy(restaurant = r, message = "No se pudo guardar la hora de cierre.") } }
+        }
+    }
+
+    fun setCashAutoClose(on: Boolean) {
+        val r = _state.value.restaurant ?: return
+        _state.update { it.copy(restaurant = r.copy(cashAutoCloseEnabled = on)) }
+        scope.launch {
+            runCatching { repo.setCashAutoClose(r.id, on) }
+                .onFailure { _state.update { st -> st.copy(restaurant = r, message = "No se pudo cambiar el cierre automático.") } }
+        }
+    }
+
+    // Aviso de turno viejo abierto (igual que StaleShiftPrompt de la web)
+    private fun snoozeKey(id: String) = "stale_snooze_$id"
+    fun isStaleSnoozed(id: String): Boolean = System.currentTimeMillis() < cashPrefs.getLong(snoozeKey(id), 0L)
+    fun snoozeStale(id: String) {
+        cashPrefs.edit().putLong(snoozeKey(id), System.currentTimeMillis() + 12L * 60 * 60 * 1000).apply()
+        _state.update { it.copy(staleDismissed = true) }
+    }
+    fun dismissStale() = _state.update { it.copy(staleDismissed = true) }
 
     fun messageShown() = _state.update { it.copy(message = null) }
 

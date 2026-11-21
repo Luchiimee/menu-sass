@@ -35,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import uno.snappy.app.data.OrderStage
+import uno.snappy.app.data.isShiftStale
+import uno.snappy.app.data.shiftBusinessDate
+import uno.snappy.app.data.todayAR
 import uno.snappy.app.data.orderStage
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +69,31 @@ private fun MainScaffold(state: UiState, vm: AppController) {
     var tab by remember { mutableIntStateOf(state.mainTab) }
     val setTab: (Int) -> Unit = { tab = it; vm.rememberMainTab(it) }
     val snackbar = remember { SnackbarHostState() }
+    // Aviso de turno de caja viejo que quedó abierto (igual que el de la web): no se muestra dentro de Caja
+    val staleShift = state.shift
+    val closeHourCfg = state.restaurant?.cashCloseHour
+    if (staleShift != null && tab != 2 && !state.staleDismissed && !state.cashLocked &&
+        isShiftStale(staleShift.openedAt, closeHourCfg) && !vm.isStaleSnoozed(staleShift.id)
+    ) {
+        val bDate = shiftBusinessDate(staleShift.openedAt, closeHourCfg)
+        val yesterday = java.time.LocalDate.parse(todayAR()).minusDays(1).toString()
+        val cuando = if (bDate == yesterday) "de ayer" else "del ${bDate.substring(8, 10)}/${bDate.substring(5, 7)}"
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { vm.dismissStale() },
+            title = { Text("Quedó el turno del ${bDate.substring(8, 10)}/${bDate.substring(5, 7)} abierto. ¿Querés cerrarlo y empezar uno nuevo?") },
+            text = { Text("Mientras siga abierto, los pedidos nuevos entran en ese turno. Este aviso no cambia nada: los pedidos que ya entraron quedan en el turno que ya tienen.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { vm.dismissStale(); vm.setCashDate(bDate); setTab(2) }) { Text("Cerrar el turno $cuando") }
+            },
+            dismissButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    androidx.compose.material3.TextButton(onClick = { vm.snoozeStale(staleShift.id) }) { Text("Continuar con el $cuando") }
+                    androidx.compose.material3.TextButton(onClick = { vm.dismissStale() }) { Text("Decidir después") }
+                }
+            },
+        )
+    }
+
     // Tocar un aviso de pedido lleva a la pestaña Pedidos
     LaunchedEffect(state.focusKind) { if (state.focusKind != null) setTab(0) }
 

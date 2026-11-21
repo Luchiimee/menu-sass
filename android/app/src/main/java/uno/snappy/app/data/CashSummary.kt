@@ -65,3 +65,22 @@ fun buildCashSummary(orders: List<OrderDto>, expenses: List<ExpenseDto>, opening
         orderCount = sales.size,
     )
 }
+
+
+// Resumen guardado al cerrar un turno (cash_shifts.summary). Un cierre viejo puede no traer algunas claves.
+fun cashSummaryFromJson(j: JsonObject): CashSummary {
+    fun num(e: kotlinx.serialization.json.JsonElement?): Double = (e as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull() ?: 0.0
+    val types = (j["salesByType"] as? JsonObject).orEmpty().mapValues { (_, v) ->
+        val o = v as? JsonObject
+        TypeTotal(num(o?.get("count")).toInt(), num(o?.get("total")))
+    }
+    val pay = (j["byPaymentMethod"] as? JsonObject).orEmpty().mapValues { (_, v) -> num(v) }
+    return CashSummary(
+        byType = types, byPay = pay,
+        opening = num(j["openingBalance"]),
+        deliveryCount = num(j["deliveryCount"]).toInt(), deliveryTotal = num(j["deliveryCostTotal"]),
+        expenses = num(j["totalExpenses"]), totalSales = num(j["totalSales"]), orderCount = num(j["orderCount"]).toInt(),
+    )
+}
+
+private fun JsonObject?.orEmpty(): Map<String, kotlinx.serialization.json.JsonElement> = this ?: emptyMap()
