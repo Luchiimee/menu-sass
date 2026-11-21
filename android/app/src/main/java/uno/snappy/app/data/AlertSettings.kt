@@ -17,8 +17,10 @@ class AlertSettings(context: Context) {
 
     // Mantener la app activa con un servicio en primer plano (recomendado en locales)
     var keepAlive: Boolean
-        get() = prefs.getBoolean("keepAlive", true)
-        set(value) { prefs.edit().putBoolean("keepAlive", value).apply() }
+        // Por defecto apagado: los avisos llegan por notificación (FCM) aunque la app esté cerrada, como WhatsApp.
+        // Clave nueva ("keepAlive2") para que nadie herede el "encendido" del default viejo.
+        get() = prefs.getBoolean("keepAlive2", false)
+        set(value) { prefs.edit().putBoolean("keepAlive2", value).apply() }
 
     // Segundos de espera entre un sonido y el siguiente cuando está en "repetir"
     var intervalSec: Int

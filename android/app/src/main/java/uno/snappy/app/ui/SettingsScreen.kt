@@ -66,9 +66,9 @@ fun SettingsScreen(state: UiState, vm: AppController) {
         Section("Segundo plano")
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Mantener la app activa", fontWeight = FontWeight.SemiBold)
+                Text("Mantener la app activa (opcional)", fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Recomendado en locales: la app no se duerme con la pantalla apagada y no se pierde pedidos. Muestra un aviso fijo en la barra.",
+                    "Apagado: los pedidos te llegan igual como notificación, aunque cierres la app, como WhatsApp. Encendido: la app se mantiene despierta y muestra un aviso fijo en la barra.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

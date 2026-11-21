@@ -69,7 +69,7 @@ data class UiState(
     val alertRepeat: Boolean = false,
     val alertSound: String = AlertSettings.SOUND_NOTIFICATION,
     val alertInterval: Int = 20,
-    val keepAlive: Boolean = true,
+    val keepAlive: Boolean = false,
     val ringing: Boolean = false,
     val silenced: Boolean = false,
 )
