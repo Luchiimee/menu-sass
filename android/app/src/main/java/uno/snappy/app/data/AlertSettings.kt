@@ -17,10 +17,10 @@ class AlertSettings(context: Context) {
 
     // Mantener la app activa con un servicio en primer plano (recomendado en locales)
     var keepAlive: Boolean
-        // Por defecto apagado: los avisos llegan por notificación (FCM) aunque la app esté cerrada, como WhatsApp.
-        // Clave nueva ("keepAlive2") para que nadie herede el "encendido" del default viejo.
-        get() = prefs.getBoolean("keepAlive2", false)
-        set(value) { prefs.edit().putBoolean("keepAlive2", value).apply() }
+        // Por defecto encendido: en Samsung (y otras marcas) cerrar la app desde recientes frena los avisos de
+        // Firebase; con el servicio en primer plano llegan siempre. Clave nueva para pisar lo guardado antes.
+        get() = prefs.getBoolean("keepAlive3", true)
+        set(value) { prefs.edit().putBoolean("keepAlive3", value).apply() }
 
     // Segundos de espera entre un sonido y el siguiente cuando está en "repetir"
     var intervalSec: Int
