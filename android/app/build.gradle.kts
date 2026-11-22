@@ -14,6 +14,12 @@ val snappyProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
+// Firma de publicación (Google Play): sale de snappy-signing.properties + keystore/, que no se suben a GitHub.
+val signingProps = Properties().apply {
+    val f = rootProject.file("snappy-signing.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "uno.snappy.app"
     compileSdk = 35
@@ -29,8 +35,20 @@ android {
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${snappyProps.getProperty("SUPABASE_ANON_KEY", "")}\"")
     }
 
+    signingConfigs {
+        if (signingProps.getProperty("STORE_FILE") != null) {
+            create("release") {
+                storeFile = rootProject.file(signingProps.getProperty("STORE_FILE"))
+                storePassword = signingProps.getProperty("STORE_PASSWORD")
+                keyAlias = signingProps.getProperty("KEY_ALIAS")
+                keyPassword = signingProps.getProperty("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

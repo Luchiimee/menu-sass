@@ -13,3 +13,7 @@ snappy.properties
 *.keystore
 google-services.json
 .kotlin/
+
+# Firma de publicacion
+keystore/
+snappy-signing.properties
