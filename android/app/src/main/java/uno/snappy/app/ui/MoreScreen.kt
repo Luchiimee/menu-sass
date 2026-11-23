@@ -92,15 +92,22 @@ fun MoreScreen(state: UiState, vm: AppController) {
             Text("MÁS", style = MaterialTheme.typography.labelSmall, color = Graphite)
             Text("Tu local", style = MaterialTheme.typography.headlineMedium)
         }
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
-                Text((state.restaurant?.name ?: "S").take(2).uppercase(), color = Color.White, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold)
+        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).clickable { uriHandler.openUri("https://snappy.uno/dashboard/plan") }.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
+                val logo = state.restaurant?.logoUrl
+                if (!logo.isNullOrBlank()) coil.compose.AsyncImage(model = logo, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                else Text((state.restaurant?.name ?: "S").take(2).uppercase(), color = Color.White, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(state.restaurant?.name ?: "Mi local", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 if (plan.isNotEmpty()) Text("PLAN ${plan.uppercase()}", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5C4600), modifier = Modifier.padding(top = 3.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF2C94C)).padding(horizontal = 8.dp, vertical = 2.dp))
             }
+            Icon(Icons.Filled.ChevronRight, contentDescription = "Ver plan", tint = Graphite)
         }
         Group("TU LOCAL", local)
         Group("OPERACIÓN", operacion)

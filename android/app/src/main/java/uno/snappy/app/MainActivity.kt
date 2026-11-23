@@ -35,6 +35,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) handleIntent(intent)
         if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        // Botones del sistema (atrás, inicio, recientes) oscuros: la barra de abajo de la app es blanca.
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = true
         setContent {
             SnappyTheme {
                 val state by viewModel.state.collectAsStateWithLifecycle()
