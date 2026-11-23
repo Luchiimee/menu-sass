@@ -1,7 +1,9 @@
 package uno.snappy.app.data
 
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.postgrest
@@ -41,6 +43,11 @@ class Repository {
             this.password = password
         }
     }
+
+    // Google: abre el navegador; al volver, el deep link uno.snappy.app://login-callback entrega la sesión (ver MainActivity).
+    suspend fun signInWithGoogle() { supabase.auth.signInWith(Google) }
+    fun sessionStatus() = supabase.auth.sessionStatus
+    fun isAuthenticated(s: SessionStatus) = s is SessionStatus.Authenticated
 
     suspend fun signOut() = supabase.auth.signOut()
 

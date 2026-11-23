@@ -112,6 +112,16 @@ class AppController(private val app: Application) {
                     _state.update { if (it.ringing == ring) it else it.copy(ringing = ring) }
                 }
         }
+        // Vuelta del login con Google: llega la sesión y, solo si lo pedimos nosotros, entramos al panel.
+        scope.launch {
+            repo.sessionStatus().collect { s ->
+                if (googlePending && repo.isAuthenticated(s) && _state.value.stage == Stage.LOGIN) {
+                    googlePending = false
+                    _state.update { it.copy(loggingIn = true, loginError = null) }
+                    enter()
+                }
+            }
+        }
         scope.launch {
             runCatching { repo.awaitSession() }
             if (repo.hasSession()) enter() else _state.update { it.copy(stage = Stage.LOGIN) }
@@ -130,6 +140,20 @@ class AppController(private val app: Application) {
                 enter()
             } catch (e: Exception) {
                 _state.update { it.copy(loggingIn = false, loginError = "Email o contraseña incorrectos.") }
+            }
+        }
+    }
+
+    private var googlePending = false
+
+    // Entra con Google: abre el navegador y, cuando vuelve con la sesión, el collector de init() llama a enter().
+    fun signInWithGoogle() {
+        googlePending = true
+        _state.update { it.copy(loginError = null) }
+        scope.launch {
+            try { repo.signInWithGoogle() } catch (e: Exception) {
+                googlePending = false
+                _state.update { it.copy(loginError = "No se pudo abrir el ingreso con Google.") }
             }
         }
     }

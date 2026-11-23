@@ -54,7 +54,7 @@ import kotlinx.coroutines.delay
 fun AppRoot(state: UiState, vm: AppController) {
     when (state.stage) {
         Stage.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        Stage.LOGIN -> LoginScreen(state = state, onSignIn = vm::signIn)
+        Stage.LOGIN -> LoginScreen(state = state, onSignIn = vm::signIn, onGoogle = vm::signInWithGoogle)
         Stage.READY -> MainScaffold(state = state, vm = vm)
     }
 }

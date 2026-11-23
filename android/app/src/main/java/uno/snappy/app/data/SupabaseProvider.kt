@@ -15,7 +15,10 @@ object SupabaseProvider {
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY,
         ) {
-            install(Auth)
+            install(Auth) {
+                scheme = "uno.snappy.app"
+                host = "login-callback"
+            }
             install(Postgrest)
             install(Realtime)
             install(Storage)

@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.jan.supabase.auth.handleDeeplinks
 import uno.snappy.app.ui.AppRoot
 import uno.snappy.app.ui.AppController
 import uno.snappy.app.ui.SnappyTheme
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        runCatching { uno.snappy.app.data.SupabaseProvider.client.handleDeeplinks(intent) }
         handleIntent(intent)
     }
 
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        runCatching { uno.snappy.app.data.SupabaseProvider.client.handleDeeplinks(intent) }
         if (savedInstanceState == null) handleIntent(intent)
         if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         // Botones del sistema (atrás, inicio, recientes) oscuros: la barra de abajo de la app es blanca.
