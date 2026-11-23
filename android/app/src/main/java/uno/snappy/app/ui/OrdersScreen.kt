@@ -3,6 +3,9 @@ package uno.snappy.app.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.TableRestaurant
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -233,6 +236,12 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
                 Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(if (on) Ink else Color.Transparent).clickable { onSelect(t) }.padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(
+                    when (t) { OrderTab.DELIVERY -> Icons.Outlined.LocalShipping; OrderTab.RETIRO -> Icons.Outlined.ShoppingBag; OrderTab.MESA -> Icons.Outlined.TableRestaurant },
+                    contentDescription = null, modifier = Modifier.size(18.dp),
+                    tint = if (on) Color.White else when (t) { OrderTab.DELIVERY -> Fresco; OrderTab.RETIRO -> Color(0xFF378ADD); OrderTab.MESA -> Color(0xFFEF9F27) },
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(t.label, color = if (on) Color.White else Graphite, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 // Sin numerito: un punto de color avisa que hay algo abierto en esa solapa (en cocina, listo/servida o llamando al mozo)
                 val dot = if (pending == 0) dotOf(t) else null
@@ -261,6 +270,20 @@ private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (Order
     }
 }
 
+@Composable
+private fun StageHeader(stage: OrderStage, kind: String, count: Int) {
+    val st = stageStyle(stage)
+    Row(
+        Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(16.dp)).background(st.soft).padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(9.dp).clip(CircleShape).background(st.accent))
+        Spacer(Modifier.width(8.dp))
+        Text(stageLabel(stage, kind), color = st.onSoft, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text("$count", color = st.onSoft, fontWeight = FontWeight.Bold)
+    }
+}
+
 // Orden: sin atender primero (el más viejo arriba), después cocina, listos. Los finalizados van aparte.
 private val openOrder = compareBy<OrderDto>({ orderStage(it).ordinal }, { it.createdAt ?: "" })
 
@@ -280,9 +303,16 @@ private fun OrderList(orders: List<OrderDto>, vm: AppController, foldFinal: Bool
         if (open.isEmpty()) item(key = "empty") {
             Text("No hay pedidos activos. Cuando llegue uno suena y aparece acá.", color = Graphite, modifier = Modifier.padding(12.dp))
         }
-        items(open, key = { it.id }) { o ->
-            val default = orderStage(o) == OrderStage.NUEVO
-            OrderCard(o, expanded[o.id] ?: default, { expanded[o.id] = !(expanded[o.id] ?: default) }, vm, showKind)
+        val kindForLabel = if (showKind) "delivery" else (orders.firstOrNull()?.let { orderKind(it) } ?: "delivery")
+        listOf(OrderStage.NUEVO, OrderStage.COCINA, OrderStage.LISTO).forEach { stg ->
+            val inStage = open.filter { orderStage(it) == stg }
+            if (inStage.isNotEmpty()) {
+                item(key = "hdr-$stg") { StageHeader(stg, kindForLabel, inStage.size) }
+                items(inStage, key = { it.id }) { o ->
+                    val default = orderStage(o) == OrderStage.NUEVO
+                    OrderCard(o, expanded[o.id] ?: default, { expanded[o.id] = !(expanded[o.id] ?: default) }, vm, showKind)
+                }
+            }
         }
         if (done.isNotEmpty() && !foldFinal) {
             items(done.take(60), key = { it.id }) { o ->

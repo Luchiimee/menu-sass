@@ -90,7 +90,7 @@ fun MoreScreen(state: UiState, vm: AppController) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Column {
             Text("MÁS", style = MaterialTheme.typography.labelSmall, color = Graphite)
-            Text("Tu local", style = MaterialTheme.typography.headlineSmall)
+            Text("Tu local", style = MaterialTheme.typography.headlineMedium)
         }
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
@@ -99,7 +99,7 @@ fun MoreScreen(state: UiState, vm: AppController) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(state.restaurant?.name ?: "Mi local", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                if (plan.isNotEmpty()) Text("PLAN ${plan.uppercase()}", style = MaterialTheme.typography.labelSmall, color = Color(0xFF0B7A52))
+                if (plan.isNotEmpty()) Text("PLAN ${plan.uppercase()}", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5C4600), modifier = Modifier.padding(top = 3.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF2C94C)).padding(horizontal = 8.dp, vertical = 2.dp))
             }
         }
         Group("TU LOCAL", local)
@@ -112,6 +112,11 @@ fun MoreScreen(state: UiState, vm: AppController) {
     }
 }
 
+private val tileTones = listOf(
+    Color(0xFFD6F3E6) to Color(0xFF0B7A52), Color(0xFFFFF1C2) to Color(0xFF8A6A00), Color(0xFFE6F1FB) to Color(0xFF0C447C),
+    Color(0xFFFAEEDA) to Color(0xFF633806), Color(0xFFFFE9E6) to Color(0xFF8A1F14),
+)
+
 @Composable
 private fun Group(title: String, items: List<MoreItem>) {
     Column {
@@ -122,8 +127,9 @@ private fun Group(title: String, items: List<MoreItem>) {
                     Modifier.fillMaxWidth().clickable { it.onClick?.invoke() }.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Surface2), contentAlignment = Alignment.Center) {
-                        Icon(it.icon, contentDescription = null, modifier = Modifier.size(22.dp))
+                    val tone = tileTones[(title.length + i) % tileTones.size]
+                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(tone.first), contentAlignment = Alignment.Center) {
+                        Icon(it.icon, contentDescription = null, tint = tone.second, modifier = Modifier.size(22.dp))
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {

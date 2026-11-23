@@ -1,5 +1,6 @@
 package uno.snappy.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -135,10 +136,11 @@ private fun MainScaffold(state: UiState, vm: AppController) {
         NavEntry(Icons.Outlined.Menu, "Más"),
     )
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(0xFFCFF0DE), Paper), endY = 900f))) {
         // Tablet: barra lateral. Celular: barra de abajo.
         val wide = maxWidth >= 720.dp
         Scaffold(
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (!wide) NavigationBar(containerColor = androidx.compose.ui.graphics.Color.White) {
@@ -148,7 +150,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                             icon = { NavIcon(e) },
                             label = { Text(e.label, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Medium, fontSize = 12.sp) },
                             colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Ink, selectedIconColor = androidx.compose.ui.graphics.Color.White, selectedTextColor = Ink,
+                                indicatorColor = Fresco, selectedIconColor = androidx.compose.ui.graphics.Color.White, selectedTextColor = Ink,
                                 unselectedIconColor = Graphite, unselectedTextColor = Graphite,
                             ),
                         )

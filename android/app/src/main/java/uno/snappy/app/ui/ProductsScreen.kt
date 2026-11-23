@@ -233,7 +233,7 @@ private fun BestSellersRow(state: UiState, vm: AppController) {
     var info by remember { mutableStateOf(false) }
     val on = state.restaurant?.showBestSellers == true
     val supported = state.restaurant?.templateId in setOf("marketpro", "alterna-pro", "spotlight", "urban", "classic", "minimal")
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(22.dp)).background(Color.White).border(1.dp, CardBorder, RoundedCornerShape(22.dp)).padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(22.dp)).background(Color(0xFFFFF4CF)).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("⚡", fontSize = 18.sp)
             Text("  Más pedidos", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
