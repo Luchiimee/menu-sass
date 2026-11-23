@@ -160,7 +160,6 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                     }
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
-                    if (state.keepAlive) BatteryBanner()
                     Box(Modifier.weight(1f).fillMaxSize()) {
                         when (tab) {
                             0 -> OrdersScreen(state = state, vm = vm)

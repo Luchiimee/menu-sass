@@ -23,8 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
-import uno.snappy.app.push.isIgnoringBatteryOptimizations
-import uno.snappy.app.push.requestIgnoreBatteryOptimizations
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -63,18 +61,6 @@ fun SettingsScreen(state: UiState, vm: AppController) {
         Choice("Alarma", "El más fuerte, ideal para cocinas con ruido.", state.alertSound == AlertSettings.SOUND_ALARM) { vm.setAlertSound(AlertSettings.SOUND_ALARM) }
         OutlinedButton(onClick = vm::testSound, modifier = Modifier.padding(top = 8.dp)) { Text("Probar sonido") }
 
-        Section("Segundo plano")
-        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Mantener la app activa (opcional)", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Recomendado: así los pedidos y llamados te llegan al instante aunque cierres la app o apagues la pantalla. Deja un aviso silencioso, sin ícono en la barra.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Switch(checked = state.keepAlive, onCheckedChange = vm::setKeepAlive, colors = snappySwitchColors())
-        }
-        BatteryStatus()
     }
 }
 
@@ -90,42 +76,6 @@ private fun Choice(title: String, subtitle: String, selected: Boolean, onSelect:
         Column(Modifier.padding(start = 4.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(subtitle, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun BatteryStatus() {
-    val context = LocalContext.current
-    var ok by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { ok = isIgnoringBatteryOptimizations(context) }
-    if (ok) {
-        Text("✓ Permiso de segundo plano activado", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-    } else {
-        OutlinedButton(onClick = { requestIgnoreBatteryOptimizations(context) }, modifier = Modifier.padding(top = 4.dp)) {
-            Text("Permitir funcionar en segundo plano")
-        }
-    }
-}
-
-// Cartel arriba de todo si falta el permiso de segundo plano (se puede descartar)
-@Composable
-fun BatteryBanner() {
-    val context = LocalContext.current
-    var ok by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
-    var dismissed by remember { mutableStateOf(false) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { ok = isIgnoringBatteryOptimizations(context) }
-    if (ok || dismissed) return
-    Card(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
-    ) {
-        Column(Modifier.padding(12.dp)) {
-            Text("Para no perder pedidos, permití que Snappy funcione en segundo plano.", color = Color(0xFF5C4400), fontWeight = FontWeight.SemiBold)
-            Row {
-                Button(onClick = { requestIgnoreBatteryOptimizations(context) }) { Text("Permitir") }
-                TextButton(onClick = { dismissed = true }) { Text("Ahora no") }
-            }
         }
     }
 }

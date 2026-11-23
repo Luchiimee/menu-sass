@@ -7,7 +7,6 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import uno.snappy.app.push.KeepAliveService
 import uno.snappy.app.data.AlertSettings
 import uno.snappy.app.push.AlertPlayer
 import com.google.firebase.messaging.FirebaseMessaging
@@ -69,7 +68,6 @@ data class UiState(
     val alertRepeat: Boolean = false,
     val alertSound: String = AlertSettings.SOUND_NOTIFICATION,
     val alertInterval: Int = 20,
-    val keepAlive: Boolean = true,
     val ringing: Boolean = false,
     val silenced: Boolean = false,
 )
@@ -83,7 +81,7 @@ class AppController(private val app: Application) {
     private val repo = Repository()
     private val settings = AlertSettings(app)
     private val alertPlayer = AlertPlayer(app)
-    private val _state = MutableStateFlow(UiState(alertRepeat = settings.repeat, alertSound = settings.sound, alertInterval = settings.intervalSec, keepAlive = settings.keepAlive))
+    private val _state = MutableStateFlow(UiState(alertRepeat = settings.repeat, alertSound = settings.sound, alertInterval = settings.intervalSec))
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var liveJob: Job? = null
@@ -149,8 +147,7 @@ class AppController(private val app: Application) {
                 if (token != null) repo.deleteFcmToken(token)
             }
             runCatching { repo.signOut() }
-            _state.value = UiState(stage = Stage.LOGIN, alertRepeat = settings.repeat, alertSound = settings.sound, alertInterval = settings.intervalSec, keepAlive = settings.keepAlive)
-            applyKeepAlive()
+            _state.value = UiState(stage = Stage.LOGIN, alertRepeat = settings.repeat, alertSound = settings.sound, alertInterval = settings.intervalSec)
         }
     }
 
@@ -162,7 +159,6 @@ class AppController(private val app: Application) {
             return
         }
         _state.update { it.copy(stage = Stage.READY, loggingIn = false, restaurant = restaurant) }
-        applyKeepAlive()
         refreshOrders()
         refreshCatalog()
         refreshExtras()
@@ -351,21 +347,6 @@ class AppController(private val app: Application) {
     fun setAlertInterval(seconds: Int) {
         settings.intervalSec = seconds
         _state.update { it.copy(alertInterval = seconds) }
-    }
-
-    fun setKeepAlive(value: Boolean) {
-        settings.keepAlive = value
-        _state.update { it.copy(keepAlive = value) }
-        applyKeepAlive()
-    }
-
-    // Enciende o apaga el servicio en primer plano según la sesión y el ajuste
-    private fun applyKeepAlive() {
-        runCatching {
-            val intent = Intent(app, KeepAliveService::class.java)
-            val s = _state.value
-            if (s.stage == Stage.READY && s.keepAlive) ContextCompat.startForegroundService(app, intent) else app.stopService(intent)
-        }
     }
 
     fun testSound() = alertPlayer.playOnce(_state.value.alertSound)
