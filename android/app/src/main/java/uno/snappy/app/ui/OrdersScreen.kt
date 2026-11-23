@@ -2,6 +2,7 @@ package uno.snappy.app.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -145,8 +146,8 @@ fun OrdersScreen(state: UiState, vm: AppController) {
             )
             if (!searching) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).height(44.dp)
-                        .clip(RoundedCornerShape(14.dp)).background(Color.White)
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).height(48.dp)
+                        .clip(RoundedCornerShape(16.dp)).background(Color.White).border(1.dp, CardBorder, RoundedCornerShape(16.dp))
                         .clickable { searching = true }.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -186,13 +187,21 @@ fun OrdersScreen(state: UiState, vm: AppController) {
 @Composable
 private fun Header(state: UiState, vm: AppController) {
     val open = state.restaurant?.isOpen == true
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    val name = state.restaurant?.name ?: "Mi local"
+    val initials = name.split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "S" }
+    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        val logo = state.restaurant?.logoUrl
+        Box(Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
+            if (!logo.isNullOrBlank()) coil.compose.AsyncImage(model = logo, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            else Text(initials, color = Color.White, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        }
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(state.restaurant?.name ?: "Mi local", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+            Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(if (open) Fresco else Graphite))
+                Box(Modifier.size(7.dp).clip(CircleShape).background(if (open) Fresco else Graphite))
                 Spacer(Modifier.width(6.dp))
-                Text(if (open) "Abierto · recibiendo pedidos" else "Cerrado · no recibís pedidos", color = if (open) Color(0xFF0B7A52) else Graphite, style = MaterialTheme.typography.labelLarge)
+                Text(if (open) "Abierto · recibiendo pedidos" else "Cerrado · no recibís pedidos", color = Graphite, style = MaterialTheme.typography.bodySmall)
             }
         }
         Switch(checked = open, onCheckedChange = vm::setOpen, colors = snappySwitchColors())
@@ -212,15 +221,19 @@ private fun RingingBanner(vm: AppController) {
 
 @Composable
 private fun TypeTabs(tabs: List<OrderTab>, selected: OrderTab, pendingOf: (OrderTab) -> Int, dotOf: (OrderTab) -> Color?, onSelect: (OrderTab) -> Unit, searching: Boolean, onSearch: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(22.dp))
+            .background(Surface2).padding(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         tabs.forEach { t ->
             val on = t == selected
             val pending = pendingOf(t)
             Row(
-                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) Ink else Surface2).clickable { onSelect(t) }.padding(vertical = 12.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(if (on) Ink else Color.Transparent).clickable { onSelect(t) }.padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(t.label, color = if (on) Color.White else Ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(t.label, color = if (on) Color.White else Graphite, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 // Sin numerito: un punto de color avisa que hay algo abierto en esa solapa (en cocina, listo/servida o llamando al mozo)
                 val dot = if (pending == 0) dotOf(t) else null
                 if (dot != null) {

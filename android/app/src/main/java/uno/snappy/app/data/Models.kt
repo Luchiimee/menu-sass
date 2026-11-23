@@ -11,6 +11,7 @@ import kotlinx.serialization.json.JsonElement
 data class RestaurantDto(
     val id: String,
     val name: String? = null,
+    @SerialName("logo_url") val logoUrl: String? = null,
     @SerialName("is_open") val isOpen: Boolean? = null,
     @SerialName("subscription_plan") val subscriptionPlan: String? = null,
     @SerialName("template_id") val templateId: String? = null,

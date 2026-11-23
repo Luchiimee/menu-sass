@@ -8,16 +8,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
@@ -33,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import uno.snappy.app.data.OrderStage
 import uno.snappy.app.data.isShiftStale
@@ -126,10 +129,10 @@ private fun MainScaffold(state: UiState, vm: AppController) {
     // Un solo globito: todo lo que está sin atender (delivery + retiro + mesa)
     val pending = state.orders.count { orderStage(it) == OrderStage.NUEVO }
     val entries = listOf(
-        NavEntry(Icons.Filled.Receipt, "Pedidos", pending),
-        NavEntry(Icons.Filled.Restaurant, "Catálogo"),
-        NavEntry(Icons.Filled.Payments, "Caja"),
-        NavEntry(Icons.Filled.Menu, "Más"),
+        NavEntry(Icons.Outlined.Assignment, "Pedidos", pending),
+        NavEntry(Icons.Outlined.Restaurant, "Catálogo"),
+        NavEntry(Icons.Outlined.Payments, "Caja"),
+        NavEntry(Icons.Outlined.Menu, "Más"),
     )
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -143,7 +146,11 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                         NavigationBarItem(
                             selected = tab == i, onClick = { setTab(i) },
                             icon = { NavIcon(e) },
-                            label = { Text(e.label) },
+                            label = { Text(e.label, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Medium, fontSize = 12.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Ink, selectedIconColor = androidx.compose.ui.graphics.Color.White, selectedTextColor = Ink,
+                                unselectedIconColor = Graphite, unselectedTextColor = Graphite,
+                            ),
                         )
                     }
                 }

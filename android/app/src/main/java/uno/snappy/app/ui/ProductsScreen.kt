@@ -1,6 +1,7 @@
 package uno.snappy.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +25,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -73,10 +76,10 @@ fun ProductsScreen(state: UiState, vm: AppController) {
     val q = query.trim().lowercase()
 
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 28.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("CATÁLOGO", style = MaterialTheme.typography.labelSmall, color = Graphite)
-                Text(tab.label, style = MaterialTheme.typography.headlineSmall)
+                Text(tab.label, style = MaterialTheme.typography.headlineMedium)
                 Text(
                     when (tab) {
                         CatalogTab.PRODUCTOS -> "${state.products.size} productos · ${state.products.count { it.isAvailable == false }} agotados"
@@ -86,11 +89,14 @@ fun ProductsScreen(state: UiState, vm: AppController) {
                     style = MaterialTheme.typography.bodySmall, color = Graphite,
                 )
             }
-            IconButton(onClick = { searching = !searching; if (!searching) query = "" }) {
-                Icon(if (searching) Icons.Filled.Close else Icons.Filled.Search, contentDescription = "Buscar")
-            }
             Box(
-                Modifier.size(44.dp).clip(CircleShape).background(Fresco).clickable {
+                Modifier.size(46.dp).clip(CircleShape).background(Color.White).border(1.dp, CardBorder, CircleShape)
+                    .clickable { searching = !searching; if (!searching) query = "" },
+                contentAlignment = Alignment.Center,
+            ) { Icon(if (searching) Icons.Filled.Close else Icons.Outlined.Search, contentDescription = "Buscar", tint = Ink) }
+            Spacer(Modifier.width(10.dp))
+            Box(
+                Modifier.size(46.dp).clip(CircleShape).background(Ink).clickable {
                     when (tab) {
                         CatalogTab.PRODUCTOS -> creating = true
                         CatalogTab.ADICIONALES -> newExtra = true
@@ -98,17 +104,21 @@ fun ProductsScreen(state: UiState, vm: AppController) {
                     }
                 },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Add, contentDescription = "Agregar", tint = Ink) }
+            ) { Icon(Icons.Filled.Add, contentDescription = "Agregar", tint = Color.White) }
         }
 
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(RoundedCornerShape(22.dp))
+                .background(Color.White).border(1.dp, CardBorder, RoundedCornerShape(22.dp)).padding(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             CatalogTab.entries.forEach { t ->
                 val on = t == tab
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) Color(0xFFD6F3E6) else Surface2)
-                        .clickable { tab = t }.padding(vertical = 11.dp),
+                    Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(if (on) Ink else Color.Transparent)
+                        .clickable { tab = t }.padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text(t.label, color = if (on) Color(0xFF0B5A3C) else Ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                ) { Text(t.label, color = if (on) Color.White else Graphite, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
             }
         }
 
@@ -170,13 +180,13 @@ private fun SimpleList(empty: String, isEmpty: Boolean, content: androidx.compos
 @Composable
 private fun RowCard(title: String, subtitle: String, onEdit: () -> Unit, onDelete: () -> Unit, deleteTitle: String, deleteText: String) {
     var confirm by remember { mutableStateOf(false) }
-    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
+    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(title, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(subtitle, color = Graphite, style = MaterialTheme.typography.bodySmall)
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Editar") }
+            IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Editar") }
             IconButton(onClick = { confirm = true }) { Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = Alert) }
         }
     }
@@ -192,32 +202,27 @@ private fun RowCard(title: String, subtitle: String, onEdit: () -> Unit, onDelet
 private fun ProductList(state: UiState, vm: AppController, q: String, onEdit: (ProductDto) -> Unit) {
     var filterCat by remember { mutableStateOf<String?>(null) }
     val products = state.products.filter { (q.isEmpty() || it.name.lowercase().contains(q)) && (filterCat == null || it.categoryId == filterCat) }
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf<Pair<String?, String>>(null to "Todos").plus(state.categories.map { it.id to it.name }).forEach { (id, label) ->
             val on = filterCat == id
             Box(
-                Modifier.clip(RoundedCornerShape(50)).background(if (on) Color(0xFFD6F3E6) else Color.White).clickable { filterCat = id }.padding(horizontal = 14.dp, vertical = 7.dp),
-            ) { Text(label, color = if (on) Color(0xFF0B5A3C) else Graphite, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, fontSize = 13.sp) }
+                Modifier.clip(RoundedCornerShape(50)).background(if (on) Ink else Color.White).border(1.dp, if (on) Ink else CardBorder, RoundedCornerShape(50)).clickable { filterCat = id }.padding(horizontal = 16.dp, vertical = 9.dp),
+            ) { Text(label, color = if (on) Color.White else Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
         }
     }
+    Text("Tocá el lápiz para editar o el interruptor para marcar agotado.", color = Graphite, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 20.dp, end = 16.dp, top = 6.dp, bottom = 2.dp))
     BestSellersRow(state, vm)
     if (state.products.isEmpty()) Text("Todavía no hay productos cargados.", color = Graphite, modifier = Modifier.padding(20.dp))
     else if (products.isEmpty()) Text("No hay productos con \"$q\".", color = Graphite, modifier = Modifier.padding(20.dp))
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         val categories = state.categories
         val grouped = products.groupBy { it.categoryId }
         val order = categories.map { it.id } + (grouped.keys - categories.map { it.id }.toSet())
         order.forEach { catId ->
             val items = grouped[catId].orEmpty()
             if (items.isNotEmpty()) {
-                item(key = "cat-$catId") {
-                    Text(
-                        (categories.firstOrNull { it.id == catId }?.name ?: "Sin categoría").uppercase(),
-                        style = MaterialTheme.typography.labelMedium, color = Graphite, modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-                    )
-                }
-                items(items, key = { it.id }) { p -> ProductRow(p, onToggle = { vm.setAvailable(p, it) }, onEdit = { onEdit(p) }) }
+                items(items, key = { it.id }) { p -> ProductRow(p, categories.firstOrNull { it.id == p.categoryId }?.name, onToggle = { vm.setAvailable(p, it) }, onEdit = { onEdit(p) }) }
             }
         }
     }
@@ -228,7 +233,7 @@ private fun BestSellersRow(state: UiState, vm: AppController) {
     var info by remember { mutableStateOf(false) }
     val on = state.restaurant?.showBestSellers == true
     val supported = state.restaurant?.templateId in setOf("marketpro", "alterna-pro", "spotlight", "urban", "classic", "minimal")
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(horizontal = 14.dp, vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(22.dp)).background(Color.White).border(1.dp, CardBorder, RoundedCornerShape(22.dp)).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("⚡", fontSize = 18.sp)
             Text("  Más pedidos", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
@@ -246,26 +251,39 @@ private fun BestSellersRow(state: UiState, vm: AppController) {
 }
 
 @Composable
-private fun ProductRow(p: ProductDto, onToggle: (Boolean) -> Unit, onEdit: () -> Unit) {
+private fun ProductRow(p: ProductDto, categoryName: String?, onToggle: (Boolean) -> Unit, onEdit: () -> Unit) {
     val available = p.isAvailable != false
-    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
-        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = p.imageUrl, contentDescription = null, contentScale = ContentScale.Crop,
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(Surface2),
-            )
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                if (p.esDestacado == true) Text("⭐ Destacado", fontSize = 11.sp, color = Color(0xFFB8860B))
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color.White).border(1.dp, CardBorder, RoundedCornerShape(22.dp)).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = p.imageUrl, contentDescription = null, contentScale = ContentScale.Crop,
+            modifier = Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)).background(Surface2),
+        )
+        Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (p.esDestacado == true) {
+                    Icon(Icons.Filled.Star, contentDescription = "Destacado", tint = Color(0xFFC9A24B), modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(5.dp))
+                }
                 Text(
-                    p.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                    p.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 2,
                     color = if (available) Ink else Graphite,
                     textDecoration = if (available) null else androidx.compose.ui.text.style.TextDecoration.LineThrough,
                 )
-                Text(formatMoney(p.price) + if (p.saleType == "peso") " (por peso)" else "", color = Graphite, style = MaterialTheme.typography.bodySmall)
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Editar producto") }
-            Switch(checked = available, onCheckedChange = onToggle, colors = snappySwitchColors())
+            Text(
+                formatMoney(p.price) + (if (p.saleType == "peso") "/kg" else "") + (if (categoryName != null) "  ·  $categoryName" else ""),
+                color = Graphite, style = MaterialTheme.typography.bodySmall, maxLines = 1,
+            )
         }
+        Box(
+            Modifier.size(42.dp).clip(CircleShape).background(Surface2).clickable(onClick = onEdit),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.Outlined.Edit, contentDescription = "Editar producto", tint = Ink, modifier = Modifier.size(19.dp)) }
+        Spacer(Modifier.width(8.dp))
+        Switch(checked = available, onCheckedChange = onToggle, colors = snappySwitchColors())
     }
 }
 

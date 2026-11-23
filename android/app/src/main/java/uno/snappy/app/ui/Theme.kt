@@ -55,7 +55,7 @@ private fun body(size: Int, line: Int, w: FontWeight = FontWeight.Normal, ls: Do
 
 private val SnappyTypography = Typography(
     displayLarge = head(44, 50), displayMedium = head(38, 44), displaySmall = head(32, 38),
-    headlineLarge = head(30, 36), headlineMedium = head(26, 32), headlineSmall = head(22, 28),
+    headlineLarge = head(30, 36), headlineMedium = head(30, 36), headlineSmall = head(22, 28),
     titleLarge = head(21, 27), titleMedium = head(17, 23), titleSmall = head(15, 20),
     bodyLarge = body(16, 23), bodyMedium = body(14, 20), bodySmall = body(12, 17),
     labelLarge = body(14, 18, FontWeight.SemiBold, 0.1),
@@ -105,3 +105,7 @@ fun snappySwitchColors() = androidx.compose.material3.SwitchDefaults.colors(
     checkedThumbColor = Color.White, checkedTrackColor = Fresco, checkedBorderColor = Fresco,
     uncheckedThumbColor = Color.White, uncheckedTrackColor = Color(0xFFD9DAD0), uncheckedBorderColor = Color(0xFFD9DAD0),
 )
+
+
+// Look de la barra de abajo y de los botones: negro sobre papel, igual que el diseño base.
+val CardBorder = Color(0xFFE6E6DC)
