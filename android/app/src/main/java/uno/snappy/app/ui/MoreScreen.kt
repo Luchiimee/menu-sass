@@ -69,6 +69,13 @@ fun MoreScreen(state: UiState, vm: AppController) {
         return
     }
 
+    if (page == "plan") {
+        BackHandler { page = null }
+        androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadBilling() }
+        PlanScreen(state = state, onBack = { page = null })
+        return
+    }
+
     val soon = { vm.showMessage("Todavía no está en la app. Por ahora usalo desde el panel web.") }
     val plan = (state.restaurant?.subscriptionPlan ?: "").replaceFirstChar { it.uppercase() }
 
@@ -83,7 +90,7 @@ fun MoreScreen(state: UiState, vm: AppController) {
     val operacion = listOf(
         MoreItem(Icons.Filled.VolumeUp, "Avisos y sonido", "Cómo suena un pedido nuevo", soon = false, onClick = { page = "avisos" }),
         MoreItem(Icons.Filled.CreditCard, "Pagos", "Mercado Pago y facturas", onClick = soon),
-        MoreItem(Icons.Filled.AutoAwesome, "Plan y suscripción", if (plan.isNotEmpty()) "Plan $plan" else "Tu plan", onClick = soon),
+        MoreItem(Icons.Filled.AutoAwesome, "Plan y suscripción", if (plan.isNotEmpty()) "Plan $plan" else "Tu plan", soon = false, onClick = { page = "plan" }),
     )
     val aprender = listOf(MoreItem(Icons.Filled.School, "Tutoriales", "Cómo sacarle el jugo a Snappy", onClick = soon))
 
@@ -94,7 +101,7 @@ fun MoreScreen(state: UiState, vm: AppController) {
         }
         val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).clickable { uriHandler.openUri("https://snappy.uno/dashboard/plan") }.padding(16.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).clickable { page = "plan" }.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {

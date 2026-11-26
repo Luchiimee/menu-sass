@@ -61,6 +61,16 @@ class Repository {
         supabase.from("fcm_tokens").delete { filter { eq("token", token) } }
     }
 
+    // ---- Suscripción (solo lectura) ----
+    suspend fun billingPayments(restaurantId: String): List<BillingPaymentDto> =
+        supabase.from("billing_payments")
+            .select(io.github.jan.supabase.postgrest.query.Columns.list("id", "amount", "status", "plan", "paid_at")) {
+                filter { eq("restaurant_id", restaurantId) }
+                order("paid_at", Order.DESCENDING)
+                limit(24)
+            }
+            .decodeList<BillingPaymentDto>()
+
     // ---- Local del dueño ----
     suspend fun myRestaurant(): RestaurantDto? {
         val userId = supabase.auth.currentUserOrNull()?.id ?: return null

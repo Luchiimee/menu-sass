@@ -18,6 +18,23 @@ data class RestaurantDto(
     @SerialName("show_best_sellers") val showBestSellers: Boolean? = null,
     @SerialName("cash_close_hour") val cashCloseHour: String? = null,
     @SerialName("cash_auto_close_enabled") val cashAutoCloseEnabled: Boolean? = null,
+    @SerialName("subscription_status") val subscriptionStatus: String? = null,
+    @SerialName("trial_ends_at") val trialEndsAt: String? = null,
+    @SerialName("first_paid_at") val firstPaidAt: String? = null,
+    @SerialName("card_brand") val cardBrand: String? = null,
+    @SerialName("card_last_four") val cardLastFour: String? = null,
+    val slug: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+// Cobro anotado por el servidor (tabla billing_payments). El dueño solo lee los suyos.
+@Serializable
+data class BillingPaymentDto(
+    val id: String,
+    val amount: Double? = null,
+    val status: String? = null,
+    val plan: String? = null,
+    @SerialName("paid_at") val paidAt: String? = null,
 )
 
 @Serializable

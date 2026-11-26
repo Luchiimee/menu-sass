@@ -56,6 +56,8 @@ data class UiState(
     val products: List<ProductDto> = emptyList(),
     val tables: List<TableDto> = emptyList(),
     val extras: List<ExtraDto> = emptyList(),
+    val payments: List<uno.snappy.app.data.BillingPaymentDto> = emptyList(),
+    val paymentsLoaded: Boolean = false,
     // Caja: turno abierto (null = no hay), sus pedidos y gastos
     val shift: CashShiftDto? = null,
     val shiftOrders: List<OrderDto> = emptyList(),
@@ -509,6 +511,16 @@ class AppController(private val app: Application) {
     }
 
     // ---- Adicionales y categorías ----
+    // Historial de cobros para la pantalla Plan (solo lectura).
+    fun loadBilling() {
+        val id = _state.value.restaurant?.id ?: return
+        scope.launch {
+            runCatching { repo.billingPayments(id) }
+                .onSuccess { p -> _state.update { it.copy(payments = p, paymentsLoaded = true) } }
+                .onFailure { _state.update { it.copy(paymentsLoaded = true) } }
+        }
+    }
+
     fun refreshExtras() {
         val id = _state.value.restaurant?.id ?: return
         scope.launch { runCatching { repo.extras(id) }.onSuccess { e -> _state.update { it.copy(extras = e) } } }

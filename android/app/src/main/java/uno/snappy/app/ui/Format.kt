@@ -30,3 +30,13 @@ fun formatAgo(iso: String?): String = runCatching {
         else -> dayHour.format(parseInstant(iso))
     }
 }.getOrDefault("")
+
+private val dateLong = DateTimeFormatter.ofPattern("d 'de' MMMM yyyy", ar).withZone(ZoneId.of("America/Argentina/Buenos_Aires"))
+
+// "7 de diciembre 2026"
+fun formatDate(iso: String?): String = runCatching { dateLong.format(parseInstant(iso)) }.getOrDefault("—")
+
+// Días que faltan hasta la fecha (0 si ya pasó o no se puede leer).
+fun daysUntil(iso: String?): Int = runCatching {
+    java.time.Duration.between(Instant.now(), parseInstant(iso)).toDays().toInt().coerceAtLeast(0)
+}.getOrDefault(0)
