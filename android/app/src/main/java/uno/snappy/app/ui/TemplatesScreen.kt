@@ -88,17 +88,17 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
     val list = TEMPLATES.filter { filter == "todas" || it.group == filter }
 
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 22.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = if (carousel) 14.dp else 22.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
             Text("Plantillas", style = MaterialTheme.typography.titleLarge)
         }
-        Text(
+        if (!carousel) Text(
             "Elegí cómo se va a ver tu menú digital. Cada plantilla trae sus propios colores y un estilo pensado para un tipo de negocio. Podés cambiarla cuando quieras.",
             style = MaterialTheme.typography.bodySmall, color = Graphite,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (carousel) 6.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(FILTERS) { (key, label) ->
@@ -113,7 +113,7 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
             }
         }
         // Selector de vista con texto, para que se entienda que son botones
-        Row(Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 16.dp).padding(bottom = if (carousel) 6.dp else 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.clip(RoundedCornerShape(12.dp)).background(Surface2).padding(3.dp)) {
                 ViewTab("Lista", Icons.Filled.ViewAgenda, selected = !carousel) { carousel = false }
                 ViewTab("De costado", Icons.Filled.ViewCarousel, selected = carousel) { carousel = true }
@@ -123,7 +123,7 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
             val pager = rememberPagerState(pageCount = { list.size })
             val t = list[pager.currentPage.coerceIn(0, list.lastIndex)]
             HorizontalPager(
-                state = pager, contentPadding = PaddingValues(horizontal = 28.dp), pageSpacing = 14.dp,
+                state = pager, contentPadding = PaddingValues(horizontal = 40.dp), pageSpacing = 12.dp,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             ) { i ->
                 Image(
@@ -133,15 +133,13 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
                         .border(if (list[i].id == current) 2.dp else 1.dp, if (list[i].id == current) Fresco else CardBorder, RoundedCornerShape(20.dp)),
                 )
             }
-            // Panel fijo: siempre se ve el nombre y el botón de la plantilla que tenés al frente
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${pager.currentPage + 1} de ${list.size} · deslizá para ver más", style = MaterialTheme.typography.labelSmall, color = Graphite)
+            // Panel fijo y compacto: siempre se ve el nombre y el botón de la plantilla que tenés al frente
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(t.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.weight(1f))
-                    if (t.id == current) Text("EN USO", style = MaterialTheme.typography.labelSmall, color = Fresco, fontWeight = FontWeight.Bold)
+                    Text(t.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
+                    if (t.id == current) Text("EN USO  ", style = MaterialTheme.typography.labelSmall, color = Fresco, fontWeight = FontWeight.Bold)
+                    Text("${pager.currentPage + 1} de ${list.size}", style = MaterialTheme.typography.labelSmall, color = Graphite)
                 }
-                Text(t.ideal, style = MaterialTheme.typography.bodySmall, color = Graphite, maxLines = 2)
-                Spacer(Modifier.height(6.dp))
                 ChooseButton(t.id == current) { confirm = t }
             }
         } else {
@@ -179,7 +177,7 @@ private fun ViewTab(label: String, icon: androidx.compose.ui.graphics.vector.Ima
 @Composable
 private fun ChooseButton(active: Boolean, onClick: () -> Unit) {
     if (active) {
-        Text("Es la plantilla de tu menú ahora", style = MaterialTheme.typography.bodySmall, color = Graphite, modifier = Modifier.padding(vertical = 14.dp))
+        Text("Es la plantilla de tu menú ahora", style = MaterialTheme.typography.bodySmall, color = Graphite, modifier = Modifier.padding(vertical = 12.dp))
     } else {
         Button(
             onClick = onClick, modifier = Modifier.fillMaxWidth().height(48.dp),

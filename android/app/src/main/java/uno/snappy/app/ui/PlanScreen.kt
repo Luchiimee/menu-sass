@@ -150,11 +150,15 @@ fun PlanScreen(state: UiState, onBack: () -> Unit) {
             }
         }
 
-        // Sin link a propósito.
+        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
         Text(
-            "Para cambiar tu plan o administrar tu método de pago, ingresá a tu cuenta desde Snappy Web.",
+            "Tu plan se administra desde tu cuenta en Snappy Web.",
             color = Graphite, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 4.dp),
         )
+        androidx.compose.material3.OutlinedButton(
+            onClick = { uriHandler.openUri("https://snappy.uno") },
+            modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(14.dp),
+        ) { Text("Abrir Snappy Web", color = Ink, fontWeight = FontWeight.SemiBold) }
         Spacer(Modifier.height(16.dp))
     }
 }
