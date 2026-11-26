@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -86,20 +88,17 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
     val list = TEMPLATES.filter { filter == "todas" || it.group == filter }
 
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 22.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
-            Text("Plantillas", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            ModeButton(Icons.Filled.ViewAgenda, "Ver en lista", selected = !carousel) { carousel = false }
-            Spacer(Modifier.width(6.dp))
-            ModeButton(Icons.Filled.ViewCarousel, "Ver de costado", selected = carousel) { carousel = true }
+            Text("Plantillas", style = MaterialTheme.typography.titleLarge)
         }
         Text(
-            "Elegí cómo se va a ver tu menú digital. Cada plantilla trae sus propios colores y un estilo pensado para un tipo de negocio. Podés cambiarla cuando quieras y después ajustar los colores a tu gusto.",
+            "Elegí cómo se va a ver tu menú digital. Cada plantilla trae sus propios colores y un estilo pensado para un tipo de negocio. Podés cambiarla cuando quieras.",
             style = MaterialTheme.typography.bodySmall, color = Graphite,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         LazyRow(
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(FILTERS) { (key, label) ->
@@ -113,13 +112,38 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
                 )
             }
         }
+        // Selector de vista con texto, para que se entienda que son botones
+        Row(Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.clip(RoundedCornerShape(12.dp)).background(Surface2).padding(3.dp)) {
+                ViewTab("Lista", Icons.Filled.ViewAgenda, selected = !carousel) { carousel = false }
+                ViewTab("De costado", Icons.Filled.ViewCarousel, selected = carousel) { carousel = true }
+            }
+        }
         if (carousel) {
             val pager = rememberPagerState(pageCount = { list.size })
-            Text("${pager.currentPage + 1} de ${list.size} · deslizá para ver más", style = MaterialTheme.typography.labelSmall, color = Graphite, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+            val t = list[pager.currentPage.coerceIn(0, list.lastIndex)]
             HorizontalPager(
                 state = pager, contentPadding = PaddingValues(horizontal = 28.dp), pageSpacing = 14.dp,
-                verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth(),
-            ) { i -> TemplateCard(list[i], list[i].id == current) { confirm = list[i] } }
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) { i ->
+                Image(
+                    painter = painterResource(list[i].img), contentDescription = list[i].name,
+                    contentScale = ContentScale.Crop, alignment = Alignment.TopCenter,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp))
+                        .border(if (list[i].id == current) 2.dp else 1.dp, if (list[i].id == current) Fresco else CardBorder, RoundedCornerShape(20.dp)),
+                )
+            }
+            // Panel fijo: siempre se ve el nombre y el botón de la plantilla que tenés al frente
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("${pager.currentPage + 1} de ${list.size} · deslizá para ver más", style = MaterialTheme.typography.labelSmall, color = Graphite)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(t.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.weight(1f))
+                    if (t.id == current) Text("EN USO", style = MaterialTheme.typography.labelSmall, color = Fresco, fontWeight = FontWeight.Bold)
+                }
+                Text(t.ideal, style = MaterialTheme.typography.bodySmall, color = Graphite, maxLines = 2)
+                Spacer(Modifier.height(6.dp))
+                ChooseButton(t.id == current) { confirm = t }
+            }
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
@@ -142,12 +166,26 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
 }
 
 @Composable
-private fun ModeButton(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) Ink else Color.White)
-            .border(1.dp, if (selected) Ink else CardBorder, RoundedCornerShape(12.dp)).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { Icon(icon, contentDescription = desc, tint = if (selected) Color.White else Ink, modifier = Modifier.size(22.dp)) }
+private fun ViewTab(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.clip(RoundedCornerShape(10.dp)).background(if (selected) Ink else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (selected) Color.White else Ink, modifier = Modifier.size(18.dp))
+        Text("  $label", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (selected) Color.White else Ink)
+    }
+}
+
+@Composable
+private fun ChooseButton(active: Boolean, onClick: () -> Unit) {
+    if (active) {
+        Text("Es la plantilla de tu menú ahora", style = MaterialTheme.typography.bodySmall, color = Graphite, modifier = Modifier.padding(vertical = 14.dp))
+    } else {
+        Button(
+            onClick = onClick, modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White),
+        ) { Text("Usar esta plantilla", color = Color.White, fontWeight = FontWeight.SemiBold) }
+    }
 }
 
 @Composable
@@ -170,14 +208,7 @@ private fun TemplateCard(t: Tpl, active: Boolean, onChoose: () -> Unit) {
             }
             Text(t.ideal, style = MaterialTheme.typography.bodyMedium, color = Graphite)
             Spacer(Modifier.height(8.dp))
-            if (active) {
-                Text("Es la plantilla de tu menú ahora", style = MaterialTheme.typography.bodySmall, color = Graphite)
-            } else {
-                Button(
-                    onClick = onChoose, modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White),
-                ) { Text("Usar esta plantilla", color = Color.White, fontWeight = FontWeight.SemiBold) }
-            }
+            ChooseButton(active, onChoose)
         }
     }
 }
