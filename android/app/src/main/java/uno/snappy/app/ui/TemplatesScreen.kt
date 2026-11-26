@@ -119,29 +119,14 @@ fun TemplatesScreen(state: UiState, onBack: () -> Unit, onChoose: (String) -> Un
                 ViewTab("De costado", Icons.Filled.ViewCarousel, selected = carousel) { carousel = true }
             }
         }
-        if (carousel) {
+        if (carousel) Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             val pager = rememberPagerState(pageCount = { list.size })
-            val t = list[pager.currentPage.coerceIn(0, list.lastIndex)]
+            Text("${pager.currentPage + 1} de ${list.size} · deslizá para ver más", style = MaterialTheme.typography.labelSmall, color = Graphite, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
             HorizontalPager(
-                state = pager, contentPadding = PaddingValues(horizontal = 40.dp), pageSpacing = 12.dp,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-            ) { i ->
-                Image(
-                    painter = painterResource(list[i].img), contentDescription = list[i].name,
-                    contentScale = ContentScale.Crop, alignment = Alignment.TopCenter,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp))
-                        .border(if (list[i].id == current) 2.dp else 1.dp, if (list[i].id == current) Fresco else CardBorder, RoundedCornerShape(20.dp)),
-                )
-            }
-            // Panel fijo y compacto: siempre se ve el nombre y el botón de la plantilla que tenés al frente
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(t.name, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
-                    if (t.id == current) Text("EN USO  ", style = MaterialTheme.typography.labelSmall, color = Fresco, fontWeight = FontWeight.Bold)
-                    Text("${pager.currentPage + 1} de ${list.size}", style = MaterialTheme.typography.labelSmall, color = Graphite)
-                }
-                ChooseButton(t.id == current) { confirm = t }
-            }
+                state = pager, contentPadding = PaddingValues(horizontal = 44.dp), pageSpacing = 12.dp,
+                verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth(),
+            ) { i -> TemplateCard(list[i], list[i].id == current, compact = true) { confirm = list[i] } }
+            Spacer(Modifier.height(24.dp))
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
@@ -187,14 +172,15 @@ private fun ChooseButton(active: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TemplateCard(t: Tpl, active: Boolean, onChoose: () -> Unit) {
+private fun TemplateCard(t: Tpl, active: Boolean, compact: Boolean = false, onChoose: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White)
-            .border(if (active) 2.dp else 1.dp, if (active) Fresco else CardBorder, RoundedCornerShape(20.dp)),
+            .border(if (active) 2.dp else 1.dp, if (active) Fresco else CardBorder, RoundedCornerShape(20.dp))
+            .padding(3.dp),
     ) {
         Image(
             painter = painterResource(t.img), contentDescription = t.name,
-            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(550f / 720f),
+            contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().aspectRatio(550f / 720f).clip(RoundedCornerShape(17.dp)),
         )
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -204,7 +190,7 @@ private fun TemplateCard(t: Tpl, active: Boolean, onChoose: () -> Unit) {
                     Text(" EN USO", style = MaterialTheme.typography.labelSmall, color = Fresco, fontWeight = FontWeight.Bold)
                 }
             }
-            Text(t.ideal, style = MaterialTheme.typography.bodyMedium, color = Graphite)
+            Text(t.ideal, style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium, color = Graphite)
             Spacer(Modifier.height(8.dp))
             ChooseButton(active, onChoose)
         }
