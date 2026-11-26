@@ -418,6 +418,16 @@ class AppController(private val app: Application) {
     fun rememberMainTab(tab: Int) = _state.update { it.copy(mainTab = tab) }
     fun focusConsumed() = _state.update { it.copy(focusKind = null) }
 
+    fun chooseTemplate(id: String) {
+        val r = _state.value.restaurant ?: return
+        _state.update { it.copy(restaurant = r.copy(templateId = id)) }
+        scope.launch {
+            runCatching { repo.applyTemplate(r.id, id) }
+                .onSuccess { showMessage("Plantilla activada con sus colores originales.") }
+                .onFailure { _state.update { s -> s.copy(restaurant = r, message = "No se pudo cambiar la plantilla.") } }
+        }
+    }
+
     fun setBestSellers(on: Boolean) {
         val r = _state.value.restaurant ?: return
         _state.update { it.copy(restaurant = r.copy(showBestSellers = on)) }

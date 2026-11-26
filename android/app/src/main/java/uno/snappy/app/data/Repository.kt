@@ -84,6 +84,14 @@ class Repository {
         supabase.from("restaurants").update({ set("is_open", open) }) { filter { eq("id", restaurantId) } }
     }
 
+    // Elegir plantilla: igual que la galería web, pisa los colores con los originales de la plantilla.
+    suspend fun applyTemplate(restaurantId: String, templateId: String) {
+        val cols = TemplateDefaults.columns(templateId) ?: error("Plantilla desconocida")
+        supabase.from("restaurants").update({
+            cols.forEach { (k, v) -> if (v is Boolean) set(k, v) else set(k, v as String) }
+        }) { filter { eq("id", restaurantId) } }
+    }
+
     // "Más pedidos": igual que la web, guarda la fecha de activación (el sistema arma la sección a los 30 días)
     suspend fun setBestSellers(restaurantId: String, on: Boolean) {
         val today = java.time.LocalDate.now().toString()

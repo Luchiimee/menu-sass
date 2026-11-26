@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.School
@@ -76,13 +77,20 @@ fun MoreScreen(state: UiState, vm: AppController) {
         return
     }
 
+    if (page == "plantillas") {
+        BackHandler { page = null }
+        TemplatesScreen(state = state, onBack = { page = null }, onChoose = vm::chooseTemplate)
+        return
+    }
+
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     val soon = { vm.showMessage("Todavía no está en la app. Por ahora usalo desde el panel web.") }
     val plan = (state.restaurant?.subscriptionPlan ?: "").replaceFirstChar { it.uppercase() }
 
     val local = listOf(
         MoreItem(Icons.Filled.TrendingUp, "Resumen y rentabilidad", "Ventas, ticket promedio y producto top", onClick = soon),
         MoreItem(Icons.Filled.Palette, "Personalizar menú", "Logo, colores y portada", onClick = soon),
-        MoreItem(Icons.Filled.Dashboard, "Plantillas", "Diseños del menú digital", onClick = soon),
+        MoreItem(Icons.Filled.Dashboard, "Plantillas", "Diseños del menú digital", soon = false, onClick = { page = "plantillas" }),
         MoreItem(Icons.Filled.LocalShipping, "Delivery", "Zonas y costos de envío", onClick = soon),
         MoreItem(Icons.Filled.Event, "Reservas", "Mesas reservadas", onClick = soon),
         MoreItem(Icons.Filled.Storefront, "Configuración del local", "Horarios, dirección y datos", onClick = soon),
@@ -92,14 +100,16 @@ fun MoreScreen(state: UiState, vm: AppController) {
         MoreItem(Icons.Filled.CreditCard, "Pagos", "Mercado Pago y facturas", onClick = soon),
         MoreItem(Icons.Filled.AutoAwesome, "Plan y suscripción", if (plan.isNotEmpty()) "Plan $plan" else "Tu plan", soon = false, onClick = { page = "plan" }),
     )
-    val aprender = listOf(MoreItem(Icons.Filled.School, "Tutoriales", "Cómo sacarle el jugo a Snappy", onClick = soon))
+    val aprender = listOf(
+        MoreItem(Icons.Filled.School, "Tutoriales", "Cómo sacarle el jugo a Snappy", onClick = soon),
+        MoreItem(Icons.Filled.Language, "Abrir Snappy Web", "Snappy en el navegador", soon = false, onClick = { uriHandler.openUri("https://snappy.uno") }),
+    )
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Column {
             Text("MÁS", style = MaterialTheme.typography.labelSmall, color = Graphite)
             Text("Tu local", style = MaterialTheme.typography.headlineMedium)
         }
-        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).clickable { page = "plan" }.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
