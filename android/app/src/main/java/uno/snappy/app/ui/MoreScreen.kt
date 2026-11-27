@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Language
@@ -42,6 +41,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,9 +126,10 @@ fun MoreScreen(state: UiState, vm: AppController) {
         val slug = state.restaurant?.slug
         val link = if (!slug.isNullOrBlank()) "snappy.uno/$slug" else null
         val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-        val ctx = androidx.compose.ui.platform.LocalContext.current
+        var showLink by remember { mutableStateOf(false) }
+        val copy = { text: String -> clipboard.setText(androidx.compose.ui.text.AnnotatedString(text)); vm.showMessage("Link copiado") }
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { page = "plan" }, verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
                     val logo = state.restaurant?.logoUrl
                     if (!logo.isNullOrBlank()) coil.compose.AsyncImage(model = logo, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -137,14 +138,17 @@ fun MoreScreen(state: UiState, vm: AppController) {
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(state.restaurant?.name ?: "Mi local", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    if (link != null) Text(link, color = Graphite, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    if (plan.isNotEmpty()) Text("PLAN ${plan.uppercase()}", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5C4600), modifier = Modifier.padding(top = 3.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF2C94C)).padding(horizontal = 8.dp, vertical = 2.dp))
                 }
+                Icon(Icons.Filled.ChevronRight, contentDescription = "Ver plan", tint = Graphite)
             }
             if (link != null) {
                 Spacer(Modifier.size(12.dp))
+                Text(link, color = Graphite, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Spacer(Modifier.size(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     androidx.compose.material3.Button(
-                        onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString("https://$link")); vm.showMessage("Link copiado") },
+                        onClick = { showLink = true },
                         modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(14.dp),
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
@@ -155,15 +159,35 @@ fun MoreScreen(state: UiState, vm: AppController) {
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
                     ) { Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp)); Text("  Abrir menú", fontWeight = FontWeight.SemiBold) }
                 }
-                Spacer(Modifier.size(8.dp))
-                OutlinedButton(
-                    onClick = {
-                        val i = android.content.Intent(android.content.Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(android.content.Intent.EXTRA_TEXT, "https://$link") }
-                        ctx.startActivity(android.content.Intent.createChooser(i, "Compartir menú").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-                    },
-                    modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(14.dp),
-                ) { Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp)); Text("  Compartir", fontWeight = FontWeight.SemiBold) }
             }
+        }
+        if (showLink && link != null) {
+            AlertDialog(
+                onDismissRequest = { showLink = false },
+                confirmButton = { androidx.compose.material3.Button(onClick = { showLink = false }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(14.dp), colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)) { Text("Listo", color = Color.White, fontWeight = FontWeight.SemiBold) } },
+                title = { Text("Copiar link del menú", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        listOf(
+                            Triple("Para redes sociales", "Ideal para Instagram y Facebook. Corto y prolijo.", link),
+                            Triple("Para WhatsApp", "Ideal para compartir por WhatsApp: se ve como link tocable.", "www.$link"),
+                        ).forEach { (title, hint, value) ->
+                            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface2).padding(14.dp)) {
+                                Text(title, fontWeight = FontWeight.Bold)
+                                Text(hint, color = Graphite, fontSize = 13.sp)
+                                Spacer(Modifier.size(8.dp))
+                                Text(value, fontFamily = SpaceGrotesk, fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.size(10.dp))
+                                androidx.compose.material3.Button(
+                                    onClick = { copy(value); showLink = false },
+                                    modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(14.dp),
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Fresco, contentColor = Color.White),
+                                ) { Icon(Icons.Filled.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp)); Text("  Copiar", color = Color.White, fontWeight = FontWeight.SemiBold) }
+                            }
+                        }
+                    }
+                },
+            )
         }
         Group("TU LOCAL", local)
         Group("OPERACIÓN", operacion)
