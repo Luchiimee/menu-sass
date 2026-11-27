@@ -37,7 +37,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -369,14 +371,101 @@ private fun Board(orders: List<OrderDto>, kind: String, vm: AppController) {
 }
 
 // "2 x Hamburguesa" por cada ítem. Tolera ítems con formas distintas (name/quantity o title/qty).
-private fun itemLines(order: OrderDto): List<String> {
+private data class ItemLine(val qty: String, val name: String, val total: Double?, val extras: List<String>)
+
+private fun primitive(o: JsonObject, key: String): String? = o[key]?.let { runCatching { it.jsonPrimitive.content }.getOrNull() }?.takeIf { it != "null" }
+
+private fun itemLines(order: OrderDto): List<ItemLine> {
     val arr = order.items as? JsonArray ?: return emptyList()
     return arr.mapNotNull { el ->
         val o = el as? JsonObject ?: return@mapNotNull null
-        fun str(vararg keys: String) = keys.firstNotNullOfOrNull { k -> o[k]?.let { runCatching { it.jsonPrimitive.content }.getOrNull() } }
-        val name = str("name", "title", "product_name") ?: return@mapNotNull null
-        val qty = str("quantity", "qty", "cantidad") ?: "1"
-        "$qty x $name"
+        val name = listOf("name", "title", "product_name").firstNotNullOfOrNull { primitive(o, it) } ?: return@mapNotNull null
+        val qty = listOf("quantity", "qty", "cantidad").firstNotNullOfOrNull { primitive(o, it) } ?: "1"
+        var extraSum = 0.0
+        val extras = (o["extrasList"] as? JsonArray)?.mapNotNull { e ->
+            val eo = e as? JsonObject ?: return@mapNotNull null
+            val en = primitive(eo, "name") ?: return@mapNotNull null
+            val eq = primitive(eo, "quantity")?.toDoubleOrNull() ?: 1.0
+            extraSum += (primitive(eo, "price")?.toDoubleOrNull() ?: 0.0) * eq
+            if (eq > 1) "+ ${eq.toInt()} x $en" else "+ $en"
+        } ?: emptyList()
+        val total = primitive(o, "price")?.toDoubleOrNull()?.let { (it + extraSum) * (qty.toDoubleOrNull() ?: 1.0) }
+        ItemLine(qty, name, total, extras)
+    }
+}
+
+private fun orderNote(order: OrderDto): String? =
+    order.description?.takeIf { it.isNotBlank() } ?: order.notes?.takeIf { it.isNotBlank() }
+
+private fun scheduledLabel(order: OrderDto): String? {
+    if (order.orderType == "mesa") return null
+    val s = order.scheduledDeliveryTime?.trim().orEmpty()
+    return if (s.isEmpty() || s.equals("Inmediato", ignoreCase = true)) null else s
+}
+
+// Teléfonos de Argentina guardados como los escribe el cliente (0 + área + número, o con 15) → número de WhatsApp (549 + área + número).
+private fun whatsappUrl(phone: String): String? {
+    var d = phone.filter { it.isDigit() }
+    if (d.isEmpty()) return null
+    if (d.startsWith("54")) {
+        if (!d.startsWith("549") && d.length == 12) d = "549" + d.drop(2)
+        return "https://wa.me/$d"
+    }
+    d = d.trimStart('0')
+    if (d.length == 12) {
+        for (a in 2..4) if (d.substring(a, a + 2) == "15") { d = d.removeRange(a, a + 2); break }
+    }
+    if (d.length == 10) d = "549$d"
+    return "https://wa.me/$d"
+}
+
+@Composable
+private fun PhoneRow(phone: String) {
+    val uri = LocalUriHandler.current
+    val url = whatsappUrl(phone)
+    if (url == null) { Text(phone, color = Fresco, fontWeight = FontWeight.Bold); return }
+    OutlinedButton(
+        onClick = { runCatching { uri.openUri(url) } },
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Fresco),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
+    ) {
+        Icon(Icons.Filled.Chat, contentDescription = null, tint = Fresco, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Chatear por WhatsApp · $phone", color = Fresco, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun ItemsBlock(lines: List<ItemLine>) {
+    lines.forEach { l ->
+        Row(Modifier.padding(vertical = 2.dp)) {
+            Text("${l.qty} x ${l.name}", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            l.total?.let { Text(formatMoney(it), color = Graphite) }
+        }
+        l.extras.forEach { Text(it, color = Graphite, fontSize = 13.sp, modifier = Modifier.padding(start = 12.dp)) }
+    }
+}
+
+@Composable
+private fun BreakRow(label: String, value: String, color: Color) {
+    Row { Text(label, color = color, fontSize = 13.sp, modifier = Modifier.weight(1f)); Text(value, color = color, fontSize = 13.sp) }
+}
+
+// Subtotal / descuento / envío: mismos números que el panel web (el total guardado manda; el descuento se completa por diferencia).
+@Composable
+private fun TotalsBreakdown(order: OrderDto, lines: List<ItemLine>) {
+    val total = order.total ?: return
+    val subtotal = lines.sumOf { it.total ?: 0.0 }
+    val envio = (order.deliveryCost ?: 0.0).coerceAtLeast(0.0)
+    val saved = order.discountAmount ?: 0.0
+    val diff = (subtotal + envio - total).coerceAtLeast(0.0)
+    val desc = if (saved > 0) maxOf(saved, diff) else diff
+    if (subtotal <= 0 || (desc <= 0 && envio <= 0)) return
+    Column(Modifier.padding(top = 6.dp)) {
+        BreakRow("Subtotal", formatMoney(subtotal), Graphite)
+        if (desc > 0) BreakRow(order.couponCode?.takeIf { it.isNotBlank() }?.let { "Descuento (cupón ${it.uppercase()})" } ?: "Descuento", "−" + formatMoney(desc), Fresco)
+        if (envio > 0) BreakRow("Envío", "+" + formatMoney(envio), Graphite)
     }
 }
 
@@ -417,7 +506,7 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         (if (showKind) (if (order.orderType == "mesa") tableLabel(order.tableNumber) else if (order.orderType == "retiro") "Retiro" else "Delivery") + " · " else "") +
-                            "${formatAgo(order.createdAt)} · ${lines.size} ${if (lines.size == 1) "ítem" else "ítems"}",
+                            "${formatAgo(order.createdAt)} · ${lines.size} ${if (lines.size == 1) "ítem" else "ítems"}" + (scheduledLabel(order)?.let { " · Para las $it" } ?: ""),
                         color = if (stage == OrderStage.NUEVO) Alert else Graphite,
                         fontWeight = if (stage == OrderStage.NUEVO) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 13.sp, modifier = Modifier.weight(1f),
@@ -426,11 +515,19 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
                 }
                 if (expanded) {
                     Spacer(Modifier.height(8.dp))
-                    order.customerPhone?.takeIf { it.isNotBlank() }?.let { Text(it, color = Fresco, fontWeight = FontWeight.Bold) }
+                    order.customerPhone?.takeIf { it.isNotBlank() }?.let { PhoneRow(it); Spacer(Modifier.height(6.dp)) }
+                    if (order.orderType != "mesa") {
+                        val sched = scheduledLabel(order)
+                        Text(
+                            if (sched != null) "Programado para las $sched" else if (order.orderType == "delivery") "Enviar lo antes posible" else "Retiro lo antes posible",
+                            color = if (sched != null) Fresco else Graphite, fontWeight = if (sched != null) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp,
+                        )
+                    }
                     order.address?.takeIf { it.isNotBlank() }?.let { Text(it, color = Graphite) }
                     Spacer(Modifier.height(6.dp))
-                    lines.forEach { Text(it) }
-                    order.notes?.takeIf { it.isNotBlank() }?.let { Text("Nota: $it", color = Brasa, modifier = Modifier.padding(top = 4.dp)) }
+                    ItemsBlock(lines)
+                    orderNote(order)?.let { Text("Nota: $it", color = Brasa, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp)) }
+                    TotalsBreakdown(order, lines)
                     Spacer(Modifier.height(6.dp))
                     Text(order.paymentMethod ?: "", color = Graphite, fontSize = 13.sp)
                     if (needsTransferCheck) {
@@ -633,8 +730,8 @@ private fun MesaDetail(entry: MesaEntry, vm: AppController, products: List<Produ
                 Text("CONSUMO", color = Graphite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 if (lines.isEmpty()) Text("Todavía no hay productos.", color = Graphite)
-                lines.forEach { Text(it, modifier = Modifier.padding(vertical = 2.dp)) }
-                order.notes?.takeIf { it.isNotBlank() }?.let { Text("Nota: $it", color = Brasa, modifier = Modifier.padding(top = 6.dp)) }
+                ItemsBlock(lines)
+                orderNote(order)?.let { Text("Nota: $it", color = Brasa, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp)) }
                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
                 Row {
                     Text("Total", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.weight(1f))

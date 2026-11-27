@@ -57,6 +57,11 @@ data class OrderDto(
     val notes: String? = null,
     @SerialName("table_number") val tableNumber: String? = null,
     @SerialName("shift_id") val shiftId: String? = null,
+    // La nota que escribe el cliente en el menú se guarda en "description" (notes queda para uso interno).
+    val description: String? = null,
+    @SerialName("coupon_code") val couponCode: String? = null,
+    @SerialName("discount_amount") val discountAmount: Double? = null,
+    @SerialName("scheduled_delivery_time") val scheduledDeliveryTime: String? = null,
 )
 
 @Serializable
