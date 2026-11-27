@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.TrendingUp
@@ -57,6 +58,7 @@ private data class MoreItem(val icon: ImageVector, val title: String, val subtit
 @Composable
 fun MoreScreen(state: UiState, vm: AppController) {
     var page by rememberSaveable { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(state.moreRequest) { state.moreRequest?.let { page = it; vm.moreConsumed() } }
 
     if (page == "avisos") {
         BackHandler { page = null }
@@ -77,6 +79,12 @@ fun MoreScreen(state: UiState, vm: AppController) {
         return
     }
 
+    if (page == "impresion") {
+        BackHandler { page = null }
+        PrinterScreen(onBack = { page = null })
+        return
+    }
+
     if (page == "plantillas") {
         BackHandler { page = null }
         TemplatesScreen(state = state, onBack = { page = null }, onChoose = vm::chooseTemplate)
@@ -90,6 +98,7 @@ fun MoreScreen(state: UiState, vm: AppController) {
     val local = listOf(
         MoreItem(Icons.Filled.TrendingUp, "Resumen y rentabilidad", "Ventas, ticket promedio y producto top", onClick = soon),
         MoreItem(Icons.Filled.Palette, "Personalizar menú", "Logo, colores y portada", onClick = soon),
+        MoreItem(Icons.Filled.Print, "Impresión", "Papel de las comandas", soon = false, onClick = { page = "impresion" }),
         MoreItem(Icons.Filled.Dashboard, "Plantillas", "Diseños del menú digital", soon = false, onClick = { page = "plantillas" }),
         MoreItem(Icons.Filled.LocalShipping, "Delivery", "Zonas y costos de envío", onClick = soon),
         MoreItem(Icons.Filled.Event, "Reservas", "Mesas reservadas", onClick = soon),

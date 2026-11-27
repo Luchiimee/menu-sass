@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -82,17 +83,17 @@ private fun MainScaffold(state: UiState, vm: AppController) {
         val bDate = shiftBusinessDate(staleShift.openedAt, closeHourCfg)
         val yesterday = java.time.LocalDate.parse(todayAR()).minusDays(1).toString()
         val cuando = if (bDate == yesterday) "de ayer" else "del ${bDate.substring(8, 10)}/${bDate.substring(5, 7)}"
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { vm.dismissStale() },
             title = { Text("Quedó el turno del ${bDate.substring(8, 10)}/${bDate.substring(5, 7)} abierto. ¿Querés cerrarlo y empezar uno nuevo?") },
             text = { Text("Mientras siga abierto, los pedidos nuevos entran en ese turno. Este aviso no cambia nada: los pedidos que ya entraron quedan en el turno que ya tienen.") },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { vm.dismissStale(); vm.setCashDate(bDate); setTab(2) }) { Text("Cerrar el turno $cuando") }
+                TextButton(onClick = { vm.dismissStale(); vm.setCashDate(bDate); setTab(2) }) { Text("Cerrar el turno $cuando") }
             },
             dismissButton = {
-                Column(horizontalAlignment = Alignment.End) {
-                    androidx.compose.material3.TextButton(onClick = { vm.snoozeStale(staleShift.id) }) { Text("Continuar con el $cuando") }
-                    androidx.compose.material3.TextButton(onClick = { vm.dismissStale() }) { Text("Decidir después") }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { vm.snoozeStale(staleShift.id) }) { Text("Continuar con el $cuando") }
+                    TextButton(onClick = { vm.dismissStale() }) { Text("Decidir después") }
                 }
             },
         )
@@ -100,6 +101,7 @@ private fun MainScaffold(state: UiState, vm: AppController) {
 
     // Tocar un aviso de pedido lleva a la pestaña Pedidos
     LaunchedEffect(state.focusKind) { if (state.focusKind != null) setTab(0) }
+    LaunchedEffect(state.moreRequest) { if (state.moreRequest != null) setTab(3) }
 
     // Al volver a la app se vuelve a leer todo, y mientras está abierta se revisa cada minuto
     // por si se cortó el "en vivo" (internet, celu dormido, etc.).

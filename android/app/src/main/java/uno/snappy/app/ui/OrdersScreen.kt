@@ -43,7 +43,6 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -57,7 +56,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -482,8 +480,7 @@ private fun PrintButton(order: OrderDto, vm: AppController) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val r = vm.state.value.restaurant
     val locked = r?.subscriptionPlan == "light"
-    var paper by remember { mutableStateOf(PrintPrefs.paper(ctx)) }
-    var showPaper by remember { mutableStateOf(false) }
+    val paper = PrintPrefs.paper(ctx)
     OutlinedButton(
         onClick = {
             if (locked) android.widget.Toast.makeText(ctx, "Imprimir comandas está disponible en los planes GO y Plus.", android.widget.Toast.LENGTH_LONG).show()
@@ -497,52 +494,10 @@ private fun PrintButton(order: OrderDto, vm: AppController) {
         Text(if (locked) "Imprimir comanda (planes GO y Plus)" else "Imprimir comanda", color = if (locked) Graphite else Ink, fontWeight = FontWeight.SemiBold)
     }
     if (!locked) {
-        TextButton(onClick = { showPaper = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Papel: " + (if (paper == "4x6") "A6 (4 × 6 in)" else "hoja A4") + " · Cambiar", color = Graphite, fontSize = 13.sp)
+        Spacer(Modifier.height(6.dp))
+        TextButton(onClick = { vm.openMore("impresion") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Papel: " + (if (paper == "4x6") "A6" else "hoja A4") + " · Configurar impresión", color = Graphite, fontSize = 13.sp)
         }
-    }
-    if (showPaper) {
-        val uri = androidx.compose.ui.platform.LocalUriHandler.current
-        AlertDialog(
-            onDismissRequest = { showPaper = false },
-            title = { Text("Papel de la comanda") },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    PaperOption(paper == "a4", "Hoja A4", "(210 × 297 mm)",
-                        "La comanda sale centrada arriba en la hoja. El resto de la hoja queda en blanco.") { paper = "a4"; PrintPrefs.setPaper(ctx, "a4") }
-                    Spacer(Modifier.height(10.dp))
-                    PaperOption(paper == "4x6", "A6", "(4 × 6 in, unos 105 × 148 mm)",
-                        "Con una hoja A4 hacés 4 comandas y ahorrás papel.\n" +
-                            "1. Doblá la A4 por la mitad y marcá el pliegue. Doblala otra vez y cortá por los pliegues. Te quedan 4 hojas A6.\n" +
-                            "2. Cortá derecho y alisá bien cada hoja: un corte torcido o un pliegue traba la impresora.\n" +
-                            "3. Cargá las hojitas y cerrá las guías de la bandeja al ancho del papel.\n\n" +
-                            "No hace falta que el corte sea exacto, siempre que las 4 hojas queden parejas.") { paper = "4x6"; PrintPrefs.setPaper(ctx, "4x6") }
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "Al imprimir, la ventana de tu impresora abre en este tamaño. Según la marca, puede figurar como \"A6\" o como \"4 in x 6 in\". Si no se selecciona sola, elegilo ahí.",
-                        color = Graphite, fontSize = 13.sp,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text("¿Necesitás ayuda?", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    TextButton(onClick = { runCatching { uri.openUri("https://wa.me/5492324313123") } }, contentPadding = PaddingValues(0.dp)) {
-                        Text("Escribinos al 2324 313123", color = Fresco, fontWeight = FontWeight.Bold)
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showPaper = false }) { Text("Listo") } },
-        )
-    }
-}
-
-@Composable
-private fun PaperOption(selected: Boolean, title: String, size: String, description: String, onSelect: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onSelect)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.material3.RadioButton(selected = selected, onClick = onSelect)
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(" $size", color = Graphite, fontSize = 13.sp)
-        }
-        Text(description, color = Graphite, fontSize = 13.sp, modifier = Modifier.padding(start = 48.dp))
     }
 }
 

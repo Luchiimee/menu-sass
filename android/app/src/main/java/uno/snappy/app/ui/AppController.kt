@@ -47,6 +47,7 @@ data class UiState(
     val ordersKind: String = "delivery",
     val mainTab: Int = 0,
     val focusKind: String? = null,
+    val moreRequest: String? = null,
     val stage: Stage = Stage.LOADING,
     val loginError: String? = null,
     val loggingIn: Boolean = false,
@@ -417,6 +418,9 @@ class AppController(private val app: Application) {
     fun rememberOrdersKind(kind: String) = _state.update { it.copy(ordersKind = kind) }
     fun rememberMainTab(tab: Int) = _state.update { it.copy(mainTab = tab) }
     fun focusConsumed() = _state.update { it.copy(focusKind = null) }
+    // Abre una pantalla de Más (por ejemplo impresion) desde cualquier otra pestaña.
+    fun openMore(page: String) = _state.update { it.copy(moreRequest = page) }
+    fun moreConsumed() = _state.update { it.copy(moreRequest = null) }
 
     fun chooseTemplate(id: String) {
         val r = _state.value.restaurant ?: return
