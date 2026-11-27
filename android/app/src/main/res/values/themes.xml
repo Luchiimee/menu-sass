@@ -3,5 +3,6 @@
     <style name="Theme.Snappy" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">#15160E</item>
         <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
     </style>
 </resources>

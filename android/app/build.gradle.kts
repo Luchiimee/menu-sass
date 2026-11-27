@@ -28,8 +28,8 @@ android {
         applicationId = "uno.snappy.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 20
-        versionName = "0.1.18"
+        versionCode = 21
+        versionName = "0.1.19"
 
         buildConfigField("String", "SUPABASE_URL", "\"${snappyProps.getProperty("SUPABASE_URL", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${snappyProps.getProperty("SUPABASE_ANON_KEY", "")}\"")

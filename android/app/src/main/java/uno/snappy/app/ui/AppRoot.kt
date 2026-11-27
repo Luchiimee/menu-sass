@@ -1,6 +1,7 @@
 package uno.snappy.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -16,7 +17,8 @@ import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -54,7 +56,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun AppRoot(state: UiState, vm: AppController) {
     when (state.stage) {
-        Stage.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        Stage.LOADING -> LoadingSplash()
         Stage.LOGIN -> LoginScreen(state = state, onSignIn = vm::signIn, onGoogle = vm::signInWithGoogle)
         Stage.READY -> MainScaffold(state = state, vm = vm)
     }
@@ -182,5 +184,33 @@ private fun MainScaffold(state: UiState, vm: AppController) {
                 }
             }
         }
+    }
+}
+
+
+// Pantalla de carga: el rayo de Snappy late suavemente mientras se abre la app.
+@androidx.compose.runtime.Composable
+private fun LoadingSplash() {
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "splash")
+    val pulseA = t.animateFloat(
+        initialValue = 0.35f, targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(750, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            androidx.compose.animation.core.RepeatMode.Reverse,
+        ), label = "a",
+    )
+    val pulseS = t.animateFloat(
+        initialValue = 0.92f, targetValue = 1.06f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(750, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            androidx.compose.animation.core.RepeatMode.Reverse,
+        ), label = "s",
+    )
+    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.White), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(uno.snappy.app.R.drawable.snappy_bolt),
+            contentDescription = "Snappy",
+            modifier = Modifier.height(96.dp).graphicsLayer { this.alpha = pulseA.value; scaleX = pulseS.value; scaleY = pulseS.value },
+        )
     }
 }
