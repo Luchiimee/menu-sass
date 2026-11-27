@@ -482,6 +482,8 @@ private fun PrintButton(order: OrderDto, vm: AppController) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val r = vm.state.value.restaurant
     val locked = r?.subscriptionPlan == "light"
+    var paper by remember { mutableStateOf(PrintPrefs.paper(ctx)) }
+    var showPaper by remember { mutableStateOf(false) }
     OutlinedButton(
         onClick = {
             if (locked) android.widget.Toast.makeText(ctx, "Imprimir comandas está disponible en los planes GO y Plus.", android.widget.Toast.LENGTH_LONG).show()
@@ -493,6 +495,36 @@ private fun PrintButton(order: OrderDto, vm: AppController) {
         Icon(Icons.Filled.Print, contentDescription = null, tint = if (locked) Graphite else Ink, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(if (locked) "Imprimir comanda (planes GO y Plus)" else "Imprimir comanda", color = if (locked) Graphite else Ink, fontWeight = FontWeight.SemiBold)
+    }
+    if (!locked) {
+        TextButton(onClick = { showPaper = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("Papel: " + (if (paper == "4x6") "cuarto de hoja (4 x 6 in)" else "hoja A4") + " · Cambiar", color = Graphite, fontSize = 13.sp)
+        }
+    }
+    if (showPaper) {
+        AlertDialog(
+            onDismissRequest = { showPaper = false },
+            title = { Text("Papel de la comanda") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    listOf("a4" to "Hoja A4 completa", "4x6" to "Cuarto de hoja (4 x 6 in)").forEach { (v, label) ->
+                        Row(Modifier.fillMaxWidth().clickable { paper = v; PrintPrefs.setPaper(ctx, v) }, verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.RadioButton(selected = paper == v, onClick = { paper = v; PrintPrefs.setPaper(ctx, v) })
+                            Text(label, fontWeight = if (paper == v) FontWeight.Bold else FontWeight.Normal)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Hoja A4: la comanda sale arriba y centrada, y el resto de la hoja queda sin usar.\n\n" +
+                            "Cuarto de hoja: con una A4 hacés 4 comandas. Doblá la A4 por la mitad y marcá el pliegue, doblala otra vez y cortá por los pliegues. " +
+                            "Alisá bien cada hoja, ajustá las guías de la bandeja al ancho y cargala.\n\n" +
+                            "Tu impresora tiene que ofrecer 4 x 6 in en el diálogo de impresión. Si no aparece, usá A4.",
+                        color = Graphite, fontSize = 13.sp,
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { showPaper = false }) { Text("Listo") } },
+        )
     }
 }
 
@@ -556,7 +588,7 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
                     orderNote(order)?.let { Text("Nota: $it", color = Brasa, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp)) }
                     TotalsBreakdown(order, lines)
                     Spacer(Modifier.height(6.dp))
-                    Text(order.paymentMethod ?: "", color = Graphite, fontSize = 13.sp)
+                    Text("Pago: ${order.paymentMethod ?: "-"}", color = Graphite, fontSize = 13.sp)
                     Spacer(Modifier.height(8.dp))
                     PrintButton(order, vm)
                     if (needsTransferCheck) {

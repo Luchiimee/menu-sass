@@ -12,6 +12,13 @@ import uno.snappy.app.data.tableLabel
 // (HP, Mopria, o una térmica a través de una app puente). Mismo contenido que el ticket del panel web, más la nota del cliente.
 private var printView: WebView? = null
 
+// Tamaño de papel de la comanda, guardado en este teléfono: "a4" (hoja completa) o "4x6" (un cuarto de A4 cortado).
+object PrintPrefs {
+    private fun prefs(c: Context) = c.getSharedPreferences("snappy_print", Context.MODE_PRIVATE)
+    fun paper(c: Context): String = prefs(c).getString("paper", "a4") ?: "a4"
+    fun setPaper(c: Context, v: String) { prefs(c).edit().putString("paper", v).apply() }
+}
+
 private fun esc(s: String?): String = (s ?: "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 fun printTicket(context: Context, restaurantName: String, order: OrderDto) {
@@ -50,7 +57,7 @@ fun printTicket(context: Context, restaurantName: String, order: OrderDto) {
         if (totals.envio > 0) sb.append("<div class='row'><span>ENVÍO / DELIVERY:</span><span>+${esc(formatMoney(totals.envio))}</span></div>")
     }
     sb.append("<div class='row tot'><span>TOTAL:</span><span>${esc(formatMoney(order.total))}</span></div>")
-    sb.append("<div class='row' style='font-size:12px;margin-top:6px'><span>PAGO:</span><span>${esc((order.paymentMethod ?: "").uppercase())}</span></div>")
+    sb.append("<div style='font-size:13px;margin-top:8px'><b>PAGO:</b> ${esc((order.paymentMethod ?: "").uppercase())}</div>")
     sb.append("<p class='c' style='font-size:10px;margin-top:25px'>Snappy · Tu Menú Digital</p></body></html>")
 
     val jobName = "Comanda ${order.id.take(5)}"
@@ -62,7 +69,7 @@ fun printTicket(context: Context, restaurantName: String, order: OrderDto) {
             if (started) return
             started = true
             val pm = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-            pm.print(jobName, v.createPrintDocumentAdapter(jobName), PrintAttributes.Builder().build())
+            pm.print(jobName, v.createPrintDocumentAdapter(jobName), PrintAttributes.Builder().setMediaSize(if (PrintPrefs.paper(context) == "4x6") PrintAttributes.MediaSize.NA_INDEX_4X6 else PrintAttributes.MediaSize.ISO_A4).build())
         }
     }
     view.loadDataWithBaseURL(null, sb.toString(), "text/html", "UTF-8", null)
