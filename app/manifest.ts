@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Snappy - Menú Digital',
     short_name: 'Snappy',
     display: 'standalone', 
-    background_color: '#000000',
+    background_color: '#ffffff',
     theme_color: '#000000',
     orientation: 'portrait',
     

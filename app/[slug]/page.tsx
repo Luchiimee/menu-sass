@@ -1639,10 +1639,13 @@ case "spotlight":
           <HeladeriaSoft
             restaurant={restaurant}
             products={iceCreamProducts}
+            categories={restaurant.categories || []}
+            fetchedExtras={restaurant.fetched_extras || []}
             isOpen={isOpen}
             mesaLabel={mesaLabel}
-            onAddToCart={(product: any) => {
-              addToCart(product);
+            setShowInfo={setShowInfo}
+            onAddToCart={(product: any, qty: number = 1, extras: any[] = []) => {
+              addItem(product, qty, extras);
               mostrarAviso("✅ Producto agregado");
             }}
             isMockup={false}

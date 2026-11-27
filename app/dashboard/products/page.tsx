@@ -586,9 +586,8 @@ const maxProds = maxProductsForPlan(currentPlan);
   
 
 {/* Categorías: disponibles para todas las plantillas por defecto.
-    TODO: HeladeriaSoft (icecream-v1) no tiene render de categorías todavía —
-    excluida temporalmente hasta implementar. NO es decisión de diseño, es deuda pendiente. */}
-{selectedTemplate !== 'icecream-v1' && (
+    Soft Premium (icecream-v1) ya las muestra. */}
+{(
   <button onClick={() => setActiveTab('categories')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'categories' ? 'bg-white text-[#17A06D] shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>
       <List size={16} className="inline mr-2"/> Categorías
   </button>
@@ -1217,9 +1216,8 @@ const maxProds = maxProductsForPlan(currentPlan);
 
 
 {/* Categoría: disponible para todas las plantillas por defecto.
-    TODO: HeladeriaSoft (icecream-v1) no tiene render de categorías todavía —
-    excluida temporalmente hasta implementar. NO es decisión de diseño, es deuda pendiente. */}
-{selectedTemplate !== 'icecream-v1' && (
+    Soft Premium (icecream-v1) ya las muestra. */}
+{(
     <div className="pt-2">
         <label className="text-xs font-bold text-gray-700 uppercase mb-2 block ml-1 tracking-wider text-left">Categoría</label>
         <div className="relative">
