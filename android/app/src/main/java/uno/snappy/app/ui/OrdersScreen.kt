@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -371,11 +372,11 @@ private fun Board(orders: List<OrderDto>, kind: String, vm: AppController) {
 }
 
 // "2 x Hamburguesa" por cada ítem. Tolera ítems con formas distintas (name/quantity o title/qty).
-private data class ItemLine(val qty: String, val name: String, val total: Double?, val extras: List<String>)
+internal data class ItemLine(val qty: String, val name: String, val total: Double?, val extras: List<String>)
 
 private fun primitive(o: JsonObject, key: String): String? = o[key]?.let { runCatching { it.jsonPrimitive.content }.getOrNull() }?.takeIf { it != "null" }
 
-private fun itemLines(order: OrderDto): List<ItemLine> {
+internal fun itemLines(order: OrderDto): List<ItemLine> {
     val arr = order.items as? JsonArray ?: return emptyList()
     return arr.mapNotNull { el ->
         val o = el as? JsonObject ?: return@mapNotNull null
@@ -452,20 +453,46 @@ private fun BreakRow(label: String, value: String, color: Color) {
     Row { Text(label, color = color, fontSize = 13.sp, modifier = Modifier.weight(1f)); Text(value, color = color, fontSize = 13.sp) }
 }
 
-// Subtotal / descuento / envío: mismos números que el panel web (el total guardado manda; el descuento se completa por diferencia).
-@Composable
-private fun TotalsBreakdown(order: OrderDto, lines: List<ItemLine>) {
-    val total = order.total ?: return
+internal data class Totals(val subtotal: Double, val descuento: Double, val envio: Double)
+
+// Mismos números que el panel web: el total guardado manda y el descuento se completa por diferencia.
+internal fun orderTotals(order: OrderDto, lines: List<ItemLine>): Totals? {
+    val total = order.total ?: return null
     val subtotal = lines.sumOf { it.total ?: 0.0 }
     val envio = (order.deliveryCost ?: 0.0).coerceAtLeast(0.0)
     val saved = order.discountAmount ?: 0.0
     val diff = (subtotal + envio - total).coerceAtLeast(0.0)
     val desc = if (saved > 0) maxOf(saved, diff) else diff
-    if (subtotal <= 0 || (desc <= 0 && envio <= 0)) return
+    if (subtotal <= 0 || (desc <= 0 && envio <= 0)) return null
+    return Totals(subtotal, desc, envio)
+}
+
+@Composable
+private fun TotalsBreakdown(order: OrderDto, lines: List<ItemLine>) {
+    val t = orderTotals(order, lines) ?: return
     Column(Modifier.padding(top = 6.dp)) {
-        BreakRow("Subtotal", formatMoney(subtotal), Graphite)
-        if (desc > 0) BreakRow(order.couponCode?.takeIf { it.isNotBlank() }?.let { "Descuento (cupón ${it.uppercase()})" } ?: "Descuento", "−" + formatMoney(desc), Fresco)
-        if (envio > 0) BreakRow("Envío", "+" + formatMoney(envio), Graphite)
+        BreakRow("Subtotal", formatMoney(t.subtotal), Graphite)
+        if (t.descuento > 0) BreakRow(order.couponCode?.takeIf { it.isNotBlank() }?.let { "Descuento (cupón ${it.uppercase()})" } ?: "Descuento", "−" + formatMoney(t.descuento), Fresco)
+        if (t.envio > 0) BreakRow("Envío", "+" + formatMoney(t.envio), Graphite)
+    }
+}
+
+@Composable
+private fun PrintButton(order: OrderDto, vm: AppController) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val r = vm.state.value.restaurant
+    val locked = r?.subscriptionPlan == "light"
+    OutlinedButton(
+        onClick = {
+            if (locked) android.widget.Toast.makeText(ctx, "Imprimir comandas está disponible en los planes GO y Plus.", android.widget.Toast.LENGTH_LONG).show()
+            else printTicket(ctx, r?.name ?: "Mi local", order)
+        },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
+    ) {
+        Icon(Icons.Filled.Print, contentDescription = null, tint = if (locked) Graphite else Ink, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(if (locked) "Imprimir comanda (planes GO y Plus)" else "Imprimir comanda", color = if (locked) Graphite else Ink, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -530,6 +557,8 @@ private fun OrderCard(order: OrderDto, expanded: Boolean, onToggle: () -> Unit, 
                     TotalsBreakdown(order, lines)
                     Spacer(Modifier.height(6.dp))
                     Text(order.paymentMethod ?: "", color = Graphite, fontSize = 13.sp)
+                    Spacer(Modifier.height(8.dp))
+                    PrintButton(order, vm)
                     if (needsTransferCheck) {
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(onClick = { vm.confirmTransfer(order) }, modifier = Modifier.fillMaxWidth()) { Text("Confirmar transferencia recibida") }
@@ -740,6 +769,8 @@ private fun MesaDetail(entry: MesaEntry, vm: AppController, products: List<Produ
                 Text(order.paymentMethod ?: "", color = Graphite, fontSize = 13.sp)
             }
         }
+        Spacer(Modifier.height(10.dp))
+        PrintButton(order, vm)
         if (stage != OrderStage.FINAL) {
             Spacer(Modifier.height(10.dp))
             OutlinedButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Agregar producto") }
