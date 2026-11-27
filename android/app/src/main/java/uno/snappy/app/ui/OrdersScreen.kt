@@ -498,33 +498,51 @@ private fun PrintButton(order: OrderDto, vm: AppController) {
     }
     if (!locked) {
         TextButton(onClick = { showPaper = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Papel: " + (if (paper == "4x6") "cuarto de hoja (4 x 6 in)" else "hoja A4") + " · Cambiar", color = Graphite, fontSize = 13.sp)
+            Text("Papel: " + (if (paper == "4x6") "A6 (4 × 6 in)" else "hoja A4") + " · Cambiar", color = Graphite, fontSize = 13.sp)
         }
     }
     if (showPaper) {
+        val uri = androidx.compose.ui.platform.LocalUriHandler.current
         AlertDialog(
             onDismissRequest = { showPaper = false },
             title = { Text("Papel de la comanda") },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    listOf("a4" to "Hoja A4 completa", "4x6" to "Cuarto de hoja (4 x 6 in)").forEach { (v, label) ->
-                        Row(Modifier.fillMaxWidth().clickable { paper = v; PrintPrefs.setPaper(ctx, v) }, verticalAlignment = Alignment.CenterVertically) {
-                            androidx.compose.material3.RadioButton(selected = paper == v, onClick = { paper = v; PrintPrefs.setPaper(ctx, v) })
-                            Text(label, fontWeight = if (paper == v) FontWeight.Bold else FontWeight.Normal)
-                        }
-                    }
+                    PaperOption(paper == "a4", "Hoja A4", "(210 × 297 mm)",
+                        "La comanda sale centrada arriba en la hoja. El resto de la hoja queda en blanco.") { paper = "a4"; PrintPrefs.setPaper(ctx, "a4") }
+                    Spacer(Modifier.height(10.dp))
+                    PaperOption(paper == "4x6", "A6", "(4 × 6 in, unos 105 × 148 mm)",
+                        "Con una hoja A4 hacés 4 comandas y ahorrás papel.\n" +
+                            "1. Doblá la A4 por la mitad y marcá el pliegue. Doblala otra vez y cortá por los pliegues. Te quedan 4 hojas A6.\n" +
+                            "2. Cortá derecho y alisá bien cada hoja: un corte torcido o un pliegue traba la impresora.\n" +
+                            "3. Cargá las hojitas y cerrá las guías de la bandeja al ancho del papel.\n\n" +
+                            "No hace falta que el corte sea exacto, siempre que las 4 hojas queden parejas.") { paper = "4x6"; PrintPrefs.setPaper(ctx, "4x6") }
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Hoja A4: la comanda sale arriba y centrada, y el resto de la hoja queda sin usar.\n\n" +
-                            "Cuarto de hoja: con una A4 hacés 4 comandas. Doblá la A4 por la mitad y marcá el pliegue, doblala otra vez y cortá por los pliegues. " +
-                            "Alisá bien cada hoja, ajustá las guías de la bandeja al ancho y cargala.\n\n" +
-                            "Tu impresora tiene que ofrecer 4 x 6 in en el diálogo de impresión. Si no aparece, usá A4.",
+                        "Al imprimir, la ventana de tu impresora abre en este tamaño. Según la marca, puede figurar como \"A6\" o como \"4 in x 6 in\". Si no se selecciona sola, elegilo ahí.",
                         color = Graphite, fontSize = 13.sp,
                     )
+                    Spacer(Modifier.height(10.dp))
+                    Text("¿Necesitás ayuda?", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    TextButton(onClick = { runCatching { uri.openUri("https://wa.me/5492324313123") } }, contentPadding = PaddingValues(0.dp)) {
+                        Text("Escribinos al 2324 313123", color = Fresco, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { showPaper = false }) { Text("Listo") } },
         )
+    }
+}
+
+@Composable
+private fun PaperOption(selected: Boolean, title: String, size: String, description: String, onSelect: () -> Unit) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onSelect)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.RadioButton(selected = selected, onClick = onSelect)
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(" $size", color = Graphite, fontSize = 13.sp)
+        }
+        Text(description, color = Graphite, fontSize = 13.sp, modifier = Modifier.padding(start = 48.dp))
     }
 }
 
