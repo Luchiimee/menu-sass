@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +23,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Language
@@ -119,21 +123,47 @@ fun MoreScreen(state: UiState, vm: AppController) {
             Text("MÁS", style = MaterialTheme.typography.labelSmall, color = Graphite)
             Text("Tu local", style = MaterialTheme.typography.headlineMedium)
         }
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).clickable { page = "plan" }.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
-                val logo = state.restaurant?.logoUrl
-                if (!logo.isNullOrBlank()) coil.compose.AsyncImage(model = logo, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                else Text((state.restaurant?.name ?: "S").take(2).uppercase(), color = Color.White, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold)
+        val slug = state.restaurant?.slug
+        val link = if (!slug.isNullOrBlank()) "snappy.uno/$slug" else null
+        val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Ink), contentAlignment = Alignment.Center) {
+                    val logo = state.restaurant?.logoUrl
+                    if (!logo.isNullOrBlank()) coil.compose.AsyncImage(model = logo, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    else Text((state.restaurant?.name ?: "S").take(2).uppercase(), color = Color.White, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(state.restaurant?.name ?: "Mi local", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    if (link != null) Text(link, color = Graphite, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
             }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(state.restaurant?.name ?: "Mi local", fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                if (plan.isNotEmpty()) Text("PLAN ${plan.uppercase()}", style = MaterialTheme.typography.labelSmall, color = Color(0xFF5C4600), modifier = Modifier.padding(top = 3.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF2C94C)).padding(horizontal = 8.dp, vertical = 2.dp))
+            if (link != null) {
+                Spacer(Modifier.size(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.Button(
+                        onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString("https://$link")); vm.showMessage("Link copiado") },
+                        modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(14.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+                    ) { Icon(Icons.Filled.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp)); Text("  Copiar link", color = Color.White, fontWeight = FontWeight.SemiBold) }
+                    OutlinedButton(
+                        onClick = { uriHandler.openUri("https://$link") },
+                        modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(14.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+                    ) { Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp)); Text("  Abrir menú", fontWeight = FontWeight.SemiBold) }
+                }
+                Spacer(Modifier.size(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val i = android.content.Intent(android.content.Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(android.content.Intent.EXTRA_TEXT, "https://$link") }
+                        ctx.startActivity(android.content.Intent.createChooser(i, "Compartir menú").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    },
+                    modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(14.dp),
+                ) { Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp)); Text("  Compartir", fontWeight = FontWeight.SemiBold) }
             }
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Ver plan", tint = Graphite)
         }
         Group("TU LOCAL", local)
         Group("OPERACIÓN", operacion)

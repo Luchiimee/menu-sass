@@ -161,13 +161,13 @@ fun PrinterScreen(onBack: () -> Unit) {
                 Text("Escribinos y te ayudamos a dejar tu impresora lista.", color = Graphite)
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = { runCatching { uri.openUri("https://wa.me/5492324313123") } },
+                    onClick = { runCatching { uri.openUri("https://wa.me/5492324313123?text=" + android.net.Uri.encode("Hola necesito ayuda con mi impresora")) } },
                     modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Fresco, contentColor = Color.White),
                 ) {
                     Icon(Icons.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("WhatsApp · 2324 313123", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Escribinos por WhatsApp", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
